@@ -26,6 +26,7 @@ async function updateStatus(
     throw new Error("Site not found");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await prisma.submission.update({
     where: { id: submissionId },
     data: { status: status as any },
@@ -99,7 +100,9 @@ export default async function SubmissionDetailPage({
 
   const form = site.forms[0];
   const submission = form.submissions[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = submission.data as Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const meta = submission.meta as Record<string, any>;
 
   return (

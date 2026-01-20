@@ -62,6 +62,7 @@ export async function POST(
     }
 
     // Parse request body
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let formData: Record<string, any>;
     try {
       formData = await request.json();

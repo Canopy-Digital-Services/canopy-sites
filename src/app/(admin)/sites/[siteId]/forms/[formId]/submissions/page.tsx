@@ -42,6 +42,7 @@ export default async function SubmissionsPage({
   const form = site.forms[0];
 
   // Build filters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filters: any = { formId: form.id };
   
   if (searchParams.status && searchParams.status !== "all") {
@@ -146,6 +147,7 @@ export default async function SubmissionsPage({
             </TableHeader>
             <TableBody>
               {submissions.map((submission) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const data = submission.data as Record<string, any>;
                 const preview = Object.entries(data)
                   .slice(0, 2)
@@ -175,6 +177,7 @@ export default async function SubmissionsPage({
                       </div>
                     </TableCell>
                     <TableCell className="max-w-md truncate">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {preview}
                     </TableCell>
                     <TableCell>

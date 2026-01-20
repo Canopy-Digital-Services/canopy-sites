@@ -47,6 +47,7 @@ export async function GET(
     // Collect all unique keys from all submissions
     const allKeys = new Set<string>();
     submissions.forEach((submission) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = submission.data as Record<string, any>;
       Object.keys(data).forEach((key) => allKeys.add(key));
     });
@@ -68,7 +69,9 @@ export async function GET(
     let csv = headers.map((h) => `"${h}"`).join(",") + "\n";
 
     submissions.forEach((submission) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = submission.data as Record<string, any>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const meta = submission.meta as Record<string, any>;
 
       const row = [
