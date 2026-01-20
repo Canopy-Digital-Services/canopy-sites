@@ -6,10 +6,10 @@ import { queueEmailNotification } from "@/lib/email-queue";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { siteApiKey: string; formSlug: string } }
+  { params }: { params: Promise<{ siteApiKey: string; formSlug: string }> }
 ) {
   try {
-    const { siteApiKey, formSlug } = params;
+    const { siteApiKey, formSlug } = await params;
 
     // 1. Lookup Site by apiKey
     const site = await prisma.site.findUnique({

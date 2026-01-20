@@ -4,8 +4,9 @@ import { auth } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { siteId: string; formId: string } }
+  { params }: { params: Promise<{ siteId: string; formId: string }> }
 ) {
+  const { siteId, formId } = await params;
   try {
     const session = await auth();
     
@@ -18,12 +19,12 @@ export async function GET(
     // Verify ownership
     const site = await prisma.site.findFirst({
       where: {
-        id: params.siteId,
+        id: siteId,
         userId,
       },
       include: {
         forms: {
-          where: { id: params.formId },
+          where: { id: formId },
           include: {
             submissions: {
               orderBy: { createdAt: "desc" },
