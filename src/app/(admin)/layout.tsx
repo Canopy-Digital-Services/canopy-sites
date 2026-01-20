@@ -41,6 +41,11 @@ export default async function AdminLayout({
               Sites
             </Button>
           </Link>
+          <Link href="/docs">
+            <Button variant="ghost" className="w-full justify-start">
+              Help
+            </Button>
+          </Link>
           <SignOutButton />
         </nav>
       </aside>
