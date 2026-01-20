@@ -102,7 +102,7 @@ export default async function SubmissionDetailPage({
   const form = site.forms[0];
   const submission = form.submissions[0];
   const data = submission.data as Record<string, unknown>;
-  const meta = submission.meta as Record<string, unknown>;
+  const meta = submission.meta as { ipHash?: string; userAgent?: string; referrer?: string; origin?: string };
 
   return (
     <div className="space-y-6">
@@ -169,7 +169,7 @@ export default async function SubmissionDetailPage({
               <div className="font-medium text-zinc-600 dark:text-zinc-400">
                 User Agent
               </div>
-              <div>{meta.userAgent}</div>
+              <div>{meta.userAgent || "N/A"}</div>
             </div>
             <div>
               <div className="font-medium text-zinc-600 dark:text-zinc-400">
