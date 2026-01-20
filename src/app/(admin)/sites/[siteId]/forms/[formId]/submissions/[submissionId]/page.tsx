@@ -26,9 +26,10 @@ async function updateStatus(
     throw new Error("Site not found");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await prisma.submission.update({
     where: { id: submissionId },
+    // Prisma generated type requires enum, but we validate at runtime
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: { status: status as any },
   });
 
