@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { DeleteFormButton } from "@/components/delete-form-button";
 
 async function updateForm(siteId: string, formId: string, formData: FormData) {
   "use server";
@@ -178,23 +179,10 @@ export default async function EditFormPage({
             Deleting this form will permanently remove all submissions. This
             action cannot be undone.
           </p>
-          <form action={deleteForm.bind(null, site.id, form.id)}>
-            <Button
-              type="submit"
-              variant="destructive"
-              onClick={(e) => {
-                if (
-                  !confirm(
-                    `Are you sure you want to delete "${form.name}"? This will delete all submissions.`
-                  )
-                ) {
-                  e.preventDefault();
-                }
-              }}
-            >
-              Delete Form
-            </Button>
-          </form>
+          <DeleteFormButton
+            formName={form.name}
+            action={deleteForm.bind(null, site.id, form.id)}
+          />
         </CardContent>
       </Card>
     </div>
