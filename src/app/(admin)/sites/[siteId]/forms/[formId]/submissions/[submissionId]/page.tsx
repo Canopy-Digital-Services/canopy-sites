@@ -100,10 +100,8 @@ export default async function SubmissionDetailPage({
 
   const form = site.forms[0];
   const submission = form.submissions[0];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = submission.data as Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const meta = submission.meta as Record<string, any>;
+  const data = submission.data as Record<string, unknown>;
+  const meta = submission.meta as Record<string, unknown>;
 
   return (
     <div className="space-y-6">

@@ -177,7 +177,6 @@ export default async function SubmissionsPage({
                       </div>
                     </TableCell>
                     <TableCell className="max-w-md truncate">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {preview}
                     </TableCell>
                     <TableCell>
