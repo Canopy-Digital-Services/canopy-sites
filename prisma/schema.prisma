@@ -1,0 +1,80 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Admin user account
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed
+  createdAt DateTime @default(now())
+  
+  sites     Site[]
+  
+  @@map("users")
+}
+
+// Client site (multi-tenant)
+model Site {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  domain    String   // Canonical domain for origin checks
+  apiKey    String   @unique @default(uuid())
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  forms     Form[]
+  
+  @@index([userId])
+  @@map("sites")
+}
+
+// Form configuration
+model Form {
+  id             String   @id @default(cuid())
+  siteId         String
+  name           String
+  slug           String   // Unique per site
+  notifyEmails   String[] @default([])
+  honeypotField  String?  // Optional honeypot field name
+  createdAt      DateTime @default(now())
+  
+  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  submissions    Submission[]
+  
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@map("forms")
+}
+
+// Form submission
+model Submission {
+  id        String           @id @default(cuid())
+  formId    String
+  data      Json             // Arbitrary form payload
+  meta      Json             // IP hash, user agent, referrer, origin
+  isSpam    Boolean          @default(false)
+  status    SubmissionStatus @default(NEW)
+  createdAt DateTime         @default(now())
+  
+  form      Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  @@index([formId])
+  @@index([status])
+  @@index([isSpam])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  NEW
+  READ
+  ARCHIVED
+}
