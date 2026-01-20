@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
+import { queueEmailNotification } from "@/lib/email-queue";
 
 export async function POST(
   request: NextRequest,
@@ -98,10 +99,8 @@ export async function POST(
     });
 
     // 7. Queue email notification (async, don't block response)
-    // We'll implement this in Phase 4
     if (!isSpam && form.notifyEmails.length > 0) {
-      // TODO: Queue email notification
-      // queueEmailNotification(submission, form, site);
+      queueEmailNotification(submission, form, site);
     }
 
     // 8. Return success
