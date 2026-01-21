@@ -1,6 +1,6 @@
-# Can-O-Forms
+# Can-O-Forms v2
 
-A self-hosted forms backend with minimal admin UI for static sites.
+A self-hosted forms backend with script-based embeds and form builder for static sites.
 
 ## What is this?
 
@@ -18,8 +18,18 @@ Perfect for personal sites and client projects where you want full control over 
 
 ## Features
 
-### ✅ Core Features (MVP Complete)
+### ✅ Core Features
 
+#### v2 Features (Latest)
+- [x] **Script-Based Embeds** - Single `<script>` tag form rendering
+- [x] **Form Builder** - Define fields, validation, and order in admin UI
+- [x] **Theme System** - Customize colors, fonts, spacing per form or embed
+- [x] **Success Configuration** - Inline messages or redirect URLs
+- [x] **Field Types** - Text, email, textarea, select, checkbox, hidden
+- [x] **Client Validation** - Built-in required, email, length, regex validation
+- [x] **Public Embed API** - Separate endpoints for form definitions
+
+#### v1 Features (Stable)
 - [x] **Multi-tenant Sites Management** - Manage multiple client sites from one dashboard
 - [x] **Form Configuration** - Create and configure forms with custom notification emails
 - [x] **Submission API** - Public POST endpoint for form submissions
@@ -30,37 +40,25 @@ Perfect for personal sites and client projects where you want full control over 
 - [x] **Submissions Management** - List, filter, view, and mark submissions
 - [x] **CSV Export** - Download submissions as CSV files
 - [x] **Authentication** - Secure admin access with NextAuth
-- [x] **Integration Helper** - Copy-paste code examples for easy integration
 
-### 🚀 Quick Example
+### 🚀 Quick Example (v2 Embed)
 
 ```html
-<form id="contact-form">
-  <input type="text" name="name" required>
-  <input type="email" name="email" required>
-  <textarea name="message" required></textarea>
-  <button type="submit">Send</button>
-</form>
-
-<script>
-document.getElementById('contact-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData);
-  
-  const response = await fetch('https://forms.yourdomain.com/api/v1/submit/{API_KEY}/{FORM_SLUG}', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  
-  if (response.ok) {
-    alert('Form submitted successfully!');
-    e.target.reset();
-  }
-});
-</script>
+<div 
+  data-can-o-form="contact"
+  data-site-api-key="YOUR_API_KEY"
+  data-theme='{"primary":"#0ea5e9","radius":8}'
+></div>
+<script src="https://forms.yourdomain.com/embed.js"></script>
 ```
+
+**No manual HTML form writing required!** The embed script:
+- Renders your form fields automatically
+- Handles validation and submission
+- Displays success messages or redirects
+- Supports custom theming
+
+See [MIGRATION.md](./MIGRATION.md) for v1 to v2 upgrade guide.
 
 ## Technology Stack
 
@@ -125,13 +123,19 @@ npm run db:migrate
 npm run db:seed
 ```
 
-6. **Start development server:**
+6. **Build embed script:**
+
+```bash
+npm run embed:build
+```
+
+7. **Start development server:**
 
 ```bash
 npm run dev
 ```
 
-7. **Open http://localhost:3000** and log in with your admin credentials.
+8. **Open http://localhost:3000** and log in with your admin credentials.
 
 ## Deployment
 
@@ -141,6 +145,7 @@ npm run dev
 docker-compose up -d
 docker-compose exec can-o-forms npx prisma migrate deploy
 docker-compose exec can-o-forms npm run db:seed
+docker-compose exec can-o-forms npm run embed:build
 ```
 
 ### Coolify / Other Platforms
@@ -182,12 +187,19 @@ can-o-forms/
 
 ## API Documentation
 
-### Submit Form
+### v2 Embed API (Recommended)
 
+**Get Form Definition:**
 ```
-POST /api/v1/submit/{siteApiKey}/{formSlug}
+GET /api/embed/{siteApiKey}/{formSlug}
+```
+
+Returns form fields, validation rules, theme defaults, and success configuration.
+
+**Submit Form:**
+```
+POST /api/embed/{siteApiKey}/{formSlug}
 Content-Type: application/json
-Origin: https://yourdomain.com
 
 {
   "name": "John Doe",
@@ -196,12 +208,18 @@ Origin: https://yourdomain.com
 }
 ```
 
-**Response:**
+Returns field-level validation errors or success.
 
-```json
+### v1 API (Legacy, Still Supported)
+
+```
+POST /api/v1/submit/{siteApiKey}/{formSlug}
+Content-Type: application/json
+
 {
-  "success": true,
-  "id": "submission-id"
+  "name": "John Doe",
+  "email": "john@example.com",
+  "message": "Hello!"
 }
 ```
 
@@ -210,20 +228,27 @@ Origin: https://yourdomain.com
 - `404` - Site or form not found
 - `429` - Rate limit exceeded
 
+See [MIGRATION.md](./MIGRATION.md) for details.
+
 ## Features Roadmap
 
-### Not Included in MVP (Future Considerations)
+### v2 Complete ✅
+- Script-based embeds
+- Form builder with field management
+- Theme system
+- Success messages/redirects
 
-- Form builder UI
+### v3+ Planned
+- Drag-and-drop field builder
+- Visual theme editor
+- Conditional field logic
 - File uploads
 - Webhooks
-- Custom success pages
-- OAuth providers
+- Real-time form preview
+- Multi-page forms
 - Analytics dashboard
-- Team accounts
-- Billing/plans
 
-These features may be added later without breaking the core architecture.
+See [V2_IMPLEMENTATION.md](./V2_IMPLEMENTATION.md) for implementation details.
 
 ## Security Features
 

@@ -45,14 +45,37 @@ model Form {
   slug           String   // Unique per site
   notifyEmails   String[] @default([])
   honeypotField  String?  // Optional honeypot field name
+  successMessage String?
+  redirectUrl    String?
+  defaultTheme   Json?
   createdAt      DateTime @default(now())
   
   site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  fields         Field[]
   submissions    Submission[]
   
   @@unique([siteId, slug])
   @@index([siteId])
   @@map("forms")
+}
+
+model Field {
+  id          String    @id @default(cuid())
+  formId      String
+  name        String
+  type        FieldType
+  label       String
+  placeholder String?
+  required    Boolean   @default(false)
+  order       Int
+  options     Json?
+  validation  Json?
+
+  form        Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, name])
+  @@index([formId, order])
+  @@map("fields")
 }
 
 // Form submission
@@ -77,4 +100,13 @@ enum SubmissionStatus {
   NEW
   READ
   ARCHIVED
+}
+
+enum FieldType {
+  TEXT
+  EMAIL
+  TEXTAREA
+  SELECT
+  CHECKBOX
+  HIDDEN
 }

@@ -1,0 +1,8 @@
+{
+  "name": "can-o-forms-embed",
+  "private": true,
+  "description": "Embed runtime build configuration",
+  "scripts": {
+    "build": "node ../embed/esbuild.config.js"
+  }
+}

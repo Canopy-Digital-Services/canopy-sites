@@ -1,6 +1,6 @@
 # Creating and Managing Forms
 
-Forms represent individual forms on your website. Each form has a unique slug and can be configured with email notifications and spam protection.
+Forms represent individual forms on your website. Each form has a unique slug and can be configured with fields, validation rules, email notifications, success behavior, and spam protection.
 
 ## Creating a Form
 
@@ -12,6 +12,8 @@ Forms represent individual forms on your website. Each form has a unique slug an
    - **Notification Emails**: Comma-separated email addresses
    - **Honeypot Field**: Optional field name for spam detection
 4. Click **Create Form**
+
+After creating a form, you'll be taken to the form page where you can add fields using the field builder.
 
 ## Form Configuration
 
@@ -56,11 +58,51 @@ A honeypot field is a hidden form field that helps catch spam bots. If a bot fil
 <input type="text" name="website" style="display: none;" />
 ```
 
+## Adding Fields to a Form
+
+Forms in v2 support a visual field builder. To add fields:
+
+1. Click on a form name
+2. Click **Edit Form**
+3. Scroll to the **Fields** section
+4. Click **Add Field** to open the field editor
+
+### Field Types
+
+- **Text** - Single-line text input
+- **Email** - Email input with automatic format validation
+- **Textarea** - Multi-line text input
+- **Select** - Dropdown menu (requires options to be configured)
+- **Checkbox** - Single checkbox input
+- **Hidden** - Hidden field (not visible to users)
+
+### Field Configuration
+
+For each field, you can configure:
+
+- **Field Name** - Internal identifier (used in submissions)
+- **Label** - User-facing label
+- **Placeholder** - Hint text shown in empty fields
+- **Required** - Whether the field must be filled
+- **Validation Rules** (Text/Email/Textarea):
+  - Minimum length
+  - Maximum length
+  - Regex pattern
+  - Custom error message
+- **Options** (Select only):
+  - Add value/label pairs for dropdown choices
+  - Reorder options
+
+### Reordering Fields
+
+Use the **Up** and **Down** buttons next to each field to change the order. Fields will appear in this order in the embed.
+
 ## Viewing Form Details
 
 Click on a form name to view:
 - Form configuration
-- Integration code
+- Field list
+- Integration code (v2 embed script or v1 API)
 - List of recent submissions
 - Quick actions to edit or view submissions
 
@@ -68,17 +110,48 @@ Click on a form name to view:
 
 1. Click on a form name
 2. Click **Edit Form**
-3. Update any details
-4. Click **Save Changes**
+
+The edit page has three main sections:
+
+### Fields Section
+- Add, edit, delete, and reorder fields
+- Configure validation rules
+
+### Success Behavior Section
+- **Success Message** - Text shown after successful submission (if no redirect is set)
+- **Redirect URL** - URL to redirect to after submission (takes precedence over message)
+
+### Embed Appearance Section
+Configure default theme for the embed:
+- **Font Family** - CSS font-family string (e.g., "Inter, system-ui")
+- **Font CSS URL** - URL to font stylesheet (e.g., Google Fonts)
+- **Text Color** - Hex color for text
+- **Background Color** - Hex color for form background
+- **Primary Color** - Accent color (buttons, focus rings)
+- **Border Color** - Input border color
+- **Border Radius** - Corner radius in pixels
+- **Density** - Spacing: "compact", "normal", or "comfortable"
+
+### Form Details
+- Update name, slug, notification emails, and honeypot field
+
+Click **Save** on each section to apply changes.
 
 ## Integration Helper
 
 Click **Integration** on a form to see ready-to-use code snippets for:
-- HTML forms
+
+### v2 Embed Script (Recommended)
+- Single `<script>` tag embed code
+- Works with Figma Sites and static pages
+- No HTML form writing required
+
+### v1 API Integration
+- HTML form examples
 - JavaScript/AJAX submissions
 - Fetch API examples
 
-Copy and paste these directly into your static site.
+Copy and paste the code directly into your static site.
 
 ## Deleting a Form
 

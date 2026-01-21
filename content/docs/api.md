@@ -1,8 +1,107 @@
 # API Reference
 
-Complete reference for the Can-O-Forms submission API.
+Complete reference for the Can-O-Forms API endpoints. Can-O-Forms v2 includes both the embed API (for script-based embeds) and the legacy v1 submission API.
 
-## Endpoint
+## v2 Embed API (Recommended)
+
+The embed API is used by the embed script to fetch form definitions and submit forms with validation.
+
+### Get Form Definition
+
+```
+GET /api/embed/{siteApiKey}/{formSlug}
+```
+
+Returns an embed-safe form definition including fields, validation rules, theme defaults, and success configuration.
+
+**Example Response:**
+```json
+{
+  "formId": "clx123abc",
+  "slug": "contact",
+  "fields": [
+    {
+      "id": "field1",
+      "name": "name",
+      "type": "TEXT",
+      "label": "Your Name",
+      "placeholder": "Enter your name",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "field2",
+      "name": "email",
+      "type": "EMAIL",
+      "label": "Email Address",
+      "required": true
+    }
+  ],
+  "successMessage": "Thanks for contacting us!",
+  "redirectUrl": null,
+  "defaultTheme": {
+    "primary": "#0ea5e9",
+    "radius": 8
+  }
+}
+```
+
+**Security:**
+- Rate limited (60 requests per minute)
+- Origin validated
+- Never exposes admin data (notifyEmails, owner info)
+
+### Submit Form (v2)
+
+```
+POST /api/embed/{siteApiKey}/{formSlug}
+```
+
+Submits form data with server-side validation against field definitions.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "message": "Hello!"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "id": "submission-id"
+}
+```
+
+**Validation Error Response (400 Bad Request):**
+```json
+{
+  "error": "Validation failed",
+  "fields": {
+    "email": "Email must be a valid email address.",
+    "name": "Name is required."
+  }
+}
+```
+
+### CORS Headers
+
+Both embed endpoints include CORS headers to allow cross-origin requests:
+- `Access-Control-Allow-Origin`: Request origin or `*`
+- `Access-Control-Allow-Methods`: GET, POST, OPTIONS
+- `Access-Control-Allow-Headers`: Content-Type
+
+## v1 Submission API (Legacy)
+
+The v1 API accepts submissions without field validation. Useful for backwards compatibility or custom integrations.
+
+### Endpoint
 
 ```
 POST /api/v1/submit/{siteApiKey}/{formSlug}
@@ -65,7 +164,7 @@ If your form has a honeypot field configured, include it in the request body. If
 ```json
 {
   "success": true,
-  "message": "Submission received"
+  "id": "submission-id"
 }
 ```
 
@@ -250,10 +349,9 @@ Webhooks are not currently supported in Can-O-Forms. Form submissions can be acc
 
 ## API Versioning
 
-The current API version is `v1`. The version is included in the URL path:
+Can-O-Forms supports multiple API versions simultaneously:
 
-```
-/api/v1/submit/...
-```
+- **v2 Embed API** - `/api/embed/...` - Used by embed script, includes validation
+- **v1 Submission API** - `/api/v1/submit/...` - Legacy API, no validation
 
-Future versions will be released at new paths (e.g., `/api/v2/...`) to maintain backwards compatibility.
+Both APIs remain available for backwards compatibility. The embed script uses the v2 API automatically. Manual integrations can use either API endpoint.

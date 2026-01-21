@@ -23,6 +23,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build embed script first
+RUN npm run embed:build
+
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build

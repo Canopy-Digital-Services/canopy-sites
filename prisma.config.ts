@@ -1,6 +1,5 @@
 // Prisma configuration
-// Note: dotenv import removed - environment variables are injected by Docker in production
-import { defineConfig } from "prisma/config";
+// Simple config file for Prisma CLI
 
 // Only load dotenv in development (when not in Docker)
 if (process.env.NODE_ENV !== "production") {
@@ -11,7 +10,7 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-export default defineConfig({
+module.exports = {
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
@@ -19,4 +18,4 @@ export default defineConfig({
   datasource: {
     url: process.env["DATABASE_URL"],
   },
-});
+};
