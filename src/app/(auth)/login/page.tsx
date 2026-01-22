@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push("/sites");
+        router.push("/forms");
         router.refresh();
       }
     } catch {
@@ -73,9 +73,7 @@ export default function LoginPage() {
               disabled={isLoading}
             />
           </div>
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>

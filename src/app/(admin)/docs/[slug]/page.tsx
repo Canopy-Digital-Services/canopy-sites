@@ -56,7 +56,7 @@ export default async function DocPage({ params }: DocPageProps) {
 
         <Markdown content={content} />
 
-        <div className="mt-8 pt-8 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="mt-8 border-t border-border pt-8">
           <Link href="/docs">
             <Button variant="ghost">
               <ChevronLeft className="mr-2 h-4 w-4" />

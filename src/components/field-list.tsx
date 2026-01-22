@@ -33,7 +33,7 @@ export function FieldList({
   return (
     <div className="space-y-4">
       {fields.length === 0 ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           No fields yet. Add your first field to start rendering the embed.
         </p>
       ) : (
@@ -41,14 +41,14 @@ export function FieldList({
           {fields.map((field, index) => (
             <div
               key={field.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+              className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm shadow-sm"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{field.label}</span>
                   {field.required ? <Badge>Required</Badge> : null}
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-muted-foreground">
                   <span className="uppercase">{field.type}</span>
                   <span className="px-2">•</span>
                   <span>{field.name}</span>

@@ -6,19 +6,59 @@ import * as crypto from "crypto";
  */
 export function validateOrigin(
   origin: string | null,
-  allowedDomain: string
+  allowedDomain: string,
+  referer?: string | null
 ): boolean {
-  if (!origin) {
+  // For same-origin requests, browsers don't send Origin header
+  // Use Referer as fallback to extract the origin
+  let effectiveOrigin = origin;
+  if (!effectiveOrigin && referer) {
+    try {
+      const refererUrl = new URL(referer);
+      effectiveOrigin = refererUrl.origin;
+    } catch {
+      // Invalid referer URL
+    }
+  }
+  
+  if (!effectiveOrigin) {
     return false;
   }
 
   try {
-    const originUrl = new URL(origin);
+    const originUrl = new URL(effectiveOrigin);
     const originHostname = originUrl.hostname.toLowerCase();
     const allowedLower = allowedDomain.toLowerCase();
 
+    // Allow localhost for development/preview
+    if (
+      originHostname === "localhost" ||
+      originHostname === "127.0.0.1" ||
+      originHostname === "[::1]"
+    ) {
+      return true;
+    }
+
+    // Allow if it matches the dashboard's own domain (for previews)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (appUrl) {
+      try {
+        const dashboardHostname = new URL(appUrl).hostname.toLowerCase();
+        if (originHostname === dashboardHostname) {
+          return true;
+        }
+      } catch {
+        // Ignore invalid URL in env var
+      }
+    }
+
     // Exact match
     if (originHostname === allowedLower) {
+      return true;
+    }
+
+    // Match subdomains (e.g., cdn.example.com matches example.com)
+    if (originHostname.endsWith(`.${allowedLower}`)) {
       return true;
     }
 

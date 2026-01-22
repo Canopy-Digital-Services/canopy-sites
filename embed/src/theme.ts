@@ -24,6 +24,37 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl">> & {
 
 const loadedFonts = new Set<string>();
 
+function normalizeColor(value: string | undefined, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  if (
+    /^var\(/i.test(trimmed) ||
+    /^rgb/i.test(trimmed) ||
+    /^hsl/i.test(trimmed) ||
+    /^color\(/i.test(trimmed) ||
+    /^(transparent|currentcolor|inherit)$/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)) {
+    return `#${trimmed}`;
+  }
+
+  return fallback;
+}
+
 export function resolveTheme(
   formTheme: ThemeTokens | null | undefined,
   overrideTheme: ThemeTokens | null | undefined
@@ -37,18 +68,21 @@ export function resolveTheme(
 
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--cof-font", theme.fontFamily || "inherit");
-  container.style.setProperty("--cof-text", theme.text || DEFAULT_THEME.text);
+  container.style.setProperty(
+    "--cof-text",
+    normalizeColor(theme.text, DEFAULT_THEME.text)
+  );
   container.style.setProperty(
     "--cof-bg",
-    theme.background || DEFAULT_THEME.background
+    normalizeColor(theme.background, DEFAULT_THEME.background)
   );
   container.style.setProperty(
     "--cof-primary",
-    theme.primary || DEFAULT_THEME.primary
+    normalizeColor(theme.primary, DEFAULT_THEME.primary)
   );
   container.style.setProperty(
     "--cof-border",
-    theme.border || DEFAULT_THEME.border
+    normalizeColor(theme.border, DEFAULT_THEME.border)
   );
   container.style.setProperty(
     "--cof-radius",

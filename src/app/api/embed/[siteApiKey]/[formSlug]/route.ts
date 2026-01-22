@@ -4,6 +4,9 @@ import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
 import { queueEmailNotification } from "@/lib/email-queue";
 
+// Disable caching for this API route to ensure fresh form definitions
+export const dynamic = "force-dynamic";
+
 const GET_RATE_LIMIT = { max: 60, windowMs: 60 * 1000 };
 const POST_RATE_LIMIT = { max: 10, windowMs: 60 * 1000 };
 
@@ -140,6 +143,7 @@ export async function GET(
   { params }: { params: Promise<{ siteApiKey: string; formSlug: string }> }
 ) {
   const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
 
   try {
     const { siteApiKey, formSlug } = await params;
@@ -152,7 +156,7 @@ export async function GET(
       return jsonError("Site not found", 404, origin);
     }
 
-    if (!validateOrigin(origin, site.domain)) {
+    if (!validateOrigin(origin, site.domain, referer)) {
       return jsonError("Origin not allowed", 403, origin);
     }
 
@@ -218,6 +222,7 @@ export async function POST(
   { params }: { params: Promise<{ siteApiKey: string; formSlug: string }> }
 ) {
   const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
 
   try {
     const { siteApiKey, formSlug } = await params;
@@ -230,7 +235,7 @@ export async function POST(
       return jsonError("Site not found", 404, origin);
     }
 
-    if (!validateOrigin(origin, site.domain)) {
+    if (!validateOrigin(origin, site.domain, referer)) {
       return jsonError("Origin not allowed", 403, origin);
     }
 

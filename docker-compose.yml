@@ -2,7 +2,10 @@ version: "3.8"
 
 services:
   can-o-forms:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
     container_name: canoforms
     restart: unless-stopped
     ports:
@@ -17,6 +20,7 @@ services:
       # NextAuth
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
       NEXTAUTH_URL: "https://canoforms.canopyds.com"
+      NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
       AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)

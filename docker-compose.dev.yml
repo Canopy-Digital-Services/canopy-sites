@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  can-o-forms:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: canoforms
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3006:3000"
+    networks:
+      - can-o-forms-network
+      - proxy
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+      # Database - update with your PostgreSQL credentials
+      DATABASE_URL: "postgresql://user:password@postgres:5432/canoforms?schema=public"
+      
+      # NextAuth
+      NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
+      NEXTAUTH_URL: "https://canoforms.canopyds.com"
+      NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
+      AUTH_TRUST_HOST: "true"
+      
+      # SMTP (Migadu or other)
+      SMTP_HOST: "${SMTP_HOST}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER}"
+      SMTP_PASS: "${SMTP_PASS}"
+      SMTP_FROM: "${SMTP_FROM}"
+      
+      # Admin seed (optional, for initial setup)
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-changeme123}"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: canoforms-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: canoforms
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - can-o-forms-network
+
+volumes:
+  postgres_data:
+
+networks:
+  can-o-forms-network:
+    driver: bridge
+  proxy:
+    external: true

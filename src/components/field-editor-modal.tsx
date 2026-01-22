@@ -249,7 +249,7 @@ export function FieldEditorModal({
                 </Button>
               </div>
               {options.length === 0 ? (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                   Add options to populate this select field.
                 </p>
               ) : (
@@ -257,7 +257,7 @@ export function FieldEditorModal({
                   {options.map((option, index) => (
                     <div
                       key={`${option.value}-${index}`}
-                      className="rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+                      className="rounded-md border border-border p-3 text-sm"
                     >
                       <div className="grid gap-2 sm:grid-cols-2">
                         <Input

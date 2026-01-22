@@ -26,7 +26,7 @@ The embed script is the easiest way to add forms. Just paste two lines of code a
 ```html
 <div 
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js"></script>
 ```
@@ -54,7 +54,7 @@ The exact steps depend on your website platform:
   <!-- Paste your embed code here -->
   <div 
     data-can-o-form="contact"
-    data-site-api-key="abc123-def456-ghi789"
+    data-site-key="abc123-def456-ghi789"
   ></div>
   <script src="https://canoforms.canopyds.com/embed.js"></script>
   
@@ -86,7 +86,7 @@ export default function ContactPage() {
       {/* The div where the form will render */}
       <div 
         data-can-o-form="contact"
-        data-site-api-key="abc123-def456-ghi789"
+        data-site-key="abc123-def456-ghi789"
       />
       
       {/* Load the embed script */}
@@ -108,7 +108,7 @@ export default function ContactPage() {
       
       <div 
         data-can-o-form="contact"
-        data-site-api-key="abc123-def456-ghi789"
+        data-site-key="abc123-def456-ghi789"
       />
       
       <Script src="https://canoforms.canopyds.com/embed.js" />
@@ -139,7 +139,7 @@ const title = "Contact Us";
   <!-- The form container -->
   <div 
     data-can-o-form="contact"
-    data-site-api-key="abc123-def456-ghi789"
+    data-site-key="abc123-def456-ghi789"
   />
   
   <!-- Load the embed script -->
@@ -159,7 +159,7 @@ const title = "Contact Us";
 ```html
 <div 
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js"></script>
 ```
@@ -174,7 +174,7 @@ const title = "Contact Us";
 4. Paste your embed code:
 
 ```html
-<div data-can-o-form="contact" data-site-api-key="abc123-def456-ghi789"></div>
+<div data-can-o-form="contact" data-site-key="abc123-def456-ghi789"></div>
 <script src="https://canoforms.canopyds.com/embed.js"></script>
 ```
 
@@ -204,7 +204,7 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 ```html
 <div 
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#005F6A","radius":12,"density":"comfortable"}'
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js"></script>
@@ -225,7 +225,7 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 ```html
 <div 
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
   data-theme='{
     "fontFamily": "Inter, system-ui",
     "fontUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
@@ -247,14 +247,14 @@ You can add multiple forms to the same page:
 <!-- Contact Form -->
 <div 
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#0ea5e9"}'
 ></div>
 
 <!-- Newsletter Signup -->
 <div 
   data-can-o-form="newsletter"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#10b981"}'
 ></div>
 
@@ -270,7 +270,7 @@ The form will render **inside** the `<div>` element. The `<div>` acts as a conta
 
 ```html
 <!-- The form will appear here, replacing any content in this div -->
-<div data-can-o-form="contact" data-site-api-key="YOUR_KEY">
+<div data-can-o-form="contact" data-site-key="YOUR_KEY">
   <!-- This text will be replaced when the form loads -->
 </div>
 ```
@@ -289,7 +289,7 @@ You can style the container div with CSS:
 <div 
   class="form-container"
   data-can-o-form="contact"
-  data-site-api-key="abc123-def456-ghi789"
+  data-site-key="abc123-def456-ghi789"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js"></script>
 ```

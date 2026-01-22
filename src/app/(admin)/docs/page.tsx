@@ -26,7 +26,7 @@ export default async function DocsPage() {
       <div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Help Documentation</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
+          <p className="text-muted-foreground">
             Learn how to use Can-O-Forms to collect form submissions from your static sites
           </p>
         </div>
@@ -38,7 +38,7 @@ export default async function DocsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {docPages.map(doc => (
             <Link key={doc.slug} href={`/docs/${doc.slug}`}>
-              <Card className="hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer h-full">
+              <Card className="h-full cursor-pointer transition-colors hover:border-muted-foreground/40">
                 <CardHeader>
                   <CardTitle>{doc.title}</CardTitle>
                   <CardDescription>
@@ -55,7 +55,7 @@ export default async function DocsPage() {
     return (
       <div>
         <h1 className="text-3xl font-bold mb-4">Help Documentation</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-muted-foreground">
           Documentation is being set up. Please check back soon.
         </p>
       </div>

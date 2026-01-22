@@ -111,6 +111,24 @@ export class CanOForm {
     submit.type = "submit";
     submit.className = "cof-submit";
     submit.textContent = "Submit";
+    // Apply inline styles to defeat CSS resets like Figma's @layer figreset
+    const primaryColor = getComputedStyle(this.container).getPropertyValue("--cof-primary").trim() || "#0ea5e9";
+    const radius = getComputedStyle(this.container).getPropertyValue("--cof-radius").trim() || "8px";
+    submit.style.cssText = `
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      border-radius: ${radius} !important;
+      padding: 10px 16px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      background: ${primaryColor} !important;
+      background-color: ${primaryColor} !important;
+      color: #ffffff !important;
+      cursor: pointer !important;
+      min-height: 40px !important;
+    `;
     this.submitButton = submit;
 
     form.appendChild(submit);
@@ -275,6 +293,8 @@ export class CanOForm {
     if (this.submitButton) {
       this.submitButton.disabled = true;
       this.submitButton.textContent = "Submitting...";
+      this.submitButton.style.opacity = "0.6";
+      this.submitButton.style.cursor = "not-allowed";
     }
 
     try {
@@ -314,6 +334,8 @@ export class CanOForm {
       if (this.submitButton) {
         this.submitButton.disabled = false;
         this.submitButton.textContent = "Submit";
+        this.submitButton.style.opacity = "1";
+        this.submitButton.style.cursor = "pointer";
       }
     }
   }

@@ -251,21 +251,20 @@ Legitimate users are unlikely to hit this limit. Consider the limit when testing
 
 Submissions are validated against the site's configured domain:
 
-1. Request must include `Origin` header
-2. Origin must match site's domain
-3. Subdomains are validated separately
+1. **Cross-origin requests**: Must include `Origin` header matching site's domain
+2. **Same-origin requests**: Uses `Referer` header as fallback when browser doesn't send `Origin`
+3. Subdomains and www variants are automatically supported
 
 **Examples**:
 
 Site domain: `example.com`
-- ✅ `https://example.com`
-- ✅ `http://example.com`
-- ❌ `https://blog.example.com` (unless configured)
+- ✅ `https://example.com` (exact match)
+- ✅ `https://www.example.com` (www variant)
+- ✅ `https://blog.example.com` (subdomain)
+- ✅ `http://localhost` (development/testing)
 - ❌ `https://other-site.com`
 
-Site domain: `blog.example.com`
-- ✅ `https://blog.example.com`
-- ❌ `https://example.com`
+**Note**: The dashboard preview (e.g., `canoforms.canopyds.com`) is automatically allowed for testing forms in the admin panel.
 
 ## Security Considerations
 

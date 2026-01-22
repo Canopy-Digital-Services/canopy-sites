@@ -10,11 +10,11 @@ export default async function AuthLayout({
   
   // If already logged in, redirect to admin
   if (session?.user) {
-    redirect("/sites");
+    redirect("/forms");
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <div className="w-full max-w-md px-4">
         {children}
       </div>

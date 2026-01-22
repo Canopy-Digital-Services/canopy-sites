@@ -11,16 +11,14 @@ import {
   deleteField,
   reorderFields,
   updateField,
-} from "@/app/(admin)/sites/[siteId]/forms/[formId]/actions";
+} from "@/actions/forms";
 
 type FormFieldsManagerProps = {
-  siteId: string;
   formId: string;
   fields: FieldSummary[];
 };
 
 export function FormFieldsManager({
-  siteId,
   formId,
   fields,
 }: FormFieldsManagerProps) {
@@ -51,7 +49,7 @@ export function FormFieldsManager({
       void (async () => {
         try {
           if (editingFieldId) {
-            const updated = await updateField(siteId, formId, editingFieldId, {
+            const updated = await updateField(formId, editingFieldId, {
               ...data,
               type: data.type as typeof data.type,
             });
@@ -73,7 +71,7 @@ export function FormFieldsManager({
               )
             );
           } else {
-            const created = await createField(siteId, formId, {
+            const created = await createField(formId, {
               ...data,
               type: data.type as typeof data.type,
             });
@@ -108,7 +106,7 @@ export function FormFieldsManager({
         const previous = fieldList;
         setFieldList((prev) => prev.filter((field) => field.id !== fieldId));
         try {
-          await deleteField(siteId, formId, fieldId);
+          await deleteField(formId, fieldId);
         } catch (deleteError) {
           console.error(deleteError);
           setError("Unable to delete field. Please try again.");
@@ -143,7 +141,6 @@ export function FormFieldsManager({
       void (async () => {
         try {
           await reorderFields(
-            siteId,
             formId,
             ordered.map((field) => field.id)
           );

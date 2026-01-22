@@ -31,8 +31,8 @@ export async function sendSubmissionNotification(
     return;
   }
 
-  const dashboardUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const submissionUrl = `${dashboardUrl}/sites/${site.id}/forms/${form.id}/submissions/${submission.id}`;
+  const dashboardUrl = process.env.NEXTAUTH_URL || "http://localhost:3006";
+  const submissionUrl = `${dashboardUrl}/forms/${form.id}/submissions/${submission.id}`;
 
   const emailBody = `
 New form submission received on ${site.name}

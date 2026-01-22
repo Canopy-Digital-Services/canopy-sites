@@ -32,21 +32,31 @@ export const baseStyles = `
   color: var(--cof-primary, #0ea5e9);
 }
 
-.cof-input,
-.cof-textarea,
-.cof-select {
+.cof-root .cof-input,
+.cof-root .cof-textarea,
+.cof-root .cof-select {
+  display: block !important;
   width: 100%;
+  box-sizing: border-box;
   border-radius: var(--cof-radius, 8px);
-  border: 1px solid var(--cof-border, #e4e4e7);
+  border: 1px solid var(--cof-border, #e4e4e7) !important;
   padding: 10px 12px;
   font-size: 14px;
-  background: #ffffff;
+  background: #ffffff !important;
   color: inherit;
+  min-height: 40px;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-.cof-input:focus,
-.cof-textarea:focus,
-.cof-select:focus {
+.cof-root .cof-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.cof-root .cof-input:focus,
+.cof-root .cof-textarea:focus,
+.cof-root .cof-select:focus {
   outline: 2px solid var(--cof-primary, #0ea5e9);
   outline-offset: 2px;
 }
@@ -63,7 +73,10 @@ export const baseStyles = `
   gap: 8px;
 }
 
-.cof-submit {
+.cof-root .cof-submit {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   border: none;
   border-radius: var(--cof-radius, 8px);
   padding: 10px 16px;
@@ -72,9 +85,10 @@ export const baseStyles = `
   background: var(--cof-primary, #0ea5e9);
   color: #ffffff;
   cursor: pointer;
+  min-height: 40px;
 }
 
-.cof-submit[disabled] {
+.cof-root .cof-submit[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
 }

@@ -7,7 +7,7 @@ interface MarkdownProps {
 
 export function Markdown({ content }: MarkdownProps) {
   return (
-    <div className="prose prose-zinc dark:prose-invert max-w-none">
+    <div className="prose dark:prose-invert max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -36,7 +36,7 @@ export function Markdown({ content }: MarkdownProps) {
             if (inline) {
               return (
                 <code
-                  className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono"
+                  className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono"
                   {...props}
                 >
                   {children}
@@ -45,7 +45,7 @@ export function Markdown({ content }: MarkdownProps) {
             }
             return (
               <code
-                className={`block p-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 overflow-x-auto text-sm font-mono ${className || ''}`}
+                className={`block rounded-lg bg-muted p-4 text-sm font-mono overflow-x-auto ${className || ''}`}
                 {...props}
               >
                 {children}
@@ -58,7 +58,7 @@ export function Markdown({ content }: MarkdownProps) {
           a: ({ href, children }) => (
             <a
               href={href}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-primary hover:underline"
               target={href?.startsWith('http') ? '_blank' : undefined}
               rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
             >
@@ -66,22 +66,20 @@ export function Markdown({ content }: MarkdownProps) {
             </a>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-700 pl-4 italic my-4">
+            <blockquote className="my-4 border-l-4 border-border pl-4 italic">
               {children}
             </blockquote>
           ),
           table: ({ children }) => (
             <div className="overflow-x-auto mb-4">
-              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+              <table className="min-w-full divide-y divide-border">
                 {children}
               </table>
             </div>
           ),
-          thead: ({ children }) => (
-            <thead className="bg-zinc-50 dark:bg-zinc-800">{children}</thead>
-          ),
+          thead: ({ children }) => <thead className="bg-muted/40">{children}</thead>,
           tbody: ({ children }) => (
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <tbody className="divide-y divide-border">
               {children}
             </tbody>
           ),
@@ -94,9 +92,7 @@ export function Markdown({ content }: MarkdownProps) {
           td: ({ children }) => (
             <td className="px-4 py-2 text-sm">{children}</td>
           ),
-          hr: () => (
-            <hr className="my-8 border-zinc-200 dark:border-zinc-700" />
-          ),
+          hr: () => <hr className="my-8 border-border" />,
         }}
       >
         {content}
