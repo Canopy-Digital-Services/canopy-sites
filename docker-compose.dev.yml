@@ -4,7 +4,8 @@ services:
   can-o-forms:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      args:
+        NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
     container_name: canoforms
     restart: unless-stopped
     ports:
@@ -12,11 +13,8 @@ services:
     networks:
       - can-o-forms-network
       - proxy
-    volumes:
-      # Mount source code for hot reloading
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+    # Note: Volume mounts removed - using production Dockerfile build
+    # For hot reloading, create Dockerfile.dev with `next dev` entrypoint
     environment:
       NODE_ENV: development
       # Database - update with your PostgreSQL credentials

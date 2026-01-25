@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getUserSites } from "@/lib/data-access/forms";
 
 export async function GET() {
   try {
-    const userId = await getCurrentUserId();
-    const sites = await getUserSites(userId);
+    const accountId = await getCurrentAccountId();
+    const sites = await getUserSites(accountId);
 
     return NextResponse.json({ sites });
   } catch (error) {

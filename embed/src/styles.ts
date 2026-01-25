@@ -1,8 +1,10 @@
 export const baseStyles = `
 .cof-root {
   font-family: var(--cof-font, inherit);
+  font-size: var(--cof-font-size, 14px);
   color: var(--cof-text, #18181b);
   background: var(--cof-bg, #ffffff);
+  padding: 4px;
 }
 
 .cof-form {
@@ -10,12 +12,17 @@ export const baseStyles = `
   gap: 16px;
 }
 
+.cof-form-actions {
+  display: flex;
+  justify-content: var(--cof-button-align, left);
+}
+
 .cof-density-compact .cof-form {
-  gap: 10px;
+  gap: 8px;
 }
 
 .cof-density-comfortable .cof-form {
-  gap: 20px;
+  gap: 24px;
 }
 
 .cof-field {
@@ -24,7 +31,7 @@ export const baseStyles = `
 }
 
 .cof-label {
-  font-size: 14px;
+  font-size: var(--cof-font-size, 14px);
   font-weight: 500;
 }
 
@@ -41,7 +48,7 @@ export const baseStyles = `
   border-radius: var(--cof-radius, 8px);
   border: 1px solid var(--cof-border, #e4e4e7) !important;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--cof-font-size, 14px);
   background: #ffffff !important;
   color: inherit;
   min-height: 40px;
@@ -51,7 +58,7 @@ export const baseStyles = `
 
 .cof-root .cof-textarea {
   min-height: 80px;
-  resize: vertical;
+  resize: none;
 }
 
 .cof-root .cof-input:focus,
@@ -75,12 +82,12 @@ export const baseStyles = `
 
 .cof-root .cof-submit {
   display: block;
-  width: 100%;
+  width: var(--cof-button-width, 100%);
   box-sizing: border-box;
   border: none;
   border-radius: var(--cof-radius, 8px);
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: var(--cof-font-size, 14px);
   font-weight: 600;
   background: var(--cof-primary, #0ea5e9);
   color: #ffffff;
@@ -94,7 +101,7 @@ export const baseStyles = `
 }
 
 .cof-status {
-  font-size: 14px;
+  font-size: var(--cof-font-size, 14px);
 }
 
 .cof-status.cof-status-error {

@@ -23,14 +23,14 @@ type IntegratePanelProps = {
 };
 
 export function IntegratePanel({ open, onClose, apiUrl, form }: IntegratePanelProps) {
-  const endpoint = `${apiUrl}/api/v1/submit/${form.site.apiKey}/${form.slug}`;
+  const endpoint = `${apiUrl}/api/submit/${form.site.apiKey}/${form.slug}`;
 
   const embedCode = `<div 
   data-can-o-form="${form.slug}"
   data-site-key="${form.site.apiKey}"
   data-base-url="${apiUrl}"
 ></div>
-<script src="${apiUrl}/embed.js"></script>`;
+<script src="${apiUrl}/embed.js" defer></script>`;
 
   const htmlExample = `<form id="contact-form">
   <input type="text" name="name" placeholder="Your name" required>
@@ -54,11 +54,15 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
       body: JSON.stringify(data)
     });
     
+    const payload = await response.json();
     if (response.ok) {
       alert('Form submitted successfully!');
       e.target.reset();
+    } else if (payload?.fields) {
+      alert('Validation failed. Check field errors in the response.');
+      console.warn('Field errors:', payload.fields);
     } else {
-      alert('Failed to submit form');
+      alert(payload?.error || 'Failed to submit form');
     }
   } catch (error) {
     console.error('Error:', error);

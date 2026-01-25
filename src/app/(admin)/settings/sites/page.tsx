@@ -17,6 +17,7 @@ async function createSite(formData: FormData) {
   "use server";
 
   const userId = await getCurrentUserId();
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
   const name = formData.get("name") as string;
   const domain = formData.get("domain") as string;
 
@@ -27,6 +28,7 @@ async function createSite(formData: FormData) {
   await prisma.site.create({
     data: {
       userId,
+      accountId: await accountId,
       name,
       domain,
     },
@@ -38,12 +40,12 @@ async function createSite(formData: FormData) {
 async function deleteSite(siteId: string) {
   "use server";
 
-  const userId = await getCurrentUserId();
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
   await prisma.site.delete({
     where: {
       id: siteId,
-      userId,
+      accountId: await accountId,
     },
   });
 
@@ -51,8 +53,8 @@ async function deleteSite(siteId: string) {
 }
 
 export default async function SitesManagementPage() {
-  const userId = await getCurrentUserId();
-  const sites = await getUserSites(userId);
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
+  const sites = await getUserSites(await accountId);
 
   // Get form counts for each site
   const sitesWithCounts = await Promise.all(

@@ -21,6 +21,7 @@ type FormEditorProps = {
     name: string;
     slug: string;
     notifyEmails: string[];
+    emailNotificationsEnabled: boolean;
     honeypotField: string | null;
     successMessage: string | null;
     redirectUrl: string | null;
@@ -128,6 +129,7 @@ export function FormEditor({ apiUrl, form }: FormEditorProps) {
         formId={form.id}
         successMessage={form.successMessage}
         redirectUrl={form.redirectUrl}
+        emailNotificationsEnabled={form.emailNotificationsEnabled}
         notifyEmails={form.notifyEmails}
         honeypotField={form.honeypotField}
       />

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Can-O-Forms",
-  description: "Self-hosted forms backend with admin UI for static sites",
+  description: "SaaS forms management platform with form builder UI for static sites",
 };
 
 export default function RootLayout({

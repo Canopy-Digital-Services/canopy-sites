@@ -1,6 +1,7 @@
 import * as bcrypt from "bcrypt";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { randomBytes } from "crypto";
 
 /**
  * Hash a password using bcrypt
@@ -17,6 +18,13 @@ export async function verifyPassword(
   hash: string
 ): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+/**
+ * Generate a cryptographically secure random token
+ */
+export function generateToken(bytes: number = 32): string {
+  return randomBytes(bytes).toString("hex");
 }
 
 /**
@@ -38,4 +46,37 @@ export async function requireAuth() {
 export async function getCurrentUserId(): Promise<string> {
   const session = await requireAuth();
   return session.user.id;
+}
+
+/**
+ * Get the current account ID or redirect to login
+ */
+export async function getCurrentAccountId(): Promise<string> {
+  const session = await requireAuth();
+  const { prisma } = await import("@/lib/db");
+  
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { accountId: true },
+  });
+  
+  if (!user) {
+    throw new Error("User not found");
+  }
+  
+  return user.accountId;
+}
+
+/**
+ * Get the current session and verify user is the platform operator
+ * Redirects to /forms if not operator
+ */
+export async function requireOperator() {
+  const session = await requireAuth();
+  
+  if (session.user.email !== process.env.ADMIN_EMAIL) {
+    redirect("/forms");
+  }
+  
+  return session;
 }

@@ -10,12 +10,13 @@ export async function GET(
   const { formId } = await params;
 
   try {
-    const userId = await getCurrentUserId();
+    const { getCurrentAccountId } = await import("@/lib/auth-utils");
+    const accountId = await getCurrentAccountId();
 
     // Verify ownership
     let form;
     try {
-      form = await getOwnedForm(formId, userId);
+      form = await getOwnedForm(formId, accountId);
     } catch {
       return new NextResponse("Not found", { status: 404 });
     }
@@ -29,7 +30,42 @@ export async function GET(
       return new NextResponse("No submissions to export", { status: 404 });
     }
 
-    // Collect all unique keys from all submissions
+    // Get format from query params (default to csv)
+    const { searchParams } = new URL(request.url);
+    const format = searchParams.get("format") || "csv";
+
+    const dateString = new Date().toISOString().split("T")[0];
+
+    if (format === "json") {
+      // Build JSON export
+      const jsonData = submissions.map((submission) => {
+        const meta = submission.meta as Record<string, any>;
+        return {
+          id: submission.id,
+          createdAt: submission.createdAt.toISOString(),
+          status: submission.status,
+          isSpam: submission.isSpam,
+          data: submission.data,
+          meta: {
+            ipHash: meta.ipHash || null,
+            userAgent: meta.userAgent || null,
+            referrer: meta.referrer || null,
+            origin: meta.origin || null,
+          },
+        };
+      });
+
+      const filename = `${form.slug}-submissions-${dateString}.json`;
+
+      return new NextResponse(JSON.stringify(jsonData, null, 2), {
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      });
+    }
+
+    // Build CSV export (default)
     const allKeys = new Set<string>();
     submissions.forEach((submission) => {
       const data = submission.data as Record<string, any>;
@@ -49,7 +85,6 @@ export async function GET(
       "Origin",
     ];
 
-    // Build CSV
     let csv = headers.map((h) => `"${h}"`).join(",") + "\n";
 
     submissions.forEach((submission) => {
@@ -81,7 +116,7 @@ export async function GET(
           .join(",") + "\n";
     });
 
-    const filename = `${form.slug}-submissions-${new Date().toISOString().split("T")[0]}.csv`;
+    const filename = `${form.slug}-submissions-${dateString}.csv`;
 
     return new NextResponse(csv, {
       headers: {
@@ -90,7 +125,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("CSV export error:", error);
+    console.error("Export error:", error);
     return new NextResponse("Internal server error", { status: 500 });
   }
 }

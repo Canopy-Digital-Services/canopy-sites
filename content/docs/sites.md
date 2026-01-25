@@ -23,7 +23,7 @@ The API key is used to authenticate form submissions. It's included in the submi
 
 ### Domain
 
-The domain is used for origin validation. Only form submissions from this domain (or subdomains) will be accepted. This prevents other sites from submitting forms to your Can-O-Forms instance.
+The domain is used for origin validation. Only form submissions from this domain (or subdomains) will be accepted. This prevents other sites from submitting forms to your account.
 
 **Important**: 
 - Don't include `http://` or `https://`

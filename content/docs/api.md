@@ -1,8 +1,8 @@
 # API Reference
 
-Complete reference for the Can-O-Forms API endpoints. Can-O-Forms v2 includes both the embed API (for script-based embeds) and the legacy v1 submission API.
+Complete reference for the Can-O-Forms API endpoints. The embed API powers the script-based experience, and a separate manual submit endpoint is available for whiteboxed forms.
 
-## v2 Embed API (Recommended)
+## Embed API (Recommended)
 
 The embed API is used by the embed script to fetch form definitions and submit forms with validation.
 
@@ -54,7 +54,7 @@ Returns an embed-safe form definition including fields, validation rules, theme 
 - Origin validated
 - Never exposes admin data (notifyEmails, owner info)
 
-### Submit Form (v2)
+### Submit Form
 
 ```
 POST /api/embed/{siteApiKey}/{formSlug}
@@ -97,14 +97,14 @@ Both embed endpoints include CORS headers to allow cross-origin requests:
 - `Access-Control-Allow-Methods`: GET, POST, OPTIONS
 - `Access-Control-Allow-Headers`: Content-Type
 
-## v1 Submission API (Legacy)
+## Manual Submit API (Advanced)
 
-The v1 API accepts submissions without field validation. Useful for backwards compatibility or custom integrations.
+Use this endpoint when you want to render your own HTML and post submissions directly.
 
 ### Endpoint
 
 ```
-POST /api/v1/submit/{siteApiKey}/{formSlug}
+POST /api/submit/{siteApiKey}/{formSlug}
 ```
 
 ### URL Parameters
@@ -117,7 +117,7 @@ POST /api/v1/submit/{siteApiKey}/{formSlug}
 ### Example URL
 
 ```
-https://canoforms.example.com/api/v1/submit/abc123-def456/contact
+https://canoforms.example.com/api/submit/abc123-def456/contact
 ```
 
 ## Request
@@ -131,15 +131,14 @@ https://canoforms.example.com/api/v1/submit/abc123-def456/contact
 
 ### Body
 
-Send form data as JSON. All fields are accepted and stored as-is.
+Send form data as JSON. Fields are validated against the form definition.
 
 **Example**:
 ```json
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "message": "Hello, I'd like to get in touch!",
-  "phone": "555-1234"
+  "message": "Hello, I'd like to get in touch!"
 }
 ```
 
@@ -168,81 +167,24 @@ If your form has a honeypot field configured, include it in the request body. If
 }
 ```
 
-The submission is stored in the database and email notifications are sent (if configured).
-
-### Error Responses
-
-#### Invalid Site or Form (404 Not Found)
+### Validation Error (400 Bad Request)
 
 ```json
 {
-  "error": "Site or form not found"
+  "error": "Validation failed",
+  "fields": {
+    "email": "Email must be a valid email address."
+  }
 }
 ```
-
-**Causes**:
-- Invalid API key
-- Invalid form slug
-- Form deleted
-
-#### Invalid Origin (403 Forbidden)
-
-```json
-{
-  "error": "Invalid origin"
-}
-```
-
-**Causes**:
-- Request origin doesn't match site's configured domain
-- Missing Origin header
-- Domain mismatch (including subdomains)
-
-#### Rate Limit Exceeded (429 Too Many Requests)
-
-```json
-{
-  "error": "Rate limit exceeded"
-}
-```
-
-**Causes**:
-- Too many submissions from the same IP in a short time
-- Default: 10 submissions per hour per IP
-
-#### Invalid Request (400 Bad Request)
-
-```json
-{
-  "error": "Invalid request body"
-}
-```
-
-**Causes**:
-- Malformed JSON
-- Empty request body
-- Invalid Content-Type header
-
-#### Server Error (500 Internal Server Error)
-
-```json
-{
-  "error": "Internal server error"
-}
-```
-
-**Causes**:
-- Database connection issues
-- SMTP configuration errors (email sending)
-- Server configuration problems
 
 ## Rate Limiting
 
 Can-O-Forms implements IP-based rate limiting to prevent spam:
 
-- **Limit**: 10 submissions per hour per IP address
+- **Limit**: 10 submissions per minute per IP address
 - **Tracking**: Based on hashed IP address
-- **Reset**: Limits reset after 1 hour
+- **Reset**: Limits reset after 1 minute
 - **Response**: 429 status code when exceeded
 
 Legitimate users are unlikely to hit this limit. Consider the limit when testing.
@@ -310,7 +252,7 @@ For local testing, you may need to:
 ### Example cURL Request
 
 ```bash
-curl -X POST https://canoforms.example.com/api/v1/submit/YOUR_API_KEY/contact \
+curl -X POST https://canoforms.example.com/api/submit/YOUR_API_KEY/contact \
   -H "Content-Type: application/json" \
   -H "Origin: https://your-site.com" \
   -d '{
@@ -323,7 +265,7 @@ curl -X POST https://canoforms.example.com/api/v1/submit/YOUR_API_KEY/contact \
 ### Example Fetch Request
 
 ```javascript
-fetch('https://canoforms.example.com/api/v1/submit/YOUR_API_KEY/contact', {
+fetch('https://canoforms.example.com/api/submit/YOUR_API_KEY/contact', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -346,11 +288,7 @@ Webhooks are not currently supported in Can-O-Forms. Form submissions can be acc
 - Admin dashboard
 - CSV export
 
-## API Versioning
+## Public API Surface
 
-Can-O-Forms supports multiple API versions simultaneously:
-
-- **v2 Embed API** - `/api/embed/...` - Used by embed script, includes validation
-- **v1 Submission API** - `/api/v1/submit/...` - Legacy API, no validation
-
-Both APIs remain available for backwards compatibility. The embed script uses the v2 API automatically. Manual integrations can use either API endpoint.
+- **Embed API** - `/api/embed/...` - Used by the embed script (GET + POST)
+- **Manual Submit API** - `/api/submit/...` - Direct POST submissions for whiteboxed HTML

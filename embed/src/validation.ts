@@ -17,6 +17,21 @@ type FieldDefinition = {
   validation?: FieldValidation;
 };
 
+// Default maximum lengths for field types
+const DEFAULT_MAX_LENGTHS: Record<string, number> = {
+  TEXT: 200,
+  EMAIL: 254, // RFC 5321 standard
+  TEXTAREA: 2000,
+};
+
+// Get effective max length for a field (configured or default)
+function getEffectiveMaxLength(field: FieldDefinition): number | undefined {
+  if (field.validation?.maxLength) {
+    return field.validation.maxLength;
+  }
+  return DEFAULT_MAX_LENGTHS[field.type];
+}
+
 type ValidationResult = {
   [key: string]: string;
 };
@@ -71,38 +86,41 @@ export function validateSubmission(
       }
     }
 
-    if (field.validation) {
-      const stringValue = String(value);
-      if (
-        typeof field.validation.minLength === "number" &&
-        stringValue.length < field.validation.minLength
-      ) {
-        errors[field.name] =
-          field.validation.message ||
-          `${label} must be at least ${field.validation.minLength} characters.`;
-        return;
-      }
+    const stringValue = String(value);
+    const effectiveMaxLength = getEffectiveMaxLength(field);
 
-      if (
-        typeof field.validation.maxLength === "number" &&
-        stringValue.length > field.validation.maxLength
-      ) {
-        errors[field.name] =
-          field.validation.message ||
-          `${label} must be at most ${field.validation.maxLength} characters.`;
-        return;
-      }
+    // Check minLength if configured
+    if (
+      field.validation?.minLength &&
+      stringValue.length < field.validation.minLength
+    ) {
+      errors[field.name] =
+        field.validation.message ||
+        `${label} must be at least ${field.validation.minLength} characters.`;
+      return;
+    }
 
-      if (field.validation.pattern) {
-        try {
-          const regex = new RegExp(field.validation.pattern);
-          if (!regex.test(stringValue)) {
-            errors[field.name] =
-              field.validation.message || `${label} is invalid.`;
-          }
-        } catch {
-          // Invalid regex should not block submission
+    // Check maxLength (configured or default)
+    if (
+      effectiveMaxLength &&
+      stringValue.length > effectiveMaxLength
+    ) {
+      errors[field.name] =
+        field.validation?.message ||
+        `${label} must be at most ${effectiveMaxLength} characters.`;
+      return;
+    }
+
+    // Check pattern if configured
+    if (field.validation?.pattern) {
+      try {
+        const regex = new RegExp(field.validation.pattern);
+        if (!regex.test(stringValue)) {
+          errors[field.name] =
+            field.validation.message || `${label} is invalid.`;
         }
+      } catch {
+        // Invalid regex should not block submission
       }
     }
   });
@@ -111,3 +129,4 @@ export function validateSubmission(
 }
 
 export type { FieldDefinition, FieldValidation, FieldOption };
+export { getEffectiveMaxLength };

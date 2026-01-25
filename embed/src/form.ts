@@ -1,5 +1,5 @@
 import { applyTheme, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission } from "./validation";
+import { FieldDefinition, validateSubmission, getEffectiveMaxLength } from "./validation";
 
 type FormDefinition = {
   formId: string;
@@ -110,13 +110,14 @@ export class CanOForm {
     const submit = document.createElement("button");
     submit.type = "submit";
     submit.className = "cof-submit";
-    submit.textContent = "Submit";
+    submit.textContent = (theme as { buttonText?: string }).buttonText || "Submit";
     // Apply inline styles to defeat CSS resets like Figma's @layer figreset
     const primaryColor = getComputedStyle(this.container).getPropertyValue("--cof-primary").trim() || "#0ea5e9";
     const radius = getComputedStyle(this.container).getPropertyValue("--cof-radius").trim() || "8px";
+    const buttonWidth = getComputedStyle(this.container).getPropertyValue("--cof-button-width").trim() || "100%";
     submit.style.cssText = `
       display: block !important;
-      width: 100% !important;
+      width: ${buttonWidth} !important;
       box-sizing: border-box !important;
       border: none !important;
       border-radius: ${radius} !important;
@@ -131,7 +132,11 @@ export class CanOForm {
     `;
     this.submitButton = submit;
 
-    form.appendChild(submit);
+    const formActions = document.createElement("div");
+    formActions.className = "cof-form-actions";
+    formActions.appendChild(submit);
+
+    form.appendChild(formActions);
 
     this.container.appendChild(status);
     this.container.appendChild(form);
@@ -170,7 +175,16 @@ export class CanOForm {
       case "TEXTAREA": {
         const textarea = document.createElement("textarea");
         textarea.className = "cof-textarea";
-        textarea.rows = 4;
+        
+        // Auto-size based on character limit (roughly 60 chars per row)
+        const maxLength = getEffectiveMaxLength(field);
+        if (maxLength) {
+          const estimatedRows = Math.min(Math.max(Math.ceil(maxLength / 60), 4), 15);
+          textarea.rows = estimatedRows;
+        } else {
+          textarea.rows = 4;
+        }
+        
         input = textarea;
         break;
       }
@@ -226,6 +240,12 @@ export class CanOForm {
     input.setAttribute("aria-invalid", "false");
     if (field.placeholder) {
       input.setAttribute("placeholder", field.placeholder);
+    }
+    
+    // Apply maxLength for browser-level enforcement
+    const maxLength = getEffectiveMaxLength(field);
+    if (maxLength && (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
+      input.maxLength = maxLength;
     }
 
     const errorEl = document.createElement("span");
@@ -333,7 +353,8 @@ export class CanOForm {
     } finally {
       if (this.submitButton) {
         this.submitButton.disabled = false;
-        this.submitButton.textContent = "Submit";
+        const buttonText = (this.formDefinition as { defaultTheme?: { buttonText?: string } })?.defaultTheme?.buttonText || "Submit";
+        this.submitButton.textContent = buttonText;
         this.submitButton.style.opacity = "1";
         this.submitButton.style.cursor = "pointer";
       }

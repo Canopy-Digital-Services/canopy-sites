@@ -12,7 +12,7 @@ Before you start, make sure you have:
 4. **Your Form Slug** (the URL-friendly name, e.g., "contact")
 5. **Your Can-O-Forms Domain** (e.g., `https://canoforms.canopyds.com`)
 
-## v2 Embed Script (Recommended)
+## Embed Script (Recommended)
 
 The embed script is the easiest way to add forms. Just paste two lines of code and you're done!
 
@@ -28,7 +28,7 @@ The embed script is the easiest way to add forms. Just paste two lines of code a
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 ### Step 2: Add to Your Website
@@ -56,7 +56,7 @@ The exact steps depend on your website platform:
     data-can-o-form="contact"
     data-site-key="abc123-def456-ghi789"
   ></div>
-  <script src="https://canoforms.canopyds.com/embed.js"></script>
+  <script src="https://canoforms.canopyds.com/embed.js" defer></script>
   
   <!-- Rest of your page -->
 </body>
@@ -90,7 +90,7 @@ export default function ContactPage() {
       />
       
       {/* Load the embed script */}
-      <script src="https://canoforms.canopyds.com/embed.js" />
+      <script src="https://canoforms.canopyds.com/embed.js" defer />
     </div>
   );
 }
@@ -143,7 +143,7 @@ const title = "Contact Us";
   />
   
   <!-- Load the embed script -->
-  <script src="https://canoforms.canopyds.com/embed.js" />
+  <script src="https://canoforms.canopyds.com/embed.js" defer />
 </body>
 </html>
 ```
@@ -161,7 +161,7 @@ const title = "Contact Us";
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 #### Figma Sites
@@ -175,7 +175,7 @@ const title = "Contact Us";
 
 ```html
 <div data-can-o-form="contact" data-site-key="abc123-def456-ghi789"></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 5. The form will render automatically when you publish
@@ -207,18 +207,28 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
   data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#005F6A","radius":12,"density":"comfortable"}'
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 **Available theme properties:**
-- `fontFamily` - CSS font-family (e.g., `"Inter, system-ui"`)
+
+*Typography:*
+- `fontFamily` - CSS font-family (e.g., `"Inter, sans-serif"`)
+- `fontSize` - Base font size in pixels (number, e.g., `14`)
 - `fontUrl` - URL to font stylesheet (e.g., Google Fonts)
+
+*Colors & Layout:*
 - `text` - Text color (hex, e.g., `"#18181b"`)
 - `background` - Form background (hex, e.g., `"#ffffff"`)
 - `primary` - Accent color for buttons (hex, e.g., `"#0ea5e9"`)
 - `border` - Input border color (hex, e.g., `"#e4e4e7"`)
 - `radius` - Border radius in pixels (number, e.g., `8`)
 - `density` - Spacing: `"compact"`, `"normal"`, or `"comfortable"`
+
+*Submit Button:*
+- `buttonWidth` - `"full"` (100% width) or `"auto"` (fits content)
+- `buttonAlign` - `"left"`, `"center"`, or `"right"` (when width is auto)
+- `buttonText` - Custom submit button text (string, e.g., `"Send Message"`)
 
 **Example with full theme:**
 
@@ -227,16 +237,20 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
   data-theme='{
-    "fontFamily": "Inter, system-ui",
+    "fontFamily": "Inter, sans-serif",
+    "fontSize": 16,
     "fontUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
     "primary": "#005F6A",
     "background": "#f9fafb",
     "border": "#d1d5db",
     "radius": 12,
-    "density": "comfortable"
+    "density": "comfortable",
+    "buttonWidth": "auto",
+    "buttonAlign": "center",
+    "buttonText": "Send Message"
   }'
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 ### Multiple Forms on One Page
@@ -259,7 +273,7 @@ You can add multiple forms to the same page:
 ></div>
 
 <!-- Only load the script once -->
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
 **Important:** Only include the `<script>` tag once per page, even if you have multiple forms.
@@ -291,10 +305,10 @@ You can style the container div with CSS:
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js"></script>
+<script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
-## v1 API Integration (Manual HTML Forms)
+## Manual Submit API (Manual HTML Forms)
 
 If you need full control over your form HTML and styling, use the direct API approach.
 
@@ -302,12 +316,12 @@ If you need full control over your form HTML and styling, use the direct API app
 
 Your API endpoint format is:
 ```
-https://your-canoforms-domain.com/api/v1/submit/{siteApiKey}/{formSlug}
+https://your-canoforms-domain.com/api/submit/{siteApiKey}/{formSlug}
 ```
 
 **Example:**
 ```
-https://canoforms.canopyds.com/api/v1/submit/abc123-def456-ghi789/contact
+https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact
 ```
 
 ### Step 2: Create Your HTML Form
@@ -359,7 +373,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
   
   try {
     const response = await fetch(
-      'https://canoforms.canopyds.com/api/v1/submit/abc123-def456-ghi789/contact',
+      'https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
       {
         method: 'POST',
         headers: {
@@ -386,7 +400,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 </script>
 ```
 
-### Complete Example (v1 API)
+### Complete Example (Manual Submit API)
 
 ```html
 <!DOCTYPE html>
@@ -456,7 +470,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
       
       try {
         const response = await fetch(
-          'https://canoforms.canopyds.com/api/v1/submit/abc123-def456-ghi789/contact',
+          'https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
           {
             method: 'POST',
             headers: {

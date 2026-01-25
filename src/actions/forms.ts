@@ -3,11 +3,11 @@
 /**
  * Shared form actions.
  * Decoupled from route structure - can be called from any route.
- * All actions enforce ownership internally via Form → Site → User.
+ * All actions enforce ownership internally via Form → Account.
  */
 
 import { prisma } from "@/lib/db";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
 import { FieldType } from "@prisma/client";
 import { getOwnedForm, getOwnedFormMinimal, getOwnedSite } from "@/lib/data-access/forms";
 import { revalidatePath } from "next/cache";
@@ -27,8 +27,8 @@ type FieldInput = {
 // ============================================================================
 
 export async function createField(formId: string, data: FieldInput) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   if (!data.name || !data.label) {
     throw new Error("Field name and label are required");
@@ -65,8 +65,8 @@ export async function updateField(
   fieldId: string,
   data: FieldInput
 ) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   if (!data.name || !data.label) {
     throw new Error("Field name and label are required");
@@ -101,8 +101,8 @@ export async function updateField(
 }
 
 export async function deleteField(formId: string, fieldId: string) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   const field = await prisma.field.findFirst({
     where: {
@@ -137,8 +137,8 @@ export async function deleteField(formId: string, fieldId: string) {
 }
 
 export async function reorderFields(formId: string, fieldIds: string[]) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   const fields = await prisma.field.findMany({
     where: { formId },
@@ -177,8 +177,8 @@ export async function updateFormBasics(
     honeypotField?: string | null;
   }
 ) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   const updateData: {
     name?: string;
@@ -217,14 +217,16 @@ export async function updateFormBehavior(
   data: {
     successMessage?: string | null;
     redirectUrl?: string | null;
+    emailNotificationsEnabled?: boolean;
   }
 ) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   const updateData: {
     successMessage?: string | null;
     redirectUrl?: string | null;
+    emailNotificationsEnabled?: boolean;
   } = {};
 
   if (data.successMessage !== undefined) {
@@ -233,6 +235,10 @@ export async function updateFormBehavior(
 
   if (data.redirectUrl !== undefined) {
     updateData.redirectUrl = data.redirectUrl?.trim() || null;
+  }
+
+  if (data.emailNotificationsEnabled !== undefined) {
+    updateData.emailNotificationsEnabled = data.emailNotificationsEnabled;
   }
 
   await prisma.form.update({
@@ -249,8 +255,8 @@ export async function updateFormAppearance(
     defaultTheme?: unknown;
   }
 ) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   await prisma.form.update({
     where: { id: formId },
@@ -263,13 +269,13 @@ export async function updateFormAppearance(
 }
 
 export async function moveFormToSite(formId: string, siteId: string) {
-  const userId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
 
   // Verify form ownership
-  await getOwnedFormMinimal(formId, userId);
+  await getOwnedFormMinimal(formId, accountId);
 
   // Verify destination site ownership
-  await getOwnedSite(siteId, userId);
+  await getOwnedSite(siteId, accountId);
 
   await prisma.form.update({
     where: { id: formId },
@@ -281,8 +287,8 @@ export async function moveFormToSite(formId: string, siteId: string) {
 }
 
 export async function deleteForm(formId: string) {
-  const userId = await getCurrentUserId();
-  await getOwnedFormMinimal(formId, userId);
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
 
   await prisma.form.delete({
     where: { id: formId },
@@ -299,13 +305,16 @@ export async function createForm(data: {
   honeypotField?: string | null;
 }) {
   const userId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
 
   // Verify site ownership
-  await getOwnedSite(data.siteId, userId);
+  await getOwnedSite(data.siteId, accountId);
 
   const form = await prisma.form.create({
     data: {
       siteId: data.siteId,
+      accountId,
+      createdByUserId: userId,
       name: data.name.trim(),
       slug: data.slug.trim(),
       notifyEmails: data.notifyEmails || [],

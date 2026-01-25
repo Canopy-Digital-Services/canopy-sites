@@ -19,6 +19,7 @@ type BehaviorSectionProps = {
   formId: string;
   successMessage: string | null;
   redirectUrl: string | null;
+  emailNotificationsEnabled: boolean;
   notifyEmails: string[];
   honeypotField: string | null;
 };
@@ -27,6 +28,7 @@ export function BehaviorSection({
   formId,
   successMessage: initialSuccessMessage,
   redirectUrl: initialRedirectUrl,
+  emailNotificationsEnabled: initialEmailNotificationsEnabled,
   notifyEmails: initialNotifyEmails,
   honeypotField: initialHoneypotField,
 }: BehaviorSectionProps) {
@@ -36,6 +38,7 @@ export function BehaviorSection({
 
   const [successMessage, setSuccessMessage] = useState(initialSuccessMessage || "");
   const [redirectUrl, setRedirectUrl] = useState(initialRedirectUrl || "");
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(initialEmailNotificationsEnabled);
 
   const handleSave = () => {
     startTransition(() => {
@@ -44,6 +47,7 @@ export function BehaviorSection({
           await updateFormBehavior(formId, {
             successMessage: successMessage || null,
             redirectUrl: redirectUrl || null,
+            emailNotificationsEnabled,
           });
           toast.success("Behavior settings updated successfully");
         } catch (error) {
@@ -96,6 +100,24 @@ export function BehaviorSection({
               <p className="text-sm text-muted-foreground">
                 If set, users are redirected here instead of showing the success message
               </p>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-t">
+              <div className="space-y-0.5">
+                <Label htmlFor="emailNotifications" className="cursor-pointer">
+                  Email me on new submission
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Receive an email notification when someone submits this form
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                id="emailNotifications"
+                checked={emailNotificationsEnabled}
+                onChange={(e) => setEmailNotificationsEnabled(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+              />
             </div>
 
             <Button onClick={handleSave} disabled={isPending}>

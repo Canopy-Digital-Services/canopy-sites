@@ -16,8 +16,8 @@ async function updateStatus(
 ) {
   "use server";
 
-  const userId = await getCurrentUserId();
-  await getOwnedForm(formId, userId);
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
+  await getOwnedForm(formId, await accountId);
 
   await prisma.submission.update({
     where: { id: submissionId },
@@ -34,8 +34,8 @@ async function toggleSpam(
 ) {
   "use server";
 
-  const userId = await getCurrentUserId();
-  await getOwnedForm(formId, userId);
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
+  await getOwnedForm(formId, await accountId);
 
   await prisma.submission.update({
     where: { id: submissionId },
@@ -51,11 +51,11 @@ export default async function SubmissionDetailPage({
   params: Promise<{ formId: string; submissionId: string }>;
 }) {
   const { formId, submissionId } = await params;
-  const userId = await getCurrentUserId();
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
   let form;
   try {
-    form = await getOwnedForm(formId, userId);
+    form = await getOwnedForm(formId, await accountId);
   } catch {
     notFound();
   }

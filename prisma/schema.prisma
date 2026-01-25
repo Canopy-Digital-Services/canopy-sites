@@ -9,14 +9,38 @@ datasource db {
   provider = "postgresql"
 }
 
+// Internal account construct (one per user in v3)
+model Account {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime? // Epic 6: tombstone marker for hybrid delete
+  
+  user      User?
+  sites     Site[]
+  forms     Form[]
+  
+  @@map("accounts")
+}
+
 // Admin user account
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String   // bcrypt hashed
-  createdAt DateTime @default(now())
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  password            String    // bcrypt hashed
+  createdAt           DateTime  @default(now())
   
-  sites     Site[]
+  // Link to internal account (one-to-one in v3)
+  accountId           String    @unique
+  account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  // Auth telemetry
+  lastLoginAt         DateTime?
+  failedLoginCount    Int       @default(0)
+  lastFailedLoginAt   DateTime?
+  
+  sites               Site[]
+  createdForms        Form[]  @relation("CreatedForms")
+  passwordResetTokens PasswordResetToken[]
   
   @@map("users")
 }
@@ -25,37 +49,47 @@ model User {
 model Site {
   id        String   @id @default(cuid())
   userId    String
+  accountId String
   name      String
   domain    String   // Canonical domain for origin checks
   apiKey    String   @unique @default(uuid())
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   forms     Form[]
   
   @@index([userId])
+  @@index([accountId])
   @@map("sites")
 }
 
 // Form configuration
 model Form {
-  id             String   @id @default(cuid())
-  siteId         String
-  name           String
-  slug           String   // Unique per site
-  notifyEmails   String[] @default([])
-  honeypotField  String?  // Optional honeypot field name
-  successMessage String?
-  redirectUrl    String?
-  defaultTheme   Json?
-  createdAt      DateTime @default(now())
+  id                        String   @id @default(cuid())
+  siteId                    String
+  accountId                 String
+  createdByUserId           String
+  name                      String
+  slug                      String   // Unique per site
+  notifyEmails              String[] @default([])
+  emailNotificationsEnabled Boolean  @default(false)  // Epic 4: Email account owner on new submission
+  honeypotField             String?  // Optional honeypot field name
+  successMessage            String?
+  redirectUrl               String?
+  defaultTheme              Json?
+  createdAt                 DateTime @default(now())
   
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  fields         Field[]
-  submissions    Submission[]
+  site            Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdByUser   User         @relation("CreatedForms", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  fields          Field[]
+  submissions     Submission[]
   
   @@unique([siteId, slug])
   @@index([siteId])
+  @@index([accountId])
+  @@index([createdByUserId])
   @@map("forms")
 }
 
@@ -109,4 +143,20 @@ enum FieldType {
   SELECT
   CHECKBOX
   HIDDEN
+}
+
+// Password reset tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
 }

@@ -27,7 +27,7 @@ The slug is used in the API endpoint URL. It should be:
 
 **Example**: A form with slug `contact` will submit to:
 ```
-/api/v1/submit/{siteApiKey}/contact
+/api/submit/{siteApiKey}/contact
 ```
 
 ### Notification Emails
@@ -93,6 +93,27 @@ For each field, you can configure:
   - Add value/label pairs for dropdown choices
   - Reorder options
 
+### Validation Defaults & Limits
+
+Can-O-Forms automatically applies sensible character limits to all text-based fields to ensure data quality and prevent abuse:
+
+**Default Character Limits** (when you don't set a maximum):
+- **Text fields**: 200 characters
+- **Email fields**: 254 characters (RFC 5321 standard)
+- **Textarea fields**: 2,000 characters
+
+**Absolute Maximum Limits** (enforced server-side for security):
+- **Text fields**: 500 characters maximum
+- **Email fields**: 320 characters maximum
+- **Textarea fields**: 10,000 characters maximum
+
+**How It Works**:
+- If you don't set a maximum length, the default applies automatically
+- If you set a custom maximum, it will be enforced (up to the absolute limit)
+- Textareas automatically size themselves based on the character limit
+- Limits are enforced at three levels: browser (HTML), client-side validation, and server-side validation
+- Textarea resize handles are disabled to maintain consistent appearance
+
 ### Reordering Fields
 
 Use the **Up** and **Down** buttons next to each field to change the order. Fields will appear in this order in the embed.
@@ -102,7 +123,7 @@ Use the **Up** and **Down** buttons next to each field to change the order. Fiel
 Click on a form name to view:
 - Form configuration
 - Field list
-- Integration code (v2 embed script or v1 API)
+- Integration code (embed script or manual submit API)
 - List of recent submissions
 - Quick actions to edit or view submissions
 
@@ -123,14 +144,21 @@ The edit page has three main sections:
 
 ### Embed Appearance Section
 Configure default theme for the embed:
-- **Font Family** - CSS font-family string (e.g., "Inter, system-ui")
-- **Font CSS URL** - URL to font stylesheet (e.g., Google Fonts)
-- **Text Color** - Hex color for text
-- **Background Color** - Hex color for form background
-- **Primary Color** - Accent color (buttons, focus rings)
-- **Border Color** - Input border color
+
+**Typography:**
+- **Font Family** - Dropdown with popular Google Fonts (Inter, Roboto, Open Sans, etc.) or select "Custom" for manual entry
+- **Font Size** - Base font size in pixels (10-24px)
+- Font CSS URL is automatically filled when selecting a Google Font
+
+**Colors & Layout:**
+- **Primary Color** - Accent color for buttons and focus rings (hex)
 - **Border Radius** - Corner radius in pixels
-- **Density** - Spacing: "compact", "normal", or "comfortable"
+- **Density** - Form spacing: Compact, Normal, or Comfortable
+
+**Submit Button:**
+- **Button Width** - Full Width (100%) or Auto (fits content)
+- **Button Alignment** - Left, Center, or Right (when width is Auto)
+- **Button Text** - Custom text for submit button (default: "Submit")
 
 ### Form Details
 - Update name, slug, notification emails, and honeypot field
@@ -141,12 +169,12 @@ Click **Save** on each section to apply changes.
 
 Click **Integration** on a form to see ready-to-use code snippets for:
 
-### v2 Embed Script (Recommended)
+### Embed Script (Recommended)
 - Single `<script>` tag embed code
 - Works with Figma Sites and static pages
 - No HTML form writing required
 
-### v1 API Integration
+### Manual Submit API
 - HTML form examples
 - JavaScript/AJAX submissions
 - Fetch API examples

@@ -32,8 +32,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
 
         if (!isValidPassword) {
+          // Track failed login attempt
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginCount: { increment: 1 },
+              lastFailedLoginAt: new Date(),
+            },
+          });
           return null;
         }
+
+        // Track successful login and reset failed attempts
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: new Date(),
+            failedLoginCount: 0,
+            lastFailedLoginAt: null,
+          },
+        });
 
         return {
           id: user.id,

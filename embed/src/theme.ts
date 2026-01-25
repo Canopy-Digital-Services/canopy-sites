@@ -1,5 +1,6 @@
 type ThemeTokens = {
   fontFamily?: string;
+  fontSize?: number;
   fontUrl?: string;
   text?: string;
   background?: string;
@@ -7,19 +8,27 @@ type ThemeTokens = {
   border?: string;
   radius?: number;
   density?: "compact" | "normal" | "comfortable";
+  buttonWidth?: "full" | "auto";
+  buttonAlign?: "left" | "center" | "right";
+  buttonText?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl">> & {
+const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl" | "buttonText">> & {
   fontUrl?: string;
+  buttonText?: string;
 } = {
   fontFamily: "inherit",
+  fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
   primary: "#0ea5e9",
   border: "#e4e4e7",
   radius: 8,
   density: "normal",
+  buttonWidth: "full",
+  buttonAlign: "left",
   fontUrl: undefined,
+  buttonText: undefined,
 };
 
 const loadedFonts = new Set<string>();
@@ -69,6 +78,10 @@ export function resolveTheme(
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--cof-font", theme.fontFamily || "inherit");
   container.style.setProperty(
+    "--cof-font-size",
+    `${theme.fontSize ?? DEFAULT_THEME.fontSize}px`
+  );
+  container.style.setProperty(
     "--cof-text",
     normalizeColor(theme.text, DEFAULT_THEME.text)
   );
@@ -87,6 +100,14 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty(
     "--cof-radius",
     `${theme.radius ?? DEFAULT_THEME.radius}px`
+  );
+  container.style.setProperty(
+    "--cof-button-width",
+    theme.buttonWidth === "auto" ? "auto" : "100%"
+  );
+  container.style.setProperty(
+    "--cof-button-align",
+    theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 }
 

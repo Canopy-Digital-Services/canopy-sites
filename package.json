@@ -1,8 +1,8 @@
 {
   "name": "can-o-forms",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "Self-hosted forms backend with admin UI for static sites",
+  "description": "SaaS forms management platform with form builder UI for static sites",
   "repository": {
     "type": "git",
     "url": "https://github.com/Skinnerbox916/Can-O-Forms.git"

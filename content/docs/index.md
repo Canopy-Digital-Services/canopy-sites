@@ -1,20 +1,20 @@
 # Getting Started with Can-O-Forms
 
-Welcome to Can-O-Forms, a self-hosted form backend service designed for static websites. Can-O-Forms provides a simple script-based embed system and API to collect form submissions without requiring server-side code on your static site.
+Welcome to Can-O-Forms, a forms management platform designed for static websites. Can-O-Forms provides a complete solution for creating, managing, and collecting form submissions without requiring server-side code on your static site.
 
 ## What is Can-O-Forms?
 
-Can-O-Forms is a lightweight form backend that:
+Can-O-Forms is a forms management platform with:
 
-- **Script-Based Embeds** (v2) - Single `<script>` tag form rendering, no manual HTML needed
-- **Form Builder** - Visual field editor with validation rules
-- **RESTful API** - Accept form submissions via API endpoints
-- **PostgreSQL Database** - Secure, structured data storage
+- **Form Builder UI** - Create and edit forms with field management and validation rules
+- **Admin Interface** - Web application for managing sites, forms, and submissions
+- **Script-Based Embeds** - Single `<script>` tag form rendering, no manual HTML needed
+- **Submission Management** - View, organize, filter, and export form submissions
+- **Multi-Site Support** - Manage forms for multiple websites from one account
 - **Email Notifications** - Automatic alerts when forms are submitted
-- **Admin UI** - Manage sites, forms, fields, and submissions
+- **Theme System** - Customize colors, fonts, and styling per form
 - **Spam Protection** - Honeypot fields and IP-based rate limiting
 - **Origin Validation** - Domain-based security to prevent unauthorized submissions
-- **Theme System** - Customize colors, fonts, and styling per form
 
 ## Key Concepts
 
@@ -50,22 +50,21 @@ A **Submission** is a single form submission containing:
 2. **Create a Form** - Define a form with a unique slug
 3. **Add Fields** - Use the field builder to configure form fields, validation, and styling
 4. **Configure Success Behavior** - Set up success messages or redirect URLs
-5. **Get Embed Code** - Copy the script embed code (v2) or API integration code (v1)
-6. **Add to Your Site** - Paste the embed script or integration code
+5. **Get Embed Code** - Copy the script embed code (or manual submit endpoint)
+6. **Add to Your Site** - Paste the embed script or integrate your HTML form
 7. **Test & View** - Submit a test form and view it in the admin dashboard
 
-## Two Integration Methods
+## Integration Options
 
-**v2 Embed Script (Recommended)**
+**Embed Script (Recommended)**
 - Single `<script>` tag - no HTML form writing required
 - Automatic rendering, validation, and submission
 - Built-in styling with theme customization
 - Perfect for Figma Sites and static pages
 
-**v1 API Integration**
+**Manual Submit API (Advanced)**
 - Manual HTML forms with JavaScript
-- Direct API calls
+- Direct POST to `/api/submit/{siteApiKey}/{formSlug}`
 - Full control over form HTML and styling
-- Backwards compatible
 
 Ready to get started? Check out the detailed guides in the navigation above.

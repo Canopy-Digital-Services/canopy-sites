@@ -13,8 +13,8 @@ export default async function FormsPage({
 }: {
   searchParams: { site?: string };
 }) {
-  const userId = await getCurrentUserId();
-  const allForms = await getUserForms(userId);
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
+  const allForms = await getUserForms(await accountId);
 
   // Client-side filtering by site
   const forms = searchParams.site

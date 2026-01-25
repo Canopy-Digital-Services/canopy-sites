@@ -9,11 +9,11 @@ export default async function FormEditPage({
   params: Promise<{ formId: string }>;
 }) {
   const { formId } = await params;
-  const userId = await getCurrentUserId();
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
   let form;
   try {
-    form = await getOwnedForm(formId, userId);
+    form = await getOwnedForm(formId, await accountId);
   } catch {
     notFound();
   }

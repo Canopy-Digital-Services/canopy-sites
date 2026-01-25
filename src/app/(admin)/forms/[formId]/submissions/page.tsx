@@ -7,8 +7,14 @@ import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, ChevronDown } from "lucide-react";
 
 export default async function SubmissionsPage({
   params,
@@ -18,11 +24,11 @@ export default async function SubmissionsPage({
   searchParams: { status?: string; spam?: string };
 }) {
   const { formId } = await params;
-  const userId = await getCurrentUserId();
+  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
   let form;
   try {
-    form = await getOwnedForm(formId, userId);
+    form = await getOwnedForm(formId, await accountId);
   } catch {
     notFound();
   }
@@ -103,12 +109,27 @@ export default async function SubmissionsPage({
         title="Submissions"
         description={`${form.name} on ${form.site.name}`}
         actions={
-          <Link href={`/forms/${formId}/submissions/export`}>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/forms/${formId}/submissions/export?format=csv`}>
+                  Export CSV
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/forms/${formId}/submissions/export?format=json`}>
+                  Export JSON
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
 
