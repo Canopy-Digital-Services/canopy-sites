@@ -20,13 +20,14 @@ The embed script is the easiest way to add forms. Just paste two lines of code a
 
 1. Log into Can-O-Forms admin
 2. Navigate to your site → your form
-3. Click **Integration** tab
+3. Click **Integrate** button
 4. Copy the embed code (it looks like this):
 
 ```html
 <div 
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
@@ -55,6 +56,7 @@ The exact steps depend on your website platform:
   <div 
     data-can-o-form="contact"
     data-site-key="abc123-def456-ghi789"
+    data-base-url="https://canoforms.canopyds.com"
   ></div>
   <script src="https://canoforms.canopyds.com/embed.js" defer></script>
   
@@ -87,6 +89,7 @@ export default function ContactPage() {
       <div 
         data-can-o-form="contact"
         data-site-key="abc123-def456-ghi789"
+        data-base-url="https://canoforms.canopyds.com"
       />
       
       {/* Load the embed script */}
@@ -109,6 +112,7 @@ export default function ContactPage() {
       <div 
         data-can-o-form="contact"
         data-site-key="abc123-def456-ghi789"
+        data-base-url="https://canoforms.canopyds.com"
       />
       
       <Script src="https://canoforms.canopyds.com/embed.js" />
@@ -140,6 +144,7 @@ const title = "Contact Us";
   <div 
     data-can-o-form="contact"
     data-site-key="abc123-def456-ghi789"
+    data-base-url="https://canoforms.canopyds.com"
   />
   
   <!-- Load the embed script -->
@@ -160,6 +165,7 @@ const title = "Contact Us";
 <div 
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
@@ -174,7 +180,7 @@ const title = "Contact Us";
 4. Paste your embed code:
 
 ```html
-<div data-can-o-form="contact" data-site-key="abc123-def456-ghi789"></div>
+<div data-can-o-form="contact" data-site-key="abc123-def456-ghi789" data-base-url="https://canoforms.canopyds.com"></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
 
@@ -205,6 +211,7 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 <div 
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
   data-theme='{"primary":"#005F6A","radius":12,"density":"comfortable"}'
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
@@ -236,6 +243,7 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 <div 
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
   data-theme='{
     "fontFamily": "Inter, sans-serif",
     "fontSize": 16,
@@ -252,6 +260,8 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
+
+See [Form Appearance & Behavior](./form-customization.md) for detailed theme documentation.
 
 ### Multiple Forms on One Page
 
@@ -304,6 +314,7 @@ You can style the container div with CSS:
   class="form-container"
   data-can-o-form="contact"
   data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
 ></div>
 <script src="https://canoforms.canopyds.com/embed.js" defer></script>
 ```
@@ -499,6 +510,44 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 </html>
 ```
 
+## Data Attributes Reference
+
+### Container Attributes
+
+**`data-can-o-form`** (required)
+- The form slug (e.g., `"contact"`)
+- Must match the slug configured in your form
+
+**`data-site-key`** or **`data-api-key`** (required)
+- Your site's API key
+- Can be on the container or the script tag
+- Both attributes work the same way
+
+**`data-base-url`** (optional)
+- Base URL for the Can-O-Forms API
+- Defaults to relative URLs if not set
+- Useful for custom domains or local development
+
+**`data-theme`** (optional)
+- JSON object with theme overrides
+- Merges with form's default theme
+- See [Form Appearance & Behavior](./form-customization.md) for details
+
+### Script Tag Attributes
+
+You can also put some attributes on the script tag:
+
+```html
+<script 
+  src="https://canoforms.canopyds.com/embed.js" 
+  data-site-key="abc123-def456-ghi789"
+  data-base-url="https://canoforms.canopyds.com"
+  defer
+></script>
+```
+
+This is useful when you have multiple forms on one page and want to share the API key.
+
 ## Important Configuration
 
 ### Domain Setup
@@ -538,6 +587,7 @@ Configure what happens after submission:
 - Open browser developer tools (F12)
 - Check the Console tab for errors
 - Verify the embed script URL loads correctly
+- Make sure the form has at least one field
 
 ### "Origin not allowed" Error
 
@@ -548,6 +598,7 @@ Configure what happens after submission:
 **Solution:**
 - Update the domain in site settings to match exactly
 - For local testing, temporarily set domain to `localhost`
+- Check that subdomains are configured correctly
 
 ### Form Not Submitting
 
@@ -555,22 +606,39 @@ Configure what happens after submission:
 - Are there validation errors?
 - Is the API key correct?
 - Is the form slug correct?
+- Is the endpoint URL correct?
 
 **Solution:**
 - Check browser console for errors
 - Verify API key and form slug in the embed code
 - Test with a simple form first
+- Verify the endpoint URL is correct
 
 ### Styling Issues
 
 **Check:**
 - Is the form container styled correctly?
 - Are there CSS conflicts?
+- Is the theme JSON valid?
 
 **Solution:**
 - Use `data-theme` to customize appearance
 - Check that your CSS isn't overriding embed styles
 - The embed uses scoped CSS (`.cof-*` classes) to avoid conflicts
+- Validate JSON in `data-theme` attribute
+
+### Script Loading Issues
+
+**Check:**
+- Is the script URL accessible?
+- Are there network errors?
+- Is the script loading before DOM is ready?
+
+**Solution:**
+- Use `defer` attribute on script tag (recommended)
+- Or load script in `<head>` with `defer`
+- Check network tab for failed requests
+- Verify script URL is correct
 
 ## Next Steps
 
@@ -579,8 +647,9 @@ Configure what happens after submission:
 3. **Set up email notifications** - Configure notification emails in form settings
 4. **Customize appearance** - Use theme options to match your brand
 
-## Need Help?
+## Related Documentation
 
-- Check the [API Reference](./api.md) for technical details
-- Review [Form Management](./forms.md) for field configuration
-- Contact support if you encounter issues
+- [API Reference](./api.md) - Technical details about the API
+- [Form Management](./forms.md) - Creating and configuring forms
+- [Form Appearance & Behavior](./form-customization.md) - Theme customization
+- [Troubleshooting](./troubleshooting.md) - Common issues and solutions

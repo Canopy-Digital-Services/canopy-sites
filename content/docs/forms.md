@@ -4,16 +4,15 @@ Forms represent individual forms on your website. Each form has a unique slug an
 
 ## Creating a Form
 
-1. Navigate to a site by clicking on it
+1. Navigate to **Forms** in the sidebar
 2. Click **New Form**
 3. Fill in the form details:
    - **Name**: A friendly name (e.g., "Contact Form")
    - **Slug**: URL-friendly identifier (e.g., "contact")
-   - **Notification Emails**: Comma-separated email addresses
-   - **Honeypot Field**: Optional field name for spam detection
+   - **Site**: Select which site this form belongs to
 4. Click **Create Form**
 
-After creating a form, you'll be taken to the form page where you can add fields using the field builder.
+After creating a form, you'll be taken to the form editor where you can add fields, configure behavior, and customize appearance.
 
 ## Form Configuration
 
@@ -30,37 +29,13 @@ The slug is used in the API endpoint URL. It should be:
 /api/submit/{siteApiKey}/contact
 ```
 
-### Notification Emails
+### Form Name
 
-Enter one or more email addresses (comma-separated) to receive notifications when the form is submitted.
-
-**Example**: 
-```
-admin@example.com, support@example.com
-```
-
-**Requirements**:
-- Valid SMTP configuration in your Can-O-Forms environment
-- Verified sender email address
-
-### Honeypot Field
-
-A honeypot field is a hidden form field that helps catch spam bots. If a bot fills in this field, the submission is marked as spam.
-
-**How it works**:
-1. Add a hidden input field to your HTML form
-2. Set the field name here (e.g., "website" or "url")
-3. Use CSS to hide it from users: `display: none;`
-4. Legitimate users won't fill it, but bots will
-
-**Example**:
-```html
-<input type="text" name="website" style="display: none;" />
-```
+The form name is displayed in the admin dashboard and email notifications. It's a friendly identifier that helps you organize your forms.
 
 ## Adding Fields to a Form
 
-Forms in v2 support a visual field builder. To add fields:
+Forms support a visual field builder. To add fields:
 
 1. Click on a form name
 2. Click **Edit Form**
@@ -69,29 +44,31 @@ Forms in v2 support a visual field builder. To add fields:
 
 ### Field Types
 
+Can-O-Forms supports six field types:
+
 - **Text** - Single-line text input
 - **Email** - Email input with automatic format validation
 - **Textarea** - Multi-line text input
 - **Select** - Dropdown menu (requires options to be configured)
 - **Checkbox** - Single checkbox input
-- **Hidden** - Hidden field (not visible to users)
+- **Hidden** - Hidden field (not visible to users, useful for tracking, UTM params, etc.)
 
 ### Field Configuration
 
 For each field, you can configure:
 
-- **Field Name** - Internal identifier (used in submissions)
-- **Label** - User-facing label
+- **Field Name** - Internal identifier (used in submissions, must be unique per form)
+- **Label** - User-facing label displayed on the form
 - **Placeholder** - Hint text shown in empty fields
-- **Required** - Whether the field must be filled
-- **Validation Rules** (Text/Email/Textarea):
+- **Required** - Whether the field must be filled before submission
+- **Validation Rules** (Text/Email/Textarea only):
   - Minimum length
   - Maximum length
   - Regex pattern
   - Custom error message
 - **Options** (Select only):
   - Add value/label pairs for dropdown choices
-  - Reorder options
+  - Reorder options using Up/Down buttons
 
 ### Validation Defaults & Limits
 
@@ -116,7 +93,7 @@ Can-O-Forms automatically applies sensible character limits to all text-based fi
 
 ### Reordering Fields
 
-Use the **Up** and **Down** buttons next to each field to change the order. Fields will appear in this order in the embed.
+Use the **Up** and **Down** buttons next to each field in the field list to change the order. Fields will appear in this order in the embed and manual submit forms.
 
 ## Viewing Form Details
 
@@ -135,39 +112,56 @@ Click on a form name to view:
 The edit page has three main sections:
 
 ### Fields Section
+
 - Add, edit, delete, and reorder fields
 - Configure validation rules
+- Set field types and options
 
-### Success Behavior Section
+### Behavior Section
+
+Configure what happens after submission:
+
 - **Success Message** - Text shown after successful submission (if no redirect is set)
 - **Redirect URL** - URL to redirect to after submission (takes precedence over message)
+- **Email Notifications** - Toggle to receive email notifications when this form is submitted (v2.5.0+)
+  - When enabled, you'll receive a minimal notification with form name, timestamp, and dashboard link
+  - Notifications are sent to your account email address
+  - Spam submissions do not trigger notifications
 
-### Embed Appearance Section
-Configure default theme for the embed:
+**Note**: The legacy `notifyEmails` field is still supported for backward compatibility, but the per-form toggle is the recommended approach.
 
-**Typography:**
-- **Font Family** - Dropdown with popular Google Fonts (Inter, Roboto, Open Sans, etc.) or select "Custom" for manual entry
-- **Font Size** - Base font size in pixels (10-24px)
-- Font CSS URL is automatically filled when selecting a Google Font
+### Appearance Section
 
-**Colors & Layout:**
-- **Primary Color** - Accent color for buttons and focus rings (hex)
-- **Border Radius** - Corner radius in pixels
-- **Density** - Form spacing: Compact, Normal, or Comfortable
-
-**Submit Button:**
-- **Button Width** - Full Width (100%) or Auto (fits content)
-- **Button Alignment** - Left, Center, or Right (when width is Auto)
-- **Button Text** - Custom text for submit button (default: "Submit")
+Configure default theme for the embed. See [Form Appearance & Behavior](./form-customization.md) for detailed information about theme customization.
 
 ### Form Details
-- Update name, slug, notification emails, and honeypot field
+
+The form name is auto-saved as you type. You can also update the slug and site association from the form editor.
 
 Click **Save** on each section to apply changes.
 
+## Form Settings
+
+### Honeypot Field (Spam Protection)
+
+A honeypot field is a hidden form field that helps catch spam bots. If a bot fills in this field, the submission is marked as spam.
+
+**How it works**:
+1. Configure a honeypot field name in the form settings (e.g., "website" or "url")
+2. Add a hidden input field to your HTML form (if using manual submit API)
+3. Use CSS to hide it from users: `display: none;`
+4. Legitimate users won't fill it, but bots will
+
+**Example** (for manual submit API):
+```html
+<input type="text" name="website" style="display: none;" />
+```
+
+**Note**: If you're using the embed script, the honeypot field is automatically handled for you.
+
 ## Integration Helper
 
-Click **Integration** on a form to see ready-to-use code snippets for:
+Click **Integrate** on a form to see ready-to-use code snippets for:
 
 ### Embed Script (Recommended)
 - Single `<script>` tag embed code
@@ -179,7 +173,7 @@ Click **Integration** on a form to see ready-to-use code snippets for:
 - JavaScript/AJAX submissions
 - Fetch API examples
 
-Copy and paste the code directly into your static site.
+Copy and paste the code directly into your static site. See the [Integration Guide](./integration.md) for detailed instructions.
 
 ## Deleting a Form
 
@@ -187,12 +181,22 @@ Copy and paste the code directly into your static site.
 2. Click **Delete Form**
 3. Confirm the deletion
 
-**Warning**: Deleting a form will permanently delete all submissions. This action cannot be undone.
+**Warning**: Deleting a form will permanently delete all fields and submissions associated with it. This action cannot be undone.
 
 ## Form Best Practices
 
 - Use descriptive slugs that match the form's purpose
-- Set up notification emails to stay informed of submissions
+- Set up email notifications to stay informed of submissions
 - Always use honeypot fields for public-facing forms
 - Test your forms after integration
 - Monitor submissions regularly through the admin dashboard
+- Use validation rules to ensure data quality
+- Keep field names lowercase and use hyphens (e.g., "first-name" not "firstName")
+- Set appropriate character limits for text fields
+
+## Related Documentation
+
+- [Form Appearance & Behavior](./form-customization.md) - Theme customization and styling
+- [Email Notifications](./email-notifications.md) - Configure email alerts
+- [Integration Guide](./integration.md) - Add forms to your site
+- [Submissions](./submissions.md) - View and manage form submissions
