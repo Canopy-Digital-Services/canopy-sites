@@ -57,8 +57,10 @@ Can-O-Forms supports six field types:
 
 For each field, you can configure:
 
-- **Field Name** - Internal identifier (used in submissions, must be unique per form)
-- **Label** - User-facing label displayed on the form
+- **Label** - User-facing label displayed on the form (required)
+  - An internal key is automatically generated from the label (e.g., "Email Address" → `email_address`)
+  - The internal key is used in submissions and stays stable even if you change the label later
+  - You can see the internal key when editing an existing field
 - **Placeholder** - Hint text shown in empty fields
 - **Required** - Whether the field must be filled before submission
 - **Validation Rules** (Text/Email/Textarea only):
@@ -68,7 +70,8 @@ For each field, you can configure:
   - Custom error message
 - **Options** (Select only):
   - Add value/label pairs for dropdown choices
-  - Reorder options using Up/Down buttons
+  - Reorder options using drag-and-drop
+  - Option values must be unique (duplicates can’t be saved)
 
 ### Validation Defaults & Limits
 
@@ -177,21 +180,22 @@ Copy and paste the code directly into your static site. See the [Integration Gui
 
 ## Deleting a Form
 
-1. Click on a form name
-2. Click **Delete Form**
-3. Confirm the deletion
+1. Go to the **Forms** list page
+2. Find the form you want to delete
+3. Click the **trash icon** in the Actions column
+4. Confirm the deletion
 
 **Warning**: Deleting a form will permanently delete all fields and submissions associated with it. This action cannot be undone.
 
 ## Form Best Practices
 
 - Use descriptive slugs that match the form's purpose
+- Use clear, descriptive labels for fields (internal keys are auto-generated)
 - Set up email notifications to stay informed of submissions
 - Always use honeypot fields for public-facing forms
 - Test your forms after integration
 - Monitor submissions regularly through the admin dashboard
 - Use validation rules to ensure data quality
-- Keep field names lowercase and use hyphens (e.g., "first-name" not "firstName")
 - Set appropriate character limits for text fields
 
 ## Related Documentation

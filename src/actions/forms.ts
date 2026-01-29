@@ -11,9 +11,10 @@ import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
 import { FieldType } from "@prisma/client";
 import { getOwnedForm, getOwnedFormMinimal, getOwnedSite } from "@/lib/data-access/forms";
 import { revalidatePath } from "next/cache";
+import { slugify } from "@/lib/utils";
 
 type FieldInput = {
-  name: string;
+  name?: string; // Optional on create, ignored on update
   type: string;
   label: string;
   placeholder?: string | null;
@@ -26,13 +27,39 @@ type FieldInput = {
 // FIELD ACTIONS
 // ============================================================================
 
+async function generateUniqueName(formId: string, baseSlug: string): Promise<string> {
+  const existing = await prisma.field.findMany({
+    where: { formId },
+    select: { name: true },
+  });
+  
+  const existingNames = new Set(existing.map(f => f.name));
+  
+  if (!existingNames.has(baseSlug)) {
+    return baseSlug;
+  }
+  
+  // Find next available suffix
+  let counter = 2;
+  while (existingNames.has(`${baseSlug}_${counter}`)) {
+    counter++;
+  }
+  return `${baseSlug}_${counter}`;
+}
+
 export async function createField(formId: string, data: FieldInput) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.name || !data.label) {
-    throw new Error("Field name and label are required");
+  if (!data.label) {
+    throw new Error("Field label is required");
   }
+
+  // Generate unique name from label if not provided
+  const fieldName = data.name?.trim() || await generateUniqueName(
+    formId,
+    slugify(data.label)
+  );
 
   const lastField = await prisma.field.findFirst({
     where: { formId },
@@ -45,7 +72,7 @@ export async function createField(formId: string, data: FieldInput) {
   const field = await prisma.field.create({
     data: {
       formId,
-      name: data.name.trim(),
+      name: fieldName,
       type: data.type as FieldType,
       label: data.label.trim(),
       placeholder: data.placeholder?.trim() || null,
@@ -68,8 +95,8 @@ export async function updateField(
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.name || !data.label) {
-    throw new Error("Field name and label are required");
+  if (!data.label) {
+    throw new Error("Field label is required");
   }
 
   const field = await prisma.field.findFirst({
@@ -83,10 +110,10 @@ export async function updateField(
     throw new Error("Field not found");
   }
 
+  // Note: name is immutable after creation (not updated)
   const updated = await prisma.field.update({
     where: { id: fieldId },
     data: {
-      name: data.name.trim(),
       type: data.type as FieldType,
       label: data.label.trim(),
       placeholder: data.placeholder?.trim() || null,

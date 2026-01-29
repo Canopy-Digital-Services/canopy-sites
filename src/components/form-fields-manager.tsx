@@ -12,6 +12,7 @@ import {
   reorderFields,
   updateField,
 } from "@/actions/forms";
+import { useToast } from "@/hooks/use-toast";
 
 type FormFieldsManagerProps = {
   formId: string;
@@ -25,8 +26,8 @@ export function FormFieldsManager({
   const [fieldList, setFieldList] = useState(fields);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const editingField = useMemo(
     () => fieldList.find((field) => field.id === editingFieldId) || null,
@@ -44,7 +45,6 @@ export function FormFieldsManager({
   };
 
   const handleSave = (data: FieldDraft) => {
-    setError(null);
     startTransition(() => {
       void (async () => {
         try {
@@ -93,14 +93,13 @@ export function FormFieldsManager({
           setIsModalOpen(false);
         } catch (saveError) {
           console.error(saveError);
-          setError("Unable to save field. Please try again.");
+          toast.error("Unable to save field. Please try again.");
         }
       })();
     });
   };
 
   const handleDelete = (fieldId: string) => {
-    setError(null);
     startTransition(() => {
       void (async () => {
         const previous = fieldList;
@@ -109,44 +108,35 @@ export function FormFieldsManager({
           await deleteField(formId, fieldId);
         } catch (deleteError) {
           console.error(deleteError);
-          setError("Unable to delete field. Please try again.");
+          toast.error("Unable to delete field. Please try again.");
           setFieldList(previous);
         }
       })();
     });
   };
 
-  const handleMove = (fieldId: string, direction: "up" | "down") => {
-    setError(null);
-    const index = fieldList.findIndex((field) => field.id === fieldId);
-    if (index === -1) {
-      return;
-    }
+  const handleReorder = (fieldIds: string[]) => {
+    // Reconstruct the field list in the new order
+    const reordered = fieldIds
+      .map((id) => fieldList.find((field) => field.id === id))
+      .filter((field): field is FieldSummary => field !== undefined)
+      .map((field, orderIndex) => ({
+        ...field,
+        order: orderIndex + 1,
+      }));
 
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= fieldList.length) {
-      return;
-    }
+    // Optimistic update
+    setFieldList(reordered);
 
-    const next = [...fieldList];
-    const [removed] = next.splice(index, 1);
-    next.splice(target, 0, removed);
-    const ordered = next.map((field, orderIndex) => ({
-      ...field,
-      order: orderIndex + 1,
-    }));
-
-    setFieldList(ordered);
+    // Persist to server
     startTransition(() => {
       void (async () => {
         try {
-          await reorderFields(
-            formId,
-            ordered.map((field) => field.id)
-          );
+          await reorderFields(formId, fieldIds);
         } catch (reorderError) {
           console.error(reorderError);
-          setError("Unable to reorder fields. Please try again.");
+          toast.error("Unable to reorder fields. Please try again.");
+          // Rollback on error
           setFieldList(fieldList);
         }
       })();
@@ -160,14 +150,8 @@ export function FormFieldsManager({
         label: editingField.label,
         placeholder: editingField.placeholder ?? "",
         required: editingField.required,
-        options: Array.isArray(editingField.options)
-          ? (editingField.options as { value: string; label: string }[])
-          : [],
-        validation:
-          typeof editingField.validation === "object" &&
-          editingField.validation !== null
-            ? (editingField.validation as FieldDraft["validation"])
-            : {},
+        options: editingField.options,
+        validation: editingField.validation,
       }
     : null;
 
@@ -178,11 +162,8 @@ export function FormFieldsManager({
         onAddField={openCreate}
         onEditField={openEdit}
         onDeleteField={handleDelete}
-        onMoveField={handleMove}
+        onReorder={handleReorder}
       />
-      {error ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
       <FieldEditorModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

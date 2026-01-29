@@ -2,7 +2,7 @@
 
 A complete SaaS forms management platform with form builder UI, submission management, and script-based embeds for static sites.
 
-> **🤖 For AI Coding Assistants**: Read [`AGENT_CONTEXT.md`](./AGENT_CONTEXT.md) first to understand project architecture and avoid common mistakes.
+> **🤖 For AI Coding Assistants**: Read [`AGENT_CONTEXT.md`](./docs/AGENT_CONTEXT.md) first to understand project architecture and avoid common mistakes.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Can-O-Forms is a complete SaaS forms management platform that provides:
 
 **Platform URL**: https://canoforms.canopyds.com
 
-**Status**: v3.0.0 - Production-ready platform with all planned features implemented
+**Status**: v3.1.0 - Production-ready platform with simplified field creation UX
 
 ### Quick Example
 
@@ -57,12 +57,16 @@ The embed script automatically:
 
 ## Version History
 
-**Current Version:** v3.0.0 🎉
+**Current Version:** v3.1.0
 
 This project follows [Semantic Versioning](https://semver.org/) and maintains detailed documentation of changes:
 
 - **[CHANGELOG.md](CHANGELOG.md)** - Concise version history with key changes per release
 - **[docs/epics/](docs/epics/)** - Detailed completion reports for each epic with implementation details, technical decisions, and verification steps
+
+**v3.1.0** (2026-01-28) - **Simplified Field Creation UX**
+- Google Forms-style field editor (auto-generated internal keys)
+- Reduced user confusion by eliminating dual name/label inputs
 
 **v3.0.0** (2026-01-24) - 🎉 **Complete Platform Release**
 - All 7 planned epics implemented

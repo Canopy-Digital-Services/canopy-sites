@@ -15,6 +15,29 @@ For each completed epic:
 
 ---
 
+## [3.1.0] - 2026-01-28
+
+### Changed
+
+- **Simplified Field Creation UX**: Field editor now uses Google Forms-style approach
+  - Users only enter the field **Label** (e.g., "Email Address")
+  - System automatically generates stable internal key (e.g., `email_address`)
+  - Internal keys remain immutable after creation for API/submission stability
+  - Edit mode displays the internal key as read-only reference
+  - Automatic uniqueness handling with numeric suffixes when needed (email, email_2, etc.)
+  - Reduces user confusion by eliminating dual "Field Name" and "Label" inputs
+
+### Technical Changes
+
+- Added `slugify()` utility function in `src/lib/utils.ts`
+- Updated `FieldInput` and `FieldDraft` types to make `name` optional
+- Modified `createField()` to auto-generate unique names from labels
+- Modified `updateField()` to never update the `name` field (immutable after creation)
+- Simplified field editor modal UI in `src/components/field-editor-modal.tsx`
+- No database schema changes required (existing `Field.name` column reused)
+
+---
+
 ## [3.0.0] - 2026-01-24
 
 🎉 **v3.0.0 Release - Complete Platform** 🎉
