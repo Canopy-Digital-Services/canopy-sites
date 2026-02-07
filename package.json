@@ -5,7 +5,7 @@
   "description": "SaaS forms management platform with form builder UI for static sites",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Skinnerbox916/Can-O-Forms.git"
+    "url": "https://github.com/Skinnerbox916/Canopy-Forms.git"
   },
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
