@@ -5,6 +5,7 @@ import { FieldType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getConfigComponent } from "@/components/field-config";
+import { FIELD_TYPE_OPTIONS, getLabelPlaceholder } from "@/lib/field-types";
 
 export type FieldOption = {
   value: string;
@@ -31,9 +33,7 @@ export type FieldValidation = {
   minLength?: number;
   maxLength?: number;
   pattern?: string;
-  message?: string;
   format?: string;
-  defaultCountry?: string;
   minDate?: string;
   maxDate?: string;
   noFuture?: boolean;
@@ -46,6 +46,7 @@ export type FieldDraft = {
   label: string;
   placeholder?: string | null;
   required?: boolean;
+  helpText?: string | null;
   options?: any; // Can be array of {value, label} for SELECT or complex object for NAME
   validation?: FieldValidation;
 };
@@ -56,18 +57,6 @@ type FieldEditorModalProps = {
   onSave: (data: FieldDraft) => void;
   field?: FieldDraft | null;
 };
-
-const FIELD_TYPES = [
-  { value: "TEXT", label: "Text" },
-  { value: "EMAIL", label: "Email" },
-  { value: "TEXTAREA", label: "Paragraph" },
-  { value: "PHONE", label: "Phone" },
-  { value: "DATE", label: "Date" },
-  { value: "NAME", label: "Name" },
-  { value: "SELECT", label: "Select" },
-  { value: "CHECKBOX", label: "Checkbox" },
-  { value: "HIDDEN", label: "Hidden" },
-];
 
 export function FieldEditorModal({
   open,
@@ -81,6 +70,7 @@ export function FieldEditorModal({
   const [label, setLabel] = useState(field?.label ?? "");
   const [placeholder, setPlaceholder] = useState(field?.placeholder ?? "");
   const [required, setRequired] = useState(Boolean(field?.required));
+  const [helpText, setHelpText] = useState(field?.helpText ?? "");
   const [config, setConfig] = useState<any>(
     field?.validation || field?.options || undefined
   );
@@ -94,6 +84,7 @@ export function FieldEditorModal({
     setLabel(field?.label ?? "");
     setPlaceholder(field?.placeholder ?? "");
     setRequired(Boolean(field?.required));
+    setHelpText(field?.helpText ?? "");
     
     // Initialize config based on field type
     const fieldType = field?.type as FieldType;
@@ -181,6 +172,7 @@ export function FieldEditorModal({
       label: label.trim(),
       placeholder: placeholder.trim() || null,
       required,
+      helpText: helpText.trim() || null,
     };
 
     // In edit mode, pass the existing name for reference
@@ -222,7 +214,7 @@ export function FieldEditorModal({
                 <SelectValue placeholder="Select field type" />
               </SelectTrigger>
               <SelectContent>
-                {FIELD_TYPES.map((option) => (
+                {FIELD_TYPE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -237,13 +229,8 @@ export function FieldEditorModal({
               id="field-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              placeholder="e.g. Email Address"
+              placeholder={getLabelPlaceholder(type)}
             />
-            {field?.name && (
-              <p className="text-xs text-muted-foreground">
-                Internal key: <code className="bg-muted px-1 py-0.5 rounded">{field.name}</code>
-              </p>
-            )}
           </div>
 
           {showPlaceholder && (
@@ -266,10 +253,29 @@ export function FieldEditorModal({
             Required field
           </label>
 
-          {/* Dynamic panel - type-specific configuration */}
+          {/* Section divider */}
           {ConfigComponent && (
-            <ConfigComponent value={config} onChange={setConfig} />
+            <>
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                  Input Rules
+                </h3>
+                <ConfigComponent value={config} onChange={setConfig} />
+              </div>
+            </>
           )}
+
+          {/* Help text field - shown for all field types within Input Rules */}
+          <div className="space-y-2">
+            <Label htmlFor="field-help-text">Help text (optional)</Label>
+            <Textarea
+              id="field-help-text"
+              value={helpText ?? ""}
+              onChange={(event) => setHelpText(event.target.value)}
+              placeholder="Brief guidance for filling out this field"
+              rows={2}
+            />
+          </div>
         </div>
 
         <DialogFooter>

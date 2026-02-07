@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
-import { queueEmailNotification, queueNewSubmissionNotification } from "@/lib/email-queue";
+import { queueNewSubmissionNotification } from "@/lib/email-queue";
 
 type FieldDefinition = {
   name: string;
@@ -20,8 +20,7 @@ type RateLimitConfig = {
 
 type SubmitOptions = {
   request: NextRequest;
-  siteApiKey: string;
-  formSlug: string;
+  formId: string;
   allowMethods: string;
   rateLimit: RateLimitConfig;
 };
@@ -96,8 +95,12 @@ function validateFields(
         ? (field.validation as {
             minLength?: number;
             maxLength?: number;
-            pattern?: string;
+            format?: string;
             message?: string;
+            minDate?: string;
+            maxDate?: string;
+            noFuture?: boolean;
+            noPast?: boolean;
           })
         : undefined;
 
@@ -107,6 +110,8 @@ function validateFields(
           errors[field.name] = `${label} is required.`;
           continue;
         }
+      } else if (field.type === "NAME") {
+        // NAME validation handled below
       } else if (
         value === undefined ||
         value === null ||
@@ -117,17 +122,191 @@ function validateFields(
       }
     }
 
-    if (value === undefined || value === null || String(value).trim() === "") {
+    if (field.type === "NAME") {
+      // NAME is always validated (handle required per-part)
+    } else if (value === undefined || value === null || String(value).trim() === "") {
       continue;
     }
 
     if (field.type === "EMAIL") {
       const emailValue = String(value).trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      // Get validation config
+      const validation = typeof field.validation === "object" && field.validation !== null
+        ? (field.validation as any)
+        : undefined;
+      const format = validation?.format || "standard";
+      
+      // Validate email format
+      let emailRegex: RegExp;
+      if (format === "strict") {
+        // RFC 5322 compliant (simplified but strict)
+        emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      } else {
+        // Standard permissive format
+        emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      }
+      
       if (!emailRegex.test(emailValue)) {
-        errors[field.name] = `${label} must be a valid email address.`;
+        errors[field.name] = validation?.message || `Please enter a valid email address.`;
         continue;
       }
+      
+      // Check domain rules
+      const domainRules = validation?.domainRules;
+      if (domainRules) {
+        const domain = emailValue.split("@")[1]?.toLowerCase();
+        
+        if (domainRules.allow && Array.isArray(domainRules.allow) && domainRules.allow.length > 0) {
+          const allowed = domainRules.allow.map((d: string) => d.toLowerCase());
+          if (!allowed.includes(domain)) {
+            errors[field.name] = validation?.message || `${label} must be from an allowed domain.`;
+            continue;
+          }
+        }
+        
+        if (domainRules.block && Array.isArray(domainRules.block) && domainRules.block.length > 0) {
+          const blocked = domainRules.block.map((d: string) => d.toLowerCase());
+          if (blocked.includes(domain)) {
+            errors[field.name] = validation?.message || `${label} domain is not allowed.`;
+            continue;
+          }
+        }
+      }
+    }
+
+    if (field.type === "PHONE") {
+      const stringValue = String(value);
+      const format = validation?.format || "lenient";
+      
+      if (format === "lenient") {
+        // Allow digits, spaces, dashes, parens, plus sign, dots, min 7 chars
+        if (!/^[\d\s\-\(\)\+\.]{7,}$/.test(stringValue)) {
+          errors[field.name] =
+            validation?.message ||
+            `${label} must be a valid phone number.`;
+          continue;
+        }
+      } else if (format === "strict") {
+        // Strict US validation: must be 10 digits (with optional +1 prefix)
+        // Strip everything except digits and leading +
+        let cleaned = stringValue.replace(/[^\d+]/g, "");
+        
+        // Remove +1 prefix if present
+        if (cleaned.startsWith("+1")) {
+          cleaned = cleaned.substring(2);
+        } else if (cleaned.startsWith("+")) {
+          // Has + but not +1
+          errors[field.name] =
+            validation?.message ||
+            `${label} must be a valid US phone number (10 digits).`;
+          continue;
+        } else if (cleaned.startsWith("1") && cleaned.length === 11) {
+          // Has 1 prefix without +
+          cleaned = cleaned.substring(1);
+        }
+        
+        // Must be exactly 10 digits
+        if (!/^\d{10}$/.test(cleaned)) {
+          errors[field.name] =
+            validation?.message ||
+            `${label} must be a valid US phone number (10 digits).`;
+          continue;
+        }
+        
+        // Normalize to E.164 format: +1XXXXXXXXXX
+        data[field.name] = `+1${cleaned}`;
+      }
+      
+      // Skip generic length checks for PHONE fields
+      continue;
+    }
+
+    if (field.type === "DATE") {
+      const stringValue = String(value);
+      const dateValue = new Date(stringValue);
+      
+      if (isNaN(dateValue.getTime())) {
+        errors[field.name] =
+          validation?.message || `${label} must be a valid date.`;
+        continue;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dateValue.setHours(0, 0, 0, 0);
+
+      if (validation?.noFuture && dateValue > today) {
+        errors[field.name] =
+          validation.message || `${label} cannot be a future date.`;
+        continue;
+      }
+      
+      if (validation?.noPast && dateValue < today) {
+        errors[field.name] =
+          validation.message || `${label} cannot be a past date.`;
+        continue;
+      }
+
+      if (validation?.minDate) {
+        const minDate = new Date(
+          validation.minDate === "today"
+            ? today
+            : validation.minDate
+        );
+        minDate.setHours(0, 0, 0, 0);
+        if (dateValue < minDate) {
+          errors[field.name] =
+            validation.message ||
+            `${label} must be on or after ${minDate.toLocaleDateString()}.`;
+          continue;
+        }
+      }
+
+      if (validation?.maxDate) {
+        const maxDate = new Date(
+          validation.maxDate === "today"
+            ? today
+            : validation.maxDate
+        );
+        maxDate.setHours(0, 0, 0, 0);
+        if (dateValue > maxDate) {
+          errors[field.name] =
+            validation.message ||
+            `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
+          continue;
+        }
+      }
+    }
+
+    if (field.type === "NAME") {
+      const nameValue = value as Record<string, any>;
+      const options =
+        typeof field.options === "object" && field.options !== null
+          ? (field.options as {
+              parts?: string[];
+              partLabels?: Record<string, string>;
+              partsRequired?: Record<string, boolean>;
+            })
+          : { parts: ["first", "last"] };
+      
+      const parts = options.parts || ["first", "last"];
+      const partsRequired = options.partsRequired || {};
+      
+      // Validate each part
+      for (const part of parts) {
+        const partValue = nameValue?.[part];
+        const isPartRequired = field.required || partsRequired[part];
+        
+        if (isPartRequired && (!partValue || String(partValue).trim() === "")) {
+          const partLabel = options.partLabels?.[part] || part;
+          errors[field.name] = `${partLabel} is required.`;
+          break;
+        }
+      }
+      
+      // Skip further validation for NAME (no length/pattern checks on composite)
+      continue;
     }
 
     if (field.type === "SELECT" && Array.isArray(field.options)) {
@@ -167,15 +346,49 @@ function validateFields(
       continue;
     }
 
-    // Check pattern if configured
-    if (validation?.pattern) {
-      try {
-        const regex = new RegExp(validation.pattern);
-        if (!regex.test(stringValue)) {
-          errors[field.name] = validation.message || `${label} is invalid.`;
+    // Check format if configured (for TEXT and TEXTAREA)
+    if (field.type === "TEXT" || field.type === "TEXTAREA") {
+      const format = validation?.format as string | undefined;
+      if (format && format !== "alphanumeric") {
+        let isValid = true;
+        let defaultMessage = `${label} is invalid.`;
+
+        switch (format) {
+          case "numbers":
+            isValid = /^\d+$/.test(stringValue);
+            defaultMessage = `${label} must contain only numbers.`;
+            break;
+          case "letters":
+            isValid = /^[A-Za-z]+$/.test(stringValue);
+            defaultMessage = `${label} must contain only letters.`;
+            break;
+          case "url": {
+            // Prepend protocol if missing for validation
+            const urlString = stringValue.startsWith("http")
+              ? stringValue
+              : `https://${stringValue}`;
+            try {
+              const url = new URL(urlString);
+              isValid = url.hostname.includes(".");
+            } catch {
+              isValid = false;
+            }
+            defaultMessage = `${label} must be a valid URL.`;
+            break;
+          }
+          case "postal-us":
+            isValid = /^\d{5}(-\d{4})?$/.test(stringValue);
+            defaultMessage = `${label} must be a valid US postal code (e.g., 12345 or 12345-6789).`;
+            break;
+          case "postal-ca":
+            isValid = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(stringValue);
+            defaultMessage = `${label} must be a valid Canadian postal code (e.g., K1A 0B1).`;
+            break;
         }
-      } catch {
-        // Ignore invalid regex in configuration
+
+        if (!isValid) {
+          errors[field.name] = validation?.message || defaultMessage;
+        }
       }
     }
   }
@@ -185,23 +398,27 @@ function validateFields(
 
 export async function handlePublicSubmit({
   request,
-  siteApiKey,
-  formSlug,
+  formId,
   allowMethods,
   rateLimit,
 }: SubmitOptions) {
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
 
-  const site = await prisma.site.findUnique({
-    where: { apiKey: siteApiKey },
+  const form = await prisma.form.findUnique({
+    where: { id: formId },
+    include: {
+      fields: {
+        orderBy: { order: "asc" },
+      },
+    },
   });
 
-  if (!site) {
-    return jsonResponse({ error: "Site not found" }, 404, origin, allowMethods);
+  if (!form) {
+    return jsonResponse({ error: "Form not found" }, 404, origin, allowMethods);
   }
 
-  if (!validateOrigin(origin, site.domain, referer)) {
+  if (!validateOrigin(origin, form.allowedOrigins, referer)) {
     return jsonResponse(
       { error: "Origin not allowed" },
       403,
@@ -219,6 +436,31 @@ export async function handlePublicSubmit({
       origin,
       allowMethods
     );
+  }
+
+  // Check time-based submission limit
+  if (form.stopAt && new Date() > new Date(form.stopAt)) {
+    return jsonResponse(
+      { error: "This form is no longer accepting submissions" },
+      403,
+      origin,
+      allowMethods
+    );
+  }
+
+  // Check count-based submission limit (excluding spam)
+  if (form.maxSubmissions) {
+    const count = await prisma.submission.count({
+      where: { formId: form.id, isSpam: false },
+    });
+    if (count >= form.maxSubmissions) {
+      return jsonResponse(
+        { error: "This form has reached its maximum number of submissions" },
+        403,
+        origin,
+        allowMethods
+      );
+    }
   }
 
   // Check Content-Length header first (fast rejection)
@@ -248,24 +490,6 @@ export async function handlePublicSubmit({
     return jsonResponse({ error: "Invalid JSON" }, 400, origin, allowMethods);
   }
 
-  const form = await prisma.form.findUnique({
-    where: {
-      siteId_slug: {
-        siteId: site.id,
-        slug: formSlug,
-      },
-    },
-    include: {
-      fields: {
-        orderBy: { order: "asc" },
-      },
-    },
-  });
-
-  if (!form) {
-    return jsonResponse({ error: "Form not found" }, 404, origin, allowMethods);
-  }
-
   if (form.fields.length > 0) {
     const errors = validateFields(
       form.fields.map((field) => ({
@@ -287,6 +511,19 @@ export async function handlePublicSubmit({
         allowMethods
       );
     }
+    
+    // Apply normalization after validation passes
+    form.fields.forEach((field) => {
+      if (field.type === "EMAIL" && formData[field.name]) {
+        const validation = typeof field.validation === "object" && field.validation !== null
+          ? (field.validation as any)
+          : undefined;
+        
+        if (validation?.normalize) {
+          formData[field.name] = String(formData[field.name]).toLowerCase();
+        }
+      }
+    });
   }
 
   let isSpam = false;
@@ -311,11 +548,7 @@ export async function handlePublicSubmit({
     },
   });
 
-  if (!isSpam && form.notifyEmails.length > 0) {
-    queueEmailNotification(submission, form, site);
-  }
-
-  // Epic 4: Send notification to account owner if enabled
+  // Send notification to account owner if enabled
   if (!isSpam && (form as any).emailNotificationsEnabled) {
     queueNewSubmissionNotification(
       form.id,
