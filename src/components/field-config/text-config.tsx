@@ -43,12 +43,6 @@ export function TextConfig({
       } else {
         delete updated[key];
       }
-    } else {
-      if (newValue.trim()) {
-        updated[key] = newValue.trim();
-      } else {
-        delete updated[key];
-      }
     }
     
     onChange(Object.keys(updated).length > 0 ? updated : undefined);
