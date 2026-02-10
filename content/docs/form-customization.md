@@ -1,6 +1,6 @@
 # Form Appearance & Behavior
 
-Customize how your forms look and behave when embedded on your site. Can-O-Forms provides comprehensive theming options for typography, colors, layout, and submit button styling.
+Customize how your forms look and behave when embedded on your site. Canopy Forms provides comprehensive theming options for typography, colors, layout, and submit button styling.
 
 ## Overview
 
@@ -127,11 +127,11 @@ Add a `data-theme` attribute to your embed container with a JSON object:
 
 ```html
 <div 
-  data-can-o-form="contact"
+  data-canopy-form="contact"
   data-site-key="YOUR_API_KEY"
   data-theme='{"primary":"#005F6A","radius":12,"density":"comfortable"}'
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 ### Override Behavior
@@ -190,34 +190,68 @@ If you don't configure a theme, these defaults are used:
 }
 ```
 
-## Success Behavior
+## After Submission Behavior
 
-Configure what happens after a successful form submission.
+Configure what happens after a successful form submission. Settings autosave as you make changes.
 
-### Success Message
+### Choosing Message or Redirect
 
-Display a message to users after submission:
+In the **After Submission** section of the form editor, use the radio buttons to choose:
 
-1. Go to **Behavior** section in form editor
-2. Enter your success message (e.g., "Thank you for your submission!")
-3. Click **Save Behavior**
+**Show confirmation message:**
+- Display a custom message inline where the form was
+- Message replaces the form content after submission
+- Example: "Thank you for your submission! We'll be in touch soon."
 
-The message appears inline where the form was, replacing the form content.
+**Redirect to URL:**
+- Navigate users to another page after submission
+- Useful for thank you pages, confirmation flows, or marketing funnels
+- Example URLs:
+  - Thank you page: `https://example.com/thank-you`
+  - Confirmation page: `https://example.com/confirm`
+  - Home page: `https://example.com/`
 
-### Redirect URL
+**Note**: You must explicitly choose one option. Switching between options automatically clears the non-selected field.
 
-Redirect users to another page after submission:
+## Submission Limits
 
-1. Go to **Behavior** section in form editor
-2. Enter a redirect URL (e.g., `https://example.com/thanks`)
-3. Click **Save Behavior**
+Restrict when or how many times your form can be submitted. Both limits are optional.
 
-**Priority**: If both success message and redirect URL are set, the redirect takes precedence.
+### Stop Accepting After Date/Time
 
-**Example Use Cases:**
-- Thank you page: `https://example.com/thank-you`
-- Confirmation page: `https://example.com/confirm`
-- Home page: `https://example.com/`
+Set a deadline after which the form will no longer accept submissions:
+
+1. Go to **After Submission** section → **Submission Limits**
+2. Select a date and time in the **Stop accepting after** field
+3. Changes save automatically
+
+When the deadline passes, users who attempt to submit will see: "This form is no longer accepting submissions"
+
+**Use cases:**
+- Event registrations with deadlines
+- Limited-time offers or promotions
+- Seasonal forms (e.g., holiday contest entries)
+- Applications with closing dates
+
+### Maximum Number of Submissions
+
+Limit the total number of submissions your form will accept:
+
+1. Go to **After Submission** section → **Submission Limits**
+2. Enter a number in the **Maximum submissions** field
+3. Changes save automatically
+
+When the limit is reached, users who attempt to submit will see: "This form has reached its maximum number of submissions"
+
+**Important**: Spam submissions (caught by honeypot) are not counted toward this limit, so legitimate users aren't blocked by bot activity.
+
+**Use cases:**
+- First-come-first-served registrations (e.g., "First 100 registrations")
+- Limited beta access signups
+- Giveaways or contests with entry limits
+- Capacity-limited events
+
+**Tip**: Leave both fields empty for unlimited submissions (default behavior).
 
 ## Theme Examples
 
@@ -263,42 +297,42 @@ Redirect users to another page after submission:
 
 Themes are applied using CSS custom properties (CSS variables). You can target these in your own CSS if needed:
 
-- `--cof-font`: Font family
-- `--cof-font-size`: Font size
-- `--cof-text`: Text color
-- `--cof-bg`: Background color
-- `--cof-primary`: Primary color
-- `--cof-border`: Border color
-- `--cof-radius`: Border radius
-- `--cof-button-width`: Button width
-- `--cof-button-align`: Button alignment
+- `--canopy-font`: Font family
+- `--canopy-font-size`: Font size
+- `--canopy-text`: Text color
+- `--canopy-bg`: Background color
+- `--canopy-primary`: Primary color
+- `--canopy-border`: Border color
+- `--canopy-radius`: Border radius
+- `--canopy-button-width`: Button width
+- `--canopy-button-align`: Button alignment
 
 **Example CSS:**
 ```css
 /* Override form container background */
-[data-can-o-form] {
-  background: var(--cof-bg);
+[data-canopy-form] {
+  background: var(--canopy-bg);
   padding: 20px;
-  border-radius: var(--cof-radius);
+  border-radius: var(--canopy-radius);
 }
 ```
 
 ## Scoped Styles
 
-Form styles are scoped using the `.cof-root` class to prevent conflicts with your site's CSS:
+Form styles are scoped using the `.canopy-root` class to prevent conflicts with your site's CSS:
 
-- All form styles are prefixed with `.cof-`
+- All form styles are prefixed with `.canopy-`
 - Styles won't affect other elements on your page
 - Your site's CSS won't interfere with form styling
 
 **Class Names:**
-- `.cof-root` - Form container
-- `.cof-form` - Form element
-- `.cof-field` - Field wrapper
-- `.cof-input`, `.cof-textarea`, `.cof-select` - Input elements
-- `.cof-submit` - Submit button
-- `.cof-label` - Field labels
-- `.cof-error` - Error messages
+- `.canopy-root` - Form container
+- `.canopy-form` - Form element
+- `.canopy-field` - Field wrapper
+- `.canopy-input`, `.canopy-textarea`, `.canopy-select` - Input elements
+- `.canopy-submit` - Submit button
+- `.canopy-label` - Field labels
+- `.canopy-error` - Error messages
 
 ## Best Practices
 

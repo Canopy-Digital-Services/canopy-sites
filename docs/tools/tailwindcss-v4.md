@@ -370,7 +370,7 @@ Delete `tailwind.config.js` (or keep it empty if needed for tooling).
   --spacing-section: 4rem;
   
   /* Custom fonts */
-  --font-heading: 'Inter', sans-serif;
+  --font-heading: 'Urbanist', sans-serif;
   --font-body: 'Inter', sans-serif;
   
   /* Custom breakpoints */
@@ -447,7 +447,7 @@ Safelist specific utilities:
 
 ## Project-Specific Notes
 
-This project (Can-O-Forms) currently:
+This project (Canopy Forms) currently:
 - ✅ Using Tailwind CSS v4
 - ✅ Using `@import "tailwindcss"` correctly
 - ✅ Using `@theme inline` for theme configuration
@@ -455,6 +455,7 @@ This project (Can-O-Forms) currently:
 - ✅ No `tailwind.config.js` (CSS-first approach)
 - ✅ Using `@custom-variant` for dark mode
 - ✅ Using `@layer base` for global styles
+- ✅ Typography system: Inter (body via `font-sans`), Urbanist (headings via `font-heading`), Geist Mono (code via `font-mono`)
 
 ## Troubleshooting
 

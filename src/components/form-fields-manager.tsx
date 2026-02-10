@@ -5,6 +5,7 @@ import { FieldList, FieldSummary } from "@/components/field-list";
 import {
   FieldDraft,
   FieldEditorModal,
+  FieldValidation,
 } from "@/components/field-editor-modal";
 import {
   createField,
@@ -64,6 +65,7 @@ export function FormFieldsManager({
                       required: updated.required,
                       order: updated.order,
                       placeholder: updated.placeholder,
+                      helpText: updated.helpText,
                       options: updated.options,
                       validation: updated.validation,
                     }
@@ -85,6 +87,7 @@ export function FormFieldsManager({
                 required: created.required,
                 order: created.order,
                 placeholder: created.placeholder,
+                helpText: created.helpText,
                 options: created.options,
                 validation: created.validation,
               },
@@ -143,15 +146,16 @@ export function FormFieldsManager({
     });
   };
 
-  const draftField = editingField
+  const draftField: FieldDraft | null = editingField
     ? {
         name: editingField.name,
         type: editingField.type,
         label: editingField.label,
         placeholder: editingField.placeholder ?? "",
         required: editingField.required,
+        helpText: editingField.helpText ?? "",
         options: editingField.options,
-        validation: editingField.validation,
+        validation: editingField.validation as FieldValidation | undefined,
       }
     : null;
 

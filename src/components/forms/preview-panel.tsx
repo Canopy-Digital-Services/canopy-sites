@@ -5,7 +5,7 @@ import { RightPanel } from "@/components/patterns/right-panel";
 
 declare global {
   interface Window {
-    CanOForms?: {
+    CanopyForms?: {
       init: () => void;
     };
   }
@@ -16,10 +16,6 @@ type PreviewPanelProps = {
   onClose: () => void;
   form: {
     id: string;
-    slug: string;
-    site: {
-      apiKey: string;
-    };
   };
 };
 
@@ -29,7 +25,7 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
     if (typeof window !== "undefined") {
       return window.location.origin;
     }
-    return "https://canoforms.canopyds.com"; // Fallback for SSR
+    return "https://forms.canopyds.com"; // Fallback for SSR
   });
   
   // Ensure we have the correct origin after hydration
@@ -54,12 +50,12 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
       }
 
       // Clear any previous initialization to allow re-init
-      delete container.dataset.cofInitialized;
+      delete container.dataset.canopyInitialized;
 
     // Function to initialize the form
     const initForm = () => {
-      if (window.CanOForms) {
-        window.CanOForms.init();
+      if (window.CanopyForms) {
+        window.CanopyForms.init();
       } else {
         console.error("[PreviewPanel] Embed script not loaded");
         if (container) {
@@ -69,7 +65,7 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
     };
 
     // Check if script already loaded
-    if (window.CanOForms) {
+    if (window.CanopyForms) {
       setTimeout(initForm, 200);
       return;
     }
@@ -78,7 +74,7 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
     let script = document.querySelector('script[src*="/embed.js"]') as HTMLScriptElement;
     
     if (script) {
-      if (window.CanOForms) {
+      if (window.CanopyForms) {
         setTimeout(initForm, 200);
       } else {
         script.addEventListener("load", () => setTimeout(initForm, 200));
@@ -99,7 +95,7 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [open, embedUrl, form.slug, form.site.apiKey]);
+  }, [open, embedUrl, form.id]);
 
   return (
     <RightPanel open={open} onOpenChange={(isOpen) => !isOpen && onClose()} title="Preview">
@@ -112,9 +108,7 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
         <div className="border rounded-lg p-6 bg-background">
           <div
             ref={containerRef}
-            data-can-o-form={form.slug}
-            data-site-key={form.site.apiKey}
-            data-api-key={form.site.apiKey}
+            data-canopy-form={form.id}
             data-base-url={embedUrl}
           >
             <div className="text-gray-500 text-sm p-4">Loading form preview...</div>

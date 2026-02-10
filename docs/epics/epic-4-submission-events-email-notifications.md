@@ -220,7 +220,7 @@ Enforces ownership via `getCurrentAccountId()` before persisting changes.
 ### Database Verification
 
 ```bash
-docker exec canoforms-db psql -U user -d canoforms -c "\d forms"
+docker exec canopy-forms-db psql -U user -d canopy-forms -c "\d forms"
 ```
 
 **Result:** `emailNotificationsEnabled` column exists with `boolean` type and `false` default.

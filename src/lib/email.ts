@@ -1,22 +1,27 @@
 import nodemailer from "nodemailer";
-import type { Submission, Form, Site } from "@prisma/client";
-
-// Create reusable transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false, // Use STARTTLS
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 export interface EmailOptions {
   to: string | string[];
   subject: string;
   text: string;
   html?: string;
+}
+
+/**
+ * Create transporter on demand so we always use current env vars
+ * (avoids module-level caching issues with Next.js hot reload)
+ */
+function createTransporter() {
+  const port = parseInt(process.env.SMTP_PORT || "587");
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465, // TLS for 465, STARTTLS for 587
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 }
 
 /**
@@ -36,6 +41,11 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       ? options.to.join(", ")
       : options.to;
 
+    // Log config for debugging
+    const port = process.env.SMTP_PORT;
+    console.log(`📧 Attempting to send email via ${process.env.SMTP_HOST}:${port} (secure: ${port === "465"})`);
+
+    const transporter = createTransporter();
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: recipients,
@@ -53,49 +63,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 /**
- * Send email notification for a new form submission
- * Failures are logged but don't throw - emails are best-effort
- */
-export async function sendSubmissionNotification(
-  submission: Submission,
-  form: Form,
-  site: Site
-): Promise<void> {
-  if (!form.notifyEmails || form.notifyEmails.length === 0) {
-    return;
-  }
-
-  const dashboardUrl = process.env.NEXTAUTH_URL || "http://localhost:3006";
-  const submissionUrl = `${dashboardUrl}/forms/${form.id}/submissions/${submission.id}`;
-
-  const emailBody = `
-New form submission received on ${site.name}
-
-Form: ${form.name}
-Date: ${submission.createdAt.toLocaleString()}
-
-Submission Data:
-${JSON.stringify(submission.data, null, 2)}
-
-View in dashboard: ${submissionUrl}
-
----
-This is an automated notification from Can-O-Forms.
-  `.trim();
-
-  const success = await sendEmail({
-    to: form.notifyEmails,
-    subject: `New submission: ${form.name} on ${site.name}`,
-    text: emailBody,
-  });
-
-  if (success) {
-    console.log(`✅ Email notification sent for submission ${submission.id}`);
-  }
-}
-
-/**
- * Send minimal email notification to account owner for new submission (Epic 4)
+ * Send minimal email notification to account owner for new submission
  * Does NOT include submission field values - only form name, timestamp, and link
  * Returns true on success, false on failure
  */
@@ -117,7 +85,7 @@ Date: ${submissionTimestamp.toLocaleString()}
 View submissions: ${submissionsUrl}
 
 ---
-This is an automated notification from Can-O-Forms.
+This is an automated notification from Canopy Forms.
   `.trim();
 
   return sendEmail({

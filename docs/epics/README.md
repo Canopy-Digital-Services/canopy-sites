@@ -1,6 +1,6 @@
 # Epic Completion Reports
 
-This directory contains detailed completion reports for each epic implemented in Can-O-Forms v3 development.
+This directory contains detailed completion reports for each epic implemented in Canopy Forms v3 development.
 
 ## Overview
 

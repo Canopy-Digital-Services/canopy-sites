@@ -1,6 +1,6 @@
 /**
  * Data access helpers for forms.
- * Enforces forms-first ownership: Form → Site → User
+ * Enforces form ownership: form.accountId === accountId
  */
 
 import { prisma } from "@/lib/db";
@@ -16,7 +16,6 @@ export async function getOwnedForm(formId: string, accountId: string) {
       accountId,
     },
     include: {
-      site: true,
       fields: {
         orderBy: { order: "asc" },
       },
@@ -31,7 +30,7 @@ export async function getOwnedForm(formId: string, accountId: string) {
 }
 
 /**
- * Get a form with minimal data (no fields, just site info).
+ * Get a form with minimal data (no fields).
  * Useful for quick ownership checks.
  */
 export async function getOwnedFormMinimal(formId: string, accountId: string) {
@@ -39,9 +38,6 @@ export async function getOwnedFormMinimal(formId: string, accountId: string) {
     where: {
       id: formId,
       accountId,
-    },
-    include: {
-      site: true,
     },
   });
 
@@ -53,7 +49,7 @@ export async function getOwnedFormMinimal(formId: string, accountId: string) {
 }
 
 /**
- * Get all forms for an account (across all sites).
+ * Get all forms for an account.
  * Used for forms list page.
  */
 export async function getUserForms(accountId: string) {
@@ -62,12 +58,6 @@ export async function getUserForms(accountId: string) {
       accountId,
     },
     include: {
-      site: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
       _count: {
         select: {
           submissions: true,
@@ -77,40 +67,4 @@ export async function getUserForms(accountId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
-}
-
-/**
- * Get all sites for an account.
- * Used for site selector dropdown.
- */
-export async function getUserSites(accountId: string) {
-  return prisma.site.findMany({
-    where: {
-      accountId,
-    },
-    select: {
-      id: true,
-      name: true,
-      domain: true,
-    },
-    orderBy: { name: "asc" },
-  });
-}
-
-/**
- * Verify a site is owned by the account.
- */
-export async function getOwnedSite(siteId: string, accountId: string) {
-  const site = await prisma.site.findFirst({
-    where: {
-      id: siteId,
-      accountId,
-    },
-  });
-
-  if (!site) {
-    throw new Error("Site not found or access denied");
-  }
-
-  return site;
 }

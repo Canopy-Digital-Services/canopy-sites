@@ -1,17 +1,18 @@
 version: "3.8"
+name: canopy-forms
 
 services:
-  can-o-forms:
+  canopy-forms:
     build:
       context: .
       args:
-        NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
-    container_name: canoforms
+        NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
+    container_name: canopy-forms
     restart: unless-stopped
     ports:
       - "127.0.0.1:3006:3000"
     networks:
-      - can-o-forms-network
+      - canopy-forms-network
       - proxy
     environment:
       # Database - update with your PostgreSQL credentials
@@ -19,8 +20,8 @@ services:
       
       # NextAuth
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
-      NEXTAUTH_URL: "https://canoforms.canopyds.com"
-      NEXT_PUBLIC_APP_URL: "https://canoforms.canopyds.com"
+      NEXTAUTH_URL: "https://forms.canopyds.com"
+      NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
       AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)
@@ -31,14 +32,14 @@ services:
       SMTP_FROM: "${SMTP_FROM}"
       
       # Admin seed (optional, for initial setup)
-      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      ADMIN_EMAIL: "admin@canopyds.com"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-changeme123}"
     depends_on:
       - postgres
 
   postgres:
     image: postgres:16-alpine
-    container_name: canoforms-db
+    container_name: canopy-forms-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
@@ -47,13 +48,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - can-o-forms-network
+      - canopy-forms-network
 
 volumes:
   postgres_data:
 
 networks:
-  can-o-forms-network:
+  canopy-forms-network:
     driver: bridge
   proxy:
     external: true

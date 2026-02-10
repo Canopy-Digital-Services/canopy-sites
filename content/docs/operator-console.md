@@ -1,6 +1,6 @@
 # Operator Console
 
-The Operator Console is a platform operator interface for managing accounts on Can-O-Forms. It provides account management capabilities while maintaining strict privacy boundaries—no form content or submission data is ever exposed.
+The Operator Console is a platform operator interface for managing accounts on Canopy Forms. It provides account management capabilities while maintaining strict privacy boundaries—no form content or submission data is ever exposed.
 
 ## Overview
 

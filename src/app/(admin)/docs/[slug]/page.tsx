@@ -51,7 +51,7 @@ export default async function DocPage({ params }: DocPageProps) {
               Back to Docs
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">{title}</h1>
+          <h1 className="text-3xl font-heading font-bold">{title}</h1>
         </div>
 
         <Markdown content={content} />

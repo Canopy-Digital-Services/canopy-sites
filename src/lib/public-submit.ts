@@ -135,20 +135,12 @@ function validateFields(
       const validation = typeof field.validation === "object" && field.validation !== null
         ? (field.validation as any)
         : undefined;
-      const format = validation?.format || "standard";
       
-      // Validate email format
-      let emailRegex: RegExp;
-      if (format === "strict") {
-        // RFC 5322 compliant (simplified but strict)
-        emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      } else {
-        // Standard permissive format
-        emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      }
+      // Validate email format (RFC 5322 compliant)
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
       
       if (!emailRegex.test(emailValue)) {
-        errors[field.name] = validation?.message || `Please enter a valid email address.`;
+        errors[field.name] = validation?.message || `Enter a valid email address`;
         continue;
       }
       

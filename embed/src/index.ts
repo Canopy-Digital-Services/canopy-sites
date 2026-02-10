@@ -5,13 +5,13 @@ import { baseStyles } from "./styles";
 
 declare global {
   interface Window {
-    CanOForms?: {
+    CanopyForms?: {
       init: () => void;
     };
   }
 }
 
-const styleId = "cof-embed-styles";
+const styleId = "canopy-embed-styles";
 
 function ensureBaseStyles() {
   if (document.getElementById(styleId)) {
@@ -24,19 +24,7 @@ function ensureBaseStyles() {
   document.head.appendChild(style);
 }
 
-function getApiKey(container: HTMLElement) {
-  return (
-    container.dataset.siteKey ||
-    container.dataset.apiKey ||
-    document
-      .querySelector("script[data-site-key], script[data-api-key]")
-      ?.getAttribute("data-site-key") ||
-    document
-      .querySelector("script[data-site-key], script[data-api-key]")
-      ?.getAttribute("data-api-key") ||
-    ""
-  );
-}
+// No longer needed - formId comes from data-canopy-form attribute
 
 function getBaseUrl(container: HTMLElement) {
   return (
@@ -55,7 +43,7 @@ function parseTheme(container: HTMLElement) {
   try {
     return JSON.parse(raw);
   } catch {
-    console.warn("Can-O-Forms: invalid data-theme JSON");
+    console.warn("Canopy Forms: invalid data-theme JSON");
     return undefined;
   }
 }
@@ -63,34 +51,27 @@ function parseTheme(container: HTMLElement) {
 function init() {
   ensureBaseStyles();
   const containers = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-can-o-form]")
+    document.querySelectorAll<HTMLElement>("[data-canopy-form]")
   );
 
   containers.forEach((container) => {
-    if (container.dataset.cofInitialized === "true") {
-      console.warn("Can-O-Forms: container already initialized");
+    if (container.dataset.canopyInitialized === "true") {
+      console.warn("Canopy Forms: container already initialized");
       return;
     }
 
-    const formSlug = container.dataset.canOForm;
-    if (!formSlug) {
-      console.error("Can-O-Forms: missing data-can-o-form attribute");
+    const formId = container.dataset.canopyForm;
+    if (!formId) {
+      console.error("Canopy Forms: missing data-canopy-form attribute");
       return;
     }
 
-    const apiKey = getApiKey(container);
-    if (!apiKey) {
-      console.error("Can-O-Forms: missing site API key");
-      return;
-    }
-
-    container.dataset.cofInitialized = "true";
+    container.dataset.canopyInitialized = "true";
 
     const themeOverrides = parseTheme(container);
     const baseUrl = getBaseUrl(container);
     const form = new CanOForm(container, {
-      apiKey,
-      formSlug,
+      formId,
       themeOverrides,
       baseUrl,
     });
@@ -104,6 +85,6 @@ if (document.readyState === "loading") {
   init();
 }
 
-window.CanOForms = {
+window.CanopyForms = {
   init,
 };

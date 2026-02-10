@@ -1,6 +1,6 @@
 # Managing Sites
 
-Sites represent the websites or domains that will send form submissions to Can-O-Forms. Each site has its own API key and can contain multiple forms.
+Sites represent the websites or domains that will send form submissions to Canopy Forms. Each site has its own API key and can contain multiple forms.
 
 ## Overview
 

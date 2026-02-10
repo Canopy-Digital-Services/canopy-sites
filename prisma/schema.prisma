@@ -16,7 +16,6 @@ model Account {
   deletedAt DateTime? // Epic 6: tombstone marker for hybrid delete
   
   user      User?
-  sites     Site[]
   forms     Form[]
   
   @@map("accounts")
@@ -38,56 +37,36 @@ model User {
   failedLoginCount    Int       @default(0)
   lastFailedLoginAt   DateTime?
   
-  sites               Site[]
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
   
   @@map("users")
 }
 
-// Client site (multi-tenant)
-model Site {
-  id        String   @id @default(cuid())
-  userId    String
-  accountId String
-  name      String
-  domain    String   // Canonical domain for origin checks
-  apiKey    String   @unique @default(uuid())
-  createdAt DateTime @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  forms     Form[]
-  
-  @@index([userId])
-  @@index([accountId])
-  @@map("sites")
-}
-
 // Form configuration
 model Form {
   id                        String   @id @default(cuid())
-  siteId                    String
   accountId                 String
   createdByUserId           String
   name                      String
-  slug                      String   // Unique per site
+  slug                      String   // Account-unique, for admin URLs
+  allowedOrigins            String[] @default([])  // Domains allowed to embed/submit to this form
   notifyEmails              String[] @default([])
   emailNotificationsEnabled Boolean  @default(false)  // Epic 4: Email account owner on new submission
   honeypotField             String?  // Optional honeypot field name
   successMessage            String?
   redirectUrl               String?
   defaultTheme              Json?
+  stopAt                    DateTime? // Stop accepting submissions after this date/time
+  maxSubmissions            Int?      // Maximum number of submissions allowed
   createdAt                 DateTime @default(now())
   
-  site            Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdByUser   User         @relation("CreatedForms", fields: [createdByUserId], references: [id], onDelete: Cascade)
   fields          Field[]
   submissions     Submission[]
   
-  @@unique([siteId, slug])
-  @@index([siteId])
+  @@unique([accountId, slug])
   @@index([accountId])
   @@index([createdByUserId])
   @@map("forms")
@@ -104,6 +83,7 @@ model Field {
   order       Int
   options     Json?
   validation  Json?
+  helpText    String?
 
   form        Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
 
@@ -143,6 +123,9 @@ enum FieldType {
   SELECT
   CHECKBOX
   HIDDEN
+  PHONE
+  DATE
+  NAME
 }
 
 // Password reset tokens

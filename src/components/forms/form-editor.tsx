@@ -5,9 +5,8 @@ import { EditorLayout } from "@/components/patterns/editor-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, Code, Save, Check } from "lucide-react";
-import { SiteSelector } from "@/components/forms/site-selector";
 import { FieldsSection } from "@/components/forms/fields-section";
-import { BehaviorSection } from "@/components/forms/behavior-section";
+import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
 import { PreviewPanel } from "@/components/forms/preview-panel";
 import { IntegratePanel } from "@/components/forms/integrate-panel";
@@ -20,18 +19,15 @@ type FormEditorProps = {
     id: string;
     name: string;
     slug: string;
+    allowedOrigins: string[];
     notifyEmails: string[];
     emailNotificationsEnabled: boolean;
     honeypotField: string | null;
     successMessage: string | null;
     redirectUrl: string | null;
     defaultTheme: unknown;
-    site: {
-      id: string;
-      name: string;
-      domain: string;
-      apiKey: string;
-    };
+    stopAt: Date | null;
+    maxSubmissions: number | null;
     fields: Array<{
       id: string;
       name: string;
@@ -40,6 +36,7 @@ type FormEditorProps = {
       required: boolean;
       order: number;
       placeholder: string | null;
+      helpText: string | null;
       options: unknown;
       validation: unknown;
     }>;
@@ -84,58 +81,60 @@ export function FormEditor({ apiUrl, form }: FormEditorProps) {
   const handleClosePanel = () => setPanelType(null);
 
   const header = (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <Input
-          value={formName}
-          onChange={(e) => setFormName(e.target.value)}
-          className="text-lg font-semibold max-w-md"
-          placeholder="Form name"
-        />
-        <SiteSelector formId={form.id} currentSiteId={form.site.id} />
-      </div>
-      <div className="flex items-center gap-2">
-        {saveStatus === "saving" && (
-          <span className="text-sm text-muted-foreground flex items-center gap-2">
-            <Save className="h-4 w-4 animate-pulse" />
-            Saving...
-          </span>
-        )}
-        {saveStatus === "saved" && (
-          <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
-        <Button variant="outline" size="sm" onClick={handleOpenPreview}>
-          <Eye className="mr-2 h-4 w-4" />
-          Preview
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleOpenIntegrate}>
-          <Code className="mr-2 h-4 w-4" />
-          Integrate
-        </Button>
+    <div className="max-w-[640px] mx-auto">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Input
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            className="text-lg font-semibold max-w-md"
+            placeholder="Form name"
+          />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {saveStatus === "saving" && (
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <Save className="h-4 w-4 animate-pulse" />
+              Saving...
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+              <Check className="h-4 w-4" />
+              Saved
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleOpenPreview}>
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleOpenIntegrate}>
+            <Code className="mr-2 h-4 w-4" />
+            Integrate
+          </Button>
+        </div>
       </div>
     </div>
   );
 
   const main = (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[640px] mx-auto">
       {/* Fields Section - Expanded by default */}
       <FieldsSection formId={form.id} fields={form.fields} />
 
-      {/* Behavior Section - Collapsible */}
-      <BehaviorSection
+      {/* Appearance Section - Collapsible */}
+      <AppearanceSection formId={form.id} defaultTheme={form.defaultTheme} />
+
+      {/* After Submission Section - Collapsible */}
+      <AfterSubmissionSection
         formId={form.id}
         successMessage={form.successMessage}
         redirectUrl={form.redirectUrl}
         emailNotificationsEnabled={form.emailNotificationsEnabled}
-        notifyEmails={form.notifyEmails}
-        honeypotField={form.honeypotField}
+        allowedOrigins={form.allowedOrigins}
+        stopAt={form.stopAt}
+        maxSubmissions={form.maxSubmissions}
       />
-
-      {/* Appearance Section - Collapsible */}
-      <AppearanceSection formId={form.id} defaultTheme={form.defaultTheme} />
     </div>
   );
 

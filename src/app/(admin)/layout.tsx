@@ -2,7 +2,10 @@ import { requireAuth } from "@/lib/auth-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
-import { FileText, Settings, BookOpen, LogOut } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
+import { FileText, BookOpen, LogOut } from "lucide-react";
+import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sidebar-layout";
+import { UserAccountFooter } from "@/components/patterns/user-account-footer";
 
 async function SignOutButton() {
   return (
@@ -30,20 +33,13 @@ export default async function AdminLayout({
   const nav = (
     <>
       <div className="mb-8">
-        <h1 className="text-xl font-bold">Can-O-Forms</h1>
-        <p className="text-sm text-muted-foreground">{session.user.email}</p>
+        <BrandMark size="sm" className="gap-2" />
       </div>
       <nav className="space-y-2">
         <Link href="/forms">
           <Button variant="ghost" className="w-full justify-start">
             <FileText className="mr-2 h-4 w-4" />
             Forms
-          </Button>
-        </Link>
-        <Link href="/settings/sites">
-          <Button variant="ghost" className="w-full justify-start">
-            <Settings className="mr-2 h-4 w-4" />
-            Sites
           </Button>
         </Link>
         <Link href="/docs">
@@ -58,16 +54,11 @@ export default async function AdminLayout({
   );
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-muted/40 p-6">
-        {nav}
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto">{children}</div>
-      </main>
-    </div>
+    <ResponsiveSidebarLayout
+      sidebar={nav}
+      sidebarFooter={<UserAccountFooter email={session.user?.email} />}
+    >
+      {children}
+    </ResponsiveSidebarLayout>
   );
 }

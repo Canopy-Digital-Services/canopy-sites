@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandMark } from "@/components/brand-mark";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
@@ -14,21 +16,41 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Derived validation errors (computed every render)
+  const errors = {
+    email: !email
+      ? "Email is required"
+      : !/\S+@\S+\.\S+/.test(email)
+      ? "Enter a valid email address"
+      : "",
+    password: !password
+      ? "Password is required"
+      : password.length < 8
+      ? `Password must be at least 8 characters. (Your current entry is only ${password.length})`
+      : "",
+    confirmPassword: !confirmPassword
+      ? "Confirm your password"
+      : confirmPassword !== password
+      ? "Passwords do not match"
+      : "",
+  };
+
+  // Helper: show error if field is touched or form has been submitted
+  const showError = (field: keyof typeof errors) =>
+    (touched[field] || submitted) && errors[field];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setSubmitted(true);
+    setServerError("");
 
-    // Client-side validation
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    // Check for client-side validation errors
+    if (errors.email || errors.password || errors.confirmPassword) {
       return;
     }
 
@@ -42,14 +64,14 @@ export default function SignupPage() {
       const result = await signUp(formData);
 
       if (result.error) {
-        setError(result.error);
+        setServerError(result.error);
       } else {
         // Success - redirect to forms page
         router.push("/forms");
         router.refresh();
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -57,14 +79,13 @@ export default function SignupPage() {
 
   return (
     <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-        <CardDescription>
-          Enter your email and password to get started with Can-O-Forms
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex justify-center py-2">
+          <BrandMark size="md" />
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -73,38 +94,47 @@ export default function SignupPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              aria-invalid={!!showError("email")}
               disabled={isLoading}
             />
+            {showError("email") && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+              aria-invalid={!!showError("password")}
               disabled={isLoading}
-              minLength={8}
             />
-            <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
-            </p>
+            {showError("password") ? (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Must be at least 8 characters
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
+              aria-invalid={!!showError("confirmPassword")}
               disabled={isLoading}
-              minLength={8}
             />
+            {showError("confirmPassword") && (
+              <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+            )}
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {serverError && <p className="text-sm text-destructive">{serverError}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Creating account..." : "Create account"}
           </Button>

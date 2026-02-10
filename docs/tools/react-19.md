@@ -523,7 +523,7 @@ function App() {
 
 ## Project-Specific Notes
 
-This project (Can-O-Forms) currently:
+This project (Canopy Forms) currently:
 - ✅ Using React 19.2.3
 - ✅ Using `useTransition` correctly for async operations
 - ⚠️ Not yet using new hooks (`useActionState`, `useOptimistic`, `useEffectEvent`)

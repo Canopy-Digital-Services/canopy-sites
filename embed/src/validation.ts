@@ -3,7 +3,7 @@ type FieldOption = { value: string; label: string };
 type FieldValidation = {
   minLength?: number;
   maxLength?: number;
-  format?: "lenient" | "strict" | "standard" | "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
+  format?: "lenient" | "strict" | "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
   minDate?: string;
   maxDate?: string;
   noFuture?: boolean;
@@ -103,19 +103,12 @@ export function validateSubmission(
 
     if (field.type === "EMAIL") {
       const stringValue = String(value);
-      const format = (field.validation as any)?.format || "standard";
       
-      let emailRegex: RegExp;
-      if (format === "strict") {
-        // RFC 5322 compliant (simplified but strict)
-        emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      } else {
-        // Standard permissive format
-        emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      }
+      // RFC 5322 compliant (simplified but strict)
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
       
       if (!emailRegex.test(stringValue)) {
-        errors[field.name] = `Please enter a valid email address.`;
+        errors[field.name] = `Enter a valid email address`;
         return;
       }
       

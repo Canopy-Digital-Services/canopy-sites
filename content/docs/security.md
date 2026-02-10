@@ -1,10 +1,10 @@
 # Security & Privacy
 
-Can-O-Forms implements multiple layers of security to protect your forms, submissions, and user data. This guide covers all security features and privacy protections.
+Canopy Forms implements multiple layers of security to protect your forms, submissions, and user data. This guide covers all security features and privacy protections.
 
 ## Overview
 
-Can-O-Forms security is built on defense-in-depth principles:
+Canopy Forms security is built on defense-in-depth principles:
 
 - **Privacy-first design** - User data is protected at every layer
 - **Account isolation** - Complete data separation between accounts
@@ -17,7 +17,7 @@ Can-O-Forms security is built on defense-in-depth principles:
 
 ### IP Hashing
 
-Can-O-Forms **never stores raw IP addresses**. Instead, IP addresses are hashed using SHA-256 before storage.
+Canopy Forms **never stores raw IP addresses**. Instead, IP addresses are hashed using SHA-256 before storage.
 
 **How it works:**
 1. Client IP is extracted from request headers (`X-Forwarded-For`, `X-Real-IP`)
@@ -68,7 +68,7 @@ Site domain: `example.com`
 - ✅ `https://blog.example.com` (subdomain)
 - ✅ `https://cdn.example.com` (subdomain)
 - ✅ `http://localhost` (development)
-- ✅ `https://canoforms.canopyds.com` (dashboard preview)
+- ✅ `https://forms.canopyds.com` (dashboard preview)
 - ❌ `https://other-site.com` (unauthorized)
 
 ### Configuration
@@ -174,8 +174,8 @@ Fields are validated according to their configuration:
 - **Required fields**: Must be present and non-empty
 - **Email format**: Must match `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
 - **Select options**: Value must match one of the configured options
+- **Format validation**: Enforced if configured (numbers only, letters only, URL, postal codes, etc.)
 - **Min/Max length**: Enforced if configured
-- **Regex patterns**: Validated if configured
 - **Custom error messages**: Used if provided
 
 ## Honeypot Fields
@@ -430,7 +430,7 @@ Localhost is allowed for development:
 
 ### Defense in Depth
 
-Can-O-Forms uses multiple security layers:
+Canopy Forms uses multiple security layers:
 
 1. **Network**: HTTPS encryption
 2. **Origin**: Domain validation

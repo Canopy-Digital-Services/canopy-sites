@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { SortableList } from "@/components/ui/sortable-list";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { getFieldTypeLabel } from "@/lib/field-types";
 
 export type FieldSummary = {
   id: string;
@@ -11,6 +18,7 @@ export type FieldSummary = {
   required: boolean;
   order: number;
   placeholder?: string | null;
+  helpText?: string | null;
   options?: unknown;
   validation?: unknown;
 };
@@ -20,7 +28,7 @@ type FieldListProps = {
   onAddField: () => void;
   onEditField: (fieldId: string) => void;
   onDeleteField: (fieldId: string) => void;
-  onMoveField: (fieldId: string, direction: "up" | "down") => void;
+  onReorder: (fieldIds: string[]) => void;
 };
 
 export function FieldList({
@@ -28,71 +36,77 @@ export function FieldList({
   onAddField,
   onEditField,
   onDeleteField,
-  onMoveField,
+  onReorder,
 }: FieldListProps) {
   return (
     <div className="space-y-4">
       {fields.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No fields yet. Add your first field to start rendering the embed.
+          Click the button below to add your first field.
         </p>
       ) : (
-        <div className="space-y-2">
-          {fields.map((field, index) => (
+        <SortableList
+          items={fields}
+          onReorder={onReorder}
+          className="border rounded-md space-y-0"
+          renderItem={({ item: field, dragHandleProps }) => (
             <div
-              key={field.id}
-              className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm shadow-sm"
+              {...dragHandleProps}
+              className="flex items-center gap-2 py-2 px-3 border-b border-border/50 last:border-b-0 hover:bg-muted/50 cursor-grab active:cursor-grabbing"
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{field.label}</span>
-                  {field.required ? <Badge>Required</Badge> : null}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  <span className="uppercase">{field.type}</span>
-                  <span className="px-2">•</span>
-                  <span>{field.name}</span>
+              <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-medium text-[15px]">
+                    {field.label}
+                    {field.required && (
+                      <span className="text-red-500 ml-0.5">*</span>
+                    )}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60">
+                    {getFieldTypeLabel(field.type)}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={index === 0}
-                  onClick={() => onMoveField(field.id, "up")}
-                >
-                  Up
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={index === fields.length - 1}
-                  onClick={() => onMoveField(field.id, "down")}
-                >
-                  Down
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEditField(field.id)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onDeleteField(field.id)}
-                >
-                  Delete
-                </Button>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditField(field.id);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit field</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteField(field.id);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete field</TooltipContent>
+                </Tooltip>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
       <Button type="button" onClick={onAddField}>
         Add Field

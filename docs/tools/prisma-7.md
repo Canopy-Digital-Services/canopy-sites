@@ -272,7 +272,7 @@ Note: There's a known regression in microbenchmark scenarios with many repeated 
 
 ## Project-Specific Notes
 
-This project (Can-O-Forms) currently:
+This project (Canopy Forms) currently:
 - ✅ Uses Prisma 7.3.0
 - ❌ Does NOT have `prisma.config.ts` (not needed - hybrid state works)
 - ❌ Does NOT have `url` in datasource block (hybrid state)
@@ -292,21 +292,24 @@ This project (Can-O-Forms) currently:
 ```bash
 # Make schema changes in prisma/schema.prisma
 # Then push directly to database (creates schema without migration files)
-docker exec canoforms npm run db:push
+docker exec canopy-forms npm run db:push
 ```
 
 **Option 2: Manual SQL Migration (Recommended for Production) ✅ VERIFIED WORKING**
 ```bash
-# 1. Create migration directory manually
+# 1. Edit schema
+nano prisma/schema.prisma
+
+# 2. Create migration directory manually
 mkdir -p prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
 
-# 2. Write migration SQL manually in migration.sql file
+# 3. Write migration SQL manually in migration.sql file
 
-# 3. Apply SQL directly to database using pipe to docker exec
-cat prisma/migrations/MIGRATION_DIR/migration.sql | docker exec -i canoforms-db psql -U user -d canoforms
+# 4. Apply SQL directly to database using pipe to docker exec
+cat prisma/migrations/MIGRATION_DIR/migration.sql | docker exec -i canopy-forms-db psql -U user -d canopy-forms
 
-# 4. Regenerate Prisma Client
-docker exec canoforms npx prisma generate
+# 5. Rebuild container (regenerates Prisma client automatically during build)
+docker compose build && docker compose up -d
 ```
 
 **Example output when successful:**
@@ -321,7 +324,7 @@ ALTER TABLE
 **Option 3: Use Prisma Migrate Dev (May Require Workarounds)**
 ```bash
 # This may fail due to missing prisma.config.ts
-docker exec canoforms npm run db:migrate
+docker exec canopy-forms npm run db:migrate
 
 # If it fails with "datasource.url property is required", you need to:
 # 1. Temporarily add url to schema.prisma datasource block, OR
@@ -340,37 +343,37 @@ This project has a **hybrid Prisma 7 setup**:
 
 The `DATABASE_URL` is defined ONLY in the Docker container environment, not on the host machine. This means:
 - ❌ `npx prisma migrate dev` on host → fails (no DATABASE_URL)
-- ❌ `docker exec canoforms npx prisma migrate deploy` → fails (no url in schema)
-- ✅ `docker exec canoforms npm run db:push` → works (bypasses migration system)
+- ❌ `docker exec canopy-forms npx prisma migrate deploy` → fails (no url in schema)
+- ✅ `docker exec canopy-forms npm run db:push` → works (bypasses migration system)
 - ✅ Manual SQL execution → works (direct database access)
 
 #### Database Commands Reference
 
-Always run these inside the Docker container:
-
 ```bash
-# Regenerate Prisma Client after schema changes
-docker exec canoforms npm run db:generate
+# After schema changes, rebuild container (regenerates Prisma client):
+docker compose build && docker compose up -d
 
-# Apply schema changes without creating migration files (dev only)
-docker exec canoforms npm run db:push
+# Apply schema changes without creating migration files (dev only):
+docker exec canopy-forms npm run db:push
 
-# Seed the database (create admin user)
-docker exec canoforms npm run db:seed
+# Seed the database (create admin user):
+docker exec canopy-forms npm run db:seed
 ```
+
+**Important:** Don't run `npx prisma generate` inside a running container. The Dockerfile generates the Prisma client during build (line 24), and the production container runs as a non-root user without write permissions to node_modules. After schema changes, always rebuild the container.
 
 #### Accessing Database Directly
 
 ```bash
 # Connect to PostgreSQL shell
-docker exec -it canoforms-db psql -U user -d canoforms
+docker exec -it canopy-forms-db psql -U user -d canopy-forms
 
 # Execute SQL file
-docker exec -i canoforms-db psql -U user -d canoforms < file.sql
+docker exec -i canopy-forms-db psql -U user -d canopy-forms < file.sql
 
 # View logs
-docker logs canoforms -f
-docker logs canoforms-db -f
+docker logs canopy-forms -f
+docker logs canopy-forms-db -f
 ```
 
 ## Resources
@@ -402,17 +405,17 @@ npx prisma studio
 
 **For This Project (Docker-based):**
 ```bash
-# Generate Prisma Client
-docker exec canoforms npm run db:generate
+# After schema changes, rebuild container (RECOMMENDED)
+docker compose build && docker compose up -d
 
-# Push schema changes (RECOMMENDED)
-docker exec canoforms npm run db:push
+# Push schema changes (dev only, for quick iteration)
+docker exec canopy-forms npm run db:push
 
 # Seed database
-docker exec canoforms npm run db:seed
+docker exec canopy-forms npm run db:seed
 
 # View logs
-docker logs canoforms -f
+docker logs canopy-forms -f
 ```
 
 ### Schema Template

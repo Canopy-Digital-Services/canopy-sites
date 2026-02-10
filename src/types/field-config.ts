@@ -13,7 +13,6 @@ export type BaseValidation = {
 
 // Type-specific validation extensions
 export type EmailValidation = {
-  format?: "standard" | "strict";
   domainRules?: {
     allow?: string[];
     block?: string[];

@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
 import { FieldType } from "@prisma/client";
-import { getOwnedForm, getOwnedFormMinimal, getOwnedSite } from "@/lib/data-access/forms";
+import { getOwnedForm, getOwnedFormMinimal } from "@/lib/data-access/forms";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ type FieldInput = {
   label: string;
   placeholder?: string | null;
   required?: boolean;
+  helpText?: string | null;
   options?: unknown;
   validation?: unknown;
 };
@@ -77,6 +78,7 @@ export async function createField(formId: string, data: FieldInput) {
       label: data.label.trim(),
       placeholder: data.placeholder?.trim() || null,
       required: Boolean(data.required),
+      helpText: data.helpText?.trim() || null,
       order,
       options: data.options || undefined,
       validation: data.validation || undefined,
@@ -118,6 +120,7 @@ export async function updateField(
       label: data.label.trim(),
       placeholder: data.placeholder?.trim() || null,
       required: Boolean(data.required),
+      helpText: data.helpText?.trim() || null,
       options: data.options || undefined,
       validation: data.validation || undefined,
     },
@@ -239,12 +242,15 @@ export async function updateFormBasics(
   revalidatePath(`/forms`);
 }
 
-export async function updateFormBehavior(
+export async function updateAfterSubmission(
   formId: string,
   data: {
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    allowedOrigins?: string[];
+    stopAt?: Date | null;
+    maxSubmissions?: number | null;
   }
 ) {
   const accountId = await getCurrentAccountId();
@@ -254,6 +260,9 @@ export async function updateFormBehavior(
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    allowedOrigins?: string[];
+    stopAt?: Date | null;
+    maxSubmissions?: number | null;
   } = {};
 
   if (data.successMessage !== undefined) {
@@ -268,6 +277,18 @@ export async function updateFormBehavior(
     updateData.emailNotificationsEnabled = data.emailNotificationsEnabled;
   }
 
+  if (data.allowedOrigins !== undefined) {
+    updateData.allowedOrigins = data.allowedOrigins;
+  }
+
+  if (data.stopAt !== undefined) {
+    updateData.stopAt = data.stopAt;
+  }
+
+  if (data.maxSubmissions !== undefined) {
+    updateData.maxSubmissions = data.maxSubmissions;
+  }
+
   await prisma.form.update({
     where: { id: formId },
     data: updateData,
@@ -275,6 +296,9 @@ export async function updateFormBehavior(
 
   revalidatePath(`/forms/${formId}/edit`);
 }
+
+// Legacy alias for backwards compatibility (if needed)
+export const updateFormBehavior = updateAfterSubmission;
 
 export async function updateFormAppearance(
   formId: string,
@@ -295,24 +319,6 @@ export async function updateFormAppearance(
   revalidatePath(`/forms/${formId}/edit`);
 }
 
-export async function moveFormToSite(formId: string, siteId: string) {
-  const accountId = await getCurrentAccountId();
-
-  // Verify form ownership
-  await getOwnedFormMinimal(formId, accountId);
-
-  // Verify destination site ownership
-  await getOwnedSite(siteId, accountId);
-
-  await prisma.form.update({
-    where: { id: formId },
-    data: { siteId },
-  });
-
-  revalidatePath(`/forms/${formId}/edit`);
-  revalidatePath(`/forms`);
-}
-
 export async function deleteForm(formId: string) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
@@ -327,25 +333,21 @@ export async function deleteForm(formId: string) {
 export async function createForm(data: {
   name: string;
   slug: string;
-  siteId: string;
   notifyEmails?: string[];
   honeypotField?: string | null;
 }) {
   const userId = await getCurrentUserId();
   const accountId = await getCurrentAccountId();
 
-  // Verify site ownership
-  await getOwnedSite(data.siteId, accountId);
-
   const form = await prisma.form.create({
     data: {
-      siteId: data.siteId,
       accountId,
       createdByUserId: userId,
       name: data.name.trim(),
       slug: data.slug.trim(),
       notifyEmails: data.notifyEmails || [],
       honeypotField: data.honeypotField?.trim() || null,
+      allowedOrigins: [],
     },
   });
 

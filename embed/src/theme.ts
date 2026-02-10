@@ -21,7 +21,7 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl" | "buttonText">> & {
   fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
-  primary: "#0ea5e9",
+  primary: "#005F6A",
   border: "#e4e4e7",
   radius: 8,
   density: "normal",
@@ -76,37 +76,37 @@ export function resolveTheme(
 }
 
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
-  container.style.setProperty("--cof-font", theme.fontFamily || "inherit");
+  container.style.setProperty("--canopy-font", theme.fontFamily || "inherit");
   container.style.setProperty(
-    "--cof-font-size",
+    "--canopy-font-size",
     `${theme.fontSize ?? DEFAULT_THEME.fontSize}px`
   );
   container.style.setProperty(
-    "--cof-text",
+    "--canopy-text",
     normalizeColor(theme.text, DEFAULT_THEME.text)
   );
   container.style.setProperty(
-    "--cof-bg",
+    "--canopy-bg",
     normalizeColor(theme.background, DEFAULT_THEME.background)
   );
   container.style.setProperty(
-    "--cof-primary",
+    "--canopy-primary",
     normalizeColor(theme.primary, DEFAULT_THEME.primary)
   );
   container.style.setProperty(
-    "--cof-border",
+    "--canopy-border",
     normalizeColor(theme.border, DEFAULT_THEME.border)
   );
   container.style.setProperty(
-    "--cof-radius",
+    "--canopy-radius",
     `${theme.radius ?? DEFAULT_THEME.radius}px`
   );
   container.style.setProperty(
-    "--cof-button-width",
+    "--canopy-button-width",
     theme.buttonWidth === "auto" ? "auto" : "100%"
   );
   container.style.setProperty(
-    "--cof-button-align",
+    "--canopy-button-align",
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 }
@@ -114,11 +114,11 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
 export function getDensityClass(theme: ThemeTokens) {
   switch (theme.density) {
     case "compact":
-      return "cof-density-compact";
+      return "canopy-density-compact";
     case "comfortable":
-      return "cof-density-comfortable";
+      return "canopy-density-comfortable";
     default:
-      return "cof-density-normal";
+      return "canopy-density-normal";
   }
 }
 
@@ -130,7 +130,7 @@ export function ensureFontLoaded(fontUrl?: string) {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = fontUrl;
-  link.dataset.cofFont = "true";
+  link.dataset.canopyFont = "true";
   document.head.appendChild(link);
   loadedFonts.add(fontUrl);
 }

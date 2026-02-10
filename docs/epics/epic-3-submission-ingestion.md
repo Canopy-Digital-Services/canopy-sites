@@ -10,7 +10,7 @@ Epic 3 focused on ensuring reliable submission ingestion from both hosted forms 
 
 ## What Was Already Complete
 
-Can-O-Forms v2 already had robust white-box submission support:
+Canopy Forms v2 already had robust white-box submission support:
 
 - **Public submit endpoint**: `POST /api/submit/[siteApiKey]/[formSlug]`
 - **Embed endpoint**: `POST /api/embed/[siteApiKey]/[formSlug]`

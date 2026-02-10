@@ -28,29 +28,29 @@ async function main() {
 
   const success = await sendEmail({
     to: recipient,
-    subject: "Can-O-Forms Email Test",
-    text: `This is a test email from Can-O-Forms.
+    subject: "Canopy Forms Email Test",
+    text: `This is a test email from Canopy Forms.
 
 If you received this email, your SMTP configuration is working correctly.
 
 Sent at: ${new Date().toISOString()}
 
 ---
-Can-O-Forms Email Infrastructure
+Canopy Forms Email Infrastructure
 `,
     html: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Can-O-Forms Email Test</title>
+  <title>Canopy Forms Email Test</title>
 </head>
 <body style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #2563eb;">Can-O-Forms Email Test</h2>
-  <p>This is a test email from Can-O-Forms.</p>
+  <h2 style="color: #2563eb;">Canopy Forms Email Test</h2>
+  <p>This is a test email from Canopy Forms.</p>
   <p>If you received this email, your SMTP configuration is working correctly.</p>
   <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
   <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Can-O-Forms Email Infrastructure</p>
+  <p style="color: #999; font-size: 12px;">Canopy Forms Email Infrastructure</p>
 </body>
 </html>`,
   });

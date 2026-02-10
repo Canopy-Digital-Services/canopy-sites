@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Save, Check } from "lucide-react";
 import { updateFormAppearance } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,6 +49,7 @@ export function AppearanceSection({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const theme =
     typeof initialTheme === "object" && initialTheme !== null
@@ -63,12 +63,22 @@ export function AppearanceSection({
     return match ? match.name : "Custom";
   };
 
-  const [selectedFont, setSelectedFont] = useState<string>(findFontOption());
-  const [customFontFamily, setCustomFontFamily] = useState(
-    selectedFont === "Custom" ? String(theme.fontFamily || "") : ""
-  );
-  const [fontSize, setFontSize] = useState(String(theme.fontSize || ""));
-  const [fontUrl, setFontUrl] = useState(String(theme.fontUrl || ""));
+  // Store initial values for comparison
+  const initialFont = findFontOption();
+  const initialCustomFontFamily = initialFont === "Custom" ? String(theme.fontFamily || "") : "";
+  const initialFontSize = String(theme.fontSize || "");
+  const initialFontUrl = String(theme.fontUrl || "");
+  const initialPrimary = String(theme.primary || "");
+  const initialRadius = String(theme.radius || "");
+  const initialDensity = String(theme.density || "");
+  const initialButtonWidth = String(theme.buttonWidth || "full");
+  const initialButtonAlign = String(theme.buttonAlign || "left");
+  const initialButtonText = String(theme.buttonText || "");
+
+  const [selectedFont, setSelectedFont] = useState<string>(initialFont);
+  const [customFontFamily, setCustomFontFamily] = useState(initialCustomFontFamily);
+  const [fontSize, setFontSize] = useState(initialFontSize);
+  const [fontUrl, setFontUrl] = useState(initialFontUrl);
 
   const handleFontChange = (fontName: string) => {
     setSelectedFont(fontName);
@@ -77,50 +87,97 @@ export function AppearanceSection({
       setFontUrl(selected.url);
     }
   };
-  const [primary, setPrimary] = useState(String(theme.primary || ""));
-  const [radius, setRadius] = useState(String(theme.radius || ""));
-  const [density, setDensity] = useState(String(theme.density || ""));
-  const [buttonWidth, setButtonWidth] = useState(String(theme.buttonWidth || "full"));
-  const [buttonAlign, setButtonAlign] = useState(String(theme.buttonAlign || "left"));
-  const [buttonText, setButtonText] = useState(String(theme.buttonText || ""));
+  const [primary, setPrimary] = useState(initialPrimary);
+  const [radius, setRadius] = useState(initialRadius);
+  const [density, setDensity] = useState(initialDensity);
+  const [buttonWidth, setButtonWidth] = useState(initialButtonWidth);
+  const [buttonAlign, setButtonAlign] = useState(initialButtonAlign);
+  const [buttonText, setButtonText] = useState(initialButtonText);
 
-  const handleSave = () => {
-    startTransition(() => {
-      void (async () => {
-        try {
-          const newTheme: Record<string, string | number> = {};
-          
-          // Handle font selection
-          if (selectedFont !== "Custom") {
-            const selected = GOOGLE_FONTS.find(f => f.name === selectedFont);
-            if (selected) {
-              newTheme.fontFamily = selected.family;
-              if (selected.url) newTheme.fontUrl = selected.url;
+  // Auto-save with debouncing
+  useEffect(() => {
+    // Check if any values have changed from initial state
+    const hasChanges = 
+      selectedFont !== initialFont ||
+      customFontFamily !== initialCustomFontFamily ||
+      fontSize !== initialFontSize ||
+      fontUrl !== initialFontUrl ||
+      primary !== initialPrimary ||
+      radius !== initialRadius ||
+      density !== initialDensity ||
+      buttonWidth !== initialButtonWidth ||
+      buttonAlign !== initialButtonAlign ||
+      buttonText !== initialButtonText;
+
+    if (!hasChanges) return;
+
+    setSaveStatus("saving");
+
+    const timeoutId = setTimeout(() => {
+      startTransition(() => {
+        void (async () => {
+          try {
+            const newTheme: Record<string, string | number> = {};
+            
+            // Handle font selection
+            if (selectedFont !== "Custom") {
+              const selected = GOOGLE_FONTS.find(f => f.name === selectedFont);
+              if (selected) {
+                newTheme.fontFamily = selected.family;
+                if (selected.url) newTheme.fontUrl = selected.url;
+              }
+            } else if (customFontFamily) {
+              newTheme.fontFamily = customFontFamily;
+              if (fontUrl) newTheme.fontUrl = fontUrl;
             }
-          } else if (customFontFamily) {
-            newTheme.fontFamily = customFontFamily;
-            if (fontUrl) newTheme.fontUrl = fontUrl;
-          }
-          
-          if (fontSize) newTheme.fontSize = parseInt(fontSize, 10);
-          if (primary) newTheme.primary = primary;
-          if (radius) newTheme.radius = parseInt(radius, 10);
-          if (density) newTheme.density = density;
-          if (buttonWidth) newTheme.buttonWidth = buttonWidth;
-          if (buttonAlign) newTheme.buttonAlign = buttonAlign;
-          if (buttonText) newTheme.buttonText = buttonText;
+            
+            if (fontSize) newTheme.fontSize = parseInt(fontSize, 10);
+            if (primary) newTheme.primary = primary;
+            if (radius) newTheme.radius = parseInt(radius, 10);
+            if (density) newTheme.density = density;
+            if (buttonWidth) newTheme.buttonWidth = buttonWidth;
+            if (buttonAlign) newTheme.buttonAlign = buttonAlign;
+            if (buttonText) newTheme.buttonText = buttonText;
 
-          await updateFormAppearance(formId, {
-            defaultTheme: newTheme,
-          });
-          toast.success("Appearance settings updated successfully");
-        } catch (error) {
-          console.error(error);
-          toast.error("Failed to update appearance settings");
-        }
-      })();
-    });
-  };
+            await updateFormAppearance(formId, {
+              defaultTheme: newTheme,
+            });
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          } catch (error) {
+            console.error("Failed to save appearance settings:", error);
+            toast.error("Failed to save settings");
+            setSaveStatus("idle");
+          }
+        })();
+      });
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    formId,
+    selectedFont,
+    customFontFamily,
+    fontSize,
+    fontUrl,
+    primary,
+    radius,
+    density,
+    buttonWidth,
+    buttonAlign,
+    buttonText,
+    initialFont,
+    initialCustomFontFamily,
+    initialFontSize,
+    initialFontUrl,
+    initialPrimary,
+    initialRadius,
+    initialDensity,
+    initialButtonWidth,
+    initialButtonAlign,
+    initialButtonText,
+    toast,
+  ]);
 
   return (
     <Card>
@@ -129,11 +186,25 @@ export function AppearanceSection({
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between">
               <CardTitle>Appearance</CardTitle>
-              {isOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
+              <div className="flex items-center gap-2">
+                {saveStatus === "saving" && (
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Save className="h-4 w-4 animate-pulse" />
+                    Saving...
+                  </span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="text-sm text-success flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Saved
+                  </span>
+                )}
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
             </div>
           </CollapsibleTrigger>
         </CardHeader>
@@ -227,7 +298,7 @@ export function AppearanceSection({
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <h4 className="text-sm font-medium">Submit Button</h4>
+              <h4 className="text-sm font-heading font-medium">Submit Button</h4>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="buttonWidth">Button Width</Label>
@@ -267,10 +338,6 @@ export function AppearanceSection({
                 </div>
               </div>
             </div>
-
-            <Button onClick={handleSave} disabled={isPending}>
-              {isPending ? "Saving..." : "Save Appearance"}
-            </Button>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>

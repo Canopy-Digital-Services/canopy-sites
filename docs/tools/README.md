@@ -1,6 +1,6 @@
 # Tool & Technology Documentation
 
-This directory contains up-to-date documentation for the tools and technologies used in the Can-O-Forms project.
+This directory contains up-to-date documentation for the tools and technologies used in the Canopy Forms project.
 
 ## ⚠️ Important: For AI Agents
 
@@ -8,7 +8,7 @@ This directory contains up-to-date documentation for the tools and technologies 
 
 ### When to Read Documentation
 
-- **Before writing code** that uses Prisma, Next.js, NextAuth, React, or Tailwind CSS
+- **Before writing code** that uses Prisma, Next.js, NextAuth, React, Tailwind CSS, or Docker
 - **Before making configuration changes** to any of these tools
 - **When encountering errors** related to these tools
 - **When implementing new features** that rely on these technologies
@@ -23,6 +23,8 @@ This directory contains up-to-date documentation for the tools and technologies 
 | **NextAuth** | [`nextauth-v5.md`](./nextauth-v5.md) | Authentication, sessions, auth helpers |
 | **React** | [`react-19.md`](./react-19.md) | Components, hooks, forms, state management |
 | **Tailwind CSS** | [`tailwindcss-v4.md`](./tailwindcss-v4.md) | Styling, theme configuration, custom utilities |
+| **dnd-kit** | [`dnd-kit.md`](./dnd-kit.md) | Drag-and-drop, sortable lists, reordering |
+| **Docker** | [`docker.md`](./docker.md) | Container builds, compose commands, deployment |
 
 ## Purpose
 
@@ -32,7 +34,7 @@ These documents provide the latest information on tools, frameworks, and librari
 - **New features** and capabilities
 - **Current best practices** and patterns
 - **Migration guides** for common scenarios
-- **Project-specific notes** about how these tools are used in Can-O-Forms
+- **Project-specific notes** about how these tools are used in Canopy Forms
 
 ## Available Documentation
 
@@ -44,6 +46,12 @@ These documents provide the latest information on tools, frameworks, and librari
 ### Authentication & Styling
 - **[NextAuth v5](./nextauth-v5.md)** - Auth.js rewrite, universal auth() function, App Router-first
 - **[Tailwind CSS v4](./tailwindcss-v4.md)** - CSS-first configuration, @theme directive, performance improvements
+
+### UI Components & Interactions
+- **[dnd-kit](./dnd-kit.md)** - Modern drag-and-drop library, sortable lists, accessibility-first, keyboard support
+
+### Deployment & Infrastructure
+- **[Docker & Docker Compose](./docker.md)** - Container builds, Compose v2 CLI plugin, multi-stage builds, Next.js standalone mode
 
 ## How to Use This Documentation
 
@@ -65,11 +73,21 @@ If you're asked to:
 - "Create a new form component with validation"
   → Read: React 19 (forms, useActionState), Tailwind CSS v4 (styling)
   
+- "Build a new UI feature or component"
+  → Read: [`../UX_PATTERNS.md`](../UX_PATTERNS.md) (component patterns, conventions)
+  
+- "Add a reorderable list"
+  → Read: [`../UX_PATTERNS.md`](../UX_PATTERNS.md) (SortableList), dnd-kit (implementation details)
+  
 - "Fix styling issues with dark mode"
   → Read: Tailwind CSS v4 (theme configuration, custom variants)
+  
+- "Rebuild and deploy the Docker container"
+  → Read: Docker (Compose v2 commands, build process, deployment workflow)
 
 ## Related Documentation
 
+- [`../UX_PATTERNS.md`](../UX_PATTERNS.md) - **UI/UX conventions and component guidelines** (read before building UI)
 - [`../epics/`](../epics/) - Epic completion reports
 - [`../../AGENT_CONTEXT.md`](../../AGENT_CONTEXT.md) - Project architecture and development guidelines
 - [`../../README.md`](../../README.md) - Project overview

@@ -1,10 +1,10 @@
 # Authentication & Account Management
 
-Can-O-Forms uses email and password authentication with self-service signup and password reset. This guide covers how to create an account, log in, reset your password, and understand the account model.
+Canopy Forms uses email and password authentication with self-service signup and password reset. This guide covers how to create an account, log in, reset your password, and understand the account model.
 
 ## Overview
 
-Can-O-Forms authentication system (v2.2.0+):
+Canopy Forms authentication system (v2.2.0+):
 - **Email + Password** - Simple, secure authentication
 - **Self-Service Signup** - Create your account directly from the web UI
 - **Password Reset** - Secure token-based reset flow via email
@@ -202,7 +202,7 @@ The system prevents attackers from discovering which emails are registered:
 
 ## Best Practices
 
-1. **Use a Strong Password**: Choose a password that's at least 8 characters and unique to Can-O-Forms
+1. **Use a Strong Password**: Choose a password that's at least 8 characters and unique to Canopy Forms
 2. **Keep Your Email Updated**: Your email is used for password resets and notifications
 3. **Don't Share Your Password**: Keep your password private
 4. **Use Password Reset**: If you forget your password, use the reset flow instead of creating a new account
@@ -210,6 +210,6 @@ The system prevents attackers from discovering which emails are registered:
 
 ## Related Documentation
 
-- [Getting Started](./index.md) - Overview of Can-O-Forms
+- [Getting Started](./index.md) - Overview of Canopy Forms
 - [Security & Privacy](./security.md) - Security features and best practices
 - [Forms](./forms.md) - Creating and managing forms

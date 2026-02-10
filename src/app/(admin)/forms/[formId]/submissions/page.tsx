@@ -107,7 +107,7 @@ export default async function SubmissionsPage({
     <div className="space-y-6">
       <PageHeader
         title="Submissions"
-        description={`${form.name} on ${form.site.name}`}
+        description={`Submissions for ${form.name}`}
         actions={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

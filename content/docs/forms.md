@@ -6,28 +6,22 @@ Forms represent individual forms on your website. Each form has a unique slug an
 
 1. Navigate to **Forms** in the sidebar
 2. Click **New Form**
-3. Fill in the form details:
-   - **Name**: A friendly name (e.g., "Contact Form")
-   - **Slug**: URL-friendly identifier (e.g., "contact")
-   - **Site**: Select which site this form belongs to
-4. Click **Create Form**
+3. Enter a form name (e.g., "Newsletter signup", "Contact form")
+4. Click **Create form**
 
-After creating a form, you'll be taken to the form editor where you can add fields, configure behavior, and customize appearance.
+A URL-friendly slug is automatically generated from the form name. After creating a form, you'll be taken to the form editor where you can add fields, configure behavior, and customize appearance.
 
 ## Form Configuration
 
 ### Form Slug
 
-The slug is used in the API endpoint URL. It should be:
+The slug is automatically generated from your form name and serves as a friendly identifier. It will be:
 - Lowercase
 - Alphanumeric with hyphens
-- Unique within the site
+- Unique within your account
 - Descriptive (e.g., "contact", "newsletter", "job-application")
 
-**Example**: A form with slug `contact` will submit to:
-```
-/api/submit/{siteApiKey}/contact
-```
+If a slug already exists, a number is automatically appended (e.g., "contact-2"). The slug is used for display purposes and helps you identify forms in the dashboard.
 
 ### Form Name
 
@@ -44,13 +38,16 @@ Forms support a visual field builder. To add fields:
 
 ### Field Types
 
-Can-O-Forms supports six field types:
+Canopy Forms supports nine field types:
 
 - **Text** - Single-line text input
 - **Email** - Email input with automatic format validation
 - **Textarea** - Multi-line text input
 - **Select** - Dropdown menu (requires options to be configured)
 - **Checkbox** - Single checkbox input
+- **Phone** - Phone number input with format validation (v3.2.0+)
+- **Date** - Date picker input with date range validation (v3.2.0+)
+- **Name** - Composite name field with configurable parts (first, last, middle, etc.) (v3.2.0+)
 - **Hidden** - Hidden field (not visible to users, useful for tracking, UTM params, etc.)
 
 ### Field Configuration
@@ -63,11 +60,17 @@ For each field, you can configure:
   - You can see the internal key when editing an existing field
 - **Placeholder** - Hint text shown in empty fields
 - **Required** - Whether the field must be filled before submission
-- **Validation Rules** (Text/Email/Textarea only):
+- **Help text** - Optional guidance text displayed below the input field in a muted style (v3.7.2+)
+  - Helps users understand what to enter or provides context
+  - Appears below the input on the embedded form
+  - Available for all field types
+- **Validation Rules** (Text/Email/Textarea/Phone/Date only):
+  - Format (alphanumeric, numbers only, letters only, URL, postal codes, etc.)
   - Minimum length
   - Maximum length
-  - Regex pattern
-  - Custom error message
+  - Date ranges (for Date fields)
+  - Phone format (lenient/strict for Phone fields)
+  - Email domain rules (for Email fields)
 - **Options** (Select only):
   - Add value/label pairs for dropdown choices
   - Reorder options using drag-and-drop
@@ -75,7 +78,7 @@ For each field, you can configure:
 
 ### Validation Defaults & Limits
 
-Can-O-Forms automatically applies sensible character limits to all text-based fields to ensure data quality and prevent abuse:
+Canopy Forms automatically applies sensible character limits to all text-based fields to ensure data quality and prevent abuse:
 
 **Default Character Limits** (when you don't set a maximum):
 - **Text fields**: 200 characters
@@ -120,28 +123,36 @@ The edit page has three main sections:
 - Configure validation rules
 - Set field types and options
 
-### Behavior Section
-
-Configure what happens after submission:
-
-- **Success Message** - Text shown after successful submission (if no redirect is set)
-- **Redirect URL** - URL to redirect to after submission (takes precedence over message)
-- **Email Notifications** - Toggle to receive email notifications when this form is submitted (v2.5.0+)
-  - When enabled, you'll receive a minimal notification with form name, timestamp, and dashboard link
-  - Notifications are sent to your account email address
-  - Spam submissions do not trigger notifications
-
-**Note**: The legacy `notifyEmails` field is still supported for backward compatibility, but the per-form toggle is the recommended approach.
-
 ### Appearance Section
 
 Configure default theme for the embed. See [Form Appearance & Behavior](./form-customization.md) for detailed information about theme customization.
 
+### After Submission Section
+
+Configure what happens after submission and form limits. This section autosaves changes.
+
+**Security:**
+- **Allowed Origins** - Domains that can embed and submit to this form
+
+**After Submission:**
+- Choose between showing a confirmation message or redirecting to a URL
+- **Show confirmation message** - Display text inline after submission
+- **Redirect to URL** - Navigate users to another page after submission
+
+**Notifications:**
+- **Notify me on new submission** - Receive email notifications for new submissions
+  - Notifications include form name, timestamp, and dashboard link
+  - Sent to your account email address
+  - Spam submissions do not trigger notifications
+
+**Submission Limits:**
+- **Stop accepting after** - Set a date/time to stop accepting submissions
+- **Maximum submissions** - Limit total number of submissions (spam not counted)
+- Leave empty for unlimited submissions
+
 ### Form Details
 
-The form name is auto-saved as you type. You can also update the slug and site association from the form editor.
-
-Click **Save** on each section to apply changes.
+The form name and After Submission settings auto-save as you make changes.
 
 ## Form Settings
 

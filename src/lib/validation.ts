@@ -1,12 +1,12 @@
 import * as crypto from "crypto";
 
 /**
- * Validate that the origin matches the allowed domain
+ * Validate that the origin matches one of the allowed domains
  * Handles apex and www variants, case-insensitive
  */
 export function validateOrigin(
   origin: string | null,
-  allowedDomain: string,
+  allowedOrigins: string[],
   referer?: string | null
 ): boolean {
   // For same-origin requests, browsers don't send Origin header
@@ -28,7 +28,6 @@ export function validateOrigin(
   try {
     const originUrl = new URL(effectiveOrigin);
     const originHostname = originUrl.hostname.toLowerCase();
-    const allowedLower = allowedDomain.toLowerCase();
 
     // Allow localhost for development/preview
     if (
@@ -52,34 +51,39 @@ export function validateOrigin(
       }
     }
 
-    // Exact match
-    if (originHostname === allowedLower) {
-      return true;
-    }
+    // Check against each allowed origin
+    for (const allowedDomain of allowedOrigins) {
+      const allowedLower = allowedDomain.toLowerCase();
 
-    // Match subdomains (e.g., cdn.example.com matches example.com)
-    if (originHostname.endsWith(`.${allowedLower}`)) {
-      return true;
-    }
-
-    // www variant
-    if (originHostname === `www.${allowedLower}`) {
-      return true;
-    }
-
-    // Apex variant (if origin has www, check without it)
-    if (originHostname.startsWith("www.")) {
-      const withoutWww = originHostname.substring(4);
-      if (withoutWww === allowedLower) {
+      // Exact match
+      if (originHostname === allowedLower) {
         return true;
       }
-    }
 
-    // Allow if domain matches www variant
-    if (allowedLower.startsWith("www.")) {
-      const withoutWww = allowedLower.substring(4);
-      if (originHostname === withoutWww) {
+      // Match subdomains (e.g., cdn.example.com matches example.com)
+      if (originHostname.endsWith(`.${allowedLower}`)) {
         return true;
+      }
+
+      // www variant
+      if (originHostname === `www.${allowedLower}`) {
+        return true;
+      }
+
+      // Apex variant (if origin has www, check without it)
+      if (originHostname.startsWith("www.")) {
+        const withoutWww = originHostname.substring(4);
+        if (withoutWww === allowedLower) {
+          return true;
+        }
+      }
+
+      // Allow if domain matches www variant
+      if (allowedLower.startsWith("www.")) {
+        const withoutWww = allowedLower.substring(4);
+        if (originHostname === withoutWww) {
+          return true;
+        }
       }
     }
 

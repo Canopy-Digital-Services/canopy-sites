@@ -1,12 +1,12 @@
 # API Reference
 
-Complete reference for the Can-O-Forms API endpoints. The embed API powers the script-based experience, and a separate manual submit endpoint is available for whiteboxed forms.
+Complete reference for the Canopy Forms API endpoints. The embed API powers the script-based experience, and a separate manual submit endpoint is available for whiteboxed forms.
 
 ## Base URL
 
 All API endpoints use the following base URL format:
 ```
-https://canoforms.canopyds.com/api
+https://forms.canopyds.com/api
 ```
 
 ## Authentication
@@ -164,7 +164,7 @@ POST /api/submit/{siteApiKey}/{formSlug}
 ### Example URL
 
 ```
-https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact
+https://forms.canopyds.com/api/submit/abc123-def456-ghi789/contact
 ```
 
 ### Request
@@ -233,7 +233,7 @@ If your form has a honeypot field configured, include it in the request body. If
 
 ## Rate Limiting
 
-Can-O-Forms implements IP-based rate limiting to prevent spam and abuse:
+Canopy Forms implements IP-based rate limiting to prevent spam and abuse:
 
 - **GET requests** (form definition): 60 requests per minute per IP address
 - **POST requests** (form submission): 10 requests per minute per IP address
@@ -261,7 +261,7 @@ Site domain: `example.com`
 - ✅ `https://www.example.com` (www variant)
 - ✅ `https://blog.example.com` (subdomain)
 - ✅ `http://localhost` (development/testing)
-- ✅ `https://canoforms.canopyds.com` (dashboard preview)
+- ✅ `https://forms.canopyds.com` (dashboard preview)
 - ❌ `https://other-site.com`
 
 ## CORS Headers
@@ -294,8 +294,8 @@ Fields are validated according to their configuration:
 - **Required fields**: Must be present and non-empty
 - **Email fields**: Must match email format (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
 - **Select fields**: Value must match one of the configured options
+- **Format validation**: Enforced if configured in field validation (numbers only, letters only, URL, postal codes, etc.)
 - **Min/Max length**: Enforced if configured in field validation
-- **Regex pattern**: Validated if configured in field validation
 - **Custom error messages**: Used if provided in field validation
 
 ### Character Limits
@@ -316,14 +316,14 @@ These limits are enforced even if you configure a higher `maxLength` in field va
 
 ### IP Hashing
 
-For privacy, Can-O-Forms stores a hash (SHA-256) of the submitter's IP address rather than the actual IP. This allows:
+For privacy, Canopy Forms stores a hash (SHA-256) of the submitter's IP address rather than the actual IP. This allows:
 - Identifying repeated submissions from the same user
 - Detecting potential spam patterns
 - Maintaining user privacy
 
 ### Metadata Collection
 
-Can-O-Forms automatically collects metadata:
+Canopy Forms automatically collects metadata:
 - **IP Address**: Hashed (SHA-256) for privacy
 - **User Agent**: Browser/device information
 - **Referrer**: Page where form was submitted
@@ -350,7 +350,7 @@ For local testing, you may need to:
 ### Example cURL Request
 
 ```bash
-curl -X POST https://canoforms.canopyds.com/api/submit/YOUR_API_KEY/contact \
+curl -X POST https://forms.canopyds.com/api/submit/YOUR_API_KEY/contact \
   -H "Content-Type: application/json" \
   -H "Origin: https://your-site.com" \
   -d '{
@@ -363,7 +363,7 @@ curl -X POST https://canoforms.canopyds.com/api/submit/YOUR_API_KEY/contact \
 ### Example Fetch Request
 
 ```javascript
-fetch('https://canoforms.canopyds.com/api/submit/YOUR_API_KEY/contact', {
+fetch('https://forms.canopyds.com/api/submit/YOUR_API_KEY/contact', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -381,7 +381,7 @@ fetch('https://canoforms.canopyds.com/api/submit/YOUR_API_KEY/contact', {
 
 ## Webhooks
 
-Webhooks are not currently supported in Can-O-Forms. Form submissions can be accessed via:
+Webhooks are not currently supported in Canopy Forms. Form submissions can be accessed via:
 - Email notifications (configured per form)
 - Admin dashboard
 - CSV/JSON export

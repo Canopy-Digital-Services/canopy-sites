@@ -90,7 +90,7 @@ SMTP_HOST=smtp.migadu.com
 SMTP_PORT=587
 SMTP_USER=your-email@yourdomain.com
 SMTP_PASS=your-smtp-password
-SMTP_FROM=Can-O-Forms <noreply@yourdomain.com>
+SMTP_FROM=Canopy Forms <noreply@yourdomain.com>
 ```
 
 ## Verification & Testing

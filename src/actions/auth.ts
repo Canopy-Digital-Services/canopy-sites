@@ -108,9 +108,9 @@ export async function requestPasswordReset(formData: FormData) {
     
     await sendEmail({
       to: email,
-      subject: "Password Reset Request - Can-O-Forms",
+      subject: "Password Reset Request - Canopy Forms",
       text: `
-You requested a password reset for your Can-O-Forms account.
+You requested a password reset for your Canopy Forms account.
 
 Click the link below to reset your password:
 ${resetUrl}
@@ -120,14 +120,14 @@ This link will expire in 1 hour.
 If you didn't request this, you can safely ignore this email.
 
 ---
-Can-O-Forms
+Canopy Forms
       `.trim(),
       html: `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
   <h2>Password Reset Request</h2>
-  <p>You requested a password reset for your Can-O-Forms account.</p>
+  <p>You requested a password reset for your Canopy Forms account.</p>
   <p>Click the button below to reset your password:</p>
   <p style="margin: 20px 0;">
     <a href="${resetUrl}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
@@ -141,7 +141,7 @@ Can-O-Forms
     If you didn't request this, you can safely ignore this email.
   </p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Can-O-Forms</p>
+  <p style="color: #999; font-size: 12px;">Canopy Forms</p>
 </body>
 </html>
       `.trim(),

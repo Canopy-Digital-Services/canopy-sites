@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
@@ -14,9 +15,21 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Derived validation errors (computed every render)
+  const errors = {
+    email: !email ? "Email is required" : "",
+    password: !password ? "Password is required" : "",
+  };
+
+  // Helper: show error if field is touched or form has been submitted
+  const showError = (field: keyof typeof errors) =>
+    (touched[field] || submitted) && errors[field];
 
   useEffect(() => {
     // Check for success message from password reset
@@ -27,8 +40,15 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setSubmitted(true);
+    setServerError("");
     setSuccessMessage("");
+
+    // Check for client-side validation errors
+    if (errors.email || errors.password) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -39,13 +59,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setServerError("Invalid email or password");
       } else {
         router.push("/forms");
         router.refresh();
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -53,14 +73,17 @@ export default function LoginPage() {
 
   return (
     <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
-        <CardDescription>
-          Enter your credentials to access Can-O-Forms
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex justify-center py-2">
+          <img
+            src="/brand/forms-logo-full.svg"
+            alt=""
+            className="h-16 w-auto"
+          />
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -69,9 +92,13 @@ export default function LoginPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              aria-invalid={!!showError("email")}
               disabled={isLoading}
             />
+            {showError("email") && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -83,19 +110,22 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+              aria-invalid={!!showError("password")}
               disabled={isLoading}
             />
+            {showError("password") && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
           </div>
           {successMessage && (
             <p className="text-sm text-green-600">{successMessage}</p>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {serverError && <p className="text-sm text-destructive">{serverError}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>

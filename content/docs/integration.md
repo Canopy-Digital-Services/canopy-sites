@@ -1,16 +1,15 @@
 # Integrating Forms with Your Site
 
-This guide shows you exactly how to add Can-O-Forms to your website. Choose the method that works best for your setup.
+This guide shows you exactly how to add Canopy Forms to your website. Choose the method that works best for your setup.
 
 ## Prerequisites
 
 Before you start, make sure you have:
 
-1. **Created a Site** in Can-O-Forms admin
-2. **Created a Form** with fields configured
-3. **Your Site API Key** (found in site settings)
-4. **Your Form Slug** (the URL-friendly name, e.g., "contact")
-5. **Your Can-O-Forms Domain** (e.g., `https://canoforms.canopyds.com`)
+1. **Created a Form** with fields configured in Canopy Forms admin
+2. **Your Form ID** (found in the form's Integrate panel)
+3. **Your Canopy Forms Domain** (e.g., `https://forms.canopyds.com`)
+4. **(Optional) Configured Allowed Origins** for production deployment (localhost is always allowed for testing)
 
 ## Embed Script (Recommended)
 
@@ -18,19 +17,20 @@ The embed script is the easiest way to add forms. Just paste two lines of code a
 
 ### Step 1: Get Your Embed Code
 
-1. Log into Can-O-Forms admin
-2. Navigate to your site → your form
+1. Log into Canopy Forms admin
+2. Navigate to your form
 3. Click **Integrate** button
 4. Copy the embed code (it looks like this):
 
 ```html
 <div 
-  data-can-o-form="contact"
-  data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-canopy-form="abc123xyz"
+  data-base-url="https://forms.canopyds.com"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
+
+Note: `abc123xyz` is your form ID (not the form slug). The Integrate panel shows the exact code with your form's ID.
 
 ### Step 2: Add to Your Website
 
@@ -54,11 +54,10 @@ The exact steps depend on your website platform:
   
   <!-- Paste your embed code here -->
   <div 
-    data-can-o-form="contact"
-    data-site-key="abc123-def456-ghi789"
-    data-base-url="https://canoforms.canopyds.com"
+    data-canopy-form="abc123xyz"
+    data-base-url="https://forms.canopyds.com"
   ></div>
-  <script src="https://canoforms.canopyds.com/embed.js" defer></script>
+  <script src="https://forms.canopyds.com/embed.js" defer></script>
   
   <!-- Rest of your page -->
 </body>
@@ -87,13 +86,12 @@ export default function ContactPage() {
       
       {/* The div where the form will render */}
       <div 
-        data-can-o-form="contact"
-        data-site-key="abc123-def456-ghi789"
-        data-base-url="https://canoforms.canopyds.com"
+        data-canopy-form="abc123xyz"
+        data-base-url="https://forms.canopyds.com"
       />
       
       {/* Load the embed script */}
-      <script src="https://canoforms.canopyds.com/embed.js" defer />
+      <script src="https://forms.canopyds.com/embed.js" defer />
     </div>
   );
 }
@@ -110,12 +108,11 @@ export default function ContactPage() {
       <h1>Contact Us</h1>
       
       <div 
-        data-can-o-form="contact"
-        data-site-key="abc123-def456-ghi789"
-        data-base-url="https://canoforms.canopyds.com"
+        data-canopy-form="abc123xyz"
+        data-base-url="https://forms.canopyds.com"
       />
       
-      <Script src="https://canoforms.canopyds.com/embed.js" />
+      <Script src="https://forms.canopyds.com/embed.js" />
     </div>
   );
 }
@@ -142,13 +139,12 @@ const title = "Contact Us";
   
   <!-- The form container -->
   <div 
-    data-can-o-form="contact"
-    data-site-key="abc123-def456-ghi789"
-    data-base-url="https://canoforms.canopyds.com"
+    data-canopy-form="abc123xyz"
+    data-base-url="https://forms.canopyds.com"
   />
   
   <!-- Load the embed script -->
-  <script src="https://canoforms.canopyds.com/embed.js" defer />
+  <script src="https://forms.canopyds.com/embed.js" defer />
 </body>
 </html>
 ```
@@ -163,11 +159,10 @@ const title = "Contact Us";
 
 ```html
 <div 
-  data-can-o-form="contact"
-  data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-canopy-form="abc123xyz"
+  data-base-url="https://forms.canopyds.com"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 #### Figma Sites
@@ -180,8 +175,8 @@ const title = "Contact Us";
 4. Paste your embed code:
 
 ```html
-<div data-can-o-form="contact" data-site-key="abc123-def456-ghi789" data-base-url="https://canoforms.canopyds.com"></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<div data-canopy-form="abc123xyz" data-base-url="https://forms.canopyds.com"></div>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 5. The form will render automatically when you publish
@@ -201,7 +196,7 @@ Most website builders support custom HTML/JavaScript:
 1. Visit your website page
 2. You should see your form rendered automatically
 3. Fill it out and submit
-4. Check the Can-O-Forms admin dashboard to see the submission
+4. Check the Canopy Forms admin dashboard to see the submission
 
 ### Customizing the Appearance
 
@@ -209,12 +204,11 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 
 ```html
 <div 
-  data-can-o-form="contact"
-  data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-canopy-form="abc123xyz"
+  data-base-url="https://forms.canopyds.com"
   data-theme='{"primary":"#005F6A","radius":12,"density":"comfortable"}'
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 **Available theme properties:**
@@ -241,9 +235,8 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
 
 ```html
 <div 
-  data-can-o-form="contact"
-  data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-canopy-form="abc123xyz"
+  data-base-url="https://forms.canopyds.com"
   data-theme='{
     "fontFamily": "Inter, sans-serif",
     "fontSize": 16,
@@ -258,7 +251,7 @@ You can customize colors, fonts, and spacing using the `data-theme` attribute:
     "buttonText": "Send Message"
   }'
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 See [Form Appearance & Behavior](./form-customization.md) for detailed theme documentation.
@@ -270,20 +263,20 @@ You can add multiple forms to the same page:
 ```html
 <!-- Contact Form -->
 <div 
-  data-can-o-form="contact"
+  data-canopy-form="contact"
   data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#0ea5e9"}'
 ></div>
 
 <!-- Newsletter Signup -->
 <div 
-  data-can-o-form="newsletter"
+  data-canopy-form="newsletter"
   data-site-key="abc123-def456-ghi789"
   data-theme='{"primary":"#10b981"}'
 ></div>
 
 <!-- Only load the script once -->
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 **Important:** Only include the `<script>` tag once per page, even if you have multiple forms.
@@ -294,7 +287,7 @@ The form will render **inside** the `<div>` element. The `<div>` acts as a conta
 
 ```html
 <!-- The form will appear here, replacing any content in this div -->
-<div data-can-o-form="contact" data-site-key="YOUR_KEY">
+<div data-canopy-form="contact" data-site-key="YOUR_KEY">
   <!-- This text will be replaced when the form loads -->
 </div>
 ```
@@ -312,11 +305,11 @@ You can style the container div with CSS:
 
 <div 
   class="form-container"
-  data-can-o-form="contact"
+  data-canopy-form="contact"
   data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-base-url="https://forms.canopyds.com"
 ></div>
-<script src="https://canoforms.canopyds.com/embed.js" defer></script>
+<script src="https://forms.canopyds.com/embed.js" defer></script>
 ```
 
 ## Manual Submit API (Manual HTML Forms)
@@ -332,7 +325,7 @@ https://your-canoforms-domain.com/api/submit/{siteApiKey}/{formSlug}
 
 **Example:**
 ```
-https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact
+https://forms.canopyds.com/api/submit/abc123-def456-ghi789/contact
 ```
 
 ### Step 2: Create Your HTML Form
@@ -384,7 +377,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
   
   try {
     const response = await fetch(
-      'https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
+      'https://forms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
       {
         method: 'POST',
         headers: {
@@ -481,7 +474,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
       
       try {
         const response = await fetch(
-          'https://canoforms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
+          'https://forms.canopyds.com/api/submit/abc123-def456-ghi789/contact',
           {
             method: 'POST',
             headers: {
@@ -514,7 +507,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 
 ### Container Attributes
 
-**`data-can-o-form`** (required)
+**`data-canopy-form`** (required)
 - The form slug (e.g., `"contact"`)
 - Must match the slug configured in your form
 
@@ -524,7 +517,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 - Both attributes work the same way
 
 **`data-base-url`** (optional)
-- Base URL for the Can-O-Forms API
+- Base URL for the Canopy Forms API
 - Defaults to relative URLs if not set
 - Useful for custom domains or local development
 
@@ -539,9 +532,9 @@ You can also put some attributes on the script tag:
 
 ```html
 <script 
-  src="https://canoforms.canopyds.com/embed.js" 
+  src="https://forms.canopyds.com/embed.js" 
   data-site-key="abc123-def456-ghi789"
-  data-base-url="https://canoforms.canopyds.com"
+  data-base-url="https://forms.canopyds.com"
   defer
 ></script>
 ```
@@ -552,9 +545,9 @@ This is useful when you have multiple forms on one page and want to share the AP
 
 ### Domain Setup
 
-Make sure your site's domain in Can-O-Forms matches your actual website domain:
+Make sure your site's domain in Canopy Forms matches your actual website domain:
 
-1. Go to Can-O-Forms admin → Sites
+1. Go to Canopy Forms admin → Sites
 2. Click on your site
 3. Click **Edit Site**
 4. Set **Domain** to your website's domain (e.g., `example.com`)
@@ -566,7 +559,7 @@ Make sure your site's domain in Can-O-Forms matches your actual website domain:
 
 Configure what happens after submission:
 
-1. Go to your form in Can-O-Forms admin
+1. Go to your form in Canopy Forms admin
 2. Click **Edit Form**
 3. Scroll to **Success Behavior** section
 4. Choose one:
@@ -592,7 +585,7 @@ Configure what happens after submission:
 ### "Origin not allowed" Error
 
 **Check:**
-- Does your site's domain in Can-O-Forms match your actual domain?
+- Does your site's domain in Canopy Forms match your actual domain?
 - Is the domain set correctly (no `http://`, no trailing slashes)?
 
 **Solution:**
@@ -624,7 +617,7 @@ Configure what happens after submission:
 **Solution:**
 - Use `data-theme` to customize appearance
 - Check that your CSS isn't overriding embed styles
-- The embed uses scoped CSS (`.cof-*` classes) to avoid conflicts
+- The embed uses scoped CSS (`.canopy-*` classes) to avoid conflicts
 - Validate JSON in `data-theme` attribute
 
 ### Script Loading Issues
@@ -643,7 +636,7 @@ Configure what happens after submission:
 ## Next Steps
 
 1. **Test your form** - Submit a test entry
-2. **Check submissions** - View it in the Can-O-Forms admin dashboard
+2. **Check submissions** - View it in the Canopy Forms admin dashboard
 3. **Set up email notifications** - Configure notification emails in form settings
 4. **Customize appearance** - Use theme options to match your brand
 

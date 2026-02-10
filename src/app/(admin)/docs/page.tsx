@@ -25,7 +25,7 @@ export default async function DocsPage() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Help Documentation</h1>
+          <h1 className="text-3xl font-heading font-bold mb-2">Help Documentation</h1>
           <p className="text-muted-foreground">
             Learn how to use Can-O-Forms to collect form submissions from your static sites
           </p>
@@ -54,7 +54,7 @@ export default async function DocsPage() {
   } catch (error) {
     return (
       <div>
-        <h1 className="text-3xl font-bold mb-4">Help Documentation</h1>
+        <h1 className="text-3xl font-heading font-bold mb-4">Help Documentation</h1>
         <p className="text-muted-foreground">
           Documentation is being set up. Please check back soon.
         </p>

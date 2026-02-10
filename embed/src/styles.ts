@@ -1,54 +1,55 @@
 export const baseStyles = `
-.cof-root {
-  font-family: var(--cof-font, inherit);
-  font-size: var(--cof-font-size, 14px);
-  color: var(--cof-text, #18181b);
-  background: var(--cof-bg, #ffffff);
+.canopy-root {
+  font-family: var(--canopy-font, inherit);
+  font-size: var(--canopy-font-size, 14px);
+  color: var(--canopy-text, #18181b);
+  background: var(--canopy-bg, #ffffff);
   padding: 4px;
 }
 
-.cof-form {
+.canopy-form {
   display: grid;
   gap: 16px;
 }
 
-.cof-form-actions {
+.canopy-form-actions {
   display: flex;
-  justify-content: var(--cof-button-align, left);
+  justify-content: var(--canopy-button-align, left);
 }
 
-.cof-density-compact .cof-form {
+.canopy-density-compact .canopy-form {
   gap: 8px;
 }
 
-.cof-density-comfortable .cof-form {
+.canopy-density-comfortable .canopy-form {
   gap: 24px;
 }
 
-.cof-field {
+.canopy-field {
   display: grid;
   gap: 6px;
 }
 
-.cof-label {
-  font-size: var(--cof-font-size, 14px);
+.canopy-label {
+  font-size: var(--canopy-font-size, 14px);
   font-weight: 500;
 }
 
-.cof-required {
-  color: var(--cof-primary, #0ea5e9);
+.canopy-required {
+  color: var(--canopy-primary, #005F6A);
 }
 
-.cof-root .cof-input,
-.cof-root .cof-textarea,
-.cof-root .cof-select {
+.canopy-root .canopy-input,
+.canopy-root .canopy-textarea,
+.canopy-root .canopy-select {
   display: block !important;
   width: 100%;
   box-sizing: border-box;
-  border-radius: var(--cof-radius, 8px);
-  border: 1px solid var(--cof-border, #e4e4e7) !important;
+  border-radius: var(--canopy-radius, 8px);
+  border: 1px solid var(--canopy-border, #e4e4e7) !important;
   padding: 10px 12px;
-  font-size: var(--cof-font-size, 14px);
+  font-family: inherit;
+  font-size: var(--canopy-font-size, 14px);
   background: #ffffff !important;
   color: inherit;
   min-height: 40px;
@@ -56,59 +57,91 @@ export const baseStyles = `
   visibility: visible !important;
 }
 
-.cof-root .cof-textarea {
+.canopy-root .canopy-textarea {
   min-height: 80px;
   resize: none;
 }
 
-.cof-root .cof-input:focus,
-.cof-root .cof-textarea:focus,
-.cof-root .cof-select:focus {
-  outline: 2px solid var(--cof-primary, #0ea5e9);
+.canopy-root .canopy-input:focus,
+.canopy-root .canopy-textarea:focus,
+.canopy-root .canopy-select:focus {
+  outline: 2px solid var(--canopy-primary, #005F6A);
   outline-offset: 2px;
 }
 
-.cof-error {
-  font-size: 12px;
-  color: #dc2626;
-  min-height: 16px;
+.canopy-help-text {
+  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  color: #71717a;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
-.cof-checkbox {
+.canopy-error {
+  /* Hidden - using native HTML5 validation popups instead */
+  /* Keep in DOM for screen reader accessibility */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.canopy-checkbox {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.cof-root .cof-submit {
+.canopy-name-parts {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.canopy-name-part {
+  display: grid;
+  gap: 4px;
+}
+
+.canopy-name-part-label {
+  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
+.canopy-root .canopy-submit {
   display: block;
-  width: var(--cof-button-width, 100%);
+  width: var(--canopy-button-width, 100%);
   box-sizing: border-box;
   border: none;
-  border-radius: var(--cof-radius, 8px);
+  border-radius: var(--canopy-radius, 8px);
   padding: 10px 16px;
-  font-size: var(--cof-font-size, 14px);
+  font-size: var(--canopy-font-size, 14px);
   font-weight: 600;
-  background: var(--cof-primary, #0ea5e9);
+  background: var(--canopy-primary, #005F6A);
   color: #ffffff;
   cursor: pointer;
   min-height: 40px;
 }
 
-.cof-root .cof-submit[disabled] {
+.canopy-root .canopy-submit[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.cof-status {
-  font-size: var(--cof-font-size, 14px);
+.canopy-status {
+  font-size: var(--canopy-font-size, 14px);
 }
 
-.cof-status.cof-status-error {
-  color: #dc2626;
+.canopy-status.canopy-status-error {
+  color: #FF6B5A;
 }
 
-.cof-status.cof-status-success {
-  color: #16a34a;
+.canopy-status.canopy-status-success {
+  color: #5FD48C;
 }
 `;

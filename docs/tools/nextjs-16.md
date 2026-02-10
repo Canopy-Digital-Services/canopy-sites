@@ -412,7 +412,7 @@ export default async function AdminLayout({
 
 ## Project-Specific Notes
 
-This project (Can-O-Forms) currently:
+This project (Canopy Forms) currently:
 - ✅ Using Next.js 16.1.4
 - ✅ Already using async `params` correctly (awaiting them)
 - ⚠️ Has `proxy.ts` but using old `NextRequest`/`NextResponse` API

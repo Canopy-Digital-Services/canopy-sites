@@ -1,23 +1,7 @@
-import { sendSubmissionNotification, sendNewSubmissionNotification } from "./email";
-import type { Submission, Form, Site } from "@prisma/client";
+import { sendNewSubmissionNotification } from "./email";
 
 /**
- * Queue an email notification (fire-and-forget for MVP)
- * In production, consider using a proper job queue (Bull, BeeQueue, etc.)
- */
-export function queueEmailNotification(
-  submission: Submission,
-  form: Form,
-  site: Site
-): void {
-  // Fire and forget - don't await
-  sendSubmissionNotification(submission, form, site).catch((error) => {
-    console.error("Email queue error:", error);
-  });
-}
-
-/**
- * Queue a minimal notification to account owner (Epic 4)
+ * Queue a minimal notification to account owner
  * Looks up account email and sends notification without submission data
  */
 export function queueNewSubmissionNotification(

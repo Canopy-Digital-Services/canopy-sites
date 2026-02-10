@@ -12,7 +12,7 @@ export function SettingsSection({
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium">{label}</h3>
+        <h3 className="text-sm font-heading font-medium">{label}</h3>
         {description ? (
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}

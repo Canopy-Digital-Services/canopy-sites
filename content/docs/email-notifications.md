@@ -1,10 +1,10 @@
 # Email Notifications
 
-Can-O-Forms can send email notifications when forms receive new submissions. This guide covers how to configure and manage email notifications for your forms.
+Canopy Forms can send email notifications when forms receive new submissions. This guide covers how to configure and manage email notifications for your forms.
 
 ## Overview
 
-Can-O-Forms supports two types of email notifications:
+Canopy Forms supports two types of email notifications:
 
 1. **Per-Form Account Notifications** (v2.5.0+) - Privacy-focused notifications sent to the account owner
 2. **Legacy Custom Recipients** - Notifications sent to custom email addresses (backward compatibility)
@@ -23,9 +23,9 @@ The recommended way to receive notifications is using the per-form toggle. This 
 
 1. Navigate to your form
 2. Click **Edit Form**
-3. Scroll to the **Behavior** section
-4. Check the **"Email me on new submission"** checkbox
-5. Click **Save Behavior**
+3. Scroll to the **After Submission** section
+4. Check the **"Notify me on new submission"** checkbox
+5. Changes save automatically
 
 **What happens:**
 - You'll receive an email notification when someone submits this form
@@ -55,10 +55,10 @@ New form submission received.
 Form: Contact Form
 Date: 1/24/2026, 2:30:45 PM
 
-View submissions: https://canoforms.canopyds.com/forms/clx123/submissions
+View submissions: https://forms.canopyds.com/forms/clx123/submissions
 
 ---
-This is an automated notification from Can-O-Forms.
+This is an automated notification from Canopy Forms.
 ```
 
 ## Legacy Custom Recipients
@@ -91,10 +91,10 @@ Submission Data:
   "message": "Hello!"
 }
 
-View in dashboard: https://canoforms.canopyds.com/forms/clx123/submissions/clx456
+View in dashboard: https://forms.canopyds.com/forms/clx123/submissions/clx456
 
 ---
-This is an automated notification from Can-O-Forms.
+This is an automated notification from Canopy Forms.
 ```
 
 ## Spam Handling
@@ -149,9 +149,9 @@ Notifications are triggered when:
 ### Enable/Disable Per Form
 
 1. Go to the form's edit page
-2. Open the **Behavior** section
-3. Toggle the **"Email me on new submission"** checkbox
-4. Click **Save Behavior**
+2. Open the **After Submission** section
+3. Toggle the **"Notify me on new submission"** checkbox
+4. Changes save automatically
 
 ### Disable All Notifications
 

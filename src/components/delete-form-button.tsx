@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { startTransition, useState } from "react";
 
 interface DeleteFormButtonProps {
@@ -11,33 +12,28 @@ interface DeleteFormButtonProps {
 export function DeleteFormButton({ formName, action }: DeleteFormButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (
-      !confirm(
-        `Are you sure you want to delete "${formName}"? This will delete all submissions.`
-      )
-    ) {
-      return;
-    }
-
+  const handleDelete = () => {
     setIsDeleting(true);
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
     startTransition(() => {
       action(formData);
     });
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Button
-        type="submit"
-        variant="destructive"
-        disabled={isDeleting}
-      >
-        {isDeleting ? "Deleting..." : "Delete Form"}
-      </Button>
-    </form>
+    <ConfirmDialog
+      title="Delete Form"
+      description={`Are you sure you want to delete "${formName}"? This will delete all submissions.`}
+      onConfirm={handleDelete}
+      destructive
+      trigger={
+        <Button
+          variant="destructive"
+          disabled={isDeleting}
+        >
+          {isDeleting ? "Deleting..." : "Delete Form"}
+        </Button>
+      }
+    />
   );
 }

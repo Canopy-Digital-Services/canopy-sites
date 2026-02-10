@@ -541,7 +541,7 @@ Requires database adapter and session table.
 
 ## Project-Specific Notes
 
-This project (Can-O-Forms) currently:
+This project (Canopy Forms) currently:
 - ✅ Using NextAuth v5 beta.30
 - ✅ Using `@auth/prisma-adapter` (correct package)
 - ✅ Configuration in `src/lib/auth.ts` (correct pattern)

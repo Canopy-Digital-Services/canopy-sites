@@ -28,7 +28,7 @@ export function RightPanel({
           <SheetTitle>{title}</SheetTitle>
           {description ? <SheetDescription>{description}</SheetDescription> : null}
         </SheetHeader>
-        <div className="mt-6">{children}</div>
+        <div className="mt-6 px-4 sm:px-6">{children}</div>
       </SheetContent>
     </Sheet>
   );

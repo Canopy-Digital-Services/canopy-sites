@@ -81,7 +81,7 @@ Tied existing forms cleanly to the Account model introduced in v3, formalizing m
 
 **Chosen approach:**
 - Created migration SQL file manually
-- Applied via `cat migration.sql | docker exec -i canoforms-db psql`
+- Applied via `cat migration.sql | docker exec -i canopy-forms-db psql`
 
 **Alternatives considered:**
 - **`prisma migrate dev`**: Failed due to missing prisma.config.ts

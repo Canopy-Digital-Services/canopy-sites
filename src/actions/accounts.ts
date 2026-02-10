@@ -46,12 +46,7 @@ export async function deleteAccount(accountId: string) {
   
   // Purge all data associated with the account
   // Forms cascade to submissions and fields
-  // Sites have forms that will be deleted
   await prisma.form.deleteMany({
-    where: { accountId },
-  });
-  
-  await prisma.site.deleteMany({
     where: { accountId },
   });
   
