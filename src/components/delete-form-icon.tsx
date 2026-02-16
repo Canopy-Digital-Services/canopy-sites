@@ -53,7 +53,7 @@ export function DeleteFormIcon({ formId, formName }: DeleteFormIconProps) {
                 variant="ghost"
                 size="sm"
                 disabled={isDeleting}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                className="h-8 w-8 p-0 hover:text-destructive"
                 aria-label="Delete form"
               >
                 <Trash2 className="h-4 w-4" />

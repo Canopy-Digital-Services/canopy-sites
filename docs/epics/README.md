@@ -22,9 +22,11 @@ Each epic document provides:
 | [Epic 4: Submission Events & Notifications](epic-4-submission-events-email-notifications.md) | v2.5.0 | 2026-01-24 | ✅ Complete |
 | [Epic 5: Submission Review & Export](epic-5-submission-review-export.md) | v2.6.0 | 2026-01-24 | ✅ Complete |
 | [Epic 6: Admin Console (Operator Only)](epic-6-admin-console.md) | v3.0.0 | 2026-01-24 | ✅ Complete |
+| [Epic 7: Multi-Recipient Email Notifications](epic-7-multi-recipient-email-notifications.md) | v4.1.0 | 2026-02-16 | ✅ Complete |
 
 ## Version History
 
+- **v4.1.0**: Multi-Recipient Email Notifications — up to 5 recipients per form with inline validation
 - **v3.0.0**: 🎉 Complete v3 Platform Release — Admin Console (Operator Only) with hybrid delete and metadata-only views
 - **v2.6.0**: Submission Review & Export with JSON export support
 - **v2.5.0**: Submission Events & Email Notifications with per-form toggles
@@ -36,7 +38,7 @@ Each epic document provides:
 
 ---
 
-**🎉 v3.0.0 Released!** All planned epics have been implemented. The platform is production-ready.
+**🎉 v4.1.0 Released!** Multi-recipient email notifications enable agency/client workflows.
 
 ---
 

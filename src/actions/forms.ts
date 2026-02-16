@@ -203,7 +203,6 @@ export async function updateFormBasics(
   data: {
     name?: string;
     slug?: string;
-    notifyEmails?: string[];
     honeypotField?: string | null;
   }
 ) {
@@ -213,7 +212,6 @@ export async function updateFormBasics(
   const updateData: {
     name?: string;
     slug?: string;
-    notifyEmails?: string[];
     honeypotField?: string | null;
   } = {};
 
@@ -223,10 +221,6 @@ export async function updateFormBasics(
 
   if (data.slug !== undefined) {
     updateData.slug = data.slug.trim();
-  }
-
-  if (data.notifyEmails !== undefined) {
-    updateData.notifyEmails = data.notifyEmails;
   }
 
   if (data.honeypotField !== undefined) {
@@ -248,6 +242,7 @@ export async function updateAfterSubmission(
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;
     maxSubmissions?: number | null;
@@ -260,6 +255,7 @@ export async function updateAfterSubmission(
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;
     maxSubmissions?: number | null;
@@ -275,6 +271,15 @@ export async function updateAfterSubmission(
 
   if (data.emailNotificationsEnabled !== undefined) {
     updateData.emailNotificationsEnabled = data.emailNotificationsEnabled;
+  }
+
+  if (data.notifyEmails !== undefined) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    updateData.notifyEmails = [...new Set(
+      data.notifyEmails
+        .map(e => e.trim().toLowerCase())
+        .filter(e => emailRegex.test(e))
+    )].slice(0, 5);
   }
 
   if (data.allowedOrigins !== undefined) {

@@ -118,13 +118,15 @@ docker exec canopy-forms npm run db:seed               # Seed admin user
 
 - **Embed API** (`src/app/api/embed/[formId]/route.ts`)
   - GET: returns embed-safe form definition + ordered fields
-  - POST: validates, spam-checks (honeypot), stores submission, queues email
+  - POST: validates, spam-checks (honeypot), stores submission, queues email notifications
   - Rate limit: GET 60/min, POST 10/min per hashed IP
   - Origin validation: `validateOrigin(origin, form.allowedOrigins, referer)`; localhost always allowed
+  - Email notifications: Sends individual emails to all addresses in `form.notifyEmails[]` (max 5)
 
 - **Manual submit API** (`src/app/api/submit/[formId]/route.ts`)
   - POST only: same validation/storage as embed
   - For whiteboxed HTML forms (no schema fetch)
+  - Also supports multi-recipient email notifications
 
 ### Validation (defense in depth)
 

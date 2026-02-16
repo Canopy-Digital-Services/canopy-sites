@@ -132,12 +132,12 @@ export async function POST(
     });
 
     // Send notifications if not spam
-    if (!isSpam && form.emailNotificationsEnabled) {
+    if (!isSpam && form.emailNotificationsEnabled && form.notifyEmails.length > 0) {
       queueNewSubmissionNotification(
         form.id,
         form.name,
         submission.createdAt,
-        form.accountId
+        form.notifyEmails
       );
     }
 

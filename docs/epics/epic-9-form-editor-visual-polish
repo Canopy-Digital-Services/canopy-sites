@@ -1,0 +1,24 @@
+# Epic 9 — Editor Hierarchy & Visual Polish Pass
+
+## Goal
+
+Increase perceived product maturity without increasing visual noise.
+
+## Problem
+
+The editor currently feels flat and "internal" due to uniform card styling and minimal hierarchy.
+
+## Scope
+
+* Add subtle page background tint.
+* Differentiate primary (Fields) and secondary sections using elevation/shadow.
+* Add micro-descriptions under section headers.
+* Improve hover states for field rows.
+* Increase vertical spacing and padding for better rhythm.
+* Ensure consistent typography scale.
+
+## Acceptance Criteria
+
+* "Fields" reads as primary workspace.
+* Secondary sections feel visually subordinate.
+* No net increase in UI clutter.
