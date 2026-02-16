@@ -94,7 +94,7 @@ export default async function FormsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Forms"
-        description="Manage all your forms across sites"
+        description="Manage all your forms"
         actions={
           <CreateFormButton />
         }

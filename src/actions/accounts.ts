@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 /**
  * Delete an account (hybrid delete):
- * 1. Purge all forms, sites, and submissions (via cascade)
+ * 1. Purge all forms and submissions (via cascade)
  * 2. Clear user password
  * 3. Mark account as deleted (tombstone)
  * 

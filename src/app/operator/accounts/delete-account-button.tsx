@@ -32,7 +32,7 @@ export function DeleteAccountButton({
   return (
     <ConfirmDialog
       title="Delete Account"
-      description={`Are you sure you want to delete the account for ${email}? This will permanently delete all forms, sites, and submissions associated with this account. This action cannot be undone.`}
+      description={`Are you sure you want to delete the account for ${email}? This will permanently delete all forms and submissions associated with this account. This action cannot be undone.`}
       onConfirm={handleDelete}
       destructive
       trigger={
