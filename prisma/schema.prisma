@@ -9,6 +9,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 // Internal account construct (one per user in v3)
 model Account {
   id        String    @id @default(cuid())

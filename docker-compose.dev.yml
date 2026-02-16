@@ -1,4 +1,3 @@
-version: "3.8"
 name: canopy-forms
 
 services:
@@ -16,12 +15,11 @@ services:
     volumes:
       # Mount source code for hot reloading
       - .:/app
-      - /app/node_modules
-      - /app/.next
+      - node_modules:/app/node_modules
     environment:
       NODE_ENV: development
       # Database - update with your PostgreSQL credentials
-      DATABASE_URL: "postgresql://user:password@postgres:5432/canoforms?schema=public"
+      DATABASE_URL: "postgresql://user:password@postgres:5432/canopy-forms?schema=public"
       
       # NextAuth
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
@@ -43,19 +41,20 @@ services:
       - postgres
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: canopy-forms-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: canoforms
+      POSTGRES_DB: canopy-forms
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - canopy-forms-network
 
 volumes:
+  node_modules:
   postgres_data:
 
 networks:
