@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -209,42 +209,15 @@ export function AfterSubmissionSection({
     setAfterSubmissionType(value);
   };
 
-  // Collapsed summary
-  const summaryParts: string[] = [];
-
-  if (afterSubmissionType === "redirect" && redirectUrl) {
-    summaryParts.push("Redirect");
-  } else if (afterSubmissionType === "message" && successMessage) {
-    summaryParts.push("Message");
-  }
-
-  if (emailNotificationsEnabled && notifyEmails.length > 0) {
-    summaryParts.push(`${notifyEmails.length} recipient${notifyEmails.length !== 1 ? "s" : ""}`);
-  } else {
-    summaryParts.push("Notifications off");
-  }
-
-  const nonEmptyOrigins = allowedOrigins.filter(o => o.trim() !== "").length;
-  if (nonEmptyOrigins > 0) {
-    summaryParts.push(`${nonEmptyOrigins} origin${nonEmptyOrigins !== 1 ? "s" : ""}`);
-  }
-
-  if (stopAt) summaryParts.push("Time limit set");
-  if (maxSubmissions) summaryParts.push(`Max ${maxSubmissions}`);
-
   return (
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => setIsOpen(!isOpen)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle>Submission Settings</CardTitle>
-                {!isOpen && summaryParts.length > 0 && (
-                  <p className="text-sm text-muted-foreground font-normal mt-1">
-                    {summaryParts.join(" · ")}
-                  </p>
-                )}
+                <CardDescription>Control responses, notifications, and access</CardDescription>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {saveStatus === "saving" && (

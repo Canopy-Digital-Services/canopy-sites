@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -182,10 +182,13 @@ export function AppearanceSection({
   return (
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => setIsOpen(!isOpen)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between">
-              <CardTitle>Appearance</CardTitle>
+              <div>
+                <CardTitle>Appearance</CardTitle>
+                <CardDescription>Customize how your form looks when embedded</CardDescription>
+              </div>
               <div className="flex items-center gap-2">
                 {saveStatus === "saving" && (
                   <span className="text-sm text-muted-foreground flex items-center gap-2">
