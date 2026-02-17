@@ -64,9 +64,21 @@ export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
       }
     };
 
+    // Bust the browser cache before init so the embed script always fetches
+    // the latest saved form (the embed API caches for 60s by default).
+    const bustCacheAndInit = () => {
+      fetch(`${embedUrl}/api/embed/${form.id}`, {
+        method: "GET",
+        cache: "reload",
+        credentials: "omit",
+      }).finally(() => {
+        setTimeout(initForm, 50);
+      });
+    };
+
     // Check if script already loaded
     if (window.CanopyForms) {
-      setTimeout(initForm, 200);
+      bustCacheAndInit();
       return;
     }
 
