@@ -5,6 +5,8 @@ type FormDefinition = {
   formId: string;
   slug: string;
   fields: FieldDefinition[];
+  title?: string;
+  description?: string;
   successMessage?: string;
   redirectUrl?: string;
   defaultTheme?: Record<string, unknown>;
@@ -87,6 +89,28 @@ export class CanOForm {
     if (!definition.fields || definition.fields.length === 0) {
       this.renderError("This form is not configured yet.");
       return;
+    }
+
+    // Render header block if title or description present
+    if (definition.title || definition.description) {
+      const header = document.createElement("div");
+      header.className = "canopy-header";
+
+      if (definition.title) {
+        const h2 = document.createElement("h2");
+        h2.className = "canopy-title";
+        h2.textContent = definition.title;
+        header.appendChild(h2);
+      }
+
+      if (definition.description) {
+        const p = document.createElement("p");
+        p.className = "canopy-description";
+        p.textContent = definition.description;
+        header.appendChild(p);
+      }
+
+      this.container.appendChild(header);
     }
 
     const status = document.createElement("div");

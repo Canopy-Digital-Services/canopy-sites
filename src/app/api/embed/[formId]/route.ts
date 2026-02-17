@@ -78,6 +78,8 @@ export async function GET(
           options: field.options,
           validation: field.validation,
         })),
+        title: form.title || undefined,
+        description: form.description || undefined,
         successMessage: form.successMessage || undefined,
         redirectUrl: form.redirectUrl || undefined,
         defaultTheme: form.defaultTheme || undefined,

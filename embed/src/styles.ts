@@ -150,4 +150,24 @@ export const baseStyles = `
 .canopy-status.canopy-status-success {
   color: #5FD48C;
 }
+
+.canopy-header {
+  margin-bottom: 16px;
+}
+
+.canopy-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--canopy-text, #18181b);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.canopy-description {
+  font-size: var(--canopy-font-size, 14px);
+  color: var(--canopy-text, #18181b);
+  opacity: 0.75;
+  margin: 0;
+  line-height: 1.5;
+}
 `;

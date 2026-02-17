@@ -305,6 +305,42 @@ export async function updateAfterSubmission(
 // Legacy alias for backwards compatibility (if needed)
 export const updateFormBehavior = updateAfterSubmission;
 
+export async function updateFormHeader(
+  formId: string,
+  data: { title?: string | null; description?: string | null }
+) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  const MAX_TITLE = 120;
+  const MAX_DESC = 400;
+
+  const updateData: { title?: string | null; description?: string | null } = {};
+
+  if (data.title !== undefined) {
+    const title = data.title?.trim() || null;
+    if (title && title.length > MAX_TITLE) {
+      throw new Error(`Title must be ${MAX_TITLE} characters or fewer`);
+    }
+    updateData.title = title;
+  }
+
+  if (data.description !== undefined) {
+    const description = data.description?.trim() || null;
+    if (description && description.length > MAX_DESC) {
+      throw new Error(`Description must be ${MAX_DESC} characters or fewer`);
+    }
+    updateData.description = description;
+  }
+
+  await prisma.form.update({
+    where: { id: formId },
+    data: updateData,
+  });
+
+  revalidatePath(`/forms/${formId}/edit`);
+}
+
 export async function updateFormAppearance(
   formId: string,
   data: {
