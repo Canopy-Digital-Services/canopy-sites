@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, Code, Save, Check } from "lucide-react";
 import { FieldsSection } from "@/components/forms/fields-section";
+import { HeaderSection } from "@/components/forms/header-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
 import { PreviewPanel } from "@/components/forms/preview-panel";
@@ -26,6 +27,8 @@ type FormEditorProps = {
     honeypotField: string | null;
     successMessage: string | null;
     redirectUrl: string | null;
+    title: string | null;
+    description: string | null;
     defaultTheme: unknown;
     stopAt: Date | null;
     maxSubmissions: number | null;
@@ -120,6 +123,9 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
 
   const main = (
     <div className="space-y-8 max-w-[640px] mx-auto">
+      {/* Header Section - Title and description */}
+      <HeaderSection formId={form.id} title={form.title} description={form.description} />
+
       {/* Fields Section - Expanded by default */}
       <FieldsSection formId={form.id} fields={form.fields} />
 
