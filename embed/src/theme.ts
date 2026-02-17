@@ -4,6 +4,7 @@ type ThemeTokens = {
   fontUrl?: string;
   text?: string;
   background?: string;
+  fieldBackground?: string;
   primary?: string;
   border?: string;
   radius?: number;
@@ -21,6 +22,7 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl" | "buttonText">> & {
   fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
+  fieldBackground: "#ffffff",
   primary: "#005F6A",
   border: "#e4e4e7",
   radius: 8,
@@ -75,6 +77,31 @@ export function resolveTheme(
   };
 }
 
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function relativeLuminance(r: number, g: number, b: number): number {
+  const [rs, gs, bs] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastingTextColor(hex: string): string {
+  try {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return "#ffffff";
+    return relativeLuminance(...rgb) > 0.179 ? "#18181b" : "#ffffff";
+  } catch {
+    return "#ffffff";
+  }
+}
+
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--canopy-font", theme.fontFamily || "inherit");
   container.style.setProperty(
@@ -90,8 +117,14 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     normalizeColor(theme.background, DEFAULT_THEME.background)
   );
   container.style.setProperty(
-    "--canopy-primary",
-    normalizeColor(theme.primary, DEFAULT_THEME.primary)
+    "--canopy-field-bg",
+    normalizeColor(theme.fieldBackground, DEFAULT_THEME.fieldBackground)
+  );
+  const resolvedPrimary = normalizeColor(theme.primary, DEFAULT_THEME.primary);
+  container.style.setProperty("--canopy-primary", resolvedPrimary);
+  container.style.setProperty(
+    "--canopy-button-text",
+    contrastingTextColor(resolvedPrimary)
   );
   container.style.setProperty(
     "--canopy-border",

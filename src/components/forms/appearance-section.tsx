@@ -37,6 +37,20 @@ const GOOGLE_FONTS = [
   { name: "Custom", family: "custom", url: "" },
 ] as const;
 
+/** Add '#' prefix if missing from a hex color string. */
+function normalizeHex(value: string): string {
+  const v = value.trim();
+  if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
+  if (/^[0-9a-f]{3,8}$/i.test(v)) return `#${v}`;
+  return v;
+}
+
+/** Return a valid #rrggbb for the native color picker, or fallback. */
+function toColorInputValue(value: string, fallback: string): string {
+  const n = normalizeHex(value);
+  return /^#[0-9a-f]{6}$/i.test(n) ? n : fallback;
+}
+
 type AppearanceSectionProps = {
   formId: string;
   defaultTheme: unknown;
@@ -68,6 +82,10 @@ export function AppearanceSection({
   const initialCustomFontFamily = initialFont === "Custom" ? String(theme.fontFamily || "") : "";
   const initialFontSize = String(theme.fontSize || "");
   const initialFontUrl = String(theme.fontUrl || "");
+  const initialBackground = String(theme.background || "");
+  const initialFieldBackground = String(theme.fieldBackground || "");
+  const initialBorder = String(theme.border || "");
+  const initialText = String(theme.text || "");
   const initialPrimary = String(theme.primary || "");
   const initialRadius = String(theme.radius || "");
   const initialDensity = String(theme.density || "");
@@ -87,6 +105,10 @@ export function AppearanceSection({
       setFontUrl(selected.url);
     }
   };
+  const [background, setBackground] = useState(initialBackground);
+  const [fieldBackground, setFieldBackground] = useState(initialFieldBackground);
+  const [border, setBorder] = useState(initialBorder);
+  const [text, setText] = useState(initialText);
   const [primary, setPrimary] = useState(initialPrimary);
   const [radius, setRadius] = useState(initialRadius);
   const [density, setDensity] = useState(initialDensity);
@@ -97,11 +119,15 @@ export function AppearanceSection({
   // Auto-save with debouncing
   useEffect(() => {
     // Check if any values have changed from initial state
-    const hasChanges = 
+    const hasChanges =
       selectedFont !== initialFont ||
       customFontFamily !== initialCustomFontFamily ||
       fontSize !== initialFontSize ||
       fontUrl !== initialFontUrl ||
+      background !== initialBackground ||
+      fieldBackground !== initialFieldBackground ||
+      border !== initialBorder ||
+      text !== initialText ||
       primary !== initialPrimary ||
       radius !== initialRadius ||
       density !== initialDensity ||
@@ -132,7 +158,11 @@ export function AppearanceSection({
             }
             
             if (fontSize) newTheme.fontSize = parseInt(fontSize, 10);
-            if (primary) newTheme.primary = primary;
+            if (background) newTheme.background = normalizeHex(background);
+            if (fieldBackground) newTheme.fieldBackground = normalizeHex(fieldBackground);
+            if (border) newTheme.border = normalizeHex(border);
+            if (text) newTheme.text = normalizeHex(text);
+            if (primary) newTheme.primary = normalizeHex(primary);
             if (radius) newTheme.radius = parseInt(radius, 10);
             if (density) newTheme.density = density;
             if (buttonWidth) newTheme.buttonWidth = buttonWidth;
@@ -160,6 +190,10 @@ export function AppearanceSection({
     customFontFamily,
     fontSize,
     fontUrl,
+    background,
+    fieldBackground,
+    border,
+    text,
     primary,
     radius,
     density,
@@ -170,6 +204,10 @@ export function AppearanceSection({
     initialCustomFontFamily,
     initialFontSize,
     initialFontUrl,
+    initialBackground,
+    initialFieldBackground,
+    initialBorder,
+    initialText,
     initialPrimary,
     initialRadius,
     initialDensity,
@@ -266,16 +304,103 @@ export function AppearanceSection({
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="primary">Primary Color</Label>
-                <Input
-                  id="primary"
-                  value={primary}
-                  onChange={(e) => setPrimary(e.target.value)}
-                  placeholder="#0ea5e9"
-                />
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-heading font-medium">Colors</h4>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="background">Form Background</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(background, "#ffffff")}
+                      onChange={(e) => setBackground(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="background"
+                      value={background}
+                      onChange={(e) => setBackground(e.target.value)}
+                      onBlur={() => setBackground(normalizeHex(background))}
+                      placeholder="#ffffff"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fieldBackground">Field Background</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(fieldBackground, "#ffffff")}
+                      onChange={(e) => setFieldBackground(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="fieldBackground"
+                      value={fieldBackground}
+                      onChange={(e) => setFieldBackground(e.target.value)}
+                      onBlur={() => setFieldBackground(normalizeHex(fieldBackground))}
+                      placeholder="#ffffff"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="border">Field Border</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(border, "#e4e4e7")}
+                      onChange={(e) => setBorder(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="border"
+                      value={border}
+                      onChange={(e) => setBorder(e.target.value)}
+                      onBlur={() => setBorder(normalizeHex(border))}
+                      placeholder="#e4e4e7"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="text">Text Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(text, "#18181b")}
+                      onChange={(e) => setText(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="text"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      onBlur={() => setText(normalizeHex(text))}
+                      placeholder="#18181b"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="primary">Button Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(primary, "#005F6A")}
+                      onChange={(e) => setPrimary(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="primary"
+                      value={primary}
+                      onChange={(e) => setPrimary(e.target.value)}
+                      onBlur={() => setPrimary(normalizeHex(primary))}
+                      placeholder="#005F6A"
+                    />
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="radius">Border Radius (px)</Label>
                 <Input
