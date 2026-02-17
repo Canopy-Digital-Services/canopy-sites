@@ -119,7 +119,7 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
   );
 
   const main = (
-    <div className="space-y-6 max-w-[640px] mx-auto">
+    <div className="space-y-8 max-w-[640px] mx-auto">
       {/* Fields Section - Expanded by default */}
       <FieldsSection formId={form.id} fields={form.fields} />
 

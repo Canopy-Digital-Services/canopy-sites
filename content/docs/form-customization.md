@@ -59,17 +59,39 @@ Set the base font size for the form (10-24 pixels).
 
 ## Colors & Layout
 
-### Primary Color
+The Appearance section exposes five color controls, each paired with a native color-picker swatch and a hex text input.
 
-The primary color is used for:
-- Submit button background
-- Required field indicators (asterisks)
-- Focus outlines on inputs
-- Links and interactive elements
+### Form Background
 
-**Format**: Hex color code (e.g., `#0ea5e9`)
+Sets the overall form container background color.
 
-**Default**: `#0ea5e9` (blue)
+**Theme key**: `background` · **CSS variable**: `--canopy-bg` · **Default**: `#ffffff`
+
+### Field Background
+
+Sets the background color for input fields, textareas, and selects.
+
+**Theme key**: `fieldBackground` · **CSS variable**: `--canopy-field-bg` · **Default**: `#ffffff`
+
+### Field Border
+
+Sets the border color for input fields, textareas, and selects.
+
+**Theme key**: `border` · **CSS variable**: `--canopy-border` · **Default**: `#e4e4e7`
+
+### Text Color
+
+Sets the color for labels, input text, and other body copy. Placeholder text is automatically rendered at 50% opacity of this color.
+
+**Theme key**: `text` · **CSS variable**: `--canopy-text` · **Default**: `#18181b`
+
+### Button Color
+
+Sets the submit button background color. Button text color is **automatically derived** using WCAG relative luminance — white text on dark buttons, dark text on light buttons.
+
+**Theme key**: `primary` · **CSS variable**: `--canopy-primary` · **Default**: `#005F6A`
+
+The derived button text color is available as `--canopy-button-text`.
 
 ### Border Radius
 
@@ -159,6 +181,7 @@ All theme properties can be overridden:
   "fontUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
   "text": "#18181b",
   "background": "#ffffff",
+  "fieldBackground": "#ffffff",
   "primary": "#0ea5e9",
   "border": "#e4e4e7",
   "radius": 8,
@@ -181,6 +204,7 @@ If you don't configure a theme, these defaults are used:
   "fontSize": 14,
   "text": "#18181b",
   "background": "#ffffff",
+  "fieldBackground": "#ffffff",
   "primary": "#0ea5e9",
   "border": "#e4e4e7",
   "radius": 8,
@@ -262,6 +286,7 @@ When the limit is reached, users who attempt to submit will see: "This form has 
   "primary": "#ffffff",
   "text": "#ffffff",
   "background": "#1a1a1a",
+  "fieldBackground": "#2a2a2a",
   "border": "#333333",
   "radius": 4,
   "density": "compact"
@@ -300,8 +325,10 @@ Themes are applied using CSS custom properties (CSS variables). You can target t
 - `--canopy-font`: Font family
 - `--canopy-font-size`: Font size
 - `--canopy-text`: Text color
-- `--canopy-bg`: Background color
-- `--canopy-primary`: Primary color
+- `--canopy-bg`: Form background color
+- `--canopy-field-bg`: Field background color
+- `--canopy-primary`: Button / primary accent color
+- `--canopy-button-text`: Auto-derived button text color (white or dark, based on primary luminance)
 - `--canopy-border`: Border color
 - `--canopy-radius`: Border radius
 - `--canopy-button-width`: Button width

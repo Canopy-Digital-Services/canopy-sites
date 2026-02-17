@@ -50,7 +50,7 @@ export const baseStyles = `
   padding: 10px 12px;
   font-family: inherit;
   font-size: var(--canopy-font-size, 14px);
-  background: #ffffff !important;
+  background: var(--canopy-field-bg, #ffffff) !important;
   color: inherit;
   min-height: 40px;
   opacity: 1 !important;
@@ -67,6 +67,12 @@ export const baseStyles = `
 .canopy-root .canopy-select:focus {
   outline: 2px solid var(--canopy-primary, #005F6A);
   outline-offset: 2px;
+}
+
+.canopy-root .canopy-input::placeholder,
+.canopy-root .canopy-textarea::placeholder {
+  color: var(--canopy-text, #18181b);
+  opacity: 0.5;
 }
 
 .canopy-help-text {
@@ -123,7 +129,7 @@ export const baseStyles = `
   font-size: var(--canopy-font-size, 14px);
   font-weight: 600;
   background: var(--canopy-primary, #005F6A);
-  color: #ffffff;
+  color: var(--canopy-button-text, #ffffff);
   cursor: pointer;
   min-height: 40px;
 }

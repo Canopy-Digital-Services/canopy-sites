@@ -111,9 +111,11 @@ export class CanOForm {
     submit.className = "canopy-submit";
     submit.textContent = (theme as { buttonText?: string }).buttonText || "Submit";
     // Apply inline styles to defeat CSS resets like Figma's @layer figreset
-    const primaryColor = getComputedStyle(this.container).getPropertyValue("--canopy-primary").trim() || "#0ea5e9";
-    const radius = getComputedStyle(this.container).getPropertyValue("--canopy-radius").trim() || "8px";
-    const buttonWidth = getComputedStyle(this.container).getPropertyValue("--canopy-button-width").trim() || "100%";
+    const computedStyle = getComputedStyle(this.container);
+    const primaryColor = computedStyle.getPropertyValue("--canopy-primary").trim() || "#0ea5e9";
+    const buttonTextColor = computedStyle.getPropertyValue("--canopy-button-text").trim() || "#ffffff";
+    const radius = computedStyle.getPropertyValue("--canopy-radius").trim() || "8px";
+    const buttonWidth = computedStyle.getPropertyValue("--canopy-button-width").trim() || "100%";
     submit.style.cssText = `
       display: block !important;
       width: ${buttonWidth} !important;
@@ -125,7 +127,7 @@ export class CanOForm {
       font-weight: 600 !important;
       background: ${primaryColor} !important;
       background-color: ${primaryColor} !important;
-      color: #ffffff !important;
+      color: ${buttonTextColor} !important;
       cursor: pointer !important;
       min-height: 40px !important;
     `;
