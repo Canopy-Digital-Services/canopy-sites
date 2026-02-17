@@ -20,13 +20,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SettingsSection } from "@/components/patterns/settings-section";
+
+const MAX_NOTIFY_EMAILS = 5;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AfterSubmissionSectionProps = {
   formId: string;
   successMessage: string | null;
   redirectUrl: string | null;
   emailNotificationsEnabled: boolean;
+  notifyEmails: string[];
+  ownerEmail: string;
   allowedOrigins: string[];
   stopAt: Date | null;
   maxSubmissions: number | null;
@@ -37,6 +41,8 @@ export function AfterSubmissionSection({
   successMessage: initialSuccessMessage,
   redirectUrl: initialRedirectUrl,
   emailNotificationsEnabled: initialEmailNotificationsEnabled,
+  notifyEmails: initialNotifyEmails,
+  ownerEmail,
   allowedOrigins: initialAllowedOrigins,
   stopAt: initialStopAt,
   maxSubmissions: initialMaxSubmissions,
@@ -50,12 +56,15 @@ export function AfterSubmissionSection({
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
     initialRedirectUrl ? "redirect" : "message"
   );
-  
+
   const [successMessage, setSuccessMessage] = useState(initialSuccessMessage || "");
   const [redirectUrl, setRedirectUrl] = useState(initialRedirectUrl || "");
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(initialEmailNotificationsEnabled);
+  const [notifyEmails, setNotifyEmails] = useState<string[]>(initialNotifyEmails || []);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [emailInputTouched, setEmailInputTouched] = useState(false);
   const [allowedOrigins, setAllowedOrigins] = useState<string[]>(initialAllowedOrigins || []);
-  
+
   // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
   const formatDatetimeLocal = (date: Date | null): string => {
     if (!date) return "";
@@ -67,9 +76,53 @@ export function AfterSubmissionSection({
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
-  
+
   const [stopAt, setStopAt] = useState(formatDatetimeLocal(initialStopAt));
   const [maxSubmissions, setMaxSubmissions] = useState(initialMaxSubmissions?.toString() || "");
+
+  // Derived validation for the new email input
+  const trimmedNewEmail = newEmailInput.trim().toLowerCase();
+  const newEmailError = emailInputTouched && trimmedNewEmail
+    ? !EMAIL_REGEX.test(trimmedNewEmail)
+      ? "Enter a valid email address"
+      : notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail)
+        ? "This email is already in the list"
+        : notifyEmails.length >= MAX_NOTIFY_EMAILS
+          ? `Maximum ${MAX_NOTIFY_EMAILS} recipients allowed`
+          : null
+    : null;
+
+  const canAddEmail =
+    trimmedNewEmail !== "" &&
+    EMAIL_REGEX.test(trimmedNewEmail) &&
+    !notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail) &&
+    notifyEmails.length < MAX_NOTIFY_EMAILS;
+
+  // Handle toggle on — auto-populate owner email if list is empty
+  const handleToggleNotifications = (checked: boolean) => {
+    setEmailNotificationsEnabled(checked);
+    if (checked && notifyEmails.length === 0 && ownerEmail) {
+      setNotifyEmails([ownerEmail]);
+    }
+  };
+
+  const handleAddEmail = () => {
+    if (!canAddEmail) return;
+    setNotifyEmails([...notifyEmails, trimmedNewEmail]);
+    setNewEmailInput("");
+    setEmailInputTouched(false);
+  };
+
+  const handleRemoveEmail = (index: number) => {
+    setNotifyEmails(notifyEmails.filter((_, i) => i !== index));
+  };
+
+  const handleEmailInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddEmail();
+    }
+  };
 
   // Auto-save with debouncing
   useEffect(() => {
@@ -78,10 +131,11 @@ export function AfterSubmissionSection({
     const activeFieldChanged = afterSubmissionType === "message"
       ? successMessage !== (initialSuccessMessage || "")
       : redirectUrl !== (initialRedirectUrl || "");
-    
-    const hasChanges = 
+
+    const hasChanges =
       activeFieldChanged ||
       emailNotificationsEnabled !== initialEmailNotificationsEnabled ||
+      JSON.stringify(notifyEmails) !== JSON.stringify(initialNotifyEmails) ||
       JSON.stringify(allowedOrigins) !== JSON.stringify(initialAllowedOrigins) ||
       stopAt !== formatDatetimeLocal(initialStopAt) ||
       maxSubmissions !== (initialMaxSubmissions?.toString() || "");
@@ -98,6 +152,7 @@ export function AfterSubmissionSection({
               successMessage: afterSubmissionType === "message" ? (successMessage || null) : null,
               redirectUrl: afterSubmissionType === "redirect" ? (redirectUrl || null) : null,
               emailNotificationsEnabled,
+              notifyEmails,
               allowedOrigins: allowedOrigins.filter(o => o.trim() !== ""),
               stopAt: stopAt ? new Date(stopAt) : null,
               maxSubmissions: maxSubmissions ? parseInt(maxSubmissions, 10) : null,
@@ -122,12 +177,14 @@ export function AfterSubmissionSection({
     successMessage,
     redirectUrl,
     emailNotificationsEnabled,
+    notifyEmails,
     allowedOrigins,
     stopAt,
     maxSubmissions,
     initialSuccessMessage,
     initialRedirectUrl,
     initialEmailNotificationsEnabled,
+    initialNotifyEmails,
     initialAllowedOrigins,
     initialStopAt,
     initialMaxSubmissions,
@@ -151,15 +208,45 @@ export function AfterSubmissionSection({
   const handleAfterSubmissionTypeChange = (value: "message" | "redirect") => {
     setAfterSubmissionType(value);
   };
-  
+
+  // Collapsed summary
+  const summaryParts: string[] = [];
+
+  if (afterSubmissionType === "redirect" && redirectUrl) {
+    summaryParts.push("Redirect");
+  } else if (afterSubmissionType === "message" && successMessage) {
+    summaryParts.push("Message");
+  }
+
+  if (emailNotificationsEnabled && notifyEmails.length > 0) {
+    summaryParts.push(`${notifyEmails.length} recipient${notifyEmails.length !== 1 ? "s" : ""}`);
+  } else {
+    summaryParts.push("Notifications off");
+  }
+
+  const nonEmptyOrigins = allowedOrigins.filter(o => o.trim() !== "").length;
+  if (nonEmptyOrigins > 0) {
+    summaryParts.push(`${nonEmptyOrigins} origin${nonEmptyOrigins !== 1 ? "s" : ""}`);
+  }
+
+  if (stopAt) summaryParts.push("Time limit set");
+  if (maxSubmissions) summaryParts.push(`Max ${maxSubmissions}`);
+
   return (
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
           <CollapsibleTrigger asChild>
-            <div className="flex items-center justify-between">
-              <CardTitle>After Submission</CardTitle>
-              <div className="flex items-center gap-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Submission Settings</CardTitle>
+                {!isOpen && summaryParts.length > 0 && (
+                  <p className="text-sm text-muted-foreground font-normal mt-1">
+                    {summaryParts.join(" · ")}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 {saveStatus === "saving" && (
                   <span className="text-sm text-muted-foreground flex items-center gap-2">
                     <Save className="h-4 w-4 animate-pulse" />
@@ -183,130 +270,173 @@ export function AfterSubmissionSection({
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            {/* Security Section */}
-            <SettingsSection
-              label="Security"
-              description="Control which domains can embed and submit to this form"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Allowed Origins</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAddOrigin}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Origin
-                  </Button>
+            {/* After Submission */}
+            <div className="space-y-3">
+              <Tabs
+                value={afterSubmissionType}
+                onValueChange={(v) => handleAfterSubmissionTypeChange(v as "message" | "redirect")}
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="message">Message</TabsTrigger>
+                  <TabsTrigger value="redirect">Redirect</TabsTrigger>
+                </TabsList>
+
+                <div className="rounded-md border bg-muted/30 p-4 min-h-[7.5rem]">
+                  <TabsContent value="message" className="m-0 space-y-2 data-[state=inactive]:hidden">
+                    <Label htmlFor="successMessage">Success message</Label>
+                    <Textarea
+                      id="successMessage"
+                      value={successMessage}
+                      onChange={(e) => setSuccessMessage(e.target.value)}
+                      rows={2}
+                      className="resize-none"
+                      placeholder="Thank you for your submission!"
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="redirect" className="m-0 space-y-2 data-[state=inactive]:hidden">
+                    <Label htmlFor="redirectUrl">Redirect URL</Label>
+                    <Input
+                      id="redirectUrl"
+                      value={redirectUrl}
+                      onChange={(e) => setRedirectUrl(e.target.value)}
+                      placeholder="https://example.com/thanks"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Redirect after a successful submission.
+                    </p>
+                  </TabsContent>
                 </div>
-                {allowedOrigins.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No origins configured. Submissions will be blocked unless you add allowed domains.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {allowedOrigins.map((origin, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={origin}
-                          onChange={(e) => handleOriginChange(index, e.target.value)}
-                          placeholder="example.com"
-                        />
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => handleRemoveOrigin(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Remove origin</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  Enter domains that can embed this form (e.g., example.com, staging.example.com). 
-                  Localhost is always allowed for development.
-                </p>
-              </div>
-            </SettingsSection>
+              </Tabs>
+            </div>
 
-            {/* After Submission Section */}
-            <SettingsSection
-              label="After Submission"
-              description="Choose what happens when users submit this form"
-            >
-              <div className="space-y-3">
-                <Tabs
-                  value={afterSubmissionType}
-                  onValueChange={(v) => handleAfterSubmissionTypeChange(v as "message" | "redirect")}
-                >
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="message">Message</TabsTrigger>
-                    <TabsTrigger value="redirect">Redirect</TabsTrigger>
-                  </TabsList>
+            <div className="border-t" />
 
-                  <div className="rounded-md border bg-muted/30 p-4 min-h-[7.5rem]">
-                    <TabsContent value="message" className="m-0 space-y-2 data-[state=inactive]:hidden">
-                      <Label htmlFor="successMessage">Success message</Label>
-                      <Textarea
-                        id="successMessage"
-                        value={successMessage}
-                        onChange={(e) => setSuccessMessage(e.target.value)}
-                        rows={2}
-                        className="resize-none"
-                        placeholder="Thank you for your submission!"
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="redirect" className="m-0 space-y-2 data-[state=inactive]:hidden">
-                      <Label htmlFor="redirectUrl">Redirect URL</Label>
-                      <Input
-                        id="redirectUrl"
-                        value={redirectUrl}
-                        onChange={(e) => setRedirectUrl(e.target.value)}
-                        placeholder="https://example.com/thanks"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Redirect after a successful submission.
-                      </p>
-                    </TabsContent>
-                  </div>
-                </Tabs>
-              </div>
-            </SettingsSection>
-
-            {/* Notifications Section */}
-            <SettingsSection
-              label="Notifications"
-              description="Get notified when someone submits this form"
-            >
+            {/* Notifications */}
+            <div className="space-y-3">
               <div className="flex items-center justify-between py-2">
                 <Label htmlFor="emailNotifications" className="cursor-pointer font-normal">
-                  Notify me on new submission
+                  Email notifications
                 </Label>
                 <input
                   type="checkbox"
                   id="emailNotifications"
                   checked={emailNotificationsEnabled}
-                  onChange={(e) => setEmailNotificationsEnabled(e.target.checked)}
+                  onChange={(e) => handleToggleNotifications(e.target.checked)}
                   className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
                 />
               </div>
-            </SettingsSection>
 
-            {/* Limits Section */}
-            <SettingsSection
-              label="Submission Limits"
-              description="Optionally restrict when or how many times this form can be submitted"
-            >
+              {emailNotificationsEnabled && (
+                <div className="space-y-3">
+                  {/* Email list */}
+                  {notifyEmails.length > 0 && (
+                    <div className="space-y-2">
+                      {notifyEmails.map((email, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm flex-1 truncate">{email}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleRemoveEmail(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remove recipient</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add email input */}
+                  {notifyEmails.length < MAX_NOTIFY_EMAILS && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={newEmailInput}
+                          onChange={(e) => setNewEmailInput(e.target.value)}
+                          onBlur={() => setEmailInputTouched(true)}
+                          onKeyDown={handleEmailInputKeyDown}
+                          placeholder="recipient@example.com"
+                          type="email"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleAddEmail}
+                          disabled={!canAddEmail}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {newEmailError && (
+                        <p className="text-sm text-destructive">{newEmailError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t" />
+
+            {/* Access & Limits */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Allowed Origins</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddOrigin}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Origin
+                </Button>
+              </div>
+              {allowedOrigins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No origins configured. Submissions will be blocked unless you add allowed domains.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {allowedOrigins.map((origin, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        value={origin}
+                        onChange={(e) => handleOriginChange(index, e.target.value)}
+                        placeholder="example.com"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleRemoveOrigin(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove origin</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Enter domains that can embed this form (e.g., example.com, staging.example.com).
+                Localhost is always allowed for development.
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="stopAt">Stop accepting submissions after</Label>
@@ -336,7 +466,7 @@ export function AfterSubmissionSection({
                   </p>
                 </div>
               </div>
-            </SettingsSection>
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>

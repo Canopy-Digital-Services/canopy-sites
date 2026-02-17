@@ -1,0 +1,26 @@
+# Epic 8 — Reorganize "After Submission" into "Submission Settings"
+
+## Goal
+
+Improve information architecture and reduce cognitive load as the settings surface grows.
+
+## Problem
+
+The current "After Submission" panel mixes behavior, notifications, security, and limits into a single block.
+
+## Scope
+
+* Rename "After Submission" → "Submission Settings" (or "Behavior").
+* Inside the expanded panel, split into sub-sections:
+
+  1. After Submission (Message / Redirect)
+  2. Notifications (multi-recipient email UI)
+  3. Access & Limits (Allowed Origins + Limits)
+* Add short helper descriptions under each subsection header.
+* Add collapsed summary metadata (e.g., "2 emails configured · Redirect enabled").
+
+## Acceptance Criteria
+
+* Notifications are visually separated from redirect logic.
+* Users can locate settings without scanning unrelated content.
+* Collapsed section shows concise status summary.

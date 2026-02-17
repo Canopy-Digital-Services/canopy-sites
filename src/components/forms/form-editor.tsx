@@ -15,6 +15,7 @@ import { updateFormBasics } from "@/actions/forms";
 
 type FormEditorProps = {
   apiUrl: string; // Pass from server-side page
+  ownerEmail: string;
   form: {
     id: string;
     name: string;
@@ -43,7 +44,7 @@ type FormEditorProps = {
   };
 };
 
-export function FormEditor({ apiUrl, form }: FormEditorProps) {
+export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
   const { toast } = useToast();
   const [formName, setFormName] = useState(form.name);
   const [panelType, setPanelType] = useState<"preview" | "integrate" | null>(null);
@@ -131,6 +132,8 @@ export function FormEditor({ apiUrl, form }: FormEditorProps) {
         successMessage={form.successMessage}
         redirectUrl={form.redirectUrl}
         emailNotificationsEnabled={form.emailNotificationsEnabled}
+        notifyEmails={form.notifyEmails}
+        ownerEmail={ownerEmail}
         allowedOrigins={form.allowedOrigins}
         stopAt={form.stopAt}
         maxSubmissions={form.maxSubmissions}

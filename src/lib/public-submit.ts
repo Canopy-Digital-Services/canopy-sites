@@ -540,13 +540,13 @@ export async function handlePublicSubmit({
     },
   });
 
-  // Send notification to account owner if enabled
-  if (!isSpam && (form as any).emailNotificationsEnabled) {
+  // Send notification to all listed recipients if enabled
+  if (!isSpam && form.emailNotificationsEnabled && form.notifyEmails.length > 0) {
     queueNewSubmissionNotification(
       form.id,
       form.name,
       submission.createdAt,
-      form.accountId
+      form.notifyEmails
     );
   }
 

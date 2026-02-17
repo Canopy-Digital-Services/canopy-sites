@@ -15,6 +15,64 @@ For each completed epic:
 
 ---
 
+## [4.1.0] - 2026-02-16
+
+### Added
+
+- **Multi-recipient email notifications**: Forms can now notify multiple recipients on submission
+  - `notifyEmails` array field on Form model stores up to 5 email addresses
+  - New email management UI in After Submission → Notifications section
+  - Toggle auto-populates owner email when first enabled with empty list
+  - Add/remove emails inline with validation (format, duplicates, max 5)
+  - Press Enter to add email, inline error messages on blur
+  - Individual emails sent per recipient for error isolation (not BCC)
+  - Owner email is removable like any other entry (no special treatment at runtime)
+- **Data migration SQL**: One-time script to backfill `notifyEmails` with owner email for existing forms that have notifications enabled
+
+### Changed
+
+- **Email queue refactor**: `queueNewSubmissionNotification()` now accepts `notifyEmails: string[]` instead of `accountId: string`
+  - Removed Prisma DB lookup from email queue (faster, fewer dependencies)
+  - Loops through recipient list and sends individual emails
+  - Early return if array is empty
+- **Server-side validation**: `updateAfterSubmission()` now validates email list
+  - Deduplicates emails (case-insensitive)
+  - Validates email format with regex
+  - Caps at 5 recipients (server-enforced)
+  - Lowercases and trims all entries
+- **Notification toggle behavior**: Checkbox label changed from "Notify me on new submission" to "Email notifications"
+  - Toggle ON with empty list auto-populates owner email
+  - Toggle OFF hides email list but preserves it in state
+  - Consistent with allowedOrigins pattern (list persists when hidden)
+
+### Removed
+
+- **Removed** `notifyEmails` from `updateFormBasics()` (never called with it from UI)
+  - Moved to `updateAfterSubmission()` where it logically belongs
+
+### Technical Details
+
+- Updated components: `after-submission-section.tsx` (multi-recipient UI), `form-editor.tsx` (threads ownerEmail prop), form editor page (extracts session.user.email)
+- Updated server actions: `src/actions/forms.ts` - `updateAfterSubmission()` with email validation
+- Updated email queue: `src/lib/email-queue.ts` - loops through `notifyEmails[]`
+- Updated public submit: `src/lib/public-submit.ts` and `src/app/api/submit/[formId]/[fieldName]/route.ts` - pass `form.notifyEmails`
+- Migration: `docs/epics/epic-7-backfill-notify-emails.sql` for existing forms
+- No schema migration needed - `notifyEmails` field already existed (unused until now)
+
+### UI/UX Details
+
+- **Validation on blur**: Inline error messages only appear after user leaves input
+- **Keyboard shortcut**: Enter key to add email (disabled when input is invalid)
+- **Visual feedback**: Email list with trash icons, tooltips on remove buttons
+- **Auto-save**: Email list changes trigger existing debounced auto-save (1 second delay)
+- **Max cap**: "Add" button and Enter key disabled when at 5 recipients
+- **Error messages**:
+  - "Enter a valid email address" (format error)
+  - "This email is already in the list" (duplicate)
+  - "Maximum 5 recipients allowed" (cap reached)
+
+---
+
 ## [3.9.0] - 2026-02-06
 
 ### Changed
