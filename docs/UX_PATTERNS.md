@@ -125,13 +125,24 @@ Most UI components automatically use semantic colors through their variants:
 Embedded forms use a separate theming system (`embed/src/theme.ts`) with matching defaults:
 
 ```typescript
-// Default embed theme
-primary: "#005F6A"    // Main Teal
-success: "#5FD48C"    // Highlight Green (status messages)
-error: "#FF6B5A"      // Pop Coral (error messages)
+// Default embed theme (full token set)
+background:      "#ffffff"   // Form container background  (--canopy-bg)
+fieldBackground: "#ffffff"   // Input/textarea background  (--canopy-field-bg)
+primary:         "#005F6A"   // Button background / focus rings (--canopy-primary)
+border:          "#e4e4e7"   // Input borders               (--canopy-border)
+text:            "#18181b"   // Labels and body copy        (--canopy-text)
+// Derived automatically — not a stored key:
+// --canopy-button-text  white or #18181b, chosen via WCAG luminance of primary
+// ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
 ```
 
-Form owners can override these colors through theme customization in the form editor.
+Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
+```typescript
+success: "#5FD48C"    // Highlight Green
+error:   "#FF6B5A"    // Pop Coral
+```
+
+Form owners can override all stored tokens through the Appearance section of the form editor. Each color has a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
 ### Dark Mode Status
 
