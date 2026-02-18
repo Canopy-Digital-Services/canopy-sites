@@ -33,7 +33,7 @@ Canopy Forms lets website owners add forms to static sites without backend code:
 docker compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker logs canoforms -f
+docker logs canopy-forms -f
 
 # Access at http://localhost:3006
 ```

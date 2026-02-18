@@ -1,7 +1,8 @@
 type ThemeTokens = {
-  fontFamily?: string;
+  // New font fields (family name only, e.g. "Inter" or "inherit")
+  bodyFont?: string;
+  headingFont?: string;
   fontSize?: number;
-  fontUrl?: string;
   text?: string;
   background?: string;
   fieldBackground?: string;
@@ -12,13 +13,18 @@ type ThemeTokens = {
   buttonWidth?: "full" | "auto";
   buttonAlign?: "left" | "center" | "right";
   buttonText?: string;
+  // Legacy fields — still read for backward compatibility
+  fontFamily?: string;
+  fontUrl?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl" | "buttonText">> & {
+const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText">> & {
+  bodyFont?: string;
+  headingFont?: string;
   fontUrl?: string;
+  fontFamily?: string;
   buttonText?: string;
 } = {
-  fontFamily: "inherit",
   fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
@@ -29,7 +35,10 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "fontUrl" | "buttonText">> & {
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
+  bodyFont: undefined,
+  headingFont: undefined,
   fontUrl: undefined,
+  fontFamily: undefined,
   buttonText: undefined,
 };
 
@@ -103,7 +112,17 @@ function contrastingTextColor(hex: string): string {
 }
 
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
-  container.style.setProperty("--canopy-font", theme.fontFamily || "inherit");
+  // Resolve body font: prefer new bodyFont, fall back to legacy fontFamily
+  const bodyFontFamily = resolveFont(theme.bodyFont, theme.fontFamily);
+  container.style.setProperty("--canopy-font", bodyFontFamily);
+
+  // Resolve heading font: prefer new headingFont, fall back to body font
+  const headingFontFamily = resolveFont(theme.headingFont);
+  container.style.setProperty(
+    "--canopy-heading-font",
+    headingFontFamily === "inherit" ? "var(--canopy-font)" : headingFontFamily
+  );
+
   container.style.setProperty(
     "--canopy-font-size",
     `${theme.fontSize ?? DEFAULT_THEME.fontSize}px`
@@ -155,11 +174,54 @@ export function getDensityClass(theme: ThemeTokens) {
   }
 }
 
-export function ensureFontLoaded(fontUrl?: string) {
-  if (!fontUrl || loadedFonts.has(fontUrl)) {
-    return;
+/**
+ * Resolves a font value to a CSS font-family string.
+ * "inherit" or absent → "inherit"
+ * A Google Font name → "'Font Name', sans-serif"
+ */
+function resolveFont(font?: string, legacyFontFamily?: string): string {
+  if (font && font !== "inherit") {
+    return `'${font}', sans-serif`;
   }
+  // Fall back to legacy fontFamily if provided (old stored format)
+  if (legacyFontFamily && legacyFontFamily !== "inherit") {
+    return legacyFontFamily;
+  }
+  return "inherit";
+}
 
+/**
+ * Loads Google Fonts for the given family names in a single combined request.
+ * Deduplicates — will not inject a stylesheet for a family already loaded.
+ * Ignores "inherit" and empty values.
+ */
+export function ensureFontsLoaded(families: (string | undefined)[]) {
+  const toLoad = families.filter(
+    (f): f is string => !!f && f !== "inherit" && !loadedFonts.has(f)
+  );
+
+  if (toLoad.length === 0) return;
+
+  const params = toLoad
+    .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700`)
+    .join("&");
+  const url = `https://fonts.googleapis.com/css2?${params}&display=swap`;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = url;
+  link.dataset.canopyFont = "true";
+  document.head.appendChild(link);
+
+  toLoad.forEach((f) => loadedFonts.add(f));
+}
+
+/**
+ * @deprecated Use ensureFontsLoaded instead.
+ * Kept for backward compatibility with any external callers.
+ */
+export function ensureFontLoaded(fontUrl?: string) {
+  if (!fontUrl || loadedFonts.has(fontUrl)) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = fontUrl;

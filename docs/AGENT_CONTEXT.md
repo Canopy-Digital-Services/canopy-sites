@@ -93,12 +93,22 @@ docker exec canopy-forms npm run db:seed               # Seed admin user
 
 ### Schema changes
 
-**Recommended**: Manual SQL migration (see `docs/tools/prisma-7.md`)
+**Every `prisma/schema.prisma` change MUST include a migration file.**
 
 1. Edit `prisma/schema.prisma`
-2. Create migration in `prisma/migrations/TIMESTAMP_name/migration.sql`
-3. Apply: `cat migration.sql | docker exec -i canopy-forms-db psql -U user -d canopy-forms`
-4. Rebuild: `docker compose build && docker compose up -d` (regenerates Prisma client)
+2. Generate and apply the migration inside the container:
+   ```bash
+   docker compose -f docker-compose.dev.yml exec canopy-forms npx prisma migrate dev --name descriptive_name
+   ```
+3. Verify the migration file was created in `prisma/migrations/`
+4. Commit both the schema change AND the migration files
+
+**Rules:**
+- Never run `prisma db push` — always use migrations
+- Never modify existing migration files — create new ones
+- If `prisma migrate dev` fails with shadow DB errors (missing tables from removed models), use `prisma migrate deploy` or `prisma migrate resolve --applied <migration_name>`
+- Migration files are SQL and must be committed to git
+- Coolify runs `npx prisma migrate deploy` automatically on deploy
 
 ---
 

@@ -1,4 +1,4 @@
-import { applyTheme, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
+import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
 import { FieldDefinition, validateSubmission, getEffectiveMaxLength } from "./validation";
 
 type FormDefinition = {
@@ -77,7 +77,14 @@ export class CanOForm {
       this.options.themeOverrides as Record<string, unknown>
     );
     applyTheme(this.container, theme);
-    ensureFontLoaded((theme as { fontUrl?: string }).fontUrl);
+
+    // Load Google Fonts for any explicitly selected families (new format)
+    ensureFontsLoaded([theme.bodyFont, theme.headingFont]);
+
+    // Backward compat: load legacy fontUrl if new fields are absent
+    if (!theme.bodyFont && !theme.headingFont) {
+      ensureFontLoaded((theme as { fontUrl?: string }).fontUrl);
+    }
 
     this.container.classList.remove(
       "canopy-density-compact",

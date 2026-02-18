@@ -5,6 +5,7 @@ export const baseStyles = `
   color: var(--canopy-text, #18181b);
   background: var(--canopy-bg, #ffffff);
   padding: 4px;
+  --canopy-heading-font: var(--canopy-font, inherit);
 }
 
 .canopy-form {
@@ -156,6 +157,7 @@ export const baseStyles = `
 }
 
 .canopy-title {
+  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
   font-size: 1.25em;
   font-weight: 600;
   color: var(--canopy-text, #18181b);
