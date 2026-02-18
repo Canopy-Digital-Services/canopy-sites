@@ -19,23 +19,8 @@ import {
 import { ChevronDown, ChevronRight, Save, Check } from "lucide-react";
 import { updateFormAppearance } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
+import { FontPicker } from "@/components/ui/font-picker";
 
-const GOOGLE_FONTS = [
-  { name: "System Default", family: "inherit", url: "" },
-  { name: "Inter", family: "Inter, sans-serif", url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" },
-  { name: "Roboto", family: "Roboto, sans-serif", url: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap" },
-  { name: "Open Sans", family: "'Open Sans', sans-serif", url: "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" },
-  { name: "Lato", family: "Lato, sans-serif", url: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" },
-  { name: "Montserrat", family: "Montserrat, sans-serif", url: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" },
-  { name: "Poppins", family: "Poppins, sans-serif", url: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" },
-  { name: "Raleway", family: "Raleway, sans-serif", url: "https://fonts.googleapis.com/css2?family=Raleway:wght@400;600&display=swap" },
-  { name: "Nunito", family: "Nunito, sans-serif", url: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600&display=swap" },
-  { name: "Playfair Display", family: "'Playfair Display', serif", url: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" },
-  { name: "Merriweather", family: "Merriweather, serif", url: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap" },
-  { name: "Ubuntu", family: "Ubuntu, sans-serif", url: "https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500&display=swap" },
-  { name: "Urbanist", family: "Urbanist, sans-serif", url: "https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600&display=swap" },
-  { name: "Custom", family: "custom", url: "" },
-] as const;
 
 /** Add '#' prefix if missing from a hex color string. */
 function normalizeHex(value: string): string {
@@ -70,18 +55,10 @@ export function AppearanceSection({
       ? (initialTheme as Record<string, string | number>)
       : {};
 
-  // Find the matching Google Font or default to custom
-  const findFontOption = () => {
-    const currentFamily = String(theme.fontFamily || "");
-    const match = GOOGLE_FONTS.find(f => f.family === currentFamily);
-    return match ? match.name : "Custom";
-  };
-
   // Store initial values for comparison
-  const initialFont = findFontOption();
-  const initialCustomFontFamily = initialFont === "Custom" ? String(theme.fontFamily || "") : "";
+  const initialBodyFont = String(theme.bodyFont || "inherit");
+  const initialHeadingFont = String(theme.headingFont || "inherit");
   const initialFontSize = String(theme.fontSize || "");
-  const initialFontUrl = String(theme.fontUrl || "");
   const initialBackground = String(theme.background || "");
   const initialFieldBackground = String(theme.fieldBackground || "");
   const initialBorder = String(theme.border || "");
@@ -93,18 +70,9 @@ export function AppearanceSection({
   const initialButtonAlign = String(theme.buttonAlign || "left");
   const initialButtonText = String(theme.buttonText || "");
 
-  const [selectedFont, setSelectedFont] = useState<string>(initialFont);
-  const [customFontFamily, setCustomFontFamily] = useState(initialCustomFontFamily);
+  const [bodyFont, setBodyFont] = useState(initialBodyFont);
+  const [headingFont, setHeadingFont] = useState(initialHeadingFont);
   const [fontSize, setFontSize] = useState(initialFontSize);
-  const [fontUrl, setFontUrl] = useState(initialFontUrl);
-
-  const handleFontChange = (fontName: string) => {
-    setSelectedFont(fontName);
-    const selected = GOOGLE_FONTS.find(f => f.name === fontName);
-    if (selected && selected.name !== "Custom") {
-      setFontUrl(selected.url);
-    }
-  };
   const [background, setBackground] = useState(initialBackground);
   const [fieldBackground, setFieldBackground] = useState(initialFieldBackground);
   const [border, setBorder] = useState(initialBorder);
@@ -120,10 +88,9 @@ export function AppearanceSection({
   useEffect(() => {
     // Check if any values have changed from initial state
     const hasChanges =
-      selectedFont !== initialFont ||
-      customFontFamily !== initialCustomFontFamily ||
+      bodyFont !== initialBodyFont ||
+      headingFont !== initialHeadingFont ||
       fontSize !== initialFontSize ||
-      fontUrl !== initialFontUrl ||
       background !== initialBackground ||
       fieldBackground !== initialFieldBackground ||
       border !== initialBorder ||
@@ -144,19 +111,10 @@ export function AppearanceSection({
         void (async () => {
           try {
             const newTheme: Record<string, string | number> = {};
-            
-            // Handle font selection
-            if (selectedFont !== "Custom") {
-              const selected = GOOGLE_FONTS.find(f => f.name === selectedFont);
-              if (selected) {
-                newTheme.fontFamily = selected.family;
-                if (selected.url) newTheme.fontUrl = selected.url;
-              }
-            } else if (customFontFamily) {
-              newTheme.fontFamily = customFontFamily;
-              if (fontUrl) newTheme.fontUrl = fontUrl;
-            }
-            
+
+            newTheme.bodyFont = bodyFont || "inherit";
+            newTheme.headingFont = headingFont || "inherit";
+
             if (fontSize) newTheme.fontSize = parseInt(fontSize, 10);
             if (background) newTheme.background = normalizeHex(background);
             if (fieldBackground) newTheme.fieldBackground = normalizeHex(fieldBackground);
@@ -186,10 +144,9 @@ export function AppearanceSection({
     return () => clearTimeout(timeoutId);
   }, [
     formId,
-    selectedFont,
-    customFontFamily,
+    bodyFont,
+    headingFont,
     fontSize,
-    fontUrl,
     background,
     fieldBackground,
     border,
@@ -200,10 +157,9 @@ export function AppearanceSection({
     buttonWidth,
     buttonAlign,
     buttonText,
-    initialFont,
-    initialCustomFontFamily,
+    initialBodyFont,
+    initialHeadingFont,
     initialFontSize,
-    initialFontUrl,
     initialBackground,
     initialFieldBackground,
     initialBorder,
@@ -251,58 +207,41 @@ export function AppearanceSection({
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fontFamily">Font Family</Label>
-                <Select value={selectedFont} onValueChange={handleFontChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select font" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GOOGLE_FONTS.map((font) => (
-                      <SelectItem key={font.name} value={font.name}>
-                        {font.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fontSize">Font Size (px)</Label>
-                <Input
-                  id="fontSize"
-                  type="number"
-                  min="10"
-                  max="24"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(e.target.value)}
-                  placeholder="14"
-                />
-              </div>
-            </div>
-
-            {selectedFont === "Custom" && (
+            <div className="space-y-4 pb-2">
+              <h4 className="text-sm font-heading font-medium">Typography</h4>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="customFontFamily">Custom Font Family</Label>
-                  <Input
-                    id="customFontFamily"
-                    value={customFontFamily}
-                    onChange={(e) => setCustomFontFamily(e.target.value)}
-                    placeholder="'My Font', sans-serif"
+                  <Label htmlFor="bodyFont">Body Font</Label>
+                  <FontPicker
+                    id="bodyFont"
+                    value={bodyFont}
+                    onChange={setBodyFont}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fontUrl">Font CSS URL</Label>
-                  <Input
-                    id="fontUrl"
-                    value={fontUrl}
-                    onChange={(e) => setFontUrl(e.target.value)}
-                    placeholder="https://fonts.googleapis.com/..."
+                  <Label htmlFor="headingFont">Heading Font</Label>
+                  <FontPicker
+                    id="headingFont"
+                    value={headingFont}
+                    onChange={setHeadingFont}
                   />
                 </div>
               </div>
-            )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fontSize">Base Font Size (px)</Label>
+                  <Input
+                    id="fontSize"
+                    type="number"
+                    min="10"
+                    max="24"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    placeholder="14"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-3 pt-4 border-t">
               <h4 className="text-sm font-heading font-medium">Colors</h4>

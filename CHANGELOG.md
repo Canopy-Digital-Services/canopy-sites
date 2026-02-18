@@ -15,6 +15,78 @@ For each completed epic:
 
 ---
 
+## [4.2.0] - 2026-02-18
+
+### Added
+
+- **Typography refactor (Epic 10)**: Body and Heading font selection with full Google Fonts support
+  - Two independent font pickers in Appearance section: **Body Font** and **Heading Font**
+  - Searchable combobox with 22 curated fonts shown by default; typing searches all 1,918 Google Fonts
+  - **"Inherit from host page"** as a first-class option — no font CSS injected, form inherits from the embedding site
+  - `src/lib/google-fonts.ts`: static font catalogue committed to repo (generated from Google Fonts API, sorted by popularity)
+  - `scripts/fetch-google-fonts.ts`: regeneration script (`GOOGLE_FONTS_API_KEY=xxx tsx scripts/fetch-google-fonts.ts`)
+  - `src/components/ui/font-picker.tsx`: reusable searchable font picker component (Radix Popover)
+
+### Changed
+
+- **Appearance section**: Font Family field replaced by Body Font + Heading Font pickers under a "Typography" subsection
+  - Removed "Custom" font option and all manual font URL / font family text inputs
+  - Saves `bodyFont` and `headingFont` as plain family name strings (e.g. `"Urbanist"`) — no URL stored
+- **Embed font loading** (`embed/src/theme.ts`): rewrote font loading to be family-name-driven
+  - `ensureFontsLoaded(families[])` replaces `ensureFontLoaded(url)` — builds one combined Google Fonts request for all selected families, deduplicated
+  - `applyTheme()` now sets both `--canopy-font` (body) and `--canopy-heading-font` (heading) CSS variables
+  - Legacy `fontFamily`/`fontUrl` keys still read as fallback for existing forms (backward compatible)
+- **Embed styles** (`embed/src/styles.ts`): `--canopy-heading-font` variable added; applied to `.canopy-title`
+
+### Technical Details
+
+- New dependency: `@radix-ui/react-popover` (used by FontPicker)
+- No schema migration — `defaultTheme` remains `Json?`; theme shape change is backward compatible
+- Existing forms using old font format continue rendering correctly in embed until admin re-saves Appearance
+- Font URL derivation: embed constructs Google Fonts URL from family names at runtime with `wght@400;500;600;700&display=swap`
+
+---
+
+## [4.1.6] - 2026-02-17
+
+### Added
+
+- **Form Title & Description (Epic 9)**: Optional header content rendered above form fields in the embed
+  - New `title` (max 120 chars) and `description` (max 400 chars) nullable fields on the `Form` model
+  - New **Header** section in the form editor above Fields — always expanded, no collapse
+  - Debounced autosave with saving/saved status indicator (title and description save independently)
+  - Embed renders `<h2 class="canopy-title">` and `<p class="canopy-description">` above fields when set
+  - Empty strings treated as null — no blank space rendered when fields are unset
+  - New `updateFormHeader()` server action with ownership check and server-side length enforcement
+  - Fully backward compatible — existing forms without values render unchanged
+
+### Technical Details
+
+- Database migration: `20260217000000_add_form_title_description`
+- New component: `src/components/forms/header-section.tsx`
+- Updated: `src/actions/forms.ts` (`updateFormHeader`), embed API GET response, `embed/src/form.ts`, `embed/src/styles.ts`
+
+---
+
+## [4.1.5] - 2026-02-17
+
+### Changed
+
+- **Submission Settings reorganization (Epic 8)**: Renamed "After Submission" → "Submission Settings" and restructured into three clear subsections
+  - **After Submission**: Message / Redirect toggle now uses a Tabs component (replaces radio buttons)
+  - **Notifications**: Email notification toggle and recipient list (unchanged functionality)
+  - **Access & Limits**: Allowed Origins and submission limits (stopAt, maxSubmissions) consolidated here
+  - Section description: "Control responses, notifications, and access"
+  - Allowed Origins moved from a standalone section into Submission Settings → Access & Limits
+
+### Technical Details
+
+- No database migration — purely a UI reorganization
+- Updated component: `src/components/forms/after-submission-section.tsx`
+- Radio group replaced with `Tabs` for the message/redirect choice (uses existing `@radix-ui/react-tabs`)
+
+---
+
 ## [4.1.0] - 2026-02-16
 
 ### Added
