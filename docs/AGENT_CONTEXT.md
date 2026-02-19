@@ -36,13 +36,34 @@ When requirements are unclear: **restate the goal in one sentence** and identify
 
 ---
 
+## Environments
+
+| Environment | URL | How it runs |
+|-------------|-----|-------------|
+| **Local dev** | `http://localhost:3006` | `docker-compose.dev.yml` with hot reload |
+| **Dev/staging** | `https://forms-dev.canopyds.com` | Coolify, builds from `Dockerfile`, env vars in Coolify UI |
+| **Production** | `https://forms.canopyds.com` | Coolify, builds from `Dockerfile`, env vars in Coolify UI |
+
+### Deployment flow
+
+1. Develop locally → push to GitHub
+2. Coolify pulls from GitHub, builds from `Dockerfile`, runs `npx prisma migrate deploy` on start
+3. Env vars (`NEXTAUTH_URL`, `DATABASE_URL`, `SMTP_*`, etc.) are configured per-environment in the Coolify UI — **not** in committed files
+
+### What each file is for
+
+| File | Used by | Notes |
+|------|---------|-------|
+| `docker-compose.dev.yml` | Local dev only | Hot reload, localhost URLs, local Postgres |
+| `Dockerfile` | Coolify (dev + prod) | Production build |
+| `Dockerfile.dev` | Local dev (via compose) | Dev build with hot reload |
+| `docker-compose.yml` | **Not used** | Legacy from old Caddy setup, kept for reference |
+
+---
+
 ## Development workflow
 
-**This project runs in Docker** with hot reload for development.
-
-### Dev in prod
-
-**We develop against the production domain.** The app is run in **dev mode** (hot reload) but accessed at **https://forms.canopyds.com**. Always use `docker-compose.dev.yml` so the site stays in dev mode at that URL; do not use production compose during development.
+**This project runs in Docker** with hot reload for local development.
 
 ### Starting development
 
@@ -50,7 +71,7 @@ When requirements are unclear: **restate the goal in one sentence** and identify
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Access at **https://forms.canopyds.com** (Caddy/Cloudflare route the domain to the dev container; port 3006 is mapped from the container’s 3000).
+Access at **http://localhost:3006** (port 3006 on the host maps to the container’s 3000).
 
 ### Making changes
 
@@ -60,20 +81,6 @@ Access at **https://forms.canopyds.com** (Caddy/Cloudflare route the domain to t
 | **Embed changes** | Run `npm run embed:build`, then hard refresh browser (Ctrl+Shift+R) |
 | **Schema changes** | See "Schema changes" below, then restart container |
 
-### ⚠️ Critical: Development mode only
-
-**NEVER use `docker compose build` or `docker compose up` (without `-f docker-compose.dev.yml`) during development.**
-
-This switches to production mode, disabling hot reload. If you accidentally do this, you MUST rebuild:
-
-```bash
-docker compose -f docker-compose.dev.yml down
-docker compose -f docker-compose.dev.yml build --no-cache
-docker compose -f docker-compose.dev.yml up -d
-```
-
-**Why rebuild is required**: Building with production compose creates a production image. Simply starting with dev compose won't work because it tries to use the existing production image instead of the dev Dockerfile.
-
 ### Common commands
 
 ```bash
@@ -81,7 +88,7 @@ docker compose -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.dev.yml up -d      # Start
 docker compose -f docker-compose.dev.yml down       # Stop
 docker compose -f docker-compose.dev.yml restart canopy-forms  # Restart app
-docker compose -f docker-compose.dev.yml build --no-cache  # Force rebuild (if switching modes)
+docker compose -f docker-compose.dev.yml build --no-cache  # Force rebuild
 docker logs canopy-forms -f                            # View logs
 
 # Embed script
@@ -210,7 +217,7 @@ Key rules:
 
 ### Common Docker issues
 
-**Bad Gateway / Site down**:
+**Container won't start or crashes**:
 ```bash
 # 1. Check if containers are running
 docker ps --filter name=canopy-forms
@@ -220,15 +227,9 @@ docker compose -f docker-compose.dev.yml up -d
 
 # 3. If containers exist but failing, check logs:
 docker logs canopy-forms --tail 50
-
-# 4. If logs show "Cannot find module '/app/server.js'":
-# This means production image is running. Rebuild with dev:
-docker compose -f docker-compose.dev.yml down
-docker compose -f docker-compose.dev.yml build --no-cache
-docker compose -f docker-compose.dev.yml up -d
 ```
 
-**Hot reload not working**: Rebuild is required - see "Critical: Development mode only" section above.
+**Hot reload not working**: Force rebuild with `docker compose -f docker-compose.dev.yml build --no-cache`, then `up -d`.
 
 ---
 
