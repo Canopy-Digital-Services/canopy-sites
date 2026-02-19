@@ -37,6 +37,7 @@ model User {
   lastLoginAt         DateTime?
   failedLoginCount    Int       @default(0)
   lastFailedLoginAt   DateTime?
+  passwordChangedAt   DateTime?
   
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
