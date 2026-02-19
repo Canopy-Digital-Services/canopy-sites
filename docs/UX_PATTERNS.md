@@ -35,7 +35,7 @@ This project uses **shadcn/ui** components built on Radix UI primitives with Tai
 - **Feature components**: `src/components/` (confirm-dialog, field-list, etc.)
 
 **Key dependencies:**
-- `@radix-ui/*` - Accessible UI primitives
+- `radix-ui` - Accessible UI primitives (unified package; all `src/components/ui/` components import from here)
 - `lucide-react` - Icon library
 - `class-variance-authority` - Variant management
 - `tailwind-merge` + `clsx` - Class name utilities (via `cn()` helper)
@@ -927,7 +927,6 @@ import { Label } from "@/components/ui/label";
 - `onCheckedChange` receives `boolean | "indeterminate"` — use `checked === true` to safely narrow to `boolean`
 - Pair with `<Label>` using matching `id`/`htmlFor` and `cursor-pointer` so the label is clickable
 - Use `font-normal` on the Label to distinguish it from a field label (which uses the default `font-medium`)
-- Component uses `@radix-ui/react-checkbox` — **not** the `radix-ui` unified package
 
 ### Spacing Convention
 
