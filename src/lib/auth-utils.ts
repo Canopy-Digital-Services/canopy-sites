@@ -33,7 +33,7 @@ export function generateToken(bytes: number = 32): string {
 export async function requireAuth() {
   const session = await auth();
   
-  if (!session || !session.user) {
+  if (!session || !session.user || !session.user.id) {
     redirect("/login");
   }
   

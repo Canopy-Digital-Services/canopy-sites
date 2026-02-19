@@ -11,7 +11,6 @@ services:
       - "127.0.0.1:3006:3000"
     networks:
       - canopy-forms-network
-      - proxy
     volumes:
       # Mount source code for hot reloading
       - .:/app
@@ -23,8 +22,8 @@ services:
       
       # NextAuth
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
-      NEXTAUTH_URL: "https://forms.canopyds.com"
-      NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
+      NEXTAUTH_URL: "http://localhost:3006"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3006"
       AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)
@@ -60,5 +59,3 @@ volumes:
 networks:
   canopy-forms-network:
     driver: bridge
-  proxy:
-    external: true

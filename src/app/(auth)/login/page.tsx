@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Derived validation errors (computed every render)
@@ -55,6 +57,7 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
+        rememberMe: rememberMe ? "true" : "false",
         redirect: false,
       });
 
@@ -121,6 +124,22 @@ export default function LoginPage() {
             {showError("password") && (
               <p className="text-sm text-destructive">{errors.password}</p>
             )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="rememberMe"
+              checked={rememberMe}
+              onCheckedChange={(checked) =>
+                setRememberMe(checked === true)
+              }
+              disabled={isLoading}
+            />
+            <Label
+              htmlFor="rememberMe"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Keep me signed in for 30 days
+            </Label>
           </div>
           {successMessage && (
             <p className="text-sm text-green-600">{successMessage}</p>

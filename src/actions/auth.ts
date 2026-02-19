@@ -227,7 +227,7 @@ export async function resetPassword(formData: FormData) {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, passwordChangedAt: new Date() },
       }),
       prisma.passwordResetToken.update({
         where: { id: resetToken.id },
