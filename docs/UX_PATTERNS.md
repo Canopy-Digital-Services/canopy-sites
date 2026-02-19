@@ -903,6 +903,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 </div>
 ```
 
+### Checkbox
+
+Use the `Checkbox` component for boolean toggles within forms.
+
+```tsx
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
+<div className="flex items-center gap-2">
+  <Checkbox
+    id="myOption"
+    checked={value}
+    onCheckedChange={(checked) => setValue(checked === true)}
+  />
+  <Label htmlFor="myOption" className="text-sm font-normal cursor-pointer">
+    Option label
+  </Label>
+</div>
+```
+
+**Notes:**
+- `onCheckedChange` receives `boolean | "indeterminate"` — use `checked === true` to safely narrow to `boolean`
+- Pair with `<Label>` using matching `id`/`htmlFor` and `cursor-pointer` so the label is clickable
+- Use `font-normal` on the Label to distinguish it from a field label (which uses the default `font-medium`)
+- Component uses `@radix-ui/react-checkbox` — **not** the `radix-ui` unified package
+
 ### Spacing Convention
 
 - Use `space-y-2` for label + input pairs
@@ -1180,6 +1206,7 @@ For more prominent empty states, use the `EmptyState` component.
 | Component | Location |
 |-----------|----------|
 | Button | `src/components/ui/button.tsx` |
+| Checkbox | `src/components/ui/checkbox.tsx` |
 | Tooltip | `src/components/ui/tooltip.tsx` |
 | SortableList | `src/components/ui/sortable-list.tsx` |
 | ConfirmDialog | `src/components/confirm-dialog.tsx` |

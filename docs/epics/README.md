@@ -26,9 +26,13 @@ Each epic document provides:
 | [Epic 8: Submission Settings Reorganization](epic-8-submission-settings-section) | v4.1.5 | 2026-02-17 | ✅ Complete |
 | [Epic 9: Form Title & Description](epic-9-form-title-and-description.md) | v4.1.6 | 2026-02-17 | ✅ Complete |
 | [Epic 10: Typography Refactor](epic-10-typography-refactor.md) | v4.2.0 | 2026-02-18 | ✅ Complete |
+| [Epic 11: Enhanced Appearance Controls](epic-11-enhanced-appearance-controls.md) | v4.3.0 | 2026-02-18 | ✅ Complete |
+| [Epic 12: Session Management](epic-12-session-management.md) | v4.4.0 | 2026-02-19 | ✅ Complete |
 
 ## Version History
 
+- **v4.4.0**: Session Management — dual idle/absolute timeouts, "keep me signed in", password-change invalidation
+- **v4.3.0**: Enhanced Appearance Controls — collapsible subsections, title size/weight/color, label weight/transform
 - **v4.2.0**: Typography Refactor — body/heading font pickers with full Google Fonts search (1,918 fonts)
 - **v4.1.6**: Form Title & Description — optional header content rendered above fields in the embed
 - **v4.1.5**: Submission Settings Reorganization — renamed section, tabbed message/redirect, consolidated Access & Limits subsection
@@ -44,7 +48,7 @@ Each epic document provides:
 
 ---
 
-**🎉 v4.1.0 Released!** Multi-recipient email notifications enable agency/client workflows.
+**🎉 v4.4.0 Released!** Session management with dual timeouts and password-change invalidation.
 
 ---
 
