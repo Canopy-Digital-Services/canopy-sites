@@ -18,3 +18,18 @@ This applies to every `docker compose` command, including container exec:
 ```bash
 docker.exe compose -f docker-compose.dev.yml exec canopy-forms <command>
 ```
+
+## Branching & PR Strategy
+
+**All local work targets the `dev` branch.** The `main` branch is production and should only be touched via explicit manual merges from GitHub.
+
+### Workflow
+
+1. **Local commits** → commit directly to `dev` (or feature branch if needed)
+2. **Push** → push to `origin/dev`
+3. **Open PR** → create PR with **`dev` as base** (not `main`)
+4. **Merge to main** → user manually merges `dev` → `main` in GitHub UI
+
+### Rule
+
+Do **not** open PRs targeting `main` from local. The `dev` branch is the integration branch; `main` is production and controlled separately.
