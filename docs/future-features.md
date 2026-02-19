@@ -31,3 +31,31 @@
 ## Email to Submitter
 
 **Future enhancement:** The ability to configure a form to send an email to the person who submitted it. Would require an email editor which is a lot of extra work. May need to wait until a major level bump which would also include some customization of the hosted solution.
+
+## Account Dashboard
+
+**Future enhancement:** A dedicated account management page where users can view and manage their account details.
+
+**Feature details:**
+- View current plan/subscription status
+- Manage billing information
+- View usage stats (forms, submissions, etc.)
+- Change email address and password
+- Manage notification preferences
+- Delete account option
+
+## Email Change
+
+**Future enhancement:** Allow authenticated users to update their email address from within the app.
+
+**Feature details:**
+- User initiates email change from account settings
+- Verification email sent to the new address
+- Old address receives a notification of the change
+- Change is only confirmed after the new address is verified
+- Re-authentication (password prompt) required before initiating the change
+
+**Technical considerations:**
+- Requires email verification flow (token-based)
+- Should invalidate any existing sessions or prompt re-login after confirmed change
+- Guard against email enumeration during the verification step

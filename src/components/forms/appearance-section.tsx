@@ -36,6 +36,56 @@ function toColorInputValue(value: string, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(n) ? n : fallback;
 }
 
+// ─── Helper UI components ────────────────────────────────────────────────────
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+      {children}
+    </span>
+  );
+}
+
+function SubSection({
+  title,
+  open,
+  onOpenChange,
+  chips,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  chips?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between py-2 text-left border-t"
+        >
+          <span className="text-sm font-heading font-medium">{title}</span>
+          <div className="flex items-center gap-1.5">
+            {!open && chips}
+            {open ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-4 pb-3 pt-1">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
+
 type AppearanceSectionProps = {
   formId: string;
   defaultTheme: unknown;
@@ -47,7 +97,7 @@ export function AppearanceSection({
 }: AppearanceSectionProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const theme =
@@ -69,7 +119,13 @@ export function AppearanceSection({
   const initialButtonWidth = String(theme.buttonWidth || "full");
   const initialButtonAlign = String(theme.buttonAlign || "left");
   const initialButtonText = String(theme.buttonText || "");
+  const initialTitleSize = String(theme.titleSize || "md");
+  const initialTitleWeight = String(theme.titleWeight || "semibold");
+  const initialTitleColor = String(theme.titleColor || "");
+  const initialLabelWeight = String(theme.labelWeight || "medium");
+  const initialLabelTransform = String(theme.labelTransform || "none");
 
+  // State
   const [bodyFont, setBodyFont] = useState(initialBodyFont);
   const [headingFont, setHeadingFont] = useState(initialHeadingFont);
   const [fontSize, setFontSize] = useState(initialFontSize);
@@ -83,10 +139,20 @@ export function AppearanceSection({
   const [buttonWidth, setButtonWidth] = useState(initialButtonWidth);
   const [buttonAlign, setButtonAlign] = useState(initialButtonAlign);
   const [buttonText, setButtonText] = useState(initialButtonText);
+  const [titleSize, setTitleSize] = useState(initialTitleSize);
+  const [titleWeight, setTitleWeight] = useState(initialTitleWeight);
+  const [titleColor, setTitleColor] = useState(initialTitleColor);
+  const [labelWeight, setLabelWeight] = useState(initialLabelWeight);
+  const [labelTransform, setLabelTransform] = useState(initialLabelTransform);
+
+  // Subsection open states
+  const [typographyOpen, setTypographyOpen] = useState(false);
+  const [titleStyleOpen, setTitleStyleOpen] = useState(false);
+  const [labelsOpen, setLabelsOpen] = useState(false);
+  const [buttonOpen, setButtonOpen] = useState(false);
 
   // Auto-save with debouncing
   useEffect(() => {
-    // Check if any values have changed from initial state
     const hasChanges =
       bodyFont !== initialBodyFont ||
       headingFont !== initialHeadingFont ||
@@ -100,7 +166,12 @@ export function AppearanceSection({
       density !== initialDensity ||
       buttonWidth !== initialButtonWidth ||
       buttonAlign !== initialButtonAlign ||
-      buttonText !== initialButtonText;
+      buttonText !== initialButtonText ||
+      titleSize !== initialTitleSize ||
+      titleWeight !== initialTitleWeight ||
+      titleColor !== initialTitleColor ||
+      labelWeight !== initialLabelWeight ||
+      labelTransform !== initialLabelTransform;
 
     if (!hasChanges) return;
 
@@ -126,6 +197,11 @@ export function AppearanceSection({
             if (buttonWidth) newTheme.buttonWidth = buttonWidth;
             if (buttonAlign) newTheme.buttonAlign = buttonAlign;
             if (buttonText) newTheme.buttonText = buttonText;
+            if (titleSize && titleSize !== "md") newTheme.titleSize = titleSize;
+            if (titleWeight && titleWeight !== "semibold") newTheme.titleWeight = titleWeight;
+            if (titleColor) newTheme.titleColor = normalizeHex(titleColor);
+            if (labelWeight && labelWeight !== "medium") newTheme.labelWeight = labelWeight;
+            if (labelTransform && labelTransform !== "none") newTheme.labelTransform = labelTransform;
 
             await updateFormAppearance(formId, {
               defaultTheme: newTheme,
@@ -157,6 +233,11 @@ export function AppearanceSection({
     buttonWidth,
     buttonAlign,
     buttonText,
+    titleSize,
+    titleWeight,
+    titleColor,
+    labelWeight,
+    labelTransform,
     initialBodyFont,
     initialHeadingFont,
     initialFontSize,
@@ -170,8 +251,63 @@ export function AppearanceSection({
     initialButtonWidth,
     initialButtonAlign,
     initialButtonText,
+    initialTitleSize,
+    initialTitleWeight,
+    initialTitleColor,
+    initialLabelWeight,
+    initialLabelTransform,
     toast,
   ]);
+
+  // ─── Summary chips for collapsed subsections ───────────────────────────────
+
+  const typographyChips = (
+    <>
+      {bodyFont !== "inherit" && <Chip>{bodyFont}</Chip>}
+      {headingFont !== "inherit" && headingFont !== bodyFont && <Chip>{headingFont} (heading)</Chip>}
+      {fontSize && <Chip>{fontSize}px</Chip>}
+    </>
+  );
+
+  const titleSizeLabels: Record<string, string> = { sm: "S", md: "M", lg: "L", xl: "XL" };
+  const titleWeightLabels: Record<string, string> = {
+    normal: "Regular",
+    semibold: "Semibold",
+    bold: "Bold",
+  };
+  const titleStyleChips = (
+    <>
+      {titleSize !== "md" && <Chip>{titleSizeLabels[titleSize] ?? titleSize}</Chip>}
+      {titleWeight !== "semibold" && <Chip>{titleWeightLabels[titleWeight] ?? titleWeight}</Chip>}
+      {titleColor && (
+        <span
+          className="inline-block h-3 w-3 rounded-full border border-border"
+          style={{ background: toColorInputValue(titleColor, "#18181b") }}
+        />
+      )}
+    </>
+  );
+
+  const labelWeightLabels: Record<string, string> = {
+    normal: "Normal",
+    medium: "Medium",
+    semibold: "Semibold",
+  };
+  const labelsChips = (
+    <>
+      {labelTransform === "uppercase" && <Chip>UPPERCASE</Chip>}
+      {labelWeight !== "medium" && <Chip>{labelWeightLabels[labelWeight] ?? labelWeight}</Chip>}
+    </>
+  );
+
+  const buttonChips = (
+    <>
+      {buttonWidth === "auto" && <Chip>Auto</Chip>}
+      {buttonText && <Chip>{buttonText.length > 12 ? buttonText.slice(0, 12) + "…" : buttonText}</Chip>}
+    </>
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Card>
@@ -206,44 +342,10 @@ export function AppearanceSection({
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
-          <CardContent className="space-y-4">
-            <div className="space-y-4 pb-2">
-              <h4 className="text-sm font-heading font-medium">Typography</h4>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="bodyFont">Body Font</Label>
-                  <FontPicker
-                    id="bodyFont"
-                    value={bodyFont}
-                    onChange={setBodyFont}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="headingFont">Heading Font</Label>
-                  <FontPicker
-                    id="headingFont"
-                    value={headingFont}
-                    onChange={setHeadingFont}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fontSize">Base Font Size (px)</Label>
-                  <Input
-                    id="fontSize"
-                    type="number"
-                    min="10"
-                    max="24"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(e.target.value)}
-                    placeholder="14"
-                  />
-                </div>
-              </div>
-            </div>
+          <CardContent className="space-y-1">
 
-            <div className="space-y-3 pt-4 border-t">
+            {/* ── Global: Colors ─────────────────────────────────────────── */}
+            <div className="space-y-3 pb-3">
               <h4 className="text-sm font-heading font-medium">Colors</h4>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
@@ -339,7 +441,8 @@ export function AppearanceSection({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* ── Global: Radius + Density ────────────────────────────────── */}
+            <div className="grid gap-4 sm:grid-cols-2 pb-2">
               <div className="space-y-2">
                 <Label htmlFor="radius">Border Radius (px)</Label>
                 <Input
@@ -364,8 +467,146 @@ export function AppearanceSection({
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t">
-              <h4 className="text-sm font-heading font-medium">Submit Button</h4>
+            {/* ── Collapsible: Typography ─────────────────────────────────── */}
+            <SubSection
+              title="Typography"
+              open={typographyOpen}
+              onOpenChange={setTypographyOpen}
+              chips={typographyChips}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="bodyFont">Body Font</Label>
+                  <FontPicker
+                    id="bodyFont"
+                    value={bodyFont}
+                    onChange={setBodyFont}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="headingFont">Heading Font</Label>
+                  <FontPicker
+                    id="headingFont"
+                    value={headingFont}
+                    onChange={setHeadingFont}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fontSize">Base Font Size (px)</Label>
+                  <Input
+                    id="fontSize"
+                    type="number"
+                    min="10"
+                    max="24"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(e.target.value)}
+                    placeholder="14"
+                  />
+                </div>
+              </div>
+            </SubSection>
+
+            {/* ── Collapsible: Title Style ────────────────────────────────── */}
+            <SubSection
+              title="Title Style"
+              open={titleStyleOpen}
+              onOpenChange={setTitleStyleOpen}
+              chips={titleStyleChips}
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="titleSize">Size</Label>
+                  <Select value={titleSize} onValueChange={setTitleSize}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sm">S — Small</SelectItem>
+                      <SelectItem value="md">M — Medium</SelectItem>
+                      <SelectItem value="lg">L — Large</SelectItem>
+                      <SelectItem value="xl">XL — Extra Large</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleWeight">Weight</Label>
+                  <Select value={titleWeight} onValueChange={setTitleWeight}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select weight" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Regular</SelectItem>
+                      <SelectItem value="semibold">Semibold</SelectItem>
+                      <SelectItem value="bold">Bold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="titleColor">Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={toColorInputValue(titleColor, "#18181b")}
+                      onChange={(e) => setTitleColor(e.target.value)}
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                    />
+                    <Input
+                      id="titleColor"
+                      value={titleColor}
+                      onChange={(e) => setTitleColor(e.target.value)}
+                      onBlur={() => setTitleColor(titleColor ? normalizeHex(titleColor) : "")}
+                      placeholder="inherit"
+                    />
+                  </div>
+                </div>
+              </div>
+            </SubSection>
+
+            {/* ── Collapsible: Labels ─────────────────────────────────────── */}
+            <SubSection
+              title="Labels"
+              open={labelsOpen}
+              onOpenChange={setLabelsOpen}
+              chips={labelsChips}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="labelWeight">Weight</Label>
+                  <Select value={labelWeight} onValueChange={setLabelWeight}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select weight" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="semibold">Semibold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="labelTransform">Transform</Label>
+                  <Select value={labelTransform} onValueChange={setLabelTransform}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select transform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Normal</SelectItem>
+                      <SelectItem value="uppercase">Uppercase</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SubSection>
+
+            {/* ── Collapsible: Submit Button ──────────────────────────────── */}
+            <SubSection
+              title="Submit Button"
+              open={buttonOpen}
+              onOpenChange={setButtonOpen}
+              chips={buttonChips}
+            >
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="buttonWidth">Button Width</Label>
@@ -404,7 +645,8 @@ export function AppearanceSection({
                   />
                 </div>
               </div>
-            </div>
+            </SubSection>
+
           </CardContent>
         </CollapsibleContent>
       </Collapsible>

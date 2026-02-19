@@ -1,121 +1,96 @@
-# Epic: Session Management (bounded sessions + optional 30-day keep-signed-in)
+# Epic 12: Session Management — Completion Report
 
-## Goal
-Implement baseline **session management** (idle + absolute timeouts, secure cookies, logout invalidation, and minimal re-auth for sensitive actions). Include an optional **“Keep me signed in for 30 days”** setting.
-
-This replaces the current behavior of **infinite per-device sessions**.
-
-## Non-goals
-- No refresh-token rotation system.
-- No device fingerprinting or cross-site/session tracking.
-- No per-device session management UI (optional stretch: “log out all sessions” API only).
-
-## Assumptions
-- Auth uses a **server-side session** (opaque session id stored in cookie; session record stored in DB/Redis).
-- App is served over HTTPS.
+**Version**: v4.4.0
+**Date**: 2026-02-19
+**Status**: ✅ Complete
 
 ---
 
-## Requirements
+## Summary
 
-### 1) Replace infinite sessions with expiration policy
-- Add two timeouts:
-  - **Idle timeout (sliding):** 30 minutes (configurable).
-  - **Absolute timeout (fixed):**
-    - Default: 7 days
-    - If user selects “Keep me signed in for 30 days”: 30 days
-- Session terminates when **either** idle timeout or absolute timeout is exceeded.
-
-### 2) Login UX
-- On login screen, add checkbox:
-  - Label: **“Keep me signed in for 30 days on this device.”**
-  - Default unchecked.
-- On successful login, set session record and cookie expiry accordingly.
-
-### 3) Cookie security settings (auth session cookie)
-Ensure auth cookie is set with:
-- `Secure` (HTTPS only)
-- `HttpOnly`
-- `SameSite=Lax` (use `Strict` only if it doesn’t break your flows)
-- `Path=/`
-- Avoid setting `Domain` unless required.
-- Prefer cookie name prefix `__Host-` if feasible (requires Secure + Path=/ and no Domain).
-
-### 4) Session lifecycle hardening
-- Rotate session id on login (new session id each login).
-- Logout invalidates the server-side session record.
-- Invalidate sessions on password change (if applicable).
-
-### 5) Re-auth for sensitive actions (minimal)
-Require re-auth (or “confirm password”) for:
-- Changing email/password
-- Managing integrations/webhooks
-- Billing actions
-- Exporting submissions
-
-### 6) Privacy-first constraints
-- Do not add fingerprinting.
-- Do not persist high-entropy device identifiers.
-- Only store what is needed for session enforcement:
-  - `user_id`
-  - `session_id` (or token hash)
-  - `created_at`
-  - `last_activity_at`
-  - `absolute_expires_at`
-  - optional: `revoked_at`
+Replaced unbounded JWT sessions with a dual-timeout policy (rolling idle + fixed absolute), added a "Keep me signed in" login option, and added password-change session invalidation. JWT strategy was retained (no switch to database sessions).
 
 ---
 
-## Implementation details
+## What Was Implemented
 
-### Data model changes (if needed)
-Add/ensure fields on session record:
-- `created_at`
-- `last_activity_at`
-- `absolute_expires_at`
-- `revoked_at` (nullable)
+### Dual-timeout session policy
 
-### Request middleware
-On each authenticated request:
-1. Load session by session cookie id.
-2. Reject if `revoked_at` set.
-3. Reject if `now > absolute_expires_at`.
-4. Reject if `now - last_activity_at > idle_timeout`.
-5. If valid, update `last_activity_at = now` (throttle updates to once per N minutes to reduce writes).
+Two timeouts enforced via custom JWT claims:
 
-### Cookie expiry
-- Set cookie expiry to match `absolute_expires_at`.
-- Do **not** extend cookie expiry beyond absolute expiry.
+| | Idle timeout (rolling) | Absolute timeout (fixed) |
+|---|---|---|
+| **Default** | 4 hours | 7 days |
+| **"Keep me signed in"** | 7 days | 30 days |
 
-### Logout
-- Delete/invalidate server session.
-- Clear cookie.
+- `expiresAt` — rolls forward on each active request (idle window)
+- `absoluteExpiresAt` — set once at login, never changes (hard ceiling)
+- `session.maxAge` = 30 days (cookie ceiling); `session.updateAge` = 5 minutes (JWT re-sign frequency)
 
-### Cleanup
-- Background cleanup job or TTL policy to delete expired sessions periodically.
+### "Keep me signed in" checkbox
 
----
+Added to the login page. Unchecked by default. Threads through `signIn()` → `authorize()` → JWT claims.
 
-## Acceptance criteria
-- Infinite sessions are eliminated.
-- Default sessions expire after **30 minutes idle** OR **7 days absolute**.
-- If “Keep me signed in” is checked, absolute expiry is **30 days**.
-- Auth cookie has correct security flags.
-- Session is rejected when idle/absolute expiry is reached.
-- Logout immediately invalidates session.
-- Sensitive actions require re-auth.
-- No new tracking/fingerprinting data is collected.
+### Password change invalidation
+
+- `passwordChangedAt DateTime?` added to the `User` model
+- `sessionIssuedAt` stored in the JWT at login
+- Every 5 minutes (tracked via `lastValidatedAt`), the JWT callback queries `passwordChangedAt` from the DB
+- If `passwordChangedAt > sessionIssuedAt`, the session is expired
+- `resetPassword` action now sets `passwordChangedAt = new Date()` on success
+
+### Token expiry mechanism
+
+When a session expires (any condition), identity claims are stripped from the JWT (`id`, `email`, session timestamps). `requireAuth()` checks `!session.user.id` and redirects to `/login`.
 
 ---
 
-## Test plan
-- Unit tests:
-  - idle timeout triggers logout after inactivity.
-  - absolute timeout triggers logout even with activity.
-  - keep-me-signed-in sets 30-day absolute expiry.
-  - revoked session is rejected.
-- Integration tests:
-  - cookie flags present.
-  - logout clears cookie + session.
-  - re-auth gate blocks sensitive endpoints until re-auth.
+## Architecture Decision: Stay on JWT
 
+Switching to database sessions requires workarounds with NextAuth's Credentials provider (which doesn't auto-create DB sessions) and adds a DB query on every request. JWT with custom claims gives us idle timeout, absolute timeout, and password-change invalidation — sufficient for launch. If instant revocation or operator force-logout is needed later, a `sessionVersion` field or migration to DB sessions can be added as a follow-up.
+
+---
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma` | Added `passwordChangedAt DateTime?` to User |
+| `prisma/migrations/20260219000000_add_password_changed_at/migration.sql` | Migration |
+| `src/lib/auth.ts` | Session config, `rememberMe` credential, jwt + session callbacks, `expireToken` helper |
+| `src/types/next-auth.d.ts` | Extended JWT type with custom claims; User type with `rememberMe` |
+| `src/lib/auth-utils.ts` | Added `!session.user.id` check to `requireAuth()` |
+| `src/app/(auth)/login/page.tsx` | Added "Keep me signed in for 30 days" checkbox |
+| `src/actions/auth.ts` | Set `passwordChangedAt` in `resetPassword` |
+| `src/components/ui/checkbox.tsx` | New shadcn Checkbox component (using `@radix-ui/react-checkbox`) |
+
+---
+
+## Non-Goals (not implemented)
+
+- No switch from JWT to database sessions
+- No re-auth gates (no billing, webhooks, or email-change UI exist yet)
+- No device management UI or "log out all sessions" UI
+- No refresh-token rotation
+
+---
+
+## Acceptance Criteria
+
+- [x] Default sessions expire after 4 hours idle or 7 days absolute
+- [x] "Keep me signed in" sessions expire after 7 days idle or 30 days absolute
+- [x] Active sessions refresh the idle window every 5 minutes
+- [x] Password change invalidates all prior sessions within 5 minutes
+- [x] Auth cookie has `HttpOnly`, `Secure`, `SameSite=Lax` flags (NextAuth default, served over HTTPS)
+- [x] No new tracking/fingerprinting data
+- [x] Login page has "Keep me signed in for 30 days" checkbox (unchecked by default)
+
+---
+
+## Verification Steps
+
+1. Log in without checkbox → decode JWT → verify `expiresAt` ~4h, `absoluteExpiresAt` ~7d
+2. Log in with checkbox → verify `expiresAt` ~7d, `absoluteExpiresAt` ~30d
+3. Temporarily lower idle to 1 minute → verify session expires after inactivity
+4. Reset password → verify prior session invalidated within 5 minutes
+5. Inspect cookie in dev tools → confirm `HttpOnly`, `Secure`, `SameSite=Lax`

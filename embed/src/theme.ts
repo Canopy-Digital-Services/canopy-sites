@@ -13,6 +13,13 @@ type ThemeTokens = {
   buttonWidth?: "full" | "auto";
   buttonAlign?: "left" | "center" | "right";
   buttonText?: string;
+  // Title style controls
+  titleSize?: "sm" | "md" | "lg" | "xl";
+  titleWeight?: "normal" | "semibold" | "bold";
+  titleColor?: string;
+  // Label controls
+  labelWeight?: "normal" | "medium" | "semibold";
+  labelTransform?: "none" | "uppercase";
   // Legacy fields — still read for backward compatibility
   fontFamily?: string;
   fontUrl?: string;
@@ -161,6 +168,23 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     "--canopy-button-align",
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
+
+  const titleSizeMap = { sm: "1em", md: "1.25em", lg: "1.5em", xl: "1.875em" };
+  container.style.setProperty("--canopy-title-size", titleSizeMap[theme.titleSize ?? "md"]);
+
+  const titleWeightMap = { normal: "400", semibold: "600", bold: "700" };
+  container.style.setProperty("--canopy-title-weight", titleWeightMap[theme.titleWeight ?? "semibold"]);
+
+  const resolvedTitleColor = theme.titleColor ? normalizeColor(theme.titleColor, "") : "";
+  if (resolvedTitleColor) {
+    container.style.setProperty("--canopy-title-color", resolvedTitleColor);
+  } else {
+    container.style.removeProperty("--canopy-title-color");
+  }
+
+  const labelWeightMap = { normal: "400", medium: "500", semibold: "600" };
+  container.style.setProperty("--canopy-label-weight", labelWeightMap[theme.labelWeight ?? "medium"]);
+  container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 
 export function getDensityClass(theme: ThemeTokens) {

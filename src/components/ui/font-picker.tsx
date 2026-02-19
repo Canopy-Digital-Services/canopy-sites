@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import * as Popover from "@radix-ui/react-popover";
+import { Popover } from "radix-ui";
 import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CURATED_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";

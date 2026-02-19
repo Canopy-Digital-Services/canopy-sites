@@ -15,6 +15,55 @@ For each completed epic:
 
 ---
 
+## [4.4.0] - 2026-02-19
+
+### Added
+
+- **Session Management (Epic 12)**: Dual-timeout session policy with optional extended sessions
+  - Default sessions: 4 hours idle / 7 days absolute
+  - "Keep me signed in" sessions: 7 days idle / 30 days absolute
+  - "Keep me signed in for 30 days" checkbox on login page (unchecked by default)
+  - Password change invalidates all prior sessions within 5 minutes via `passwordChangedAt` DB check
+  - `Checkbox` UI component added (`src/components/ui/checkbox.tsx`)
+  - `passwordChangedAt DateTime?` field added to User model
+
+### Technical Details
+
+- JWT callbacks enforce `expiresAt` (rolling idle) and `absoluteExpiresAt` (fixed ceiling)
+- `session.maxAge` = 30 days (cookie ceiling); `session.updateAge` = 5 minutes (re-sign frequency)
+- Every 5 minutes, JWT callback queries DB to compare `passwordChangedAt` vs `sessionIssuedAt`
+- Expired tokens have identity claims stripped; `requireAuth()` checks `!session.user.id`
+- JWT strategy retained — no switch to database sessions
+
+---
+
+## [4.3.0] - 2026-02-18
+
+### Added
+
+- **Enhanced Appearance Controls (Epic 11)**: Granular title and label styling with collapsible subsections
+  - **Title Style subsection**: Size (S/M/L/XL), Weight (Regular/Semibold/Bold), Color (hex + color picker)
+  - **Labels subsection**: Weight (Normal/Medium/Semibold), Transform (Normal/Uppercase)
+  - **Collapsible subsections**: Typography · Title Style · Labels · Submit Button — collapsed by default, with summary chips showing non-default values
+  - **Always-visible globals**: Colors grid + Border Radius/Density row remain at top of the card
+  - New CSS variables: `--canopy-title-size`, `--canopy-title-weight`, `--canopy-title-color`, `--canopy-label-weight`, `--canopy-label-transform`
+
+### Changed
+
+- **Appearance section layout**: Flat list replaced with organized collapsible subsections
+  - Global controls (colors, radius, density) stay always-visible at top
+  - Typography, Title Style, Labels, and Submit Button each collapse independently
+  - Collapsed headers show summary chips for non-default values (e.g. font name, "UPPERCASE", size preset)
+- **Embed styles** (`embed/src/styles.ts`): `.canopy-title` and `.canopy-label` updated to use new CSS variables with unchanged defaults
+
+### Technical Details
+
+- No schema migration — `defaultTheme` remains `Json?`; new fields are backward compatible (embed uses defaults when absent)
+- `embed/src/theme.ts`: added 5 new `ThemeTokens` fields; `applyTheme()` sets 5 new CSS variables
+- `src/components/forms/appearance-section.tsx`: added `SubSection` and `Chip` helper components defined locally
+
+---
+
 ## [4.2.0] - 2026-02-18
 
 ### Added
