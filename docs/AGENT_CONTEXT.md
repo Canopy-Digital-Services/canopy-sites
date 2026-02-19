@@ -47,8 +47,9 @@ When requirements are unclear: **restate the goal in one sentence** and identify
 ### Deployment flow
 
 1. Develop locally → push to GitHub
-2. Coolify pulls from GitHub, builds from `Dockerfile`, runs `npx prisma migrate deploy` on start
-3. Env vars (`NEXTAUTH_URL`, `DATABASE_URL`, `SMTP_*`, etc.) are configured per-environment in the Coolify UI — **not** in committed files
+2. Coolify pulls from GitHub, builds from `Dockerfile`
+3. Container entrypoint (`scripts/start.sh`) runs `prisma migrate deploy` before starting the app — see [`docs/coolify-prisma-migrations.md`](coolify-prisma-migrations.md)
+4. Env vars (`NEXTAUTH_URL`, `DATABASE_URL`, `SMTP_*`, etc.) are configured per-environment in the Coolify UI — **not** in committed files
 
 ### What each file is for
 
@@ -115,7 +116,7 @@ docker exec canopy-forms npm run db:seed               # Seed admin user
 - Never modify existing migration files — create new ones
 - If `prisma migrate dev` fails with shadow DB errors (missing tables from removed models), use `prisma migrate deploy` or `prisma migrate resolve --applied <migration_name>`
 - Migration files are SQL and must be committed to git
-- Coolify runs `npx prisma migrate deploy` automatically on deploy
+- The container entrypoint runs `prisma migrate deploy` automatically on startup (not a Coolify hook)
 
 ---
 
