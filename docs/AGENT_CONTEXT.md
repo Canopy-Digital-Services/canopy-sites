@@ -89,7 +89,7 @@ Access at **http://localhost:3006** (port 3006 on the host maps to the container
 docker compose -f docker-compose.dev.yml up -d      # Start
 docker compose -f docker-compose.dev.yml down       # Stop
 docker compose -f docker-compose.dev.yml restart canopy-forms  # Restart app
-docker compose -f docker-compose.dev.yml build --no-cache  # Force rebuild
+docker compose -f docker-compose.dev.yml build --no-cache  # Force rebuild (if switching modes)
 docker logs canopy-forms -f                            # View logs
 
 # Embed script
