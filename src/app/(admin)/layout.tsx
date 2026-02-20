@@ -1,27 +1,10 @@
 import { requireAuth } from "@/lib/auth-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/auth";
 import { BrandMark } from "@/components/brand-mark";
-import { FileText, BookOpen, LogOut } from "lucide-react";
+import { FileText, BookOpen } from "lucide-react";
 import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sidebar-layout";
 import { UserAccountFooter } from "@/components/patterns/user-account-footer";
-
-async function SignOutButton() {
-  return (
-    <form
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/login" });
-      }}
-    >
-      <Button type="submit" variant="ghost" className="w-full justify-start">
-        <LogOut className="mr-2 h-4 w-4" />
-        Sign out
-      </Button>
-    </form>
-  );
-}
 
 export default async function AdminLayout({
   children,
@@ -48,7 +31,6 @@ export default async function AdminLayout({
             Help
           </Button>
         </Link>
-        <SignOutButton />
       </nav>
     </>
   );
