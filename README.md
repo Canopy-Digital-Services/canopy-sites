@@ -51,16 +51,16 @@ See [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md) for detailed development wo
 
 ## Version History
 
-**Current**: v4.0.0 — Form-first architecture (Site model removed, per-form origin management)
-
-See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs/epics/) for detailed completion reports.
+See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs/epics/) for epic completion reports.
 
 ## Documentation
 
 | Document | Purpose |
 |----------|---------|
-| [AGENT_CONTEXT.md](docs/AGENT_CONTEXT.md) | **Start here** — Architecture, development workflow, debugging |
-| [UX_PATTERNS.md](docs/UX_PATTERNS.md) | UI/UX conventions for admin interface |
+| [AGENT_CONTEXT.md](docs/AGENT_CONTEXT.md) | **Start here** — Architecture, invariants, workflows, debugging |
+| [VERIFICATION_CHECKLIST.md](docs/VERIFICATION_CHECKLIST.md) | Pre-commit quality gate |
+| [UX_PATTERNS.md](docs/UX_PATTERNS.md) | UI/UX conventions for the admin interface |
+| [docs/tools/](docs/tools/) | Version-specific docs for Prisma, Next.js, NextAuth, React, Tailwind, etc. |
 | [content/docs/](content/docs/) | User-facing documentation |
 | [docs/epics/](docs/epics/) | Epic completion reports |
 

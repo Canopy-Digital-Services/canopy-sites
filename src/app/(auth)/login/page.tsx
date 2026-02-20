@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,9 @@ export default function LoginPage() {
     // Check for success message from password reset
     if (searchParams.get("reset") === "success") {
       setSuccessMessage("Password reset successful! You can now sign in.");
+    }
+    if (searchParams.get("deleted") === "1") {
+      setSuccessMessage("Your account has been deleted.");
     }
   }, [searchParams]);
 
@@ -85,8 +88,8 @@ export default function LoginPage() {
           />
         </div>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -145,17 +148,19 @@ export default function LoginPage() {
             <p className="text-sm text-green-600">{successMessage}</p>
           )}
           {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+          <div className="mt-4 text-center text-sm">
+            Don't have an account?{" "}
+            <Link href="/signup" className="text-primary hover:underline">
+              Create account
+            </Link>
+          </div>
+        </CardContent>
+        <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
-        </form>
-        <div className="mt-4 text-center text-sm">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-primary hover:underline">
-            Create account
-          </Link>
-        </div>
-      </CardContent>
+        </CardFooter>
+      </form>
     </Card>
   );
 }

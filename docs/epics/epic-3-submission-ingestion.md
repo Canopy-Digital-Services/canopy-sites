@@ -153,7 +153,7 @@ Access-Control-Allow-Headers: Content-Type
 
 - ✅ Updated [README.md](../../README.md) API Endpoints section
 - ✅ Updated [README.md](../../README.md) Security Features section
-- ✅ Updated [AGENT_CONTEXT.md](../../AGENT_CONTEXT.md) validation guardrails
+- ✅ Updated [AGENT_CONTEXT.md](../AGENT_CONTEXT.md) validation guardrails
 - ✅ Updated [CHANGELOG.md](../../CHANGELOG.md) with v2.4.0 entry
 - ✅ Existing [content/docs/api.md](../../content/docs/api.md) remains accurate
 

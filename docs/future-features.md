@@ -4,11 +4,13 @@
 
 **Current behavior (v3.2):** Users enter the option name once, and it's used as both the label (what users see) and value (what gets stored).
 
-**Future enhancement:** Add ability to specify different values from labels. For example:
+**Future enhancement:** Add ability to specify different submission values from labels. For example:
 - Label: "United States" → Value: `US` (for CRM/API integration)
 - Label: "Pro Plan - $29/month" → Value: `plan_pro` (for billing system compatibility)
 
 **Use case:** Enables advanced integrations with CRMs, payment gateways, and other systems that require specific data formats or codes.
+
+## Hosting
 
 **Future enhancement:** Stand-alone front end. Canopy Forms-branded for use by individuals
 
@@ -31,18 +33,6 @@
 ## Email to Submitter
 
 **Future enhancement:** The ability to configure a form to send an email to the person who submitted it. Would require an email editor which is a lot of extra work. May need to wait until a major level bump which would also include some customization of the hosted solution.
-
-## Account Dashboard
-
-**Future enhancement:** A dedicated account management page where users can view and manage their account details.
-
-**Feature details:**
-- View current plan/subscription status
-- Manage billing information
-- View usage stats (forms, submissions, etc.)
-- Change email address and password
-- Manage notification preferences
-- Delete account option
 
 ## Email Change
 

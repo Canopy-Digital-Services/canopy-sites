@@ -25,12 +25,13 @@ type ThemeTokens = {
   fontUrl?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText">> & {
+const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText" | "titleColor">> & {
   bodyFont?: string;
   headingFont?: string;
   fontUrl?: string;
   fontFamily?: string;
   buttonText?: string;
+  titleColor?: string;
 } = {
   fontSize: 14,
   text: "#18181b",
@@ -42,6 +43,11 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fo
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
+  titleSize: "md",
+  titleWeight: "semibold",
+  titleColor: undefined,
+  labelWeight: "medium",
+  labelTransform: "none",
   bodyFont: undefined,
   headingFont: undefined,
   fontUrl: undefined,

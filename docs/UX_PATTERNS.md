@@ -20,8 +20,9 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 12. [High-Density List Pattern](#high-density-list-pattern)
 13. [Required Field Indicators](#required-field-indicators)
 14. [Layout Patterns](#layout-patterns)
-15. [Form Inputs](#form-inputs)
-16. [Empty States](#empty-states)
+15. [Card layout and primary actions](#card-layout-and-primary-actions)
+16. [Form Inputs](#form-inputs)
+17. [Empty States](#empty-states)
 
 ---
 
@@ -853,19 +854,26 @@ import { UserAccountFooter } from "@/components/patterns/user-account-footer";
 <UserAccountFooter email={session.user.email} />
 ```
 
-**Purpose**: Displays a minimal user account indicator at the bottom of the sidebar, visually separated from brand and navigation.
+**Purpose**: Interactive account menu trigger at the bottom of the sidebar, providing access to account management and sign-out.
 
 **Design principles**:
-- **Quiet and minimal**: Small avatar with initials + truncated email
-- **No interactivity**: Purely informational (no clicks, dropdowns, or account management UI)
+- **Quiet but interactive**: Small avatar with initials + truncated email + chevron indicator
+- **Hover state**: `hover:bg-accent/50` for discoverability
+- **Popup menu**: DropdownMenu opens upward (`side="top"`) with "Manage Account" and "Sign Out"
 - **Visual separation**: Rendered in sidebar footer with border-top separator
 - **Consistent placement**: Always at the bottom of the sidebar, below navigation
 
 **Implementation details**:
+- **Client component**: Uses `"use client"` directive for DropdownMenu interactivity
 - **Initials**: Derived from first 2 alphanumeric characters of email local part (before @), uppercased
 - **Avatar**: 32px circle with `bg-muted` and `text-muted-foreground`
 - **Email**: `text-sm text-muted-foreground` with truncation
+- **Chevron**: `ChevronsUpDown` icon indicates interactivity
 - **Fallback**: Shows "?" for missing/invalid emails
+
+**Menu items**:
+- **Manage Account**: Links to `/account` dashboard page
+- **Sign Out**: Calls `signOutAction()` server action, redirects to `/login`
 
 **Usage pattern**:
 Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
@@ -880,10 +888,54 @@ Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
 ```
 
 **Why this pattern**:
-- Keeps account indicator separate from brand identity and primary navigation
-- Provides context about logged-in user without implying additional functionality
-- Consistent with "sign out in nav, account info in footer" pattern
+- Keeps account actions consolidated in one discoverable location
+- Replaces standalone sign-out button in nav with a more capable account menu
 - Works on both desktop and mobile (footer appears in mobile drawer too)
+
+---
+
+## Card layout and primary actions
+
+Use the `Card` component from `src/components/ui/card.tsx` for content in discrete sections (auth flows, settings blocks, submission detail). When a card has a **primary action at the bottom** (submit, save, delete, or action toolbar), put that action in **CardFooter** so spacing and structure stay consistent across the app.
+
+### When to use CardFooter
+
+- Auth forms (login, signup, forgot password, reset password): submit button in footer
+- Settings/account cards with a primary action (e.g. Change Password, Delete Account)
+- Cards that are mainly an action toolbar (e.g. submission Actions: Mark as Read, Archive, etc.)
+
+### Structure
+
+- **Card** → **CardHeader** (optional), **CardContent** (body), **CardFooter** (optional, for bottom actions).
+- When using CardFooter, keep the primary button(s) there, not in CardContent.
+- CardFooter has default top padding for separation from content; do not add `pt-*` at call sites unless you need to override.
+
+### Forms that submit from the footer
+
+For auth or settings, the submit button must stay inside the form. Wrap both CardContent and CardFooter in the same `<form>` so the button in the footer is the form submit:
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle>Password</CardTitle>
+    <CardDescription>Change your password.</CardDescription>
+  </CardHeader>
+  <form onSubmit={handleSubmit} noValidate>
+    <CardContent className="space-y-4">
+      {/* fields, server error */}
+    </CardContent>
+    <CardFooter>
+      <Button type="submit" disabled={isLoading}>
+        Change Password
+      </Button>
+    </CardFooter>
+  </form>
+</Card>
+```
+
+For auth flows where the user can abandon the task (e.g. forgot password), put the **cancel** action in the footer **below** the primary CTA so the primary action comes first. Use a secondary-style control (e.g. `<Button variant="outline" asChild><Link href="...">Cancel</Link></Button>`) and label it "Cancel" so it's clear the user is abandoning the flow, not following a post-success step.
+
+Reference implementation: Account Password card in `src/components/account/account-dashboard.tsx`; forgot-password cancel pattern in `src/app/(auth)/forgot-password/page.tsx`.
 
 ---
 
@@ -1167,8 +1219,9 @@ For more prominent empty states, use the `EmptyState` component.
 | High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
+| Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
 | Responsive sidebar (mobile drawer) | `ResponsiveSidebarLayout` with `sidebar` and optional `sidebarFooter` props |
-| User account indicator | `UserAccountFooter` in sidebar footer (initials + email) |
+| User account menu | `UserAccountFooter` in sidebar footer (initials + email + dropdown) |
 | Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
 | Icon-only action button | `Button variant="ghost" size="icon-sm"` |
 | Icon-only button accessibility | Wrap in `Tooltip` |
@@ -1197,6 +1250,7 @@ For more prominent empty states, use the `EmptyState` component.
 11. **Never forget `font-heading` on headings/titles** - maintain typeface consistency
 12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
 13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
+14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
 
 ---
 
@@ -1204,6 +1258,7 @@ For more prominent empty states, use the `EmptyState` component.
 
 | Component | Location |
 |-----------|----------|
+| Card | `src/components/ui/card.tsx` |
 | Button | `src/components/ui/button.tsx` |
 | Checkbox | `src/components/ui/checkbox.tsx` |
 | Tooltip | `src/components/ui/tooltip.tsx` |
@@ -1215,3 +1270,4 @@ For more prominent empty states, use the `EmptyState` component.
 | EditorLayout | `src/components/patterns/editor-layout.tsx` |
 | ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
 | UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |
+| AccountDashboard | `src/components/account/account-dashboard.tsx` |

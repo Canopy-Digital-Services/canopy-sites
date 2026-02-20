@@ -5,13 +5,60 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Usage Pattern for Future Epics
+## [4.6.0] - 2026-02-20
 
-For each completed epic:
-1. Add new version entry to this CHANGELOG.md
-2. Create detailed report at `docs/epics/epic-N-name.md`
-3. Update `docs/epics/README.md` to mark epic as complete
-4. Bump version in `package.json` (v2.2.0, v2.3.0, etc.)
+### Added
+
+- **Self-Serve Account Deletion (Epic 14)**: Users can permanently delete their own account from the dashboard
+  - `deleteSelfAccount()` server action using `prisma.account.delete()` with full cascade
+  - Confirmation dialog with destructive styling and clear warning text
+  - Post-deletion sign-out with redirect to `/login?deleted=1`
+  - Login page displays "Your account has been deleted." banner after deletion
+- **Account Operations documentation** (`docs/ACCOUNT_OPERATIONS.md`): comprehensive reference for account lifecycle, auth flows, JWT session management, deletion strategy, and future billing considerations
+
+### Changed
+
+- **Account deletion strategy: soft-delete → hard-delete** for both self-service and operator flows
+  - `prisma.account.delete()` replaces the three-step hybrid-delete (purge forms, blank password, set tombstone)
+  - Database `onDelete: Cascade` handles all related records: User, Forms, Fields, Submissions, PasswordResetTokens
+  - Eliminates re-registration blocking, password-reset resurrection, and tombstoned-account login gaps
+  - Operator `deleteAccount()` simplified to the same single-operation pattern
+
+### Removed
+
+- `deletedAt` column from Account model — tombstone no longer needed
+- `deletedAt: null` filter from operator console account queries
+
+### Technical Details
+
+- Database migration: `20260220000000_drop_account_deleted_at`
+- No new UI components — uses existing `ConfirmDialog` and `Button`
+- `useTransition` for loading state during deletion
+- Client-side `signOut()` from `next-auth/react` (not server-side) to avoid `NEXT_REDIRECT` issues in server actions
+
+---
+
+## [4.5.0] - 2026-02-20
+
+### Added
+
+- **Account Dashboard Scaffold (Epic 13)**: User account management surface
+  - Interactive account popup menu on sidebar footer with "Manage Account" and "Sign Out"
+  - `/account` dashboard page with email display, password change form, and placeholder delete section
+  - `signOutAction()` server action for client component sign-out
+  - `changePassword()` server action with current password verification and `passwordChangedAt` session invalidation
+  - "Reward early, punish late" validation pattern on password change form
+
+### Changed
+
+- `UserAccountFooter` converted from static display to interactive `DropdownMenu` trigger with hover state and chevron indicator
+- Removed standalone `SignOutButton` from admin and operator sidebar nav (replaced by account popup menu)
+
+### Technical Details
+
+- No schema changes — leverages Epic 12's `passwordChangedAt` mechanism
+- `UserAccountFooter` is now a client component (`"use client"`)
+- New files: `src/app/(admin)/account/page.tsx`, `src/components/account/account-dashboard.tsx`
 
 ---
 

@@ -247,7 +247,7 @@ All acceptance criteria met:
 
 - [v3 plan.md](../../v3%20plan.md) - Epic 5 specification
 - [CHANGELOG.md](../../CHANGELOG.md) - Version history
-- [AGENT_CONTEXT.md](../../AGENT_CONTEXT.md) - Project architecture
+- [AGENT_CONTEXT.md](../AGENT_CONTEXT.md) - Project architecture
 
 ## Lessons Learned
 

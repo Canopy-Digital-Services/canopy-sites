@@ -1,6 +1,6 @@
 {
   "name": "canopy-forms",
-  "version": "4.4.0",
+  "version": "4.6.0",
   "private": true,
   "description": "SaaS forms management platform with form builder UI for static sites",
   "repository": {
@@ -17,9 +17,6 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "overrides": {
     "lodash": "^4.17.22",

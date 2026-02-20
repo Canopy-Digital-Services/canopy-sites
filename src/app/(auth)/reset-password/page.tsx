@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -137,20 +137,20 @@ export default function ResetPasswordPage() {
             <h2 className="text-xl font-semibold">Invalid reset link</h2>
             <p className="text-sm text-muted-foreground">{tokenError}</p>
           </div>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This reset link may have expired or already been used.
-            </p>
-            <div className="flex gap-2">
-              <Link href="/forgot-password">
-                <Button variant="default">Request new link</Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline">Back to login</Button>
-              </Link>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            This reset link may have expired or already been used.
+          </p>
         </CardContent>
+        <CardFooter>
+          <div className="flex justify-center gap-2">
+            <Link href="/forgot-password">
+              <Button variant="default">Request new link</Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline">Back to login</Button>
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     );
   }
@@ -162,12 +162,12 @@ export default function ResetPasswordPage() {
           <BrandMark size="md" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 space-y-1 text-center">
-          <h2 className="text-xl font-semibold">Set new password</h2>
-          <p className="text-sm text-muted-foreground">Enter your new password below</p>
-        </div>
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate>
+        <CardContent className="space-y-4">
+          <div className="mb-4 space-y-1 text-center">
+            <h2 className="text-xl font-semibold">Set new password</h2>
+            <p className="text-sm text-muted-foreground">Enter your new password below</p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <PasswordInput
@@ -201,16 +201,18 @@ export default function ResetPasswordPage() {
             )}
           </div>
           {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+          <div className="mt-4 text-center text-sm">
+            <Link href="/login" className="text-primary hover:underline">
+              Back to login
+            </Link>
+          </div>
+        </CardContent>
+        <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Resetting password..." : "Reset password"}
           </Button>
-        </form>
-        <div className="mt-4 text-center text-sm">
-          <Link href="/login" className="text-primary hover:underline">
-            Back to login
-          </Link>
-        </div>
-      </CardContent>
+        </CardFooter>
+      </form>
     </Card>
   );
 }

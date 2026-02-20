@@ -4,7 +4,7 @@ import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/patterns/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -154,7 +154,7 @@ export default async function SubmissionDetailPage({
         <CardHeader>
           <CardTitle>Actions</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardFooter>
           <div className="flex flex-wrap gap-2">
             <form action={updateStatus.bind(null, formId, submissionId, "READ")}>
               <Button
@@ -196,7 +196,7 @@ export default async function SubmissionDetailPage({
               </Button>
             </form>
           </div>
-        </CardContent>
+        </CardFooter>
       </Card>
     </div>
   );
