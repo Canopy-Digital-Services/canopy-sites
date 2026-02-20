@@ -12,13 +12,12 @@ datasource db {
 
 // Internal account construct (one per user in v3)
 model Account {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  deletedAt DateTime? // Epic 6: tombstone marker for hybrid delete
-  
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
   user      User?
   forms     Form[]
-  
+
   @@map("accounts")
 }
 

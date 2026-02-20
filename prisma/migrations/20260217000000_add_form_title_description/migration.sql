@@ -1,2 +1,0 @@
-ALTER TABLE forms ADD COLUMN title TEXT;
-ALTER TABLE forms ADD COLUMN description TEXT;

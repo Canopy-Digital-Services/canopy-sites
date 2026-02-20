@@ -20,7 +20,6 @@ export type AccountMetadata = {
 export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
   // Get accounts with user info and form counts
   const accounts = await prisma.account.findMany({
-    where: { deletedAt: null },
     select: {
       id: true,
       createdAt: true,

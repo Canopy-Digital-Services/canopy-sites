@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { PageHeader } from "@/components/patterns/page-header";
 import {
   Card,
@@ -13,7 +13,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
 import { changePassword, signOutAction } from "@/actions/auth";
+import { deleteSelfAccount } from "@/actions/accounts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 type AccountDashboardProps = {
@@ -188,6 +191,22 @@ function PasswordSection() {
 }
 
 function DeleteAccountSection() {
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    startTransition(async () => {
+      try {
+        await deleteSelfAccount();
+        await signOut({ callbackUrl: "/login?deleted=1" });
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to delete account"
+        );
+      }
+    });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -198,9 +217,17 @@ function DeleteAccountSection() {
         </CardDescription>
       </CardHeader>
       <CardFooter>
-        <Button variant="destructive" disabled>
-          Delete Account (coming soon)
-        </Button>
+        <ConfirmDialog
+          title="Delete Account"
+          description="This will permanently delete your account, all your forms, and all submission data. This action cannot be undone."
+          onConfirm={handleDelete}
+          destructive
+          trigger={
+            <Button variant="destructive" disabled={isPending}>
+              {isPending ? "Deleting..." : "Delete Account"}
+            </Button>
+          }
+        />
       </CardFooter>
     </Card>
   );
