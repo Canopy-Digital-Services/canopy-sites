@@ -853,19 +853,26 @@ import { UserAccountFooter } from "@/components/patterns/user-account-footer";
 <UserAccountFooter email={session.user.email} />
 ```
 
-**Purpose**: Displays a minimal user account indicator at the bottom of the sidebar, visually separated from brand and navigation.
+**Purpose**: Interactive account menu trigger at the bottom of the sidebar, providing access to account management and sign-out.
 
 **Design principles**:
-- **Quiet and minimal**: Small avatar with initials + truncated email
-- **No interactivity**: Purely informational (no clicks, dropdowns, or account management UI)
+- **Quiet but interactive**: Small avatar with initials + truncated email + chevron indicator
+- **Hover state**: `hover:bg-accent/50` for discoverability
+- **Popup menu**: DropdownMenu opens upward (`side="top"`) with "Manage Account" and "Sign Out"
 - **Visual separation**: Rendered in sidebar footer with border-top separator
 - **Consistent placement**: Always at the bottom of the sidebar, below navigation
 
 **Implementation details**:
+- **Client component**: Uses `"use client"` directive for DropdownMenu interactivity
 - **Initials**: Derived from first 2 alphanumeric characters of email local part (before @), uppercased
 - **Avatar**: 32px circle with `bg-muted` and `text-muted-foreground`
 - **Email**: `text-sm text-muted-foreground` with truncation
+- **Chevron**: `ChevronsUpDown` icon indicates interactivity
 - **Fallback**: Shows "?" for missing/invalid emails
+
+**Menu items**:
+- **Manage Account**: Links to `/account` dashboard page
+- **Sign Out**: Calls `signOutAction()` server action, redirects to `/login`
 
 **Usage pattern**:
 Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
@@ -880,9 +887,8 @@ Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
 ```
 
 **Why this pattern**:
-- Keeps account indicator separate from brand identity and primary navigation
-- Provides context about logged-in user without implying additional functionality
-- Consistent with "sign out in nav, account info in footer" pattern
+- Keeps account actions consolidated in one discoverable location
+- Replaces standalone sign-out button in nav with a more capable account menu
 - Works on both desktop and mobile (footer appears in mobile drawer too)
 
 ---
@@ -1168,7 +1174,7 @@ For more prominent empty states, use the `EmptyState` component.
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
 | Responsive sidebar (mobile drawer) | `ResponsiveSidebarLayout` with `sidebar` and optional `sidebarFooter` props |
-| User account indicator | `UserAccountFooter` in sidebar footer (initials + email) |
+| User account menu | `UserAccountFooter` in sidebar footer (initials + email + dropdown) |
 | Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
 | Icon-only action button | `Button variant="ghost" size="icon-sm"` |
 | Icon-only button accessibility | Wrap in `Tooltip` |
@@ -1215,3 +1221,4 @@ For more prominent empty states, use the `EmptyState` component.
 | EditorLayout | `src/components/patterns/editor-layout.tsx` |
 | ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
 | UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |
+| AccountDashboard | `src/components/account/account-dashboard.tsx` |
