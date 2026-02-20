@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
-import { changePassword } from "@/actions/auth";
+import { changePassword, signOutAction } from "@/actions/auth";
 import { useToast } from "@/hooks/use-toast";
 
 type AccountDashboardProps = {
@@ -98,15 +98,8 @@ function PasswordSection() {
       if (result?.error) {
         setServerError(result.error);
       } else {
-        toast.success(
-          "Password changed successfully. You'll be signed out shortly."
-        );
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setTouched({});
-        setSubmitted(false);
-        setServerError("");
+        toast.success("Password changed. Signing you out...");
+        setTimeout(() => signOutAction(), 1500);
       }
     } catch {
       setServerError("An error occurred. Please try again.");
