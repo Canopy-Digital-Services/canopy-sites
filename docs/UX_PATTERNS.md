@@ -922,7 +922,7 @@ For auth or settings, the submit button must stay inside the form. Wrap both Car
   </CardHeader>
   <form onSubmit={handleSubmit} noValidate>
     <CardContent className="space-y-4">
-      {/* fields, server error, secondary links */}
+      {/* fields, server error */}
     </CardContent>
     <CardFooter>
       <Button type="submit" disabled={isLoading}>
@@ -933,7 +933,9 @@ For auth or settings, the submit button must stay inside the form. Wrap both Car
 </Card>
 ```
 
-Reference implementation: Account Password card in `src/components/account/account-dashboard.tsx`.
+For auth flows where the user can abandon the task (e.g. forgot password), put the **cancel** action in the footer **below** the primary CTA so the primary action comes first. Use a secondary-style control (e.g. `<Button variant="outline" asChild><Link href="...">Cancel</Link></Button>`) and label it "Cancel" so it's clear the user is abandoning the flow, not following a post-success step.
+
+Reference implementation: Account Password card in `src/components/account/account-dashboard.tsx`; forgot-password cancel pattern in `src/app/(auth)/forgot-password/page.tsx`.
 
 ---
 

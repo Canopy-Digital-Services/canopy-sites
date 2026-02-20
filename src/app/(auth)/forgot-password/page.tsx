@@ -109,15 +109,13 @@ export default function ForgotPasswordPage() {
               )}
             </div>
             {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-            <div className="mt-4 text-center text-sm">
-              <Link href="/login" className="text-primary hover:underline">
-                Back to login
-              </Link>
-            </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Sending..." : "Send reset link"}
+            </Button>
+            <Button variant="outline" className="w-full" asChild disabled={isLoading}>
+              <Link href="/login">Cancel</Link>
             </Button>
           </CardFooter>
         </form>
