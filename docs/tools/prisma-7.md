@@ -270,110 +270,121 @@ Prisma 7 provides:
 
 Note: There's a known regression in microbenchmark scenarios with many repeated tiny queries, but real-world performance is significantly improved.
 
+## CLI Flag Changes in Prisma 7
+
+### `migrate diff`: `--to-schema-datamodel` renamed to `--to-schema`
+
+The `--to-schema-datamodel` and `--from-schema-datamodel` flags were renamed:
+
+| Old (Prisma 6) | New (Prisma 7) |
+|-----------------|----------------|
+| `--to-schema-datamodel` | `--to-schema` |
+| `--from-schema-datamodel` | `--from-schema` |
+
+Example — generating baseline SQL from current schema:
+```bash
+# Old (Prisma 6):
+npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script
+
+# New (Prisma 7):
+npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script
+```
+
+---
+
 ## Project-Specific Notes
 
 This project (Canopy Forms) currently:
 - ✅ Uses Prisma 7.3.0
-- ❌ Does NOT have `prisma.config.ts` (not needed - hybrid state works)
-- ❌ Does NOT have `url` in datasource block (hybrid state)
+- ✅ Has `prisma.config.ts` with datasource URL and seed config
 - ✅ Uses `@prisma/adapter-pg` with connection pool
 - ⚠️ Still uses `prisma-client-js` in schema (deprecated but functional)
 - ✅ Implements global PrismaClient pattern correctly
 - ⚠️ DATABASE_URL is only defined in Docker container environment
-- ✅ Manual SQL migrations work successfully (verified with Epic 2)
+- ✅ Migrations squashed into single `0_baseline` — shadow database works
+- ✅ `prisma migrate dev` works inside the container
 
 ### Migration Workflow for This Project
 
-**CRITICAL:** This project runs in Docker and uses a hybrid Prisma 7 setup without `prisma.config.ts`. Standard migration commands will fail.
+All migration commands run **inside the Docker container** (DATABASE_URL is only available there). See `docs/PRISMA_MIGRATIONS.md` for the full deployment strategy.
 
-#### For Schema Changes & Migrations
+#### Creating Migrations (Development)
 
-**Option 1: Use db:push (Recommended for Development)**
-```bash
-# Make schema changes in prisma/schema.prisma
-# Then push directly to database (creates schema without migration files)
-docker exec canopy-forms npm run db:push
-```
-
-**Option 2: Manual SQL Migration (Recommended for Production) ✅ VERIFIED WORKING**
 ```bash
 # 1. Edit schema
-nano prisma/schema.prisma
+#    prisma/schema.prisma
 
-# 2. Create migration directory manually
+# 2. Create migration inside the container
+docker.exe exec canopy-forms npx prisma migrate dev --name your_migration_name
+
+# NOTE: If the dev server has a stale Prisma client after schema changes,
+# restart the container:
+docker.exe restart canopy-forms
+```
+
+#### Manual SQL Migration (Alternative / Production)
+
+```bash
+# 1. Create migration directory
 mkdir -p prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
 
-# 3. Write migration SQL manually in migration.sql file
+# 2. Write migration SQL in migration.sql
 
-# 4. Apply SQL directly to database using pipe to docker exec
-cat prisma/migrations/MIGRATION_DIR/migration.sql | docker exec -i canopy-forms-db psql -U user -d canopy-forms
+# 3. Apply SQL directly to database
+docker.exe exec -i canopy-forms-db psql -U user -d canopy-forms < prisma/migrations/MIGRATION_DIR/migration.sql
 
-# 5. Rebuild container (regenerates Prisma client automatically during build)
-docker compose build && docker compose up -d
+# 4. Mark as applied in Prisma's tracking table
+docker.exe exec canopy-forms npx prisma migrate resolve --applied MIGRATION_DIR_NAME
+
+# 5. Regenerate Prisma client
+docker.exe exec canopy-forms npx prisma generate
+
+# 6. Restart dev server to pick up regenerated client
+docker.exe restart canopy-forms
 ```
 
-**Example output when successful:**
-```
-ALTER TABLE
-UPDATE 1
-ALTER TABLE
-CREATE INDEX
-ALTER TABLE
-```
+#### Docker File Permissions Gotcha (WSL2)
 
-**Option 3: Use Prisma Migrate Dev (May Require Workarounds)**
+Files created by `prisma migrate dev` inside the container are owned by the container's user (root). From the WSL2 host, you **cannot delete** these files directly — `rm` will fail with permission denied.
+
+To remove container-created files:
 ```bash
-# This may fail due to missing prisma.config.ts
-docker exec canopy-forms npm run db:migrate
+# ✅ Works — delete from inside the container
+docker.exe exec canopy-forms rm -rf prisma/migrations/20260220_test_migration
 
-# If it fails with "datasource.url property is required", you need to:
-# 1. Temporarily add url to schema.prisma datasource block, OR
-# 2. Create prisma.config.ts with DATABASE_URL, OR  
-# 3. Use Option 1 or 2 instead
+# ❌ Fails — host user doesn't own the files
+rm -rf prisma/migrations/20260220_test_migration
 ```
 
-#### Why Standard Commands Don't Work
-
-This project has a **hybrid Prisma 7 setup**:
-- Uses Prisma 7 packages (`@prisma/client@7`, `prisma@7`)
-- Uses runtime adapter pattern correctly (`@prisma/adapter-pg`)
-- BUT: Still uses deprecated `prisma-client-js` generator
-- BUT: No `url` field in datasource block (removed for Prisma 7)
-- BUT: No `prisma.config.ts` file (where URLs should be in Prisma 7)
-
-The `DATABASE_URL` is defined ONLY in the Docker container environment, not on the host machine. This means:
-- ❌ `npx prisma migrate dev` on host → fails (no DATABASE_URL)
-- ❌ `docker exec canopy-forms npx prisma migrate deploy` → fails (no url in schema)
-- ✅ `docker exec canopy-forms npm run db:push` → works (bypasses migration system)
-- ✅ Manual SQL execution → works (direct database access)
+This applies to any files created by `docker exec` commands, not just migrations.
 
 #### Database Commands Reference
 
 ```bash
 # After schema changes, rebuild container (regenerates Prisma client):
-docker compose build && docker compose up -d
+docker.exe compose build && docker.exe compose up -d
 
 # Apply schema changes without creating migration files (dev only):
-docker exec canopy-forms npm run db:push
+docker.exe exec canopy-forms npm run db:push
 
 # Seed the database (create admin user):
-docker exec canopy-forms npm run db:seed
+docker.exe exec canopy-forms npm run db:seed
 ```
 
-**Important:** Don't run `npx prisma generate` inside a running container. The Dockerfile generates the Prisma client during build (line 24), and the production container runs as a non-root user without write permissions to node_modules. After schema changes, always rebuild the container.
+**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker.exe restart canopy-forms`.
 
 #### Accessing Database Directly
 
 ```bash
 # Connect to PostgreSQL shell
-docker exec -it canopy-forms-db psql -U user -d canopy-forms
+docker.exe exec -it canopy-forms-db psql -U user -d canopy-forms
 
 # Execute SQL file
-docker exec -i canopy-forms-db psql -U user -d canopy-forms < file.sql
+docker.exe exec -i canopy-forms-db psql -U user -d canopy-forms < file.sql
 
 # View logs
-docker logs canopy-forms -f
-docker logs canopy-forms-db -f
+docker.exe logs canopy-forms -f
+docker.exe logs canopy-forms-db -f
 ```
 
 ## Resources
@@ -386,36 +397,29 @@ docker logs canopy-forms-db -f
 
 ## Quick Reference
 
-### Commands
+### Commands (This Project — Docker + WSL2)
 
-**Standard Prisma Commands (may not work in this project):**
 ```bash
-# Generate Prisma Client
-npx prisma generate
+# Create migration from schema changes
+docker.exe exec canopy-forms npx prisma migrate dev --name migration_name
 
-# Create migration
-npx prisma migrate dev
+# Regenerate Prisma client (after manual schema edits)
+docker.exe exec canopy-forms npx prisma generate
 
-# Push schema (dev only)
-npx prisma db push
-
-# View database
-npx prisma studio
-```
-
-**For This Project (Docker-based):**
-```bash
-# After schema changes, rebuild container (RECOMMENDED)
-docker compose build && docker compose up -d
-
-# Push schema changes (dev only, for quick iteration)
-docker exec canopy-forms npm run db:push
+# Push schema without migration file (dev only, quick iteration)
+docker.exe exec canopy-forms npm run db:push
 
 # Seed database
-docker exec canopy-forms npm run db:seed
+docker.exe exec canopy-forms npm run db:seed
+
+# Restart dev server (required after prisma generate)
+docker.exe restart canopy-forms
+
+# Rebuild container from scratch
+docker.exe compose -f docker-compose.dev.yml build && docker.exe compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker logs canopy-forms -f
+docker.exe logs canopy-forms -f
 ```
 
 ### Schema Template
@@ -439,4 +443,4 @@ model Example {
 
 ---
 
-**For AI Agents:** If you encounter code using `prisma-client-js` or imports from `@prisma/client` in a Prisma 7 context, note that migration to `prisma-client` with explicit `output` paths is recommended. The adapter pattern with connection pools is the correct approach for Prisma 7.
+**For AI Agents:** This project uses `prisma-client-js` (deprecated but functional) and imports from `@prisma/client`. The adapter pattern with connection pools is the correct Prisma 7 approach and is already in place. All `docker compose` / `docker exec` commands must use the `docker.exe` prefix (WSL2 environment). After `prisma generate`, restart the container — hot-reload does not pick up regenerated client code.

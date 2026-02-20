@@ -191,7 +191,7 @@ Before committing, scan this table. If your changes match a trigger, check the l
 | Embed validation behavior | `docs/UX_PATTERNS.md` (Embed Form Validation section) | Validation approach docs |
 | New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 3 | npm scripts table |
 | New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
-| Dockerfile, `start.sh`, or Coolify config | `docs/coolify-prisma-migrations.md` | Build/deploy docs |
+| Dockerfile, `start.sh`, or Coolify config | `docs/PRISMA_MIGRATIONS.md` | Build/deploy docs |
 | New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 1 (Public APIs) | API documentation |
 | Auth or session logic | `docs/AGENT_CONTEXT.md` section 1 (Auth & ownership) | Auth rules |
 | New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 6 | Env variable tables |

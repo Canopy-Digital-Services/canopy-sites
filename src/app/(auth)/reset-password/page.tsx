@@ -142,7 +142,7 @@ export default function ResetPasswordPage() {
           </p>
         </CardContent>
         <CardFooter>
-          <div className="flex gap-2">
+          <div className="flex justify-center gap-2">
             <Link href="/forgot-password">
               <Button variant="default">Request new link</Button>
             </Link>

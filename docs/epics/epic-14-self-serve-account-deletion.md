@@ -1,113 +1,77 @@
 # Epic 14: Self-Serve Account Deletion
 
-**Status**: 📋 Planned
-**Target version**: v4.6.0
+**Status**: ✅ Complete
+**Version**: v4.6.0
+**Date**: 2026-02-20
 
 ---
 
-## Objective
+## Summary
 
-Allow users to permanently delete their own account from the `/account` dashboard. The "Delete Account" button added in Epic 13 is currently a disabled placeholder — this epic wires it up.
-
----
-
-## Scope
-
-### What gets built
-
-1. **`deleteSelfAccount()` server action** in `src/actions/accounts.ts`
-2. **Wired delete button** in `AccountDashboard` — replaces the disabled placeholder with a `ConfirmDialog`
-3. **Post-deletion flow**: sign out + redirect to `/login` with a query param so the login page can show a confirmation message
-
-### What does NOT change
-
-- No schema changes — the hybrid-delete pattern (purge content, blank password, `deletedAt` tombstone) from Epic 6 is reused as-is
-- No new UI components
-- Operator console is unaffected
+Users can permanently delete their own account from the `/account` dashboard. Also converted the entire deletion strategy from soft-delete (tombstone) to hard-delete (cascade), fixing re-registration and auth flow gaps.
 
 ---
 
-## Implementation Plan
+## What Was Built
 
-### Step 1: `deleteSelfAccount()` server action
+### `deleteSelfAccount()` server action (`src/actions/accounts.ts`)
 
-Add to `src/actions/accounts.ts`:
+Self-service deletion using `prisma.account.delete()`:
 
-1. Call `requireAuth()` to get the current session
-2. Look up `user.accountId` from the DB
-3. Guard: if account already has `deletedAt`, return early (shouldn't happen, but safe)
-4. Run the same hybrid-delete sequence as the existing operator action:
-   - `prisma.form.deleteMany({ where: { accountId } })` — cascades to submissions and fields
-   - `prisma.user.update(... { password: "" })` — prevents future credential login
-   - `prisma.account.update(... { deletedAt: new Date() })` — tombstone
-5. Call `signOut({ redirectTo: "/login?deleted=1" })`
+1. Authenticates via `requireAuth()`
+2. Resolves `accountId` via `getCurrentAccountId()`
+3. Deletes the Account — database cascades handle User, Forms, Fields, Submissions, and PasswordResetTokens
+4. Client-side `signOut({ callbackUrl: "/login?deleted=1" })` ends the session
 
-The operator's `deleteAccount()` action is **not reused directly** — it calls `requireOperator()` and has self-deletion prevention. A separate action with `requireAuth()` is cleaner and avoids coupling.
+### Wired `DeleteAccountSection` in `account-dashboard.tsx`
 
-### Step 2: Wire up the delete button in `AccountDashboard`
+- `ConfirmDialog` with `destructive={true}` and clear warning text
+- `useTransition` for loading state ("Deleting..." button text while pending)
+- Error handling via `toast.error()` on failure
+- Client-side `signOut` from `next-auth/react` after successful deletion
 
-In `src/components/account/account-dashboard.tsx`, update `DeleteAccountSection`:
+### Login page `?deleted=1` banner
 
-- Remove `disabled` from the button
-- Wrap in `ConfirmDialog`:
-  - `title`: "Delete Account"
-  - `description`: "This will permanently delete your account, all your forms, and all submissions. This cannot be undone."
-  - `destructive={true}`
-  - `onConfirm`: calls `deleteSelfAccount()`, handles loading state
-- Show a loading state on the confirm button while the action runs (use `useTransition`)
-- On error: show an inline error message below the button
+- Added condition in existing `useEffect` to detect `?deleted=1` query param
+- Displays "Your account has been deleted." in the existing success message slot
 
-### Step 3: Login page confirmation message
+### Hard-delete migration
 
-In `src/app/(auth)/login/page.tsx`:
+- Converted operator `deleteAccount()` to use `prisma.account.delete()` (same cascade approach)
+- Removed `deletedAt` column from Account model
+- Migration: `20260220000000_drop_account_deleted_at`
+- Removed `deletedAt: null` filter from operator console queries
 
-- Read `?deleted=1` from `searchParams`
-- If present, render a dismissible success banner above the login form: "Your account has been deleted."
-- No new component needed — a simple conditional `<p>` or small `<div>` with appropriate styling
+### Account Operations documentation
+
+- Created `docs/ACCOUNT_OPERATIONS.md` — comprehensive reference for account lifecycle, auth flows, session management, deletion strategy, and future billing considerations
+- Added reference in `docs/AGENT_CONTEXT.md`
 
 ---
 
-## Files to Modify
+## Why Hard Delete
+
+The original Epic 6 hybrid-delete (blank password + tombstone) caused three auth flow gaps:
+
+1. **Re-registration blocked** — User record still existed, signup rejected "email already registered"
+2. **Password reset resurrection** — reset flow didn't check tombstone, allowing a deleted account to be revived
+3. **Login on tombstoned account** — `authorize()` only checked password, not `deletedAt`
+
+Hard delete via `prisma.account.delete()` with `onDelete: Cascade` eliminates all three issues with a single database operation. No guards needed in signup, login, or password reset flows.
+
+See `docs/ACCOUNT_OPERATIONS.md` for full rationale and future billing considerations.
+
+---
+
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/actions/accounts.ts` | Add `deleteSelfAccount()` server action |
-| `src/components/account/account-dashboard.tsx` | Wire `DeleteAccountSection` with `ConfirmDialog` + `useTransition` |
-| `src/app/(auth)/login/page.tsx` | Show confirmation banner when `?deleted=1` is present |
-| `docs/epics/epic-14-self-serve-account-deletion.md` | Rewrite as completion report |
-| `docs/epics/README.md` | Add epic 14 row |
-| `CHANGELOG.md` | Add version entry |
-| `package.json` | Bump to v4.6.0 |
-
----
-
-## Commit Strategy
-
-| # | Message | Files |
-|---|---------|-------|
-| 1 | `feat(epic-14): add deleteSelfAccount server action` | `src/actions/accounts.ts` |
-| 2 | `feat(epic-14): wire account deletion in dashboard with confirm dialog` | `account-dashboard.tsx` |
-| 3 | `feat(epic-14): show deletion confirmation on login page` | `login/page.tsx` |
-| 4 | `docs(epic-14): update docs, changelog, and bump to v4.6.0` | docs, CHANGELOG, package.json |
-
----
-
-## Verification
-
-1. `npm run build` — must pass
-2. `npm run lint` — must pass
-3. Browser smoke test:
-   - Click "Delete Account" → confirm dialog appears with correct warning text
-   - Cancel → dialog closes, nothing happens
-   - Confirm → loading state on button → redirected to `/login?deleted=1`
-   - Login page shows "Your account has been deleted." banner
-   - Attempting to log in with the deleted account's credentials → fails (password is blanked)
-   - Operator console: deleted account shows tombstone (`deletedAt` set) and no forms/submissions
-
----
-
-## Notes
-
-- The `ConfirmDialog` component's `onConfirm` is synchronous — we'll need to either extend it to accept an async handler or manage the async flow outside (via `useTransition` calling a wrapper that fires `deleteSelfAccount()`)
-- `signOut` with `redirectTo` inside a server action causes a `NEXT_REDIRECT` throw, which is the correct Next.js mechanism — the client will follow the redirect automatically
-- The operator console's account list will still show the tombstone row — this is correct and expected behavior from Epic 6
+| `src/actions/accounts.ts` | Rewrote both `deleteAccount()` and `deleteSelfAccount()` to use hard delete |
+| `src/components/account/account-dashboard.tsx` | Wired `DeleteAccountSection` with `ConfirmDialog` + `useTransition` + client-side `signOut` |
+| `src/app/(auth)/login/page.tsx` | Added `?deleted=1` branch in existing `useEffect` |
+| `prisma/schema.prisma` | Removed `deletedAt` from Account model |
+| `prisma/migrations/20260220000000_drop_account_deleted_at/` | Drop column migration |
+| `src/lib/data-access/accounts.ts` | Removed `deletedAt: null` filter |
+| `docs/ACCOUNT_OPERATIONS.md` | New: account lifecycle and auth flow reference |
+| `docs/AGENT_CONTEXT.md` | Updated data model appendix, added doc reference |

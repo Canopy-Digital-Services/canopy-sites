@@ -89,7 +89,7 @@ If you're asked to:
 
 - [`../UX_PATTERNS.md`](../UX_PATTERNS.md) - **UI/UX conventions and component guidelines** (read before building UI)
 - [`../epics/`](../epics/) - Epic completion reports
-- [`../../AGENT_CONTEXT.md`](../../AGENT_CONTEXT.md) - Project architecture and development guidelines
+- [`../AGENT_CONTEXT.md`](../AGENT_CONTEXT.md) - Project architecture and development guidelines
 - [`../../README.md`](../../README.md) - Project overview
 
 ---

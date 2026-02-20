@@ -342,4 +342,4 @@ The operator console is fully functional and ready for production use. All v3 ep
 **Related Documentation:**
 - [v3 Plan](../../v3%20plan.md) — Product requirements
 - [Epic README](./README.md) — Epic tracking
-- [AGENT_CONTEXT.md](../../AGENT_CONTEXT.md) — Development guidelines
+- [AGENT_CONTEXT.md](../AGENT_CONTEXT.md) — Development guidelines
