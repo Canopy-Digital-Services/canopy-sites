@@ -20,8 +20,9 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 12. [High-Density List Pattern](#high-density-list-pattern)
 13. [Required Field Indicators](#required-field-indicators)
 14. [Layout Patterns](#layout-patterns)
-15. [Form Inputs](#form-inputs)
-16. [Empty States](#empty-states)
+15. [Card layout and primary actions](#card-layout-and-primary-actions)
+16. [Form Inputs](#form-inputs)
+17. [Empty States](#empty-states)
 
 ---
 
@@ -893,6 +894,49 @@ Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
 
 ---
 
+## Card layout and primary actions
+
+Use the `Card` component from `src/components/ui/card.tsx` for content in discrete sections (auth flows, settings blocks, submission detail). When a card has a **primary action at the bottom** (submit, save, delete, or action toolbar), put that action in **CardFooter** so spacing and structure stay consistent across the app.
+
+### When to use CardFooter
+
+- Auth forms (login, signup, forgot password, reset password): submit button in footer
+- Settings/account cards with a primary action (e.g. Change Password, Delete Account)
+- Cards that are mainly an action toolbar (e.g. submission Actions: Mark as Read, Archive, etc.)
+
+### Structure
+
+- **Card** → **CardHeader** (optional), **CardContent** (body), **CardFooter** (optional, for bottom actions).
+- When using CardFooter, keep the primary button(s) there, not in CardContent.
+- CardFooter has default top padding for separation from content; do not add `pt-*` at call sites unless you need to override.
+
+### Forms that submit from the footer
+
+For auth or settings, the submit button must stay inside the form. Wrap both CardContent and CardFooter in the same `<form>` so the button in the footer is the form submit:
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle>Password</CardTitle>
+    <CardDescription>Change your password.</CardDescription>
+  </CardHeader>
+  <form onSubmit={handleSubmit} noValidate>
+    <CardContent className="space-y-4">
+      {/* fields, server error, secondary links */}
+    </CardContent>
+    <CardFooter>
+      <Button type="submit" disabled={isLoading}>
+        Change Password
+      </Button>
+    </CardFooter>
+  </form>
+</Card>
+```
+
+Reference implementation: Account Password card in `src/components/account/account-dashboard.tsx`.
+
+---
+
 ## Form Inputs
 
 Use standard shadcn/ui form components:
@@ -1173,6 +1217,7 @@ For more prominent empty states, use the `EmptyState` component.
 | High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
+| Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
 | Responsive sidebar (mobile drawer) | `ResponsiveSidebarLayout` with `sidebar` and optional `sidebarFooter` props |
 | User account menu | `UserAccountFooter` in sidebar footer (initials + email + dropdown) |
 | Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
@@ -1203,6 +1248,7 @@ For more prominent empty states, use the `EmptyState` component.
 11. **Never forget `font-heading` on headings/titles** - maintain typeface consistency
 12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
 13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
+14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
 
 ---
 
@@ -1210,6 +1256,7 @@ For more prominent empty states, use the `EmptyState` component.
 
 | Component | Location |
 |-----------|----------|
+| Card | `src/components/ui/card.tsx` |
 | Button | `src/components/ui/button.tsx` |
 | Checkbox | `src/components/ui/checkbox.tsx` |
 | Tooltip | `src/components/ui/tooltip.tsx` |

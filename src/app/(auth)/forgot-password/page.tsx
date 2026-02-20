@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -66,18 +66,14 @@ export default function ForgotPasswordPage() {
           <BrandMark size="md" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 space-y-1 text-center">
-          <h2 className="text-xl font-semibold">
-            {formSubmitted ? "Check your email" : "Reset your password"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {formSubmitted
-              ? "Check your email for instructions"
-              : "Enter your email address and we'll send you a reset link"}
-          </p>
-        </div>
-        {formSubmitted ? (
+      {formSubmitted ? (
+        <CardContent>
+          <div className="mb-4 space-y-1 text-center">
+            <h2 className="text-xl font-semibold">Check your email</h2>
+            <p className="text-sm text-muted-foreground">
+              Check your email for instructions
+            </p>
+          </div>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">{successMessage}</p>
             <div className="text-center">
@@ -86,38 +82,46 @@ export default function ForgotPasswordPage() {
               </Link>
             </div>
           </div>
-        ) : (
-          <>
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => setTouched(true)}
-                  aria-invalid={!!showError}
-                  disabled={isLoading}
-                />
-                {showError && (
-                  <p className="text-sm text-destructive">{emailError}</p>
-                )}
-              </div>
-              {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send reset link"}
-              </Button>
-            </form>
+        </CardContent>
+      ) : (
+        <form onSubmit={handleSubmit} noValidate>
+          <CardContent className="space-y-4">
+            <div className="mb-4 space-y-1 text-center">
+              <h2 className="text-xl font-semibold">Reset your password</h2>
+              <p className="text-sm text-muted-foreground">
+                Enter your email address and we'll send you a reset link
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setTouched(true)}
+                aria-invalid={!!showError}
+                disabled={isLoading}
+              />
+              {showError && (
+                <p className="text-sm text-destructive">{emailError}</p>
+              )}
+            </div>
+            {serverError && <p className="text-sm text-destructive">{serverError}</p>}
             <div className="mt-4 text-center text-sm">
               <Link href="/login" className="text-primary hover:underline">
                 Back to login
               </Link>
             </div>
-          </>
-        )}
-      </CardContent>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Sending..." : "Send reset link"}
+            </Button>
+          </CardFooter>
+        </form>
+      )}
     </Card>
   );
 }
