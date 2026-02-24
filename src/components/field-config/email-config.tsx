@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,6 +19,17 @@ export function EmailConfig({
 }: ConfigComponentProps<EmailValidation | undefined>) {
   const validation = value || {};
 
+  const domainRules = validation.domainRules || {};
+  const ruleType = domainRules.allow ? "allow" : domainRules.block ? "block" : "none";
+
+  // Local state for the raw textarea text so trailing newlines are preserved while typing
+  const [domainText, setDomainText] = useState(() => {
+    if (domainRules.allow) return domainRules.allow.join("\n");
+    if (domainRules.block) return domainRules.block.join("\n");
+    return "";
+  });
+
+
   const handleChange = (key: keyof EmailValidation, newValue: any) => {
     const updated = { ...validation };
 
@@ -28,7 +40,7 @@ export function EmailConfig({
         delete updated[key];
       }
     } else if (key === "domainRules") {
-      if (newValue && (newValue.allow?.length > 0 || newValue.block?.length > 0)) {
+      if (newValue) {
         updated[key] = newValue;
       } else {
         delete updated[key];
@@ -38,31 +50,30 @@ export function EmailConfig({
     onChange(Object.keys(updated).length > 0 ? updated : undefined);
   };
 
-  const domainRules = validation.domainRules || {};
-  const ruleType = domainRules.allow ? "allow" : domainRules.block ? "block" : "none";
-
   const handleDomainRuleTypeChange = (type: string) => {
     if (type === "none") {
       handleChange("domainRules", undefined);
     } else {
-      handleChange("domainRules", {
-        [type]: [],
-      });
+      // Preserve the existing domain list when switching between allow/block
+      const domains = domainText
+        .split("\n")
+        .map((d) => d.trim())
+        .filter((d) => d.length > 0);
+      handleChange("domainRules", { [type]: domains });
     }
   };
 
-  const handleDomainListChange = (list: string) => {
-    const domains = list
+  const handleDomainListChange = (raw: string) => {
+    setDomainText(raw);
+    const domains = raw
       .split("\n")
       .map((d) => d.trim())
       .filter((d) => d.length > 0);
-    
+
     if (domains.length === 0) {
       handleChange("domainRules", undefined);
     } else {
-      handleChange("domainRules", {
-        [ruleType]: domains,
-      });
+      handleChange("domainRules", { [ruleType]: domains });
     }
   };
 
@@ -78,30 +89,26 @@ export function EmailConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No restrictions</SelectItem>
-            <SelectItem value="allow">Allow only (whitelist)</SelectItem>
-            <SelectItem value="block">Block (blacklist)</SelectItem>
+            <SelectItem value="allow">Allow only</SelectItem>
+            <SelectItem value="block">Block list</SelectItem>
           </SelectContent>
         </Select>
         {ruleType !== "none" && (
           <>
             <Textarea
-              value={
-                ruleType === "allow"
-                  ? (domainRules.allow || []).join("\n")
-                  : (domainRules.block || []).join("\n")
-              }
+              value={domainText}
               onChange={(e) => handleDomainListChange(e.target.value)}
               placeholder={
                 ruleType === "allow"
-                  ? "example.com\ncompany.com\none domain per line"
-                  : "gmail.com\nyahoo.com\none domain per line"
+                  ? "example.com\ncompany.com"
+                  : "gmail.com\nyahoo.com"
               }
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
               {ruleType === "allow"
-                ? "Only emails from these domains will be accepted."
-                : "Emails from these domains will be rejected."}
+                ? "One domain per line. Only emails from these domains will be accepted. Only one of allow or block can be used at a time."
+                : "One domain per line. Emails from these domains will be rejected. Only one of allow or block can be used at a time."}
             </p>
           </>
         )}
@@ -120,7 +127,7 @@ export function EmailConfig({
             htmlFor="email-normalize"
             className="text-sm font-normal cursor-pointer"
           >
-            Auto-lowercase (normalize for consistency)
+            Normalize Case
           </Label>
         </div>
         <p className="text-xs text-muted-foreground">
