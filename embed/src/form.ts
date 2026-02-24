@@ -241,7 +241,7 @@ export class CanOForm {
         input = textarea;
         break;
       }
-      case "SELECT": {
+      case "DROPDOWN": {
         const selectOpts = field.options as any;
         const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts;
         const options = isNewFormat ? selectOpts.options : (Array.isArray(field.options) ? field.options : []);
@@ -277,7 +277,7 @@ export class CanOForm {
           otherInput.className = "canopy-input canopy-select-other";
           otherInput.name = `${field.name}_other`;
           otherInput.placeholder = "Please specify...";
-          otherInput.style.display = "none";
+          otherInput.style.setProperty("display", "none", "important");
           otherInput.style.marginTop = "0.5rem";
           
           // Clear validation state when user starts typing
@@ -288,12 +288,12 @@ export class CanOForm {
           // Show/hide other input based on selection
           select.addEventListener("change", () => {
             if (select.value === "__other__") {
-              otherInput.style.display = "block";
+              otherInput.style.setProperty("display", "block", "important");
               if (field.required) {
                 otherInput.required = true;
               }
             } else {
-              otherInput.style.display = "none";
+              otherInput.style.setProperty("display", "none", "important");
               otherInput.required = false;
               otherInput.value = "";
             }
@@ -411,7 +411,7 @@ export class CanOForm {
     wrapper.appendChild(label);
     wrapper.appendChild(input);
     
-    // If this is a SELECT with "Other" option, add the other input
+    // If this is a DROPDOWN with "Other" option, add the other input
     if ((input as any).__otherInput) {
       wrapper.appendChild((input as any).__otherInput);
     }

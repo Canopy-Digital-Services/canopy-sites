@@ -105,7 +105,7 @@ This prevents React key instability and ensures drag-and-drop IDs remain consist
    - Reorder form fields with server persistence via `reorderFields()` action
    - Optimistic UI updates with rollback on error
 
-2. **Select Field Options** (`src/components/field-config/select-config.tsx`)
+2. **Dropdown Field Options** (`src/components/field-config/dropdown-config.tsx`)
    - Reorder dropdown options within field editor modal
    - Uses stable component-state IDs (not persisted separately)
 

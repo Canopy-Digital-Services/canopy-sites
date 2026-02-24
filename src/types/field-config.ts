@@ -27,18 +27,16 @@ export type PhoneValidation = {
 export type DateValidation = {
   minDate?: string; // ISO string or "today"
   maxDate?: string; // ISO string or "today"
-  noFuture?: boolean;
-  noPast?: boolean;
 };
 
 // Type-specific options
-export type SelectOption = {
+export type DropdownOption = {
   value: string;
   label: string;
 };
 
-export type SelectOptions = {
-  options: SelectOption[];
+export type DropdownOptions = {
+  options: DropdownOption[];
   defaultValue?: string;
   allowOther?: boolean;
 };
@@ -88,9 +86,9 @@ export type FieldConfig =
       options: NameOptions;
     }
   | {
-      type: "SELECT";
+      type: "DROPDOWN";
       validation?: never;
-      options: SelectOptions;
+      options: DropdownOptions;
     }
   | {
       type: "CHECKBOX";

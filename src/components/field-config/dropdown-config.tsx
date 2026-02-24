@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableList } from "@/components/ui/sortable-list";
-import { SelectOptions } from "@/types/field-config";
+import { DropdownOptions } from "@/types/field-config";
 import { ConfigComponentProps } from "./types";
 import { Trash2, GripVertical } from "lucide-react";
 
@@ -27,10 +27,10 @@ type OptionWithId = {
   label: string;
 };
 
-export function SelectConfig({
+export function DropdownConfig({
   value,
   onChange,
-}: ConfigComponentProps<SelectOptions | undefined>) {
+}: ConfigComponentProps<DropdownOptions | undefined>) {
   const config = value || { options: [] };
   const options = config.options || [];
   const [showValidation, setShowValidation] = useState(false);
@@ -142,7 +142,7 @@ export function SelectConfig({
       </div>
       {options.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Add options to populate this select field.
+          Add options to populate this dropdown field.
         </p>
       ) : (
         <>
@@ -233,9 +233,6 @@ export function SelectConfig({
                   ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              Pre-select an option when the form loads.
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -251,12 +248,9 @@ export function SelectConfig({
                 htmlFor="select-allow-other"
                 className="text-sm font-normal cursor-pointer"
               >
-                Allow "Other" (with text input)
+                Allow "Other" with text input field
               </Label>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Adds an "Other" option with a text field for custom input.
-            </p>
           </div>
         </>
       )}

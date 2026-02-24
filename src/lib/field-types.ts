@@ -23,7 +23,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "PHONE" as const, label: "Phone" },
   { value: "DATE" as const, label: "Date" },
   { value: "NAME" as const, label: "Name" },
-  { value: "SELECT" as const, label: "Select" },
+  { value: "DROPDOWN" as const, label: "Dropdown" },
   { value: "CHECKBOX" as const, label: "Checkbox" },
   { value: "HIDDEN" as const, label: "Hidden" },
 ] as const;
@@ -49,7 +49,7 @@ export const FIELD_TYPE_LABEL_PLACEHOLDERS: Record<FieldType, string> = {
   PHONE: "e.g. Phone number",
   DATE: "e.g. Date of birth",
   NAME: "e.g. Full name",
-  SELECT: "e.g. Country",
+  DROPDOWN: "e.g. Country",
   CHECKBOX: "e.g. I agree to the terms",
   HIDDEN: "e.g. Referral code",
 };

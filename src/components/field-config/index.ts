@@ -6,7 +6,7 @@
 import { FieldType } from "@prisma/client";
 import { TextConfig, TextareaConfig } from "./text-config";
 import { EmailConfig } from "./email-config";
-import { SelectConfig } from "./select-config";
+import { DropdownConfig } from "./dropdown-config";
 import { PhoneConfig } from "./phone-config";
 import { DateConfig } from "./date-config";
 import { NameConfig } from "./name-config";
@@ -21,7 +21,7 @@ const configRegistry: Partial<Record<FieldType, ConfigComponent>> = {
   TEXT: TextConfig,
   EMAIL: EmailConfig,
   TEXTAREA: TextareaConfig,
-  SELECT: SelectConfig,
+  DROPDOWN: DropdownConfig,
   PHONE: PhoneConfig,
   DATE: DateConfig,
   NAME: NameConfig,

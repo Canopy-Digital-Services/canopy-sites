@@ -980,6 +980,22 @@ import { Label } from "@/components/ui/label";
 - Pair with `<Label>` using matching `id`/`htmlFor` and `cursor-pointer` so the label is clickable
 - Use `font-normal` on the Label to distinguish it from a field label (which uses the default `font-medium`)
 
+### Help Text
+
+Use `<p className="text-xs text-muted-foreground">` for descriptive hints placed directly below an input or group of inputs. Use `<p className="text-sm text-muted-foreground">` for broader descriptive text at the page or section level (page headers, settings section descriptions, empty states).
+
+```tsx
+<div className="space-y-2">
+  <Label htmlFor="param-name">Parameter Name</Label>
+  <Input id="param-name" ... />
+  <p className="text-xs text-muted-foreground">
+    The name of the URL parameter to read (without the ? or &).
+  </p>
+</div>
+```
+
+When a hint applies to a group of inputs (e.g. a grid of two related fields), place it below the group rather than repeating it under each input.
+
 ### Spacing Convention
 
 - Use `space-y-2` for label + input pairs
@@ -1159,7 +1175,7 @@ The embed script (for public-facing forms) uses a different validation approach 
 
 **Special handling:**
 - NAME fields (composite) show popup on first visible part input
-- SELECT "Other" inputs clear validation when typing starts
+- DROPDOWN "Other" inputs clear validation when typing starts
 - Server-side validation errors also use native popups
 
 ### Error Display Styling

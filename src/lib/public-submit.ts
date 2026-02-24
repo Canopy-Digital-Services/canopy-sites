@@ -301,7 +301,7 @@ function validateFields(
       continue;
     }
 
-    if (field.type === "SELECT" && Array.isArray(field.options)) {
+    if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
       const optionValues = field.options
         .map((option) =>
           typeof option === "object" && option !== null
