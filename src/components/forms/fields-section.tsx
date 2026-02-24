@@ -14,7 +14,7 @@ export function FieldsSection({ formId, fields }: FieldsSectionProps) {
     <Card className="border-l-4 border-l-primary">
       <CardHeader>
         <CardTitle>Fields</CardTitle>
-        <CardDescription>Define the inputs your form collects</CardDescription>
+        <CardDescription>Add the fields you would like in your form. Drag to reorder.</CardDescription>
       </CardHeader>
       <CardContent>
         <FormFieldsManager formId={formId} fields={fields} />
