@@ -5,19 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableList } from "@/components/ui/sortable-list";
-import { SelectOptions } from "@/types/field-config";
+import { CheckboxesOptions } from "@/types/field-config";
 import { ConfigComponentProps } from "./types";
 import { Trash2, GripVertical } from "lucide-react";
 
@@ -27,10 +20,10 @@ type OptionWithId = {
   label: string;
 };
 
-export function SelectConfig({
+export function CheckboxesConfig({
   value,
   onChange,
-}: ConfigComponentProps<SelectOptions | undefined>) {
+}: ConfigComponentProps<CheckboxesOptions | undefined>) {
   const config = value || { options: [] };
   const options = config.options || [];
   const [showValidation, setShowValidation] = useState(false);
@@ -77,7 +70,6 @@ export function SelectConfig({
     if (index === -1) return;
 
     const updatedOptions = [...options];
-    // Set both label and value to the same thing
     updatedOptions[index] = { value: newValue, label: newValue };
     onChange({ ...config, options: updatedOptions });
   };
@@ -109,24 +101,6 @@ export function SelectConfig({
     }
   };
 
-  const handleDefaultValueChange = (newValue: string) => {
-    if (newValue === "none") {
-      const { defaultValue, ...rest } = config;
-      onChange(rest.options.length > 0 ? rest : undefined);
-    } else {
-      onChange({ ...config, defaultValue: newValue });
-    }
-  };
-
-  const handleAllowOtherChange = (checked: boolean) => {
-    if (checked) {
-      onChange({ ...config, allowOther: true });
-    } else {
-      const { allowOther, ...rest } = config;
-      onChange(rest.options.length > 0 ? rest : undefined);
-    }
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -142,7 +116,7 @@ export function SelectConfig({
       </div>
       {options.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Add options to populate this select field.
+          Add options for this checkbox group.
         </p>
       ) : (
         <>
@@ -206,58 +180,6 @@ export function SelectConfig({
               Options must be unique. Choose a different name.
             </p>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="select-default" className="text-sm font-normal">
-              Default Value
-            </Label>
-            <Select
-              value={config.defaultValue || "none"}
-              onValueChange={handleDefaultValueChange}
-              disabled={hasDuplicateValues}
-            >
-              <SelectTrigger id="select-default">
-                <SelectValue placeholder="No default" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No default</SelectItem>
-                {options
-                  .filter((option) => option.value.trim() !== "")
-                  .map((option, index) => (
-                    <SelectItem
-                      key={`${index}-${option.value}`}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Pre-select an option when the form loads.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="select-allow-other"
-                checked={config.allowOther || false}
-                onChange={(e) => handleAllowOtherChange(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <Label
-                htmlFor="select-allow-other"
-                className="text-sm font-normal cursor-pointer"
-              >
-                Allow "Other" (with text input)
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Adds an "Other" option with a text field for custom input.
-            </p>
-          </div>
         </>
       )}
     </div>

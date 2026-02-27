@@ -21,10 +21,14 @@ type NameOptions = {
   partsRequired?: Record<string, boolean>;
 };
 
-type SelectOptions = {
+type DropdownOptions = {
   options: FieldOption[];
   defaultValue?: string;
   allowOther?: boolean;
+};
+
+type CheckboxesOptions = {
+  options: FieldOption[];
 };
 
 type HiddenOptions = {
@@ -40,7 +44,7 @@ type FieldDefinition = {
   placeholder?: string;
   required: boolean;
   helpText?: string;
-  options?: FieldOption[] | NameOptions | SelectOptions | HiddenOptions;
+  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions | HiddenOptions;
   validation?: FieldValidation;
 };
 
@@ -83,6 +87,11 @@ export function validateSubmission(
           errors[field.name] = `${label} is required.`;
           return;
         }
+      } else if (field.type === "CHECKBOXES") {
+        if (!Array.isArray(value) || value.length === 0) {
+          errors[field.name] = `${label} is required.`;
+          return;
+        }
       } else if (field.type === "NAME") {
         // NAME validation handled below
       } else if (
@@ -93,6 +102,24 @@ export function validateSubmission(
         errors[field.name] = `${label} is required.`;
         return;
       }
+    }
+
+    if (field.type === "CHECKBOXES") {
+      // Validate selected values exist in the options list
+      if (Array.isArray(value) && value.length > 0) {
+        const cbOpts = field.options as CheckboxesOptions;
+        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts;
+        const validValues = isNewFormat
+          ? cbOpts.options.map((o) => o.value)
+          : [];
+        for (const v of value) {
+          if (!validValues.includes(String(v))) {
+            errors[field.name] = `${label} contains an invalid option.`;
+            return;
+          }
+        }
+      }
+      return;
     }
 
     if (field.type === "NAME") {
@@ -247,7 +274,7 @@ export function validateSubmission(
       return;
     }
 
-    if (field.type === "SELECT" && Array.isArray(field.options)) {
+    if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
       const optionValues = (field.options as FieldOption[]).map(
         (option) => option.value
       );

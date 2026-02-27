@@ -69,7 +69,7 @@ export function HeaderSection({ formId, title: initialTitle, description: initia
         <div className="flex items-center justify-between gap-4">
           <div>
             <CardTitle>Header</CardTitle>
-            <CardDescription>Optional title and description shown above the form fields</CardDescription>
+            <CardDescription>Optional title and description shown above the form.</CardDescription>
           </div>
           {saveStatus === "saving" && (
             <span className="text-sm text-muted-foreground flex items-center gap-2 shrink-0">

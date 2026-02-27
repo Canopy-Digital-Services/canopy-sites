@@ -32,8 +32,8 @@ export function ResponsiveSidebarLayout({
 
   return (
     <div className="flex min-h-screen">
-      {/* Desktop sidebar - hidden on mobile */}
-      <aside className="hidden md:flex md:flex-col w-64 border-r bg-muted/40 p-6">
+      {/* Desktop sidebar - sticky so session footer stays visible when page scrolls */}
+      <aside className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen md:w-64 border-r bg-muted/40 p-6 overflow-hidden">
         {sidebarInner}
       </aside>
 

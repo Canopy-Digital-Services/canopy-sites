@@ -311,6 +311,16 @@ When the user says "create a PR to main" or "I want to release" (or equivalent):
 
 The user will review the PR and decide whether to merge. Do not merge it unless explicitly asked.
 
+### After a PR is merged to main
+
+When the user confirms the PR has been merged (or you detect it has been merged):
+
+1. Run `git fetch origin` to pull the updated remote state.
+2. Run `git merge origin/main` on `dev` — GitHub's merge commit is now on `main` but not in `dev`, so they will diverge by exactly 1 commit after every merge. This step brings `dev` back in sync.
+3. Run `git push origin dev` to update the remote.
+
+**Why this matters:** GitHub creates a merge commit on `main` when a PR is merged. Until that commit is merged back into `dev`, the two branches appear diverged (dev is "1 ahead, 1 behind"), which causes noise in the next PR and can confuse `git log main..dev` counts.
+
 ### Environments
 
 | Environment | URL | Branch | Host |
@@ -459,7 +469,7 @@ If any future change requires storing version-specific information in a fifth fi
 ## Appendix A. FieldType enum (current)
 
 ```
-TEXT | EMAIL | TEXTAREA | SELECT | CHECKBOX | HIDDEN | PHONE | DATE | NAME
+TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | HIDDEN | PHONE | DATE | NAME
 ```
 
 See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types.ts` for display labels.

@@ -110,6 +110,11 @@ function validateFields(
           errors[field.name] = `${label} is required.`;
           continue;
         }
+      } else if (field.type === "CHECKBOXES") {
+        if (!Array.isArray(value) || value.length === 0) {
+          errors[field.name] = `${label} is required.`;
+          continue;
+        }
       } else if (field.type === "NAME") {
         // NAME validation handled below
       } else if (
@@ -120,6 +125,29 @@ function validateFields(
         errors[field.name] = `${label} is required.`;
         continue;
       }
+    }
+
+    if (field.type === "CHECKBOXES") {
+      // Type check: if present, must be an array
+      if (value !== undefined && value !== null && !Array.isArray(value)) {
+        errors[field.name] = `${label} must be an array.`;
+        continue;
+      }
+      // Validate selected values exist in the options list
+      if (Array.isArray(value) && value.length > 0) {
+        const cbOpts =
+          typeof field.options === "object" && field.options !== null && "options" in (field.options as any)
+            ? ((field.options as any).options as { value: string }[])
+            : [];
+        const validValues = cbOpts.map((o) => o.value);
+        for (const v of value) {
+          if (!validValues.includes(String(v))) {
+            errors[field.name] = `${label} contains an invalid option.`;
+            break;
+          }
+        }
+      }
+      continue;
     }
 
     if (field.type === "NAME") {
@@ -301,7 +329,7 @@ function validateFields(
       continue;
     }
 
-    if (field.type === "SELECT" && Array.isArray(field.options)) {
+    if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
       const optionValues = field.options
         .map((option) =>
           typeof option === "object" && option !== null

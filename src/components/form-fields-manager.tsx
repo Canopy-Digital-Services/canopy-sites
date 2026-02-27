@@ -146,18 +146,22 @@ export function FormFieldsManager({
     });
   };
 
-  const draftField: FieldDraft | null = editingField
-    ? {
-        name: editingField.name,
-        type: editingField.type,
-        label: editingField.label,
-        placeholder: editingField.placeholder ?? "",
-        required: editingField.required,
-        helpText: editingField.helpText ?? "",
-        options: editingField.options,
-        validation: editingField.validation as FieldValidation | undefined,
-      }
-    : null;
+  const draftField = useMemo<FieldDraft | null>(
+    () =>
+      editingField
+        ? {
+            name: editingField.name,
+            type: editingField.type,
+            label: editingField.label,
+            placeholder: editingField.placeholder ?? "",
+            required: editingField.required,
+            helpText: editingField.helpText ?? "",
+            options: editingField.options,
+            validation: editingField.validation as FieldValidation | undefined,
+          }
+        : null,
+    [editingField]
+  );
 
   return (
     <div className="space-y-4">

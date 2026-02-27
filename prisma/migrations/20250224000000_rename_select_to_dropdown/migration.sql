@@ -1,0 +1,2 @@
+-- AlterEnum: rename SELECT → DROPDOWN
+ALTER TYPE "FieldType" RENAME VALUE 'SELECT' TO 'DROPDOWN';

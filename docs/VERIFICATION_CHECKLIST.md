@@ -201,6 +201,18 @@ If none of the triggers match, no doc update is needed. If your change introduce
 
 ---
 
+## Pre-push: check for uncommitted changes
+
+Before pushing, always check for unstaged modifications that might be needed for the build:
+
+```bash
+git status
+```
+
+If there are unstaged changes (`M` files), determine whether they're needed. Coolify builds from the **remote ref**, not your working tree — so anything uncommitted locally will be missing on deploy. A build that passes locally (because your working tree has the fix) can fail on Coolify (because the committed version doesn't).
+
+---
+
 ## Quick reference: minimum checks per commit
 
 | Before committing... | Always run |

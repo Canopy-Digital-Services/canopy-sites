@@ -17,5 +17,6 @@
 | [Epic 12: Session Management](epic-12-session-management.md) | v4.4.0 | 2026-02-19 | ✅ Complete |
 | [Epic 13: Account Dashboard Scaffold](epic-13-account-dashboard-scaffold.md) | v4.5.0 | 2026-02-20 | ✅ Complete |
 | [Epic 14: Self-Serve Account Deletion](epic-14-self-serve-account-deletion.md) | v4.6.0 | 2026-02-20 | ✅ Complete |
+| [Epic 15: Checkboxes (Multi-Select) + Yes / No Rename](epic-15-multi-select-checkbox.md) | v4.7.0 | 2026-02-27 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

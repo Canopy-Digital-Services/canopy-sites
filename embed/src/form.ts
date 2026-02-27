@@ -241,7 +241,7 @@ export class CanOForm {
         input = textarea;
         break;
       }
-      case "SELECT": {
+      case "DROPDOWN": {
         const selectOpts = field.options as any;
         const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts;
         const options = isNewFormat ? selectOpts.options : (Array.isArray(field.options) ? field.options : []);
@@ -277,7 +277,7 @@ export class CanOForm {
           otherInput.className = "canopy-input canopy-select-other";
           otherInput.name = `${field.name}_other`;
           otherInput.placeholder = "Please specify...";
-          otherInput.style.display = "none";
+          otherInput.style.setProperty("display", "none", "important");
           otherInput.style.marginTop = "0.5rem";
           
           // Clear validation state when user starts typing
@@ -288,12 +288,12 @@ export class CanOForm {
           // Show/hide other input based on selection
           select.addEventListener("change", () => {
             if (select.value === "__other__") {
-              otherInput.style.display = "block";
+              otherInput.style.setProperty("display", "block", "important");
               if (field.required) {
                 otherInput.required = true;
               }
             } else {
-              otherInput.style.display = "none";
+              otherInput.style.setProperty("display", "none", "important");
               otherInput.required = false;
               otherInput.value = "";
             }
@@ -333,6 +333,60 @@ export class CanOForm {
         checkbox.setAttribute("aria-describedby", errorEl.id);
         checkbox.setAttribute("aria-invalid", "false");
         return { wrapper, input: checkbox, errorEl };
+      }
+      case "CHECKBOXES": {
+        const cbOpts = field.options as any;
+        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts;
+        const cbOptions = isNewFormat ? cbOpts.options : (Array.isArray(field.options) ? field.options : []);
+
+        const checkboxesWrapper = document.createElement("div");
+        checkboxesWrapper.className = "canopy-checkboxes";
+        checkboxesWrapper.setAttribute("data-checkbox-group", field.name);
+
+        cbOptions.forEach((option: any) => {
+          const itemLabel = document.createElement("label");
+          itemLabel.className = "canopy-checkbox";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.name = field.name;
+          cb.value = option.value;
+          cb.addEventListener("input", () => {
+            pseudoCbInput.setCustomValidity("");
+          });
+
+          const span = document.createElement("span");
+          span.textContent = option.label;
+
+          itemLabel.appendChild(cb);
+          itemLabel.appendChild(span);
+          checkboxesWrapper.appendChild(itemLabel);
+        });
+
+        // Hidden pseudo-input for fieldElements map (like NAME pattern)
+        const pseudoCbInput = document.createElement("input");
+        pseudoCbInput.type = "hidden";
+        pseudoCbInput.id = fieldId;
+        pseudoCbInput.name = field.name;
+
+        wrapper.appendChild(label);
+        wrapper.appendChild(checkboxesWrapper);
+
+        // Add help text if provided
+        if (field.helpText) {
+          const helpTextEl = document.createElement("p");
+          helpTextEl.className = "canopy-help-text";
+          helpTextEl.textContent = field.helpText;
+          wrapper.appendChild(helpTextEl);
+        }
+
+        const errorEl = document.createElement("span");
+        errorEl.className = "canopy-error";
+        errorEl.id = `${fieldId}-error`;
+        wrapper.appendChild(errorEl);
+        pseudoCbInput.setAttribute("aria-describedby", errorEl.id);
+        pseudoCbInput.setAttribute("aria-invalid", "false");
+        return { wrapper, input: pseudoCbInput, errorEl };
       }
       case "EMAIL": {
         const email = document.createElement("input");
@@ -411,7 +465,7 @@ export class CanOForm {
     wrapper.appendChild(label);
     wrapper.appendChild(input);
     
-    // If this is a SELECT with "Other" option, add the other input
+    // If this is a DROPDOWN with "Other" option, add the other input
     if ((input as any).__otherInput) {
       wrapper.appendChild((input as any).__otherInput);
     }
@@ -537,22 +591,34 @@ export class CanOForm {
         if (element.input.type === "checkbox") {
           data[name] = element.input.checked;
         } else if (element.input.type === "hidden") {
-          // Check if this is a NAME field by looking for part inputs
-          const partInputs = this.container.querySelectorAll(
-            `input[data-name-field="${name}"]`
+          // Check if this is a CHECKBOXES field
+          const checkboxGroup = this.container.querySelector(
+            `[data-checkbox-group="${name}"]`
           );
-          if (partInputs.length > 0) {
-            const nameValue: Record<string, string> = {};
-            partInputs.forEach((input) => {
-              const partInput = input as HTMLInputElement;
-              const part = partInput.getAttribute("data-name-part");
-              if (part) {
-                nameValue[part] = partInput.value;
-              }
+          if (checkboxGroup) {
+            const checked: string[] = [];
+            checkboxGroup.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").forEach((cb) => {
+              checked.push(cb.value);
             });
-            data[name] = nameValue;
+            data[name] = checked;
           } else {
-            data[name] = element.input.value;
+            // Check if this is a NAME field by looking for part inputs
+            const partInputs = this.container.querySelectorAll(
+              `input[data-name-field="${name}"]`
+            );
+            if (partInputs.length > 0) {
+              const nameValue: Record<string, string> = {};
+              partInputs.forEach((input) => {
+                const partInput = input as HTMLInputElement;
+                const part = partInput.getAttribute("data-name-part");
+                if (part) {
+                  nameValue[part] = partInput.value;
+                }
+              });
+              data[name] = nameValue;
+            } else {
+              data[name] = element.input.value;
+            }
           }
         } else {
           data[name] = element.input.value;
@@ -576,13 +642,23 @@ export class CanOForm {
     this.fieldElements.forEach((element, name) => {
       const message = errors[name] || "";
       
-      // For NAME fields (hidden input), set validity on first visible part input
+      // For hidden pseudo-inputs (NAME, CHECKBOXES), set validity on first visible input
       if (element.input.type === "hidden") {
-        const partInput = this.container.querySelector(
-          `input[data-name-field="${name}"]`
-        ) as HTMLInputElement;
-        if (partInput) {
-          partInput.setCustomValidity(message);
+        const checkboxGroup = this.container.querySelector(
+          `[data-checkbox-group="${name}"]`
+        );
+        if (checkboxGroup) {
+          const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
+          if (firstCb) {
+            firstCb.setCustomValidity(message);
+          }
+        } else {
+          const partInput = this.container.querySelector(
+            `input[data-name-field="${name}"]`
+          ) as HTMLInputElement;
+          if (partInput) {
+            partInput.setCustomValidity(message);
+          }
         }
       } else {
         element.input.setCustomValidity(message);
@@ -598,14 +674,25 @@ export class CanOForm {
     if (errorKeys.length > 0) {
       const firstErrorField = this.fieldElements.get(errorKeys[0]);
       if (firstErrorField) {
-        // For NAME fields, show popup on first visible part
+        // For hidden pseudo-inputs (NAME, CHECKBOXES), show popup on first visible input
         if (firstErrorField.input.type === "hidden") {
-          const partInput = this.container.querySelector(
-            `input[data-name-field="${errorKeys[0]}"]`
-          ) as HTMLInputElement;
-          if (partInput) {
-            partInput.reportValidity();
-            partInput.focus();
+          const checkboxGroup = this.container.querySelector(
+            `[data-checkbox-group="${errorKeys[0]}"]`
+          );
+          if (checkboxGroup) {
+            const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
+            if (firstCb) {
+              firstCb.reportValidity();
+              firstCb.focus();
+            }
+          } else {
+            const partInput = this.container.querySelector(
+              `input[data-name-field="${errorKeys[0]}"]`
+            ) as HTMLInputElement;
+            if (partInput) {
+              partInput.reportValidity();
+              partInput.focus();
+            }
           }
         } else {
           firstErrorField.input.reportValidity();

@@ -188,6 +188,59 @@ Check if the migration SQL actually creates the column the Prisma Client expects
 
 ---
 
+## Manual migration workflow (enum renames, etc.)
+
+`prisma migrate dev` is interactive — it prompts for confirmation on destructive changes. This means it **cannot run** via `docker exec` (no TTY). It also sometimes generates destructive SQL when a safe alternative exists (e.g., dropping and recreating an enum instead of renaming a value).
+
+For these cases, create the migration manually:
+
+### Steps
+
+```bash
+# 1. Edit prisma/schema.prisma with your change
+
+# 2. Create the migration directory (use YYYYMMDD000000 convention)
+mkdir -p prisma/migrations/20260224000000_rename_select_to_dropdown
+
+# 3. Write the SQL by hand
+cat > prisma/migrations/20260224000000_rename_select_to_dropdown/migration.sql << 'EOF'
+ALTER TYPE "FieldType" RENAME VALUE 'SELECT' TO 'DROPDOWN';
+EOF
+
+# 4. Apply the SQL to the dev database via the db container
+docker.exe exec canopy-forms-db psql -U user -d canopy-forms \
+  -c "ALTER TYPE \"FieldType\" RENAME VALUE 'SELECT' TO 'DROPDOWN';"
+
+# 5. Mark the migration as applied in Prisma's tracking table
+docker.exe exec canopy-forms npx prisma migrate resolve \
+  --applied 20260224000000_rename_select_to_dropdown
+
+# 6. Regenerate client + restart dev server
+docker.exe exec canopy-forms npx prisma generate
+docker.exe restart canopy-forms
+
+# 7. Verify no drift
+docker.exe exec canopy-forms npx prisma migrate status
+```
+
+### When to use this instead of `prisma migrate dev`
+
+| Scenario | Why manual? |
+|----------|-------------|
+| **Enum value rename** (`ALTER TYPE ... RENAME VALUE`) | Prisma generates drop + recreate, which fails if values are in use |
+| **Non-interactive environment** | `prisma migrate dev` requires a TTY for confirmation prompts |
+| **Data-preserving changes** | Any case where you need precise control over the SQL |
+
+### Important notes
+
+- The migration directory name **must** match exactly when calling `prisma migrate resolve --applied`
+- `psql` runs on the **db container** (`canopy-forms-db`), not the app container — the app container doesn't have `psql`
+- The db user is `user` (per `docker-compose.dev.yml` `POSTGRES_USER`)
+- Always run `prisma migrate status` after to confirm no pending migrations and no drift
+- On deploy, `prisma migrate deploy` in `start.sh` will apply this migration automatically (it reads the SQL file, not `prisma migrate dev`)
+
+---
+
 ## Setting up a new Coolify + Prisma project
 
 Checklist for starting a new project on the right foot:

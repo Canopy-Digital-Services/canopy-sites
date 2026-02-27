@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateValidation } from "@/types/field-config";
@@ -11,88 +12,100 @@ export function DateConfig({
 }: ConfigComponentProps<DateValidation | undefined>) {
   const validation = value || {};
 
-  const handleChange = (key: keyof DateValidation, newValue: string | boolean) => {
+  // Stash the last specific date so it can be restored when unchecking "today"
+  const stashedMin = useRef<string | undefined>(undefined);
+  const stashedMax = useRef<string | undefined>(undefined);
+
+  const handleDateChange = (key: "minDate" | "maxDate", newValue: string) => {
+    const updated = { ...validation };
+    if (newValue.trim()) {
+      updated[key] = newValue.trim();
+    } else {
+      delete updated[key];
+    }
+    onChange(Object.keys(updated).length > 0 ? updated : undefined);
+  };
+
+  const handleTodayToggle = (key: "minDate" | "maxDate", checked: boolean) => {
+    const other = key === "minDate" ? "maxDate" : "minDate";
+    const stash = key === "minDate" ? stashedMin : stashedMax;
     const updated = { ...validation };
 
-    if (typeof newValue === "boolean") {
-      if (newValue) {
-        (updated as any)[key] = true;
-      } else {
-        delete (updated as any)[key];
+    if (checked) {
+      // Stash the current specific date before overwriting
+      if (updated[key] && updated[key] !== "today") {
+        stash.current = updated[key];
+      }
+      updated[key] = "today";
+      if (updated[other] === "today") {
+        delete updated[other];
       }
     } else {
-      if (newValue.trim()) {
-        (updated as any)[key] = newValue.trim();
+      // Restore stashed date, or clear
+      if (stash.current) {
+        updated[key] = stash.current;
       } else {
-        delete (updated as any)[key];
+        delete updated[key];
       }
     }
 
     onChange(Object.keys(updated).length > 0 ? updated : undefined);
   };
 
+  const minIsToday = validation.minDate === "today";
+  const maxIsToday = validation.maxDate === "today";
+
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Date Range</Label>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Label>Date Limits</Label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="date-min" className="text-sm font-normal">
+            Min Date
+          </Label>
           <Input
             id="date-min"
             type="date"
-            value={
-              validation.minDate && validation.minDate !== "today"
-                ? validation.minDate
-                : ""
-            }
-            onChange={(e) => handleChange("minDate", e.target.value)}
-            placeholder="Min date"
+            value={!minIsToday ? (validation.minDate ?? "") : ""}
+            onChange={(e) => handleDateChange("minDate", e.target.value)}
+            disabled={minIsToday}
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={minIsToday}
+              onChange={(e) => handleTodayToggle("minDate", e.target.checked)}
+              className="h-4 w-4"
+            />
+            No past dates
+          </label>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="date-max" className="text-sm font-normal">
+            Max Date
+          </Label>
           <Input
             id="date-max"
             type="date"
-            value={
-              validation.maxDate && validation.maxDate !== "today"
-                ? validation.maxDate
-                : ""
-            }
-            onChange={(e) => handleChange("maxDate", e.target.value)}
-            placeholder="Max date"
+            value={!maxIsToday ? (validation.maxDate ?? "") : ""}
+            onChange={(e) => handleDateChange("maxDate", e.target.value)}
+            disabled={maxIsToday}
           />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={maxIsToday}
+              onChange={(e) => handleTodayToggle("maxDate", e.target.checked)}
+              className="h-4 w-4"
+            />
+            No future dates
+          </label>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Leave empty or use "today" for current date
-        </p>
       </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="date-no-future"
-            checked={validation.noFuture || false}
-            onChange={(e) => handleChange("noFuture", e.target.checked)}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="date-no-future" className="text-sm font-normal cursor-pointer">
-            No future dates (max is today)
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="date-no-past"
-            checked={validation.noPast || false}
-            onChange={(e) => handleChange("noPast", e.target.checked)}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="date-no-past" className="text-sm font-normal cursor-pointer">
-            No past dates (min is today)
-          </Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          These shortcuts override min/max date settings.
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Leave either field empty for no limit.
+      </p>
     </div>
   );
 }

@@ -104,6 +104,12 @@ export const baseStyles = `
   gap: 8px;
 }
 
+.canopy-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .canopy-name-parts {
   display: grid;
   gap: 12px;
