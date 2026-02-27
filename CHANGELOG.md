@@ -5,6 +5,41 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-02-27
+
+### Added
+
+- **Checkboxes Multi-Select Field Type (Epic 15)**: New `CHECKBOXES` field type for selecting one or more options from a list
+  - Config panel with add/edit/reorder/delete options (mirrors Dropdown pattern, uses `SortableList` drag-and-drop)
+  - Embed renders vertical list of checkboxes with clickable labels
+  - Submission data stored as `string[]` of selected option values
+  - Client-side validation: requires at least one selection when marked required
+  - Server-side validation: rejects values not in the field's option list
+  - Submission viewer displays selected options as comma-separated labels
+- **Yes / No rename**: Existing boolean `CHECKBOX` field type relabeled from "Checkbox" to "Yes / No" in the builder field picker for clarity
+  - Internal `CHECKBOX` enum value unchanged — no migration needed for existing forms
+  - Submission viewer now displays "Yes" / "No" instead of raw `true` / `false`
+
+### Changed
+
+- **SELECT → DROPDOWN rename**: `FieldType.SELECT` renamed to `DROPDOWN` across schema, codebase, and embed
+  - Prisma migration renames the enum value in-place
+  - `select-config.tsx` renamed to `dropdown-config.tsx`
+  - All type references, labels, and validation logic updated
+  - Existing forms with SELECT fields automatically handled by migration
+- **Email field config**: Fixed domain allow/block list textarea and improved UX
+- **Date field config**: Rewritten with cleaner UI and validation
+
+### Technical Details
+
+- Database migrations: `20250224000000_rename_select_to_dropdown` and `20260227212114_add_checkboxes_field_type`
+- New component: `src/components/field-config/checkboxes-config.tsx`
+- Updated: `src/lib/field-types.ts` (CHECKBOXES + Yes/No labels), `embed/src/form.ts`, `embed/src/validation.ts`, `embed/src/styles.ts`, `src/lib/public-submit.ts`
+- Embed rebuilt with new field type support
+- No changes to existing CHECKBOX (Yes/No) behavior or data shape
+
+---
+
 ## [4.6.0] - 2026-02-20
 
 ### Added

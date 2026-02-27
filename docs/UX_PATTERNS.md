@@ -1176,6 +1176,7 @@ The embed script (for public-facing forms) uses a different validation approach 
 **Special handling:**
 - NAME fields (composite) show popup on first visible part input
 - DROPDOWN "Other" inputs clear validation when typing starts
+- CHECKBOXES (multi-select) validate that at least one checkbox is checked when required; server-side also validates submitted values against the field's option list
 - Server-side validation errors also use native popups
 
 ### Error Display Styling
