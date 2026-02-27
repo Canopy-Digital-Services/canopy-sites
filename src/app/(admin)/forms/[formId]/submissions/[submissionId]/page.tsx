@@ -110,7 +110,11 @@ export default async function SubmissionDetailPage({
                   {key}
                 </div>
                 <div className="text-sm mt-1">
-                  {typeof value === "object"
+                  {typeof value === "boolean"
+                    ? value ? "Yes" : "No"
+                    : Array.isArray(value)
+                    ? (value as string[]).join(", ")
+                    : typeof value === "object"
                     ? JSON.stringify(value, null, 2)
                     : String(value)}
                 </div>
