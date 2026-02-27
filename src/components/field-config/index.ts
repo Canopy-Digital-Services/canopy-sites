@@ -10,6 +10,7 @@ import { DropdownConfig } from "./dropdown-config";
 import { PhoneConfig } from "./phone-config";
 import { DateConfig } from "./date-config";
 import { NameConfig } from "./name-config";
+import { CheckboxesConfig } from "./checkboxes-config";
 import { HiddenConfig } from "./hidden-config";
 import { ConfigComponentProps } from "./types";
 
@@ -25,6 +26,7 @@ const configRegistry: Partial<Record<FieldType, ConfigComponent>> = {
   PHONE: PhoneConfig,
   DATE: DateConfig,
   NAME: NameConfig,
+  CHECKBOXES: CheckboxesConfig,
   HIDDEN: HiddenConfig,
   // CHECKBOX has no config
 };

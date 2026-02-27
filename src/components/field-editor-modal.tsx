@@ -88,7 +88,7 @@ export function FieldEditorModal({
     
     // Initialize config based on field type
     const fieldType = field?.type as FieldType;
-    if (fieldType === "DROPDOWN" || fieldType === "NAME") {
+    if (fieldType === "DROPDOWN" || fieldType === "NAME" || fieldType === "CHECKBOXES") {
       setConfig(field?.options || undefined);
     } else {
       setConfig(field?.validation || undefined);
@@ -102,15 +102,17 @@ export function FieldEditorModal({
     
     // Clear config if switching between incompatible types
     if (
-      (oldType === "DROPDOWN" || oldType === "NAME") &&
+      (oldType === "DROPDOWN" || oldType === "NAME" || oldType === "CHECKBOXES") &&
       newType !== "DROPDOWN" &&
-      newType !== "NAME"
+      newType !== "NAME" &&
+      newType !== "CHECKBOXES"
     ) {
       setConfig(undefined);
     } else if (
-      (newType === "DROPDOWN" || newType === "NAME") &&
+      (newType === "DROPDOWN" || newType === "NAME" || newType === "CHECKBOXES") &&
       oldType !== "DROPDOWN" &&
-      oldType !== "NAME"
+      oldType !== "NAME" &&
+      oldType !== "CHECKBOXES"
     ) {
       setConfig(undefined);
     }
@@ -118,7 +120,7 @@ export function FieldEditorModal({
   };
 
   const ConfigComponent = getConfigComponent(type);
-  const showPlaceholder = type !== "CHECKBOX" && type !== "NAME" && type !== "HIDDEN" && type !== "DATE";
+  const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "HIDDEN" && type !== "DATE";
   const title = field ? "Edit Field" : "Add Field";
 
   const canSave = useMemo(() => {
@@ -126,8 +128,11 @@ export function FieldEditorModal({
       return false;
     }
 
-    // Validate DROPDOWN has options
-    if (type === "DROPDOWN" && config) {
+    // Validate DROPDOWN / CHECKBOXES have options
+    if ((type === "DROPDOWN" || type === "CHECKBOXES") && !config) {
+      return false;
+    }
+    if ((type === "DROPDOWN" || type === "CHECKBOXES") && config) {
       const selectConfig = config as { options?: FieldOption[] };
       const options = selectConfig.options;
       if (!options || !Array.isArray(options) || options.length === 0) {
@@ -181,7 +186,7 @@ export function FieldEditorModal({
     }
 
     // Assign config to appropriate field based on type
-    if (type === "DROPDOWN" || type === "NAME") {
+    if (type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES") {
       draft.options = config;
       draft.validation = undefined;
     } else if (ConfigComponent) {
