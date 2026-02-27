@@ -47,6 +47,10 @@ export type NameOptions = {
   partsRequired?: Record<string, boolean>;
 };
 
+export type CheckboxesOptions = {
+  options: DropdownOption[];
+};
+
 export type HiddenOptions = {
   valueSource: "static" | "urlParam" | "pageUrl" | "referrer";
   staticValue?: string;
@@ -94,6 +98,11 @@ export type FieldConfig =
       type: "CHECKBOX";
       validation?: never;
       options?: never;
+    }
+  | {
+      type: "CHECKBOXES";
+      validation?: never;
+      options: CheckboxesOptions;
     }
   | {
       type: "HIDDEN";
