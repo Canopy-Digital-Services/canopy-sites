@@ -282,6 +282,9 @@ export class CanOForm {
         checkbox.type = "checkbox";
         checkbox.id = fieldId;
         checkbox.name = field.name;
+        checkbox.addEventListener("change", () => {
+          checkbox.setCustomValidity("");
+        });
         checkboxWrapper.appendChild(checkbox);
         const text = document.createElement("span");
         text.textContent = field.label || field.name;
@@ -321,8 +324,11 @@ export class CanOForm {
           cb.type = "checkbox";
           cb.name = field.name;
           cb.value = option.value;
-          cb.addEventListener("input", () => {
-            pseudoCbInput.setCustomValidity("");
+          cb.addEventListener("change", () => {
+            // showErrors sets validity on the first checkbox in the group,
+            // so clear it there (not on the hidden pseudo-input)
+            const firstCb = checkboxesWrapper.querySelector("input[type=checkbox]") as HTMLInputElement;
+            if (firstCb) firstCb.setCustomValidity("");
           });
 
           const span = document.createElement("span");
@@ -709,9 +715,23 @@ export class CanOForm {
 
     this.setStatus("", "info");
     
-    // Clear any previous validation state
-    this.fieldElements.forEach((element) => {
+    // Clear any previous validation state (including visible inputs for pseudo-input fields)
+    this.fieldElements.forEach((element, name) => {
       element.input.setCustomValidity("");
+      if (element.input.type === "hidden") {
+        const checkboxGroup = this.container.querySelector(
+          `[data-checkbox-group="${name}"]`
+        );
+        if (checkboxGroup) {
+          const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
+          if (firstCb) firstCb.setCustomValidity("");
+        } else {
+          const partInput = this.container.querySelector(
+            `input[data-name-field="${name}"]`
+          ) as HTMLInputElement;
+          if (partInput) partInput.setCustomValidity("");
+        }
+      }
     });
     
     const values = this.collectValues();
