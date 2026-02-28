@@ -11,6 +11,7 @@ export function BrandMark({ size = "md", tagline, className }: BrandMarkProps) {
 
   return (
     <div className={cn("flex items-center", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- Static SVG brand asset; next/image adds unnecessary overhead for inline SVGs */}
       <img
         src="/brand/forms-logo-combined.svg"
         alt=""

@@ -51,17 +51,14 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
   const { toast } = useToast();
   const [formName, setFormName] = useState(form.name);
   const [panelType, setPanelType] = useState<"preview" | "integrate" | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // Auto-save form name with debouncing
   useEffect(() => {
     if (formName === form.name) return;
 
-    setSaveStatus("saving");
-    setIsSaving(true);
-
     const timeoutId = setTimeout(() => {
+      setSaveStatus("saving");
       void (async () => {
         try {
           await updateFormBasics(form.id, { name: formName });
@@ -71,8 +68,6 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
           console.error("Failed to save form name:", error);
           toast.error("Failed to save form name");
           setSaveStatus("idle");
-        } finally {
-          setIsSaving(false);
         }
       })();
     }, 1000); // 1 second debounce

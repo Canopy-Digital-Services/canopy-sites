@@ -32,7 +32,7 @@ export function DropdownConfig({
   onChange,
 }: ConfigComponentProps<DropdownOptions | undefined>) {
   const config = value || { options: [] };
-  const options = config.options || [];
+  const options = useMemo(() => config.options || [], [config.options]);
   const [showValidation, setShowValidation] = useState(false);
   const lastInputRef = useRef<HTMLInputElement>(null);
   const prevLengthRef = useRef(options.length);
@@ -111,7 +111,7 @@ export function DropdownConfig({
 
   const handleDefaultValueChange = (newValue: string) => {
     if (newValue === "none") {
-      const { defaultValue, ...rest } = config;
+      const rest = { options: config.options, allowOther: config.allowOther };
       onChange(rest.options.length > 0 ? rest : undefined);
     } else {
       onChange({ ...config, defaultValue: newValue });
@@ -122,7 +122,7 @@ export function DropdownConfig({
     if (checked) {
       onChange({ ...config, allowOther: true });
     } else {
-      const { allowOther, ...rest } = config;
+      const rest = { options: config.options, defaultValue: config.defaultValue };
       onChange(rest.options.length > 0 ? rest : undefined);
     }
   };

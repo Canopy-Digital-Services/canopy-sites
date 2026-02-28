@@ -69,6 +69,7 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
           type="button"
           role="combobox"
           aria-expanded={open}
+          aria-controls="font-picker-listbox"
           aria-haspopup="listbox"
           className={cn(
             "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
@@ -124,6 +125,7 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
           {/* Font list */}
           <div
             ref={listRef}
+            id="font-picker-listbox"
             role="listbox"
             className="max-h-60 overflow-y-auto p-1"
           >

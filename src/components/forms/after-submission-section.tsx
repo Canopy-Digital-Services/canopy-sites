@@ -49,7 +49,7 @@ export function AfterSubmissionSection({
 }: AfterSubmissionSectionProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // Determine initial radio selection based on existing data
@@ -170,9 +170,7 @@ export function AfterSubmissionSection({
     return () => clearTimeout(timeoutId);
   }, [
     formId,
-    // Note: afterSubmissionType is intentionally NOT in deps
-    // We only want to save when field values change, not when tabs switch
-    // The effect uses the current afterSubmissionType value to decide what to send
+    afterSubmissionType,
     successMessage,
     redirectUrl,
     emailNotificationsEnabled,
