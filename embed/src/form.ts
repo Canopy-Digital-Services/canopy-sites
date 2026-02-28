@@ -1,5 +1,8 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission, getEffectiveMaxLength } from "./validation";
+import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
+import type { FieldOption } from "./validation";
+
+type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
 type FormDefinition = {
   formId: string;
@@ -212,16 +215,16 @@ export class CanOForm {
         break;
       }
       case "DROPDOWN": {
-        const selectOpts = field.options as any;
-        const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts;
-        const options = isNewFormat ? selectOpts.options : (Array.isArray(field.options) ? field.options : []);
-        const defaultValue = isNewFormat ? selectOpts.defaultValue : undefined;
-        const allowOther = isNewFormat ? selectOpts.allowOther : false;
+        const selectOpts = field.options as DropdownOptions | FieldOption[] | undefined;
+        const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts && !Array.isArray(selectOpts);
+        const options = isNewFormat ? (selectOpts as DropdownOptions).options : (Array.isArray(selectOpts) ? selectOpts : []);
+        const defaultValue = isNewFormat ? (selectOpts as DropdownOptions).defaultValue : undefined;
+        const allowOther = isNewFormat ? (selectOpts as DropdownOptions).allowOther : false;
         
         const select = document.createElement("select");
         select.className = "canopy-select";
         
-        options.forEach((option: any) => {
+        options.forEach((option: FieldOption) => {
           const opt = document.createElement("option");
           opt.value = option.value;
           opt.textContent = option.label;
@@ -270,7 +273,7 @@ export class CanOForm {
           });
           
           // Store reference to other input for collectValues
-          (select as any).__otherInput = otherInput;
+          (select as SelectWithOther).__otherInput = otherInput;
         }
         
         break;
@@ -308,15 +311,15 @@ export class CanOForm {
         return { wrapper, input: checkbox, errorEl };
       }
       case "CHECKBOXES": {
-        const cbOpts = field.options as any;
-        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts;
-        const cbOptions = isNewFormat ? cbOpts.options : (Array.isArray(field.options) ? field.options : []);
+        const cbOpts = field.options as CheckboxesOptions | FieldOption[] | undefined;
+        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts && !Array.isArray(cbOpts);
+        const cbOptions = isNewFormat ? (cbOpts as CheckboxesOptions).options : (Array.isArray(cbOpts) ? cbOpts : []);
 
         const checkboxesWrapper = document.createElement("div");
         checkboxesWrapper.className = "canopy-checkboxes";
         checkboxesWrapper.setAttribute("data-checkbox-group", field.name);
 
-        cbOptions.forEach((option: any) => {
+        cbOptions.forEach((option: FieldOption) => {
           const itemLabel = document.createElement("label");
           itemLabel.className = "canopy-checkbox";
 
@@ -385,7 +388,7 @@ export class CanOForm {
         date.type = "date";
         date.className = "canopy-input";
         // Apply min/max from validation if present
-        const validation = field.validation as any;
+        const validation = field.validation;
         if (validation) {
           if (validation.minDate) {
             date.min = this.resolveDate(validation.minDate);
@@ -407,7 +410,7 @@ export class CanOForm {
         const numberInput = document.createElement("input");
         numberInput.type = "number";
         numberInput.className = "canopy-input";
-        const numValidation = field.validation as any;
+        const numValidation = field.validation;
         if (numValidation?.integer) {
           numberInput.setAttribute("inputmode", "numeric");
           numberInput.setAttribute("step", "1");
@@ -463,8 +466,8 @@ export class CanOForm {
     wrapper.appendChild(input);
     
     // If this is a DROPDOWN with "Other" option, add the other input
-    if ((input as any).__otherInput) {
-      wrapper.appendChild((input as any).__otherInput);
+    if ((input as SelectWithOther).__otherInput) {
+      wrapper.appendChild((input as SelectWithOther).__otherInput!);
     }
     
     // Add help text if provided
@@ -505,7 +508,7 @@ export class CanOForm {
 
     wrapper.appendChild(label);
 
-    const options = (field.options as any) || { parts: ["first", "last"] };
+    const options = (field.options as NameOptions) || { parts: ["first", "last"] };
     const parts = options.parts || ["first", "last"];
     const partLabels = options.partLabels || {};
     const partsRequired = options.partsRequired || {};
@@ -622,8 +625,8 @@ export class CanOForm {
         }
       } else if (element.input instanceof HTMLSelectElement) {
         // Check if "Other" option was selected
-        if (element.input.value === "__other__" && (element.input as any).__otherInput) {
-          data[name] = (element.input as any).__otherInput.value;
+        if (element.input.value === "__other__" && (element.input as SelectWithOther).__otherInput) {
+          data[name] = (element.input as SelectWithOther).__otherInput!.value;
         } else {
           data[name] = element.input.value;
         }

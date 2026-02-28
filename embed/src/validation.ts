@@ -13,6 +13,9 @@ type FieldValidation = {
     block?: string[];
   };
   normalize?: boolean;
+  min?: number;
+  max?: number;
+  integer?: boolean;
 };
 
 type NameOptions = {
@@ -134,7 +137,7 @@ export function validateSubmission(
       }
       
       // Check domain rules
-      const domainRules = (field.validation as any)?.domainRules;
+      const domainRules = field.validation?.domainRules;
       if (domainRules) {
         const domain = stringValue.split("@")[1]?.toLowerCase();
         
@@ -158,7 +161,7 @@ export function validateSubmission(
 
     if (field.type === "PHONE") {
       const stringValue = String(value);
-      const format = (field.validation as any)?.format || "lenient";
+      const format = field.validation?.format || "lenient";
       
       if (format === "lenient") {
         // Allow digits, spaces, dashes, parens, plus sign, min 7 chars
@@ -207,7 +210,7 @@ export function validateSubmission(
       today.setHours(0, 0, 0, 0);
       dateValue.setHours(0, 0, 0, 0);
 
-      const validation = field.validation as any;
+      const validation = field.validation;
       
       if (validation?.noFuture && dateValue > today) {
         errors[field.name] = `${label} cannot be a future date.`;
@@ -252,7 +255,7 @@ export function validateSubmission(
         errors[field.name] = `${label} must be a number.`;
         return;
       }
-      const numValidation = field.validation as any;
+      const numValidation = field.validation;
       if (numValidation?.integer && !Number.isInteger(num)) {
         errors[field.name] = `${label} must be a whole number.`;
         return;
@@ -371,5 +374,5 @@ export function validateSubmission(
   return errors;
 }
 
-export type { FieldDefinition, FieldValidation, FieldOption };
+export type { FieldDefinition, FieldValidation, FieldOption, DropdownOptions, CheckboxesOptions, NameOptions };
 export { getEffectiveMaxLength };
