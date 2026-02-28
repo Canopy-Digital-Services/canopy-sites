@@ -1,0 +1,12 @@
+---
+description: Pre-commit verification — run checks and doc impact scan before committing
+alwaysApply: true
+---
+
+# Pre-Commit Verification
+
+Before committing any changes:
+
+1. Run `npm run build && npm run lint` — both must pass.
+2. Check the **documentation impact table** in `docs/VERIFICATION_CHECKLIST.md` — if your changes match a trigger, update the listed doc.
+3. For high-risk changes (schema, embed, auth, deployment), run the additional checks specified in `docs/VERIFICATION_CHECKLIST.md`.

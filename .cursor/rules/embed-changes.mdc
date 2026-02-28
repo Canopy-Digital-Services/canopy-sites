@@ -1,0 +1,14 @@
+---
+description: Embed build protocol — rebuild required, docs may need updating
+globs: embed/src/**
+alwaysApply: false
+---
+
+# Embed Change Protocol
+
+When modifying files in `embed/src/`:
+
+1. **Rebuild**: Run `npm run embed:build` after your changes.
+2. **Commit `public/embed.js`** alongside your source changes. Never edit `public/embed.js` directly.
+3. **Check doc impact**: If you changed theme defaults, validation behavior, or the embed rendering approach, update the relevant sections in `docs/UX_PATTERNS.md` (Embed Forms, Embed Form Validation).
+4. **Browser cache**: Embedded forms are cached. Users may need a hard refresh to see changes.

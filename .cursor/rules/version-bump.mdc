@@ -1,0 +1,16 @@
+---
+description: Version bump protocol — follow the release checklist exactly
+globs: package.json
+alwaysApply: false
+---
+
+# Version Bump Protocol
+
+If you are bumping the `version` field in `package.json`, follow the release checklist in `docs/AGENT_CONTEXT.md` section 9. All four steps must be completed:
+
+1. `package.json` — bump version.
+2. `CHANGELOG.md` — add version entry with changes.
+3. `docs/epics/epic-N-name.md` — create completion report (if this is an epic).
+4. `docs/epics/README.md` — add row to epic table (if this is an epic).
+
+No other file contains version-specific information. If you add one, update the section 9 checklist.

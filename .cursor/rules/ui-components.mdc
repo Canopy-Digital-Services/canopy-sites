@@ -1,0 +1,16 @@
+---
+description: UI component conventions — follow UX_PATTERNS.md, update if adding new patterns
+globs: src/components/**
+alwaysApply: false
+---
+
+# UI Component Conventions
+
+When modifying or creating components in `src/components/`:
+
+1. **Read `docs/UX_PATTERNS.md` first** if you haven't this session. It covers colors, typography, dialogs, toasts, sortable lists, layout patterns, validation, and anti-patterns.
+2. **Never use `alert()`, `confirm()`, or `prompt()`** — use `toast` and `ConfirmDialog`.
+3. **Never use Up/Down buttons for reordering** — use `SortableList`.
+4. **Always add tooltips to icon-only buttons.**
+5. **Use `font-heading`** (Urbanist) for all headings/titles.
+6. **If you introduce a new pattern** (component, layout, validation approach), add it to `docs/UX_PATTERNS.md`.
