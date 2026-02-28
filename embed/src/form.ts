@@ -1,6 +1,7 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
 import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
-import type { FieldOption } from "./validation";
+import type { FieldOption, AddressOptions } from "./validation";
+import { US_STATES } from "./us-states";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
@@ -431,6 +432,9 @@ export class CanOForm {
         // Handle NAME as a composite field
         return this.createNameField(field);
       }
+      case "ADDRESS": {
+        return this.createAddressField(field);
+      }
       default: {
         const text = document.createElement("input");
         text.type = "text";
@@ -584,6 +588,128 @@ export class CanOForm {
     return { wrapper, input: pseudoInput, errorEl };
   }
 
+  private createAddressField(field: FieldDefinition) {
+    const fieldId = `${this.instanceId}-${field.name}`;
+    const options = (field.options as AddressOptions) || {};
+    const wrapper = document.createElement("div");
+    wrapper.className = "canopy-field canopy-address-group";
+
+    const label = document.createElement("label");
+    label.className = "canopy-label";
+    label.textContent = field.label || "Address";
+
+    if (field.required) {
+      const required = document.createElement("span");
+      required.className = "canopy-required";
+      required.textContent = " *";
+      label.appendChild(required);
+    }
+
+    wrapper.appendChild(label);
+
+    const partsWrapper = document.createElement("div");
+    partsWrapper.className = "canopy-address-parts";
+
+    const pseudoInput = document.createElement("input");
+    pseudoInput.type = "hidden";
+    pseudoInput.id = fieldId;
+    pseudoInput.name = field.name;
+
+    const errorEl = document.createElement("span");
+    errorEl.className = "canopy-error";
+    errorEl.id = `${fieldId}-error`;
+
+    type AddressPart = {
+      key: string;
+      label: string;
+      tag: "input" | "select";
+      attrs?: Record<string, string>;
+    };
+
+    const parts: AddressPart[] = [
+      { key: "line1", label: "Street Address", tag: "input" },
+    ];
+    if (options.showLine2 !== false) {
+      parts.push({ key: "line2", label: "Apt, Suite, etc.", tag: "input" });
+    }
+    parts.push(
+      { key: "city", label: "City", tag: "input" },
+      { key: "region", label: "State", tag: "select" },
+      { key: "postalCode", label: "ZIP Code", tag: "input", attrs: { maxlength: "10", inputmode: "numeric" } },
+    );
+
+    parts.forEach((part) => {
+      const partWrapper = document.createElement("div");
+      partWrapper.className = "canopy-address-part";
+
+      const partLabel = document.createElement("label");
+      partLabel.className = "canopy-address-part-label";
+      const partId = `${fieldId}-${part.key}`;
+      partLabel.htmlFor = partId;
+      partLabel.textContent = part.label;
+
+      let partInput: HTMLInputElement | HTMLSelectElement;
+
+      if (part.tag === "select") {
+        const select = document.createElement("select");
+        select.className = "canopy-select";
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Select...";
+        select.appendChild(placeholder);
+
+        US_STATES.forEach((state) => {
+          const opt = document.createElement("option");
+          opt.value = state.value;
+          opt.textContent = state.label;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener("change", () => {
+          select.setCustomValidity("");
+        });
+
+        partInput = select;
+      } else {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "canopy-input";
+
+        if (part.attrs) {
+          Object.entries(part.attrs).forEach(([k, v]) => input.setAttribute(k, v));
+        }
+
+        input.addEventListener("input", () => {
+          input.setCustomValidity("");
+        });
+
+        partInput = input;
+      }
+
+      partInput.id = partId;
+      partInput.setAttribute("data-address-part", part.key);
+      partInput.setAttribute("data-address-field", field.name);
+
+      partWrapper.appendChild(partLabel);
+      partWrapper.appendChild(partInput);
+      partsWrapper.appendChild(partWrapper);
+    });
+
+    wrapper.appendChild(partsWrapper);
+
+    if (field.helpText) {
+      const helpTextEl = document.createElement("p");
+      helpTextEl.className = "canopy-help-text";
+      helpTextEl.textContent = field.helpText;
+      wrapper.appendChild(helpTextEl);
+    }
+
+    wrapper.appendChild(errorEl);
+
+    return { wrapper, input: pseudoInput, errorEl };
+  }
+
   private collectValues() {
     const data: Record<string, unknown> = {};
     this.fieldElements.forEach((element, name) => {
@@ -617,7 +743,20 @@ export class CanOForm {
               });
               data[name] = nameValue;
             } else {
-              data[name] = element.input.value;
+              // Check if this is an ADDRESS field
+              const addressInputs = this.container.querySelectorAll(
+                `input[data-address-field="${name}"], select[data-address-field="${name}"]`
+              );
+              if (addressInputs.length > 0) {
+                const addrValue: Record<string, string> = {};
+                addressInputs.forEach((el) => {
+                  const part = (el as HTMLElement).getAttribute("data-address-part");
+                  if (part) addrValue[part] = (el as HTMLInputElement | HTMLSelectElement).value;
+                });
+                data[name] = addrValue;
+              } else {
+                data[name] = element.input.value;
+              }
             }
           }
         } else {
@@ -658,6 +797,13 @@ export class CanOForm {
           ) as HTMLInputElement;
           if (partInput) {
             partInput.setCustomValidity(message);
+          } else {
+            const addressInput = this.container.querySelector(
+              `input[data-address-field="${name}"], select[data-address-field="${name}"]`
+            ) as HTMLInputElement | null;
+            if (addressInput) {
+              addressInput.setCustomValidity(message);
+            }
           }
         }
       } else {
@@ -692,6 +838,14 @@ export class CanOForm {
             if (partInput) {
               partInput.reportValidity();
               partInput.focus();
+            } else {
+              const addressInput = this.container.querySelector(
+                `input[data-address-field="${errorKeys[0]}"], select[data-address-field="${errorKeys[0]}"]`
+              ) as HTMLInputElement | null;
+              if (addressInput) {
+                addressInput.reportValidity();
+                addressInput.focus();
+              }
             }
           }
         } else {
@@ -732,11 +886,18 @@ export class CanOForm {
           const partInput = this.container.querySelector(
             `input[data-name-field="${name}"]`
           ) as HTMLInputElement;
-          if (partInput) partInput.setCustomValidity("");
+          if (partInput) {
+            partInput.setCustomValidity("");
+          } else {
+            const addressInput = this.container.querySelector(
+              `input[data-address-field="${name}"], select[data-address-field="${name}"]`
+            ) as HTMLInputElement | null;
+            if (addressInput) addressInput.setCustomValidity("");
+          }
         }
       }
     });
-    
+
     const values = this.collectValues();
     const errors = validateSubmission(this.formDefinition.fields, values);
     this.showErrors(errors);

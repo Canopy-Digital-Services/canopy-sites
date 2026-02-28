@@ -34,6 +34,10 @@ type CheckboxesOptions = {
   options: FieldOption[];
 };
 
+type AddressOptions = {
+  showLine2?: boolean;
+};
+
 type FieldDefinition = {
   name: string;
   type: string;
@@ -41,7 +45,7 @@ type FieldDefinition = {
   placeholder?: string;
   required: boolean;
   helpText?: string;
-  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions;
+  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions | AddressOptions;
   validation?: FieldValidation;
 };
 
@@ -91,6 +95,8 @@ export function validateSubmission(
         }
       } else if (field.type === "NAME") {
         // NAME validation handled below
+      } else if (field.type === "ADDRESS") {
+        // ADDRESS validation handled below
       } else if (
         value === undefined ||
         value === null ||
@@ -119,8 +125,8 @@ export function validateSubmission(
       return;
     }
 
-    if (field.type === "NAME") {
-      // NAME is always validated (handle required per-part)
+    if (field.type === "NAME" || field.type === "ADDRESS") {
+      // NAME and ADDRESS are always validated (handle required per-part)
     } else if (value === undefined || value === null || String(value).trim() === "") {
       return;
     }
@@ -293,6 +299,31 @@ export function validateSubmission(
       return;
     }
 
+    if (field.type === "ADDRESS") {
+      const addr = value as Record<string, string> | undefined;
+      const options = (field.options as AddressOptions) || {};
+      const coreKeys = ["line1", "city", "region", "postalCode"];
+      const allKeys = options.showLine2 !== false
+        ? ["line1", "line2", "city", "region", "postalCode"]
+        : coreKeys;
+
+      const anyFilled = allKeys.some(k => addr?.[k]?.trim());
+
+      if (!anyFilled && !field.required) return;
+
+      const labels: Record<string, string> = {
+        line1: "Street address", city: "City",
+        region: "State", postalCode: "ZIP code",
+      };
+      for (const key of coreKeys) {
+        if (!addr?.[key]?.trim()) {
+          errors[field.name] = `${labels[key]} is required.`;
+          return;
+        }
+      }
+      return;
+    }
+
     if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
       const optionValues = (field.options as FieldOption[]).map(
         (option) => option.value
@@ -374,5 +405,5 @@ export function validateSubmission(
   return errors;
 }
 
-export type { FieldDefinition, FieldValidation, FieldOption, DropdownOptions, CheckboxesOptions, NameOptions };
+export type { FieldDefinition, FieldValidation, FieldOption, DropdownOptions, CheckboxesOptions, NameOptions, AddressOptions };
 export { getEffectiveMaxLength };

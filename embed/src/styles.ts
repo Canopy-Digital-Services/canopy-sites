@@ -127,6 +127,22 @@ export const baseStyles = `
   color: var(--canopy-text, #18181b);
 }
 
+.canopy-address-parts {
+  display: grid;
+  gap: 12px;
+}
+
+.canopy-address-part {
+  display: grid;
+  gap: 4px;
+}
+
+.canopy-address-part-label {
+  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
 .canopy-root .canopy-submit {
   display: block;
   width: var(--canopy-button-width, 100%);
