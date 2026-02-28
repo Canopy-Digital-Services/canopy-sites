@@ -246,6 +246,28 @@ export function validateSubmission(
       }
     }
 
+    if (field.type === "NUMBER") {
+      const num = Number(value);
+      if (isNaN(num)) {
+        errors[field.name] = `${label} must be a number.`;
+        return;
+      }
+      const numValidation = field.validation as any;
+      if (numValidation?.integer && !Number.isInteger(num)) {
+        errors[field.name] = `${label} must be a whole number.`;
+        return;
+      }
+      if (numValidation?.min !== undefined && num < numValidation.min) {
+        errors[field.name] = `${label} must be at least ${numValidation.min}.`;
+        return;
+      }
+      if (numValidation?.max !== undefined && num > numValidation.max) {
+        errors[field.name] = `${label} must be at most ${numValidation.max}.`;
+        return;
+      }
+      return;
+    }
+
     if (field.type === "NAME") {
       const nameValue = value as Record<string, string>;
       const options = (field.options as NameOptions) || { parts: ["first", "last"] };

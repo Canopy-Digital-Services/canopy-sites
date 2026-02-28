@@ -397,6 +397,27 @@ export class CanOForm {
         input = date;
         break;
       }
+      case "NUMBER": {
+        const numberInput = document.createElement("input");
+        numberInput.type = "number";
+        numberInput.className = "canopy-input";
+        const numValidation = field.validation as any;
+        if (numValidation?.integer) {
+          numberInput.setAttribute("inputmode", "numeric");
+          numberInput.setAttribute("step", "1");
+        } else {
+          numberInput.setAttribute("inputmode", "decimal");
+          numberInput.setAttribute("step", "any");
+        }
+        if (numValidation?.min !== undefined) {
+          numberInput.setAttribute("min", String(numValidation.min));
+        }
+        if (numValidation?.max !== undefined) {
+          numberInput.setAttribute("max", String(numValidation.max));
+        }
+        input = numberInput;
+        break;
+      }
       case "NAME": {
         // Handle NAME as a composite field
         return this.createNameField(field);
