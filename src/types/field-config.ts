@@ -29,6 +29,12 @@ export type DateValidation = {
   maxDate?: string; // ISO string or "today"
 };
 
+export type NumberValidation = {
+  min?: number;
+  max?: number;
+  integer?: boolean;
+};
+
 // Type-specific options
 export type DropdownOption = {
   value: string;
@@ -97,6 +103,11 @@ export type FieldConfig =
       type: "CHECKBOXES";
       validation?: never;
       options: CheckboxesOptions;
+    }
+  | {
+      type: "NUMBER";
+      validation?: NumberValidation;
+      options?: never;
     };
 
 // Helper type for extracting validation type from field type

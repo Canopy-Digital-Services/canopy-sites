@@ -299,6 +299,31 @@ function validateFields(
       }
     }
 
+    if (field.type === "NUMBER") {
+      const num = Number(value);
+      if (isNaN(num)) {
+        errors[field.name] = `${label} must be a number.`;
+        continue;
+      }
+      const numValidation =
+        typeof field.validation === "object" && field.validation !== null
+          ? (field.validation as { min?: number; max?: number; integer?: boolean })
+          : undefined;
+      if (numValidation?.integer && !Number.isInteger(num)) {
+        errors[field.name] = `${label} must be a whole number.`;
+        continue;
+      }
+      if (numValidation?.min !== undefined && num < numValidation.min) {
+        errors[field.name] = `${label} must be at least ${numValidation.min}.`;
+        continue;
+      }
+      if (numValidation?.max !== undefined && num > numValidation.max) {
+        errors[field.name] = `${label} must be at most ${numValidation.max}.`;
+        continue;
+      }
+      continue;
+    }
+
     if (field.type === "NAME") {
       const nameValue = value as Record<string, any>;
       const options =
