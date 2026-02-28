@@ -1,7 +1,7 @@
 # Next.js 16 Documentation
 
 **Last Updated:** January 2025  
-**Current Version:** 16.1.4  
+**Current Version:** 16.1.6
 **Official Docs:** https://nextjs.org/docs
 
 ## Overview
@@ -413,7 +413,7 @@ export default async function AdminLayout({
 ## Project-Specific Notes
 
 This project (Canopy Forms) currently:
-- ✅ Using Next.js 16.1.4
+- ✅ Using Next.js 16.1.6
 - ✅ Already using async `params` correctly (awaiting them)
 - ⚠️ Has `proxy.ts` but using old `NextRequest`/`NextResponse` API
   - Should migrate to `ProxyRequest`/`ProxyResponse`

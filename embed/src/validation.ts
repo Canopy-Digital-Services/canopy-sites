@@ -31,12 +31,6 @@ type CheckboxesOptions = {
   options: FieldOption[];
 };
 
-type HiddenOptions = {
-  valueSource: "static" | "urlParam" | "pageUrl" | "referrer";
-  staticValue?: string;
-  paramName?: string;
-};
-
 type FieldDefinition = {
   name: string;
   type: string;
@@ -44,7 +38,7 @@ type FieldDefinition = {
   placeholder?: string;
   required: boolean;
   helpText?: string;
-  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions | HiddenOptions;
+  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions;
   validation?: FieldValidation;
 };
 

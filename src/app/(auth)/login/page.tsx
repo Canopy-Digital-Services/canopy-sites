@@ -81,6 +81,7 @@ export default function LoginPage() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-center py-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/forms-logo-full.svg"
             alt=""
@@ -149,7 +150,7 @@ export default function LoginPage() {
           )}
           {serverError && <p className="text-sm text-destructive">{serverError}</p>}
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline">
               Create account
             </Link>

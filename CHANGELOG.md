@@ -5,6 +5,22 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.1] - 2026-02-28
+
+### Removed
+
+- **HIDDEN field type**: Removed from the field type picker, schema, embed renderer, and all type definitions to simplify the MVP. Any existing HIDDEN fields in the database are migrated to TEXT.
+
+### Fixed
+
+- Removed several unused imports and variable bindings flagged by ESLint (`redirect` in `auth.ts`, `getOwnedForm` in `forms.ts`, `getCurrentUserId` in multiple pages, `Input` in reset-password page, unused `err` catch bindings)
+- Escaped unescaped apostrophes in JSX text in `forgot-password/page.tsx` and `login/page.tsx`
+- Added `eslint-disable` comment on brand SVG `<img>` in login page (not a candidate for Next.js image optimization)
+- Replaced `any` types in submissions pages/routes with `SubmissionStatus`, `Record<string, unknown>`, and specific meta types
+- Refactored `docs/[slug]/page.tsx` and `docs/page.tsx` to avoid returning JSX from inside `try/catch` blocks (`react-hooks/error-boundaries` rule)
+
+---
+
 ## [4.7.0] - 2026-02-27
 
 ### Added

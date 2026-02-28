@@ -29,44 +29,45 @@ export async function generateStaticParams() {
 
 export default async function DocPage({ params }: DocPageProps) {
   const { slug } = await params;
-  
+
+  const filePath = path.join(docsDir, `${slug}.md`);
+  let content = '';
   try {
-    const filePath = path.join(docsDir, `${slug}.md`);
-    const content = await fs.readFile(filePath, 'utf-8');
-
-    // Extract title from first # heading or use slug
-    const titleMatch = content.match(/^#\s+(.+)$/m);
-    const title = titleMatch 
-      ? titleMatch[1] 
-      : slug.split('-').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
-
-    return (
-      <div>
-        <div className="mb-6">
-          <Link href="/docs">
-            <Button variant="ghost" className="mb-4">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Docs
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-heading font-bold">{title}</h1>
-        </div>
-
-        <Markdown content={content} />
-
-        <div className="mt-8 border-t border-border pt-8">
-          <Link href="/docs">
-            <Button variant="ghost">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Documentation
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  } catch (error) {
+    content = await fs.readFile(filePath, 'utf-8');
+  } catch {
     notFound();
   }
+
+  // Extract title from first # heading or use slug
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  const title = titleMatch
+    ? titleMatch[1]
+    : slug.split('-').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+
+  return (
+    <div>
+      <div className="mb-6">
+        <Link href="/docs">
+          <Button variant="ghost" className="mb-4">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Docs
+          </Button>
+        </Link>
+        <h1 className="text-3xl font-heading font-bold">{title}</h1>
+      </div>
+
+      <Markdown content={content} />
+
+      <div className="mt-8 border-t border-border pt-8">
+        <Link href="/docs">
+          <Button variant="ghost">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Documentation
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
 }

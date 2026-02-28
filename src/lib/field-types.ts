@@ -26,7 +26,6 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "DROPDOWN" as const, label: "Dropdown" },
   { value: "CHECKBOX" as const, label: "Yes / No" },
   { value: "CHECKBOXES" as const, label: "Checkboxes" },
-  { value: "HIDDEN" as const, label: "Hidden" },
 ] as const;
 
 /**
@@ -53,7 +52,6 @@ export const FIELD_TYPE_LABEL_PLACEHOLDERS: Record<FieldType, string> = {
   DROPDOWN: "e.g. Country",
   CHECKBOX: "e.g. I agree to the terms",
   CHECKBOXES: "e.g. Which services interest you?",
-  HIDDEN: "e.g. Referral code",
 };
 
 /**
