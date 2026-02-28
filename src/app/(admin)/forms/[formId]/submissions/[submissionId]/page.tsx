@@ -3,6 +3,7 @@ import { SubmissionStatus } from "@prisma/client";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { formatCompositeValue, isCompositeFieldType } from "@/lib/composite-format";
 import { PageHeader } from "@/components/patterns/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,11 @@ export default async function SubmissionDetailPage({
     notFound();
   }
 
+  // Build field type/options map for composite value formatting
+  const fieldMap = new Map(
+    form.fields.map((f) => [f.name, { type: f.type, options: f.options }])
+  );
+
   const data = submission.data as Record<string, unknown>;
   const meta = submission.meta as {
     ipHash?: string;
@@ -114,8 +120,18 @@ export default async function SubmissionDetailPage({
                     ? value ? "Yes" : "No"
                     : Array.isArray(value)
                     ? (value as string[]).join(", ")
-                    : typeof value === "object"
-                    ? JSON.stringify(value, null, 2)
+                    : typeof value === "object" && value !== null
+                    ? (() => {
+                        const fieldInfo = fieldMap.get(key);
+                        if (fieldInfo && isCompositeFieldType(fieldInfo.type)) {
+                          return formatCompositeValue(
+                            fieldInfo.type,
+                            value as Record<string, unknown>,
+                            fieldInfo.options
+                          );
+                        }
+                        return JSON.stringify(value, null, 2);
+                      })()
                     : String(value)}
                 </div>
               </div>
