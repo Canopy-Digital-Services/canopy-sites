@@ -117,6 +117,8 @@ function validateFields(
         }
       } else if (field.type === "NAME") {
         // NAME validation handled below
+      } else if (field.type === "ADDRESS") {
+        // ADDRESS validation handled below
       } else if (
         value === undefined ||
         value === null ||
@@ -151,8 +153,8 @@ function validateFields(
       continue;
     }
 
-    if (field.type === "NAME") {
-      // NAME is always validated (handle required per-part)
+    if (field.type === "NAME" || field.type === "ADDRESS") {
+      // NAME and ADDRESS are always validated (handle required per-part)
     } else if (value === undefined || value === null || String(value).trim() === "") {
       continue;
     }
@@ -352,6 +354,37 @@ function validateFields(
       }
       
       // Skip further validation for NAME (no length/pattern checks on composite)
+      continue;
+    }
+
+    if (field.type === "ADDRESS") {
+      const addr = value as Record<string, string> | undefined;
+      const options =
+        typeof field.options === "object" && field.options !== null
+          ? (field.options as { showLine2?: boolean })
+          : {};
+      const coreKeys = ["line1", "city", "region", "postalCode"];
+      const allKeys = options.showLine2 !== false
+        ? ["line1", "line2", "city", "region", "postalCode"]
+        : coreKeys;
+
+      const anyFilled = allKeys.some(k => addr?.[k]?.trim());
+
+      if (!anyFilled && !field.required) continue;
+
+      const labels: Record<string, string> = {
+        line1: "Street address", city: "City",
+        region: "State", postalCode: "ZIP code",
+      };
+      let hasError = false;
+      for (const key of coreKeys) {
+        if (!addr?.[key]?.trim()) {
+          errors[field.name] = `${labels[key]} is required.`;
+          hasError = true;
+          break;
+        }
+      }
+      if (hasError) continue;
       continue;
     }
 
