@@ -130,6 +130,7 @@ enum FieldType {
   DATE
   NAME
   NUMBER
+  ADDRESS
 }
 
 // Password reset tokens

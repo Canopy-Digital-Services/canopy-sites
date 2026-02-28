@@ -57,6 +57,10 @@ export type CheckboxesOptions = {
   options: DropdownOption[];
 };
 
+export type AddressOptions = {
+  showLine2?: boolean;
+};
+
 // Field configuration discriminated union
 export type FieldConfig =
   | {
@@ -108,6 +112,11 @@ export type FieldConfig =
       type: "NUMBER";
       validation?: NumberValidation;
       options?: never;
+    }
+  | {
+      type: "ADDRESS";
+      validation?: never;
+      options?: AddressOptions;
     };
 
 // Helper type for extracting validation type from field type
