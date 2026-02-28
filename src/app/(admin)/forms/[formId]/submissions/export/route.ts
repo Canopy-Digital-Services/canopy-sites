@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 
@@ -39,7 +38,7 @@ export async function GET(
     if (format === "json") {
       // Build JSON export
       const jsonData = submissions.map((submission) => {
-        const meta = submission.meta as Record<string, any>;
+        const meta = submission.meta as { ipHash?: string; userAgent?: string; referrer?: string; origin?: string };
         return {
           id: submission.id,
           createdAt: submission.createdAt.toISOString(),
@@ -68,7 +67,7 @@ export async function GET(
     // Build CSV export (default)
     const allKeys = new Set<string>();
     submissions.forEach((submission) => {
-      const data = submission.data as Record<string, any>;
+      const data = submission.data as Record<string, unknown>;
       Object.keys(data).forEach((key) => allKeys.add(key));
     });
 
@@ -88,8 +87,8 @@ export async function GET(
     let csv = headers.map((h) => `"${h}"`).join(",") + "\n";
 
     submissions.forEach((submission) => {
-      const data = submission.data as Record<string, any>;
-      const meta = submission.meta as Record<string, any>;
+      const data = submission.data as Record<string, unknown>;
+      const meta = submission.meta as { ipHash?: string; userAgent?: string; referrer?: string; origin?: string };
 
       const row = [
         submission.id,

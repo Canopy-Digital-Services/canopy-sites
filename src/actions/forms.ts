@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
 import { FieldType } from "@prisma/client";
-import { getOwnedForm, getOwnedFormMinimal } from "@/lib/data-access/forms";
+import { getOwnedFormMinimal } from "@/lib/data-access/forms";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
 

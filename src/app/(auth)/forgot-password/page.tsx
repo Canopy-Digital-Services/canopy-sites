@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
       } else if (result.error) {
         setServerError(result.error);
       }
-    } catch (err) {
+    } catch {
       setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
             <div className="mb-4 space-y-1 text-center">
               <h2 className="text-xl font-semibold">Reset your password</h2>
               <p className="text-sm text-muted-foreground">
-                Enter your email address and we'll send you a reset link
+                Enter your email address and we&apos;ll send you a reset link
               </p>
             </div>
             <div className="space-y-2">

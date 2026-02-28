@@ -70,7 +70,7 @@ export default function SignupPage() {
         router.push("/forms");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);

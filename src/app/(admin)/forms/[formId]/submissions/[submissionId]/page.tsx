@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { SubmissionStatus } from "@prisma/client";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -21,7 +21,7 @@ async function updateStatus(
 
   await prisma.submission.update({
     where: { id: submissionId },
-    data: { status: status as any },
+    data: { status: status as SubmissionStatus },
   });
 
   redirect(`/forms/${formId}/submissions/${submissionId}`);

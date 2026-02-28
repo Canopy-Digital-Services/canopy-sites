@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -96,7 +95,7 @@ export default function ResetPasswordPage() {
         // Success - redirect to login
         router.push("/login?reset=success");
       }
-    } catch (err) {
+    } catch {
       setServerError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);

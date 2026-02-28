@@ -120,7 +120,7 @@ export function FieldEditorModal({
   };
 
   const ConfigComponent = getConfigComponent(type);
-  const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "HIDDEN" && type !== "DATE";
+  const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "DATE";
   const title = field ? "Edit Field" : "Add Field";
 
   const canSave = useMemo(() => {

@@ -51,12 +51,6 @@ export type CheckboxesOptions = {
   options: DropdownOption[];
 };
 
-export type HiddenOptions = {
-  valueSource: "static" | "urlParam" | "pageUrl" | "referrer";
-  staticValue?: string;
-  paramName?: string;
-};
-
 // Field configuration discriminated union
 export type FieldConfig =
   | {
@@ -103,11 +97,6 @@ export type FieldConfig =
       type: "CHECKBOXES";
       validation?: never;
       options: CheckboxesOptions;
-    }
-  | {
-      type: "HIDDEN";
-      validation?: never;
-      options: HiddenOptions;
     };
 
 // Helper type for extracting validation type from field type

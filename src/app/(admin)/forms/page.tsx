@@ -1,4 +1,3 @@
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { getUserForms } from "@/lib/data-access/forms";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";

@@ -177,36 +177,6 @@ export class CanOForm {
   private createField(field: FieldDefinition) {
     const fieldId = `${this.instanceId}-${field.name}`;
 
-    if (field.type === "HIDDEN") {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = field.name;
-      input.id = fieldId;
-      
-      // Set value based on configured source
-      const hiddenOpts = field.options as any;
-      if (hiddenOpts && typeof hiddenOpts === "object" && "valueSource" in hiddenOpts) {
-        const source = hiddenOpts.valueSource;
-        
-        if (source === "static") {
-          input.value = hiddenOpts.staticValue || "";
-        } else if (source === "urlParam") {
-          const paramName = hiddenOpts.paramName;
-          if (paramName) {
-            const urlParams = new URLSearchParams(window.location.search);
-            input.value = urlParams.get(paramName) || "";
-          }
-        } else if (source === "pageUrl") {
-          input.value = window.location.href;
-        } else if (source === "referrer") {
-          input.value = document.referrer;
-        }
-      }
-      
-      const errorEl = document.createElement("span");
-      return { wrapper: null, input, errorEl };
-    }
-
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field";
 

@@ -1,4 +1,4 @@
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { SubmissionStatus } from "@prisma/client";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -34,20 +34,21 @@ export default async function SubmissionsPage({
   }
 
   // Build filters
-  const filters: any = { formId };
-
-  if (searchParams.status && searchParams.status !== "all") {
-    filters.status = searchParams.status.toUpperCase();
-  }
-
-  if (searchParams.spam === "yes") {
-    filters.isSpam = true;
-  } else if (searchParams.spam === "no") {
-    filters.isSpam = false;
-  }
+  const statusValue = searchParams.status && searchParams.status !== "all"
+    ? searchParams.status.toUpperCase() as SubmissionStatus
+    : undefined;
+  const spamValue = searchParams.spam === "yes"
+    ? true
+    : searchParams.spam === "no"
+    ? false
+    : undefined;
 
   const submissions = await prisma.submission.findMany({
-    where: filters,
+    where: {
+      formId,
+      ...(statusValue !== undefined ? { status: statusValue } : {}),
+      ...(spamValue !== undefined ? { isSpam: spamValue } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
@@ -82,7 +83,7 @@ export default async function SubmissionsPage({
       key: "preview",
       header: "Preview",
       cell: (submission: typeof submissions[0]) => {
-        const data = submission.data as Record<string, any>;
+        const data = submission.data as Record<string, unknown>;
         const preview = Object.entries(data)
           .slice(0, 2)
           .map(([key, value]) => `${key}: ${String(value).substring(0, 30)}`)

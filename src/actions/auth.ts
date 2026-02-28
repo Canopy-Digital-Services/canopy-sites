@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
 import { auth, signIn, signOut } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
-import { redirect } from "next/navigation";
 
 /**
  * Sign up a new user with email and password
@@ -37,7 +36,7 @@ export async function signUp(formData: FormData) {
     const hashedPassword = await hashPassword(password);
 
     // Create account and user together
-    const account = await prisma.account.create({
+    await prisma.account.create({
       data: {
         user: {
           create: {
