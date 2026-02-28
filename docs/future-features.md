@@ -49,3 +49,5 @@
 - Requires email verification flow (token-based)
 - Should invalidate any existing sessions or prompt re-login after confirmed change
 - Guard against email enumeration during the verification step
+
+**Future enhancement:** Multiple titled sections on the form

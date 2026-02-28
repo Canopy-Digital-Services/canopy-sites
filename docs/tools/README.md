@@ -14,6 +14,10 @@ This directory contains up-to-date documentation for the tools and technologies 
 - **When implementing new features** that rely on these technologies
 - **Before suggesting code patterns** - verify current best practices
 
+### When to Update Documentation
+
+If you used a wrong or malformed command, API, or pattern because of outdated training data (e.g. wrong CLI syntax, deprecated API, incorrect flag), **update the relevant tool doc** in this directory. Add a note, correct an example, or document the current syntax so future agents don't repeat the mistake.
+
 ### Quick Reference Guide
 
 | Tool | Documentation | When to Read |
