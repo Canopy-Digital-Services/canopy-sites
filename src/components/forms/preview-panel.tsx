@@ -21,20 +21,13 @@ type PreviewPanelProps = {
 
 export function PreviewPanel({ open, onClose, form }: PreviewPanelProps) {
   // Always use the current window origin - initialize correctly on client
-  const [embedUrl, setEmbedUrl] = useState<string>(() => {
+  const [embedUrl] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return window.location.origin;
     }
     return "https://forms.canopyds.com"; // Fallback for SSR
   });
   
-  // Ensure we have the correct origin after hydration
-  useEffect(() => {
-    if (typeof window !== "undefined" && embedUrl !== window.location.origin) {
-      setEmbedUrl(window.location.origin);
-    }
-  }, [embedUrl]);
-
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

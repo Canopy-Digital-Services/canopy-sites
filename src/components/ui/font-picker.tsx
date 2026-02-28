@@ -39,12 +39,17 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
     setSearch("");
   }, [onChange]);
 
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setSearch("");
+    }
+  }, []);
+
   // Focus search input when popover opens
   useEffect(() => {
     if (open) {
       setTimeout(() => searchRef.current?.focus(), 0);
-    } else {
-      setSearch("");
     }
   }, [open]);
 
@@ -57,7 +62,7 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
   }, [open]);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
           id={id}

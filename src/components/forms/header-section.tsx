@@ -23,9 +23,8 @@ export function HeaderSection({ formId, title: initialTitle, description: initia
     const currentTitle = title || null;
     if (currentTitle === initialTitle) return;
 
-    setSaveStatus("saving");
-
     const timeoutId = setTimeout(() => {
+      setSaveStatus("saving");
       void (async () => {
         try {
           await updateFormHeader(formId, { title: title || null });
@@ -45,9 +44,8 @@ export function HeaderSection({ formId, title: initialTitle, description: initia
     const currentDescription = description || null;
     if (currentDescription === initialDescription) return;
 
-    setSaveStatus("saving");
-
     const timeoutId = setTimeout(() => {
+      setSaveStatus("saving");
       void (async () => {
         try {
           await updateFormHeader(formId, { description: description || null });

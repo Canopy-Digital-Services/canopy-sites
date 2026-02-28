@@ -248,7 +248,7 @@ export function DropdownConfig({
                 htmlFor="select-allow-other"
                 className="text-sm font-normal cursor-pointer"
               >
-                Allow "Other" with text input field
+                Allow &quot;Other&quot; with text input field
               </Label>
             </div>
           </div>

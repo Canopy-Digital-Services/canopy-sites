@@ -32,8 +32,11 @@ export function Markdown({ content }: MarkdownProps) {
           li: ({ children }) => (
             <li className="leading-7">{children}</li>
           ),
-          code: ({ inline, className, children, ...props }: any) => {
-            if (inline) {
+          code: ({ className, children, ...props }) => {
+            // In react-markdown v10+, inline code is rendered as <code> without a parent <pre>.
+            // Block code gets a className like "language-xxx". Use that as a heuristic.
+            const isBlock = Boolean(className);
+            if (!isBlock) {
               return (
                 <code
                   className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono"

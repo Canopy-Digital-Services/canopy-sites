@@ -175,9 +175,8 @@ export function AppearanceSection({
 
     if (!hasChanges) return;
 
-    setSaveStatus("saving");
-
     const timeoutId = setTimeout(() => {
+      setSaveStatus("saving");
       startTransition(() => {
         void (async () => {
           try {

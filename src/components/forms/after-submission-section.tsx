@@ -142,9 +142,8 @@ export function AfterSubmissionSection({
 
     if (!hasChanges) return;
 
-    setSaveStatus("saving");
-
     const timeoutId = setTimeout(() => {
+      setSaveStatus("saving");
       startTransition(() => {
         void (async () => {
           try {

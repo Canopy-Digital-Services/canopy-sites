@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
@@ -124,8 +125,8 @@ export async function POST(
     const submission = await prisma.submission.create({
       data: {
         formId: form.id,
-        data: formData as any,
-        meta: meta as any,
+        data: formData as Prisma.InputJsonValue,
+        meta: meta as Prisma.InputJsonValue,
         isSpam,
         status: "NEW",
       },

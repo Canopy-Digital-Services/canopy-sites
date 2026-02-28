@@ -30,7 +30,7 @@ export function EmailConfig({
   });
 
 
-  const handleChange = (key: keyof EmailValidation, newValue: any) => {
+  const handleChange = (key: keyof EmailValidation, newValue: EmailValidation[keyof EmailValidation]) => {
     const updated = { ...validation };
 
     if (key === "normalize") {
@@ -40,8 +40,8 @@ export function EmailConfig({
         delete updated[key];
       }
     } else if (key === "domainRules") {
-      if (newValue) {
-        updated[key] = newValue;
+      if (newValue && typeof newValue === "object") {
+        updated[key] = newValue as EmailValidation["domainRules"];
       } else {
         delete updated[key];
       }
