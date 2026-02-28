@@ -143,7 +143,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
           <TabsContent value="single-field" className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
               <p>
-                Use these URLs when integrating with external tools that don't support
+                Use these URLs when integrating with external tools that don&apos;t support
                 custom JSON payloads. Each field has its own dedicated endpoint.
               </p>
             </div>

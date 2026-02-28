@@ -1,7 +1,8 @@
-/* eslint-disable no-console */
-const esbuild = require("esbuild");
-const path = require("path");
+import esbuild from "esbuild";
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const entry = path.join(__dirname, "src", "index.ts");
 const outfile = path.join(__dirname, "..", "public", "embed.js");
 

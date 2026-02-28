@@ -3,7 +3,7 @@
  */
 
 // Config component props
-export type ConfigComponentProps<T = any> = {
+export type ConfigComponentProps<T = unknown> = {
   value: T;
   onChange: (value: T) => void;
 };

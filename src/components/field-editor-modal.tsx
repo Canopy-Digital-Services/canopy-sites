@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getConfigComponent } from "@/components/field-config";
+import { FieldConfigRenderer } from "@/components/field-config";
 import { FIELD_TYPE_OPTIONS, getLabelPlaceholder } from "@/lib/field-types";
 
 export type FieldOption = {
@@ -47,7 +47,7 @@ export type FieldDraft = {
   placeholder?: string | null;
   required?: boolean;
   helpText?: string | null;
-  options?: any; // Can be array of {value, label} for DROPDOWN or complex object for NAME
+  options?: unknown; // DROPDOWN/CHECKBOXES options or NAME config (polymorphic across field types)
   validation?: FieldValidation;
 };
 
@@ -71,7 +71,7 @@ export function FieldEditorModal({
   const [placeholder, setPlaceholder] = useState(field?.placeholder ?? "");
   const [required, setRequired] = useState(Boolean(field?.required));
   const [helpText, setHelpText] = useState(field?.helpText ?? "");
-  const [config, setConfig] = useState<any>(
+  const [config, setConfig] = useState<unknown>(
     field?.validation || field?.options || undefined
   );
 
@@ -80,19 +80,22 @@ export function FieldEditorModal({
       return;
     }
 
-    setType((field?.type as FieldType) ?? "TEXT");
-    setLabel(field?.label ?? "");
-    setPlaceholder(field?.placeholder ?? "");
-    setRequired(Boolean(field?.required));
-    setHelpText(field?.helpText ?? "");
-    
-    // Initialize config based on field type
-    const fieldType = field?.type as FieldType;
-    if (fieldType === "DROPDOWN" || fieldType === "NAME" || fieldType === "CHECKBOXES") {
-      setConfig(field?.options || undefined);
-    } else {
-      setConfig(field?.validation || undefined);
-    }
+    // Use queueMicrotask to avoid synchronous setState in effect body
+    queueMicrotask(() => {
+      setType((field?.type as FieldType) ?? "TEXT");
+      setLabel(field?.label ?? "");
+      setPlaceholder(field?.placeholder ?? "");
+      setRequired(Boolean(field?.required));
+      setHelpText(field?.helpText ?? "");
+
+      // Initialize config based on field type
+      const fieldType = field?.type as FieldType;
+      if (fieldType === "DROPDOWN" || fieldType === "NAME" || fieldType === "CHECKBOXES") {
+        setConfig(field?.options || undefined);
+      } else {
+        setConfig(field?.validation || undefined);
+      }
+    });
   }, [open, field]);
 
   // When type changes, preserve compatible config
@@ -119,7 +122,7 @@ export function FieldEditorModal({
     // Otherwise preserve config (e.g., TEXT -> EMAIL keeps validation)
   };
 
-  const ConfigComponent = getConfigComponent(type);
+  const hasConfig = type !== "CHECKBOX";
   const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "DATE";
   const title = field ? "Edit Field" : "Add Field";
 
@@ -189,8 +192,8 @@ export function FieldEditorModal({
     if (type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES") {
       draft.options = config;
       draft.validation = undefined;
-    } else if (ConfigComponent) {
-      draft.validation = config;
+    } else if (hasConfig) {
+      draft.validation = config as FieldValidation | undefined;
       draft.options = undefined;
     } else {
       draft.validation = undefined;
@@ -259,15 +262,13 @@ export function FieldEditorModal({
           </label>
 
           {/* Section divider */}
-          {ConfigComponent && (
-            <>
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">
-                  Input Rules
-                </h3>
-                <ConfigComponent value={config} onChange={setConfig} />
-              </div>
-            </>
+          {hasConfig && (
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                Input Rules
+              </h3>
+              <FieldConfigRenderer type={type} value={config} onChange={setConfig} />
+            </div>
           )}
 
           {/* Help text field - shown for all field types within Input Rules */}

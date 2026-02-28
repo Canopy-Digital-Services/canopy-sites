@@ -98,7 +98,7 @@ export function NameConfig({
       <div className="space-y-2">
         <Label>Name Parts to Capture</Label>
         <p className="text-xs text-muted-foreground">
-          Select which name parts to collect. Choose "Full Name" for a single input field,
+          Select which name parts to collect. Choose &quot;Full Name&quot; for a single input field,
           or select multiple parts for separate fields.
         </p>
         <div className="space-y-2">
@@ -147,7 +147,7 @@ export function NameConfig({
           <div className="space-y-2">
             <Label>Required Parts</Label>
             <p className="text-xs text-muted-foreground">
-              Mark specific parts as required (by default, all parts inherit the field's required setting).
+              Mark specific parts as required (by default, all parts inherit the field&apos;s required setting).
             </p>
             {selectedParts.map((part) => (
               <div key={part} className="flex items-center gap-2">

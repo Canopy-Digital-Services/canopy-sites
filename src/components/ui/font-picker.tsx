@@ -39,12 +39,17 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
     setSearch("");
   }, [onChange]);
 
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setSearch("");
+    }
+  }, []);
+
   // Focus search input when popover opens
   useEffect(() => {
     if (open) {
       setTimeout(() => searchRef.current?.focus(), 0);
-    } else {
-      setSearch("");
     }
   }, [open]);
 
@@ -57,13 +62,14 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
   }, [open]);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
           id={id}
           type="button"
           role="combobox"
           aria-expanded={open}
+          aria-controls="font-picker-listbox"
           aria-haspopup="listbox"
           className={cn(
             "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
@@ -119,6 +125,7 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
           {/* Font list */}
           <div
             ref={listRef}
+            id="font-picker-listbox"
             role="listbox"
             className="max-h-60 overflow-y-auto p-1"
           >

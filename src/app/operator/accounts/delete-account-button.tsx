@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteAccount } from "@/actions/accounts";
 import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 
 export function DeleteAccountButton({

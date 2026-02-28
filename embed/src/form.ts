@@ -1,5 +1,8 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission, getEffectiveMaxLength } from "./validation";
+import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
+import type { FieldOption } from "./validation";
+
+type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
 type FormDefinition = {
   formId: string;
@@ -212,16 +215,16 @@ export class CanOForm {
         break;
       }
       case "DROPDOWN": {
-        const selectOpts = field.options as any;
-        const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts;
-        const options = isNewFormat ? selectOpts.options : (Array.isArray(field.options) ? field.options : []);
-        const defaultValue = isNewFormat ? selectOpts.defaultValue : undefined;
-        const allowOther = isNewFormat ? selectOpts.allowOther : false;
+        const selectOpts = field.options as DropdownOptions | FieldOption[] | undefined;
+        const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts && !Array.isArray(selectOpts);
+        const options = isNewFormat ? (selectOpts as DropdownOptions).options : (Array.isArray(selectOpts) ? selectOpts : []);
+        const defaultValue = isNewFormat ? (selectOpts as DropdownOptions).defaultValue : undefined;
+        const allowOther = isNewFormat ? (selectOpts as DropdownOptions).allowOther : false;
         
         const select = document.createElement("select");
         select.className = "canopy-select";
         
-        options.forEach((option: any) => {
+        options.forEach((option: FieldOption) => {
           const opt = document.createElement("option");
           opt.value = option.value;
           opt.textContent = option.label;
@@ -270,7 +273,7 @@ export class CanOForm {
           });
           
           // Store reference to other input for collectValues
-          (select as any).__otherInput = otherInput;
+          (select as SelectWithOther).__otherInput = otherInput;
         }
         
         break;
@@ -282,6 +285,9 @@ export class CanOForm {
         checkbox.type = "checkbox";
         checkbox.id = fieldId;
         checkbox.name = field.name;
+        checkbox.addEventListener("change", () => {
+          checkbox.setCustomValidity("");
+        });
         checkboxWrapper.appendChild(checkbox);
         const text = document.createElement("span");
         text.textContent = field.label || field.name;
@@ -305,15 +311,15 @@ export class CanOForm {
         return { wrapper, input: checkbox, errorEl };
       }
       case "CHECKBOXES": {
-        const cbOpts = field.options as any;
-        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts;
-        const cbOptions = isNewFormat ? cbOpts.options : (Array.isArray(field.options) ? field.options : []);
+        const cbOpts = field.options as CheckboxesOptions | FieldOption[] | undefined;
+        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts && !Array.isArray(cbOpts);
+        const cbOptions = isNewFormat ? (cbOpts as CheckboxesOptions).options : (Array.isArray(cbOpts) ? cbOpts : []);
 
         const checkboxesWrapper = document.createElement("div");
         checkboxesWrapper.className = "canopy-checkboxes";
         checkboxesWrapper.setAttribute("data-checkbox-group", field.name);
 
-        cbOptions.forEach((option: any) => {
+        cbOptions.forEach((option: FieldOption) => {
           const itemLabel = document.createElement("label");
           itemLabel.className = "canopy-checkbox";
 
@@ -321,8 +327,11 @@ export class CanOForm {
           cb.type = "checkbox";
           cb.name = field.name;
           cb.value = option.value;
-          cb.addEventListener("input", () => {
-            pseudoCbInput.setCustomValidity("");
+          cb.addEventListener("change", () => {
+            // showErrors sets validity on the first checkbox in the group,
+            // so clear it there (not on the hidden pseudo-input)
+            const firstCb = checkboxesWrapper.querySelector("input[type=checkbox]") as HTMLInputElement;
+            if (firstCb) firstCb.setCustomValidity("");
           });
 
           const span = document.createElement("span");
@@ -379,7 +388,7 @@ export class CanOForm {
         date.type = "date";
         date.className = "canopy-input";
         // Apply min/max from validation if present
-        const validation = field.validation as any;
+        const validation = field.validation;
         if (validation) {
           if (validation.minDate) {
             date.min = this.resolveDate(validation.minDate);
@@ -395,6 +404,27 @@ export class CanOForm {
           }
         }
         input = date;
+        break;
+      }
+      case "NUMBER": {
+        const numberInput = document.createElement("input");
+        numberInput.type = "number";
+        numberInput.className = "canopy-input";
+        const numValidation = field.validation;
+        if (numValidation?.integer) {
+          numberInput.setAttribute("inputmode", "numeric");
+          numberInput.setAttribute("step", "1");
+        } else {
+          numberInput.setAttribute("inputmode", "decimal");
+          numberInput.setAttribute("step", "any");
+        }
+        if (numValidation?.min !== undefined) {
+          numberInput.setAttribute("min", String(numValidation.min));
+        }
+        if (numValidation?.max !== undefined) {
+          numberInput.setAttribute("max", String(numValidation.max));
+        }
+        input = numberInput;
         break;
       }
       case "NAME": {
@@ -436,8 +466,8 @@ export class CanOForm {
     wrapper.appendChild(input);
     
     // If this is a DROPDOWN with "Other" option, add the other input
-    if ((input as any).__otherInput) {
-      wrapper.appendChild((input as any).__otherInput);
+    if ((input as SelectWithOther).__otherInput) {
+      wrapper.appendChild((input as SelectWithOther).__otherInput!);
     }
     
     // Add help text if provided
@@ -478,7 +508,7 @@ export class CanOForm {
 
     wrapper.appendChild(label);
 
-    const options = (field.options as any) || { parts: ["first", "last"] };
+    const options = (field.options as NameOptions) || { parts: ["first", "last"] };
     const parts = options.parts || ["first", "last"];
     const partLabels = options.partLabels || {};
     const partsRequired = options.partsRequired || {};
@@ -595,8 +625,8 @@ export class CanOForm {
         }
       } else if (element.input instanceof HTMLSelectElement) {
         // Check if "Other" option was selected
-        if (element.input.value === "__other__" && (element.input as any).__otherInput) {
-          data[name] = (element.input as any).__otherInput.value;
+        if (element.input.value === "__other__" && (element.input as SelectWithOther).__otherInput) {
+          data[name] = (element.input as SelectWithOther).__otherInput!.value;
         } else {
           data[name] = element.input.value;
         }
@@ -688,9 +718,23 @@ export class CanOForm {
 
     this.setStatus("", "info");
     
-    // Clear any previous validation state
-    this.fieldElements.forEach((element) => {
+    // Clear any previous validation state (including visible inputs for pseudo-input fields)
+    this.fieldElements.forEach((element, name) => {
       element.input.setCustomValidity("");
+      if (element.input.type === "hidden") {
+        const checkboxGroup = this.container.querySelector(
+          `[data-checkbox-group="${name}"]`
+        );
+        if (checkboxGroup) {
+          const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
+          if (firstCb) firstCb.setCustomValidity("");
+        } else {
+          const partInput = this.container.querySelector(
+            `input[data-name-field="${name}"]`
+          ) as HTMLInputElement;
+          if (partInput) partInput.setCustomValidity("");
+        }
+      }
     });
     
     const values = this.collectValues();

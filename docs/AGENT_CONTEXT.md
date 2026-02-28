@@ -139,6 +139,10 @@ Client components cannot reliably read runtime env vars. Pattern: server compone
 | `docs/epics/README.md` | Understanding version history and what shipped when. |
 | `CHANGELOG.md` | Detailed change log per version. |
 
+When you create a plan for another agent or for a later step (e.g. task lists, subagent briefs, or handoff instructions), **repeat in the plan the instruction to read this document**. For example, include a line like “Before starting, read `docs/AGENT_CONTEXT.md`.” That way the model that picks up the plan also receives this context when it begins.
+
+If you used a wrong or malformed command (e.g. wrong CLI syntax, deprecated API, or incorrect flag) because of outdated training data, **note it and update the relevant `docs/tools/*.md` file** (e.g. add a "Common mistakes" note, correct an example, or document the current syntax) so future agents don't repeat the mistake.
+
 ---
 
 ## 3. Stack, scripts & tooling
@@ -184,10 +188,11 @@ Docker Compose provides a local PostgreSQL instance:
 ### Before making changes
 
 1. **Identify the layer**: admin UI, embed, public API, schema, or infrastructure?
-2. **Search first**: find existing routes, components, and actions that already handle it.
-3. **Validate against code**: if a doc says X, confirm in the file before implementing.
-4. **Don't bypass security**: ownership checks, origin validation, and rate limits are non-negotiable.
-5. **Don't introduce parallel patterns**: if a pattern is established, extend it rather than adding an alternative.
+2. **Identify which `docs/tools/*.md` files are relevant** to the work you're about to do (see `docs/tools/README.md` for the index) and **read those first** before writing code.
+3. **Search first**: find existing routes, components, and actions that already handle it.
+4. **Validate against code**: if a doc says X, confirm in the file before implementing.
+5. **Don't bypass security**: ownership checks, origin validation, and rate limits are non-negotiable.
+6. **Don't introduce parallel patterns**: if a pattern is established, extend it rather than adding an alternative.
 
 ### Schema changes (high risk — understand the full pipeline)
 
@@ -469,7 +474,7 @@ If any future change requires storing version-specific information in a fifth fi
 ## Appendix A. FieldType enum (current)
 
 ```
-TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME
+TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER
 ```
 
 See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types.ts` for display labels.

@@ -25,7 +25,7 @@ export function CheckboxesConfig({
   onChange,
 }: ConfigComponentProps<CheckboxesOptions | undefined>) {
   const config = value || { options: [] };
-  const options = config.options || [];
+  const options = useMemo(() => config.options || [], [config.options]);
   const [showValidation, setShowValidation] = useState(false);
   const lastInputRef = useRef<HTMLInputElement>(null);
   const prevLengthRef = useRef(options.length);

@@ -22,9 +22,9 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface SortableItemRenderProps {
+export interface SortableItemRenderProps<T extends { id: string } = { id: string }> {
   /** The item data being rendered */
-  item: any;
+  item: T;
   /** Props to spread on the drag handle element */
   dragHandleProps: {
     ref: (element: HTMLElement | null) => void;
@@ -43,26 +43,26 @@ export interface SortableListProps<T extends { id: string }> {
   /** Called when items are reordered with the new array of IDs */
   onReorder: (ids: string[]) => void;
   /** Render function for each item */
-  renderItem: (props: SortableItemRenderProps) => ReactNode;
+  renderItem: (props: SortableItemRenderProps<T>) => ReactNode;
   /** Optional className for the list container */
   className?: string;
   /** Optional className for each item wrapper */
   itemClassName?: string;
 }
 
-interface SortableItemProps {
+interface SortableItemProps<T extends { id: string }> {
   id: string;
-  item: any;
-  renderItem: (props: SortableItemRenderProps) => ReactNode;
+  item: T;
+  renderItem: (props: SortableItemRenderProps<T>) => ReactNode;
   itemClassName?: string;
 }
 
-function SortableItem({
+function SortableItem<T extends { id: string }>({
   id,
   item,
   renderItem,
   itemClassName,
-}: SortableItemProps) {
+}: SortableItemProps<T>) {
   const {
     attributes,
     listeners,

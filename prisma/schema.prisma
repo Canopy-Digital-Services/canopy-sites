@@ -129,6 +129,7 @@ enum FieldType {
   PHONE
   DATE
   NAME
+  NUMBER
 }
 
 // Password reset tokens

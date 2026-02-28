@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
@@ -82,8 +83,7 @@ function getEffectiveMaxLength(field: FieldDefinition): number {
 
 function validateFields(
   fields: FieldDefinition[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>
+  data: Record<string, unknown>
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
@@ -135,9 +135,10 @@ function validateFields(
       }
       // Validate selected values exist in the options list
       if (Array.isArray(value) && value.length > 0) {
+        const optionsObj = field.options as Record<string, unknown> | null;
         const cbOpts =
-          typeof field.options === "object" && field.options !== null && "options" in (field.options as any)
-            ? ((field.options as any).options as { value: string }[])
+          typeof field.options === "object" && field.options !== null && "options" in optionsObj!
+            ? (optionsObj!.options as { value: string }[])
             : [];
         const validValues = cbOpts.map((o) => o.value);
         for (const v of value) {
@@ -160,35 +161,35 @@ function validateFields(
       const emailValue = String(value).trim();
       
       // Get validation config
-      const validation = typeof field.validation === "object" && field.validation !== null
-        ? (field.validation as any)
+      const emailValidation = typeof field.validation === "object" && field.validation !== null
+        ? (field.validation as { message?: string; domainRules?: { allow?: string[]; block?: string[] }; normalize?: boolean })
         : undefined;
       
       // Validate email format (RFC 5322 compliant)
       const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
       
       if (!emailRegex.test(emailValue)) {
-        errors[field.name] = validation?.message || `Enter a valid email address`;
+        errors[field.name] = emailValidation?.message || `Enter a valid email address`;
         continue;
       }
-      
+
       // Check domain rules
-      const domainRules = validation?.domainRules;
+      const domainRules = emailValidation?.domainRules;
       if (domainRules) {
         const domain = emailValue.split("@")[1]?.toLowerCase();
-        
+
         if (domainRules.allow && Array.isArray(domainRules.allow) && domainRules.allow.length > 0) {
           const allowed = domainRules.allow.map((d: string) => d.toLowerCase());
           if (!allowed.includes(domain)) {
-            errors[field.name] = validation?.message || `${label} must be from an allowed domain.`;
+            errors[field.name] = emailValidation?.message || `${label} must be from an allowed domain.`;
             continue;
           }
         }
-        
+
         if (domainRules.block && Array.isArray(domainRules.block) && domainRules.block.length > 0) {
           const blocked = domainRules.block.map((d: string) => d.toLowerCase());
           if (blocked.includes(domain)) {
-            errors[field.name] = validation?.message || `${label} domain is not allowed.`;
+            errors[field.name] = emailValidation?.message || `${label} domain is not allowed.`;
             continue;
           }
         }
@@ -299,8 +300,33 @@ function validateFields(
       }
     }
 
+    if (field.type === "NUMBER") {
+      const num = Number(value);
+      if (isNaN(num)) {
+        errors[field.name] = `${label} must be a number.`;
+        continue;
+      }
+      const numValidation =
+        typeof field.validation === "object" && field.validation !== null
+          ? (field.validation as { min?: number; max?: number; integer?: boolean })
+          : undefined;
+      if (numValidation?.integer && !Number.isInteger(num)) {
+        errors[field.name] = `${label} must be a whole number.`;
+        continue;
+      }
+      if (numValidation?.min !== undefined && num < numValidation.min) {
+        errors[field.name] = `${label} must be at least ${numValidation.min}.`;
+        continue;
+      }
+      if (numValidation?.max !== undefined && num > numValidation.max) {
+        errors[field.name] = `${label} must be at most ${numValidation.max}.`;
+        continue;
+      }
+      continue;
+    }
+
     if (field.type === "NAME") {
-      const nameValue = value as Record<string, any>;
+      const nameValue = value as Record<string, string> | undefined;
       const options =
         typeof field.options === "object" && field.options !== null
           ? (field.options as {
@@ -535,11 +561,11 @@ export async function handlePublicSubmit({
     // Apply normalization after validation passes
     form.fields.forEach((field) => {
       if (field.type === "EMAIL" && formData[field.name]) {
-        const validation = typeof field.validation === "object" && field.validation !== null
-          ? (field.validation as any)
+        const emailVal = typeof field.validation === "object" && field.validation !== null
+          ? (field.validation as { normalize?: boolean })
           : undefined;
-        
-        if (validation?.normalize) {
+
+        if (emailVal?.normalize) {
           formData[field.name] = String(formData[field.name]).toLowerCase();
         }
       }
@@ -561,8 +587,8 @@ export async function handlePublicSubmit({
   const submission = await prisma.submission.create({
     data: {
       formId: form.id,
-      data: formData as any,
-      meta: meta as any,
+      data: formData as Prisma.InputJsonValue,
+      meta: meta as Prisma.InputJsonValue,
       isSpam,
       status: "NEW",
     },
