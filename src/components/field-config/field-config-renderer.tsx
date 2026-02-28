@@ -7,6 +7,7 @@ import { DateConfig } from "./date-config";
 import { NameConfig } from "./name-config";
 import { CheckboxesConfig } from "./checkboxes-config";
 import { NumberConfig } from "./number-config";
+import { AddressConfig } from "./address-config";
 import { ConfigComponentProps } from "./types";
 
 // Variance boundary: each config component has a different generic type,
@@ -24,6 +25,7 @@ const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
   NAME: NameConfig,
   CHECKBOXES: CheckboxesConfig,
   NUMBER: NumberConfig,
+  ADDRESS: AddressConfig,
 };
 
 type FieldConfigRendererProps = {
