@@ -10,7 +10,7 @@ const IDLE_TIMEOUT_DEFAULT = 4 * 60 * 60; // 4 hours
 const IDLE_TIMEOUT_REMEMBER = 7 * 24 * 60 * 60; // 7 days
 const ABSOLUTE_TIMEOUT_DEFAULT = 7 * 24 * 60 * 60; // 7 days
 const ABSOLUTE_TIMEOUT_REMEMBER = 30 * 24 * 60 * 60; // 30 days
-const VALIDATION_INTERVAL = 5 * 60; // 5 minutes
+const VALIDATION_INTERVAL = 0; // Validate every request — eliminates stale sessions after deploys
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
