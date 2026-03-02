@@ -502,13 +502,7 @@ export class CanOForm {
     const label = document.createElement("label");
     label.className = "canopy-label";
     label.textContent = field.label || field.name;
-
-    if (field.required) {
-      const required = document.createElement("span");
-      required.className = "canopy-required";
-      required.textContent = " *";
-      label.appendChild(required);
-    }
+    // No top-level asterisk — required markers go on individual parts
 
     wrapper.appendChild(label);
 
@@ -563,9 +557,10 @@ export class CanOForm {
       partInput.setAttribute("data-name-part", part);
       partInput.setAttribute("data-name-field", field.name);
       
-      // Clear validation state when user starts typing
+      // Clear validation state on all siblings — error could be on any subfield.
       partInput.addEventListener("input", () => {
-        partInput.setCustomValidity("");
+        nameInputsWrapper.querySelectorAll<HTMLInputElement>("input[data-name-part]")
+          .forEach(el => el.setCustomValidity(""));
       });
 
       partWrapper.appendChild(partLabel);
@@ -597,13 +592,7 @@ export class CanOForm {
     const label = document.createElement("label");
     label.className = "canopy-label";
     label.textContent = field.label || "Address";
-
-    if (field.required) {
-      const required = document.createElement("span");
-      required.className = "canopy-required";
-      required.textContent = " *";
-      label.appendChild(required);
-    }
+    // No top-level asterisk — required markers go on individual parts
 
     wrapper.appendChild(label);
 
@@ -648,6 +637,13 @@ export class CanOForm {
       partLabel.htmlFor = partId;
       partLabel.textContent = part.label;
 
+      if (field.required && part.key !== "line2") {
+        const req = document.createElement("span");
+        req.className = "canopy-required";
+        req.textContent = " *";
+        partLabel.appendChild(req);
+      }
+
       let partInput: HTMLInputElement | HTMLSelectElement;
 
       if (part.tag === "select") {
@@ -666,8 +662,10 @@ export class CanOForm {
           select.appendChild(opt);
         });
 
+        // Clear validation state on all siblings — error could be on any subfield.
         select.addEventListener("change", () => {
-          select.setCustomValidity("");
+          partsWrapper.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input[data-address-part], select[data-address-part]")
+            .forEach(el => el.setCustomValidity(""));
         });
 
         partInput = select;
@@ -680,8 +678,10 @@ export class CanOForm {
           Object.entries(part.attrs).forEach(([k, v]) => input.setAttribute(k, v));
         }
 
+        // Clear validation state on all siblings — error could be on any subfield.
         input.addEventListener("input", () => {
-          input.setCustomValidity("");
+          partsWrapper.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input[data-address-part], select[data-address-part]")
+            .forEach(el => el.setCustomValidity(""));
         });
 
         partInput = input;
@@ -776,12 +776,45 @@ export class CanOForm {
     return data;
   }
 
+  /**
+   * For composite fields (NAME, ADDRESS), find the first empty required
+   * subfield — this is the one the validation error refers to.
+   * Falls back to the first subfield if none are empty.
+   */
+  private findFailingInput(name: string): HTMLInputElement | HTMLSelectElement | null {
+    // NAME field
+    const nameInputs = this.container.querySelectorAll<HTMLInputElement>(
+      `input[data-name-field="${name}"]`
+    );
+    if (nameInputs.length > 0) {
+      for (const input of nameInputs) {
+        if (!input.value.trim()) return input;
+      }
+      return nameInputs[0];
+    }
+
+    // ADDRESS field — only check core required parts (line2 is always optional)
+    const addressCoreKeys = ["line1", "city", "region", "postalCode"];
+    const addressInputs = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+      `input[data-address-field="${name}"], select[data-address-field="${name}"]`
+    );
+    if (addressInputs.length > 0) {
+      for (const input of addressInputs) {
+        const part = input.getAttribute("data-address-part");
+        if (part && addressCoreKeys.includes(part) && !input.value.trim()) return input;
+      }
+      return addressInputs[0];
+    }
+
+    return null;
+  }
+
   private showErrors(errors: Record<string, string>) {
     // Set custom validity on all fields
     this.fieldElements.forEach((element, name) => {
       const message = errors[name] || "";
-      
-      // For hidden pseudo-inputs (NAME, CHECKBOXES), set validity on first visible input
+
+      // For hidden pseudo-inputs (NAME, CHECKBOXES, ADDRESS), set validity on the right visible input
       if (element.input.type === "hidden") {
         const checkboxGroup = this.container.querySelector(
           `[data-checkbox-group="${name}"]`
@@ -792,24 +825,21 @@ export class CanOForm {
             firstCb.setCustomValidity(message);
           }
         } else {
-          const partInput = this.container.querySelector(
-            `input[data-name-field="${name}"]`
-          ) as HTMLInputElement;
-          if (partInput) {
-            partInput.setCustomValidity(message);
+          const target = message ? this.findFailingInput(name) : null;
+          if (target) {
+            target.setCustomValidity(message);
           } else {
-            const addressInput = this.container.querySelector(
-              `input[data-address-field="${name}"], select[data-address-field="${name}"]`
-            ) as HTMLInputElement | null;
-            if (addressInput) {
-              addressInput.setCustomValidity(message);
-            }
+            // Clear: reset all subfield validities
+            const allSub = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+              `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"]`
+            );
+            allSub.forEach(el => el.setCustomValidity(""));
           }
         }
       } else {
         element.input.setCustomValidity(message);
       }
-      
+
       // Keep error text for screen readers (hidden via CSS)
       element.errorEl.textContent = message;
       element.input.setAttribute("aria-invalid", message ? "true" : "false");
@@ -820,7 +850,6 @@ export class CanOForm {
     if (errorKeys.length > 0) {
       const firstErrorField = this.fieldElements.get(errorKeys[0]);
       if (firstErrorField) {
-        // For hidden pseudo-inputs (NAME, CHECKBOXES), show popup on first visible input
         if (firstErrorField.input.type === "hidden") {
           const checkboxGroup = this.container.querySelector(
             `[data-checkbox-group="${errorKeys[0]}"]`
@@ -832,20 +861,10 @@ export class CanOForm {
               firstCb.focus();
             }
           } else {
-            const partInput = this.container.querySelector(
-              `input[data-name-field="${errorKeys[0]}"]`
-            ) as HTMLInputElement;
-            if (partInput) {
-              partInput.reportValidity();
-              partInput.focus();
-            } else {
-              const addressInput = this.container.querySelector(
-                `input[data-address-field="${errorKeys[0]}"], select[data-address-field="${errorKeys[0]}"]`
-              ) as HTMLInputElement | null;
-              if (addressInput) {
-                addressInput.reportValidity();
-                addressInput.focus();
-              }
+            const target = this.findFailingInput(errorKeys[0]);
+            if (target) {
+              target.reportValidity();
+              target.focus();
             }
           }
         } else {
@@ -883,17 +902,11 @@ export class CanOForm {
           const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
           if (firstCb) firstCb.setCustomValidity("");
         } else {
-          const partInput = this.container.querySelector(
-            `input[data-name-field="${name}"]`
-          ) as HTMLInputElement;
-          if (partInput) {
-            partInput.setCustomValidity("");
-          } else {
-            const addressInput = this.container.querySelector(
-              `input[data-address-field="${name}"], select[data-address-field="${name}"]`
-            ) as HTMLInputElement | null;
-            if (addressInput) addressInput.setCustomValidity("");
-          }
+          // Clear all subfield validities (validity may be on any subfield)
+          const allSub = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+            `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"]`
+          );
+          allSub.forEach(el => el.setCustomValidity(""));
         }
       }
     });
