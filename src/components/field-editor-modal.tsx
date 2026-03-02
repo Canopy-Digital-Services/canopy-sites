@@ -90,7 +90,7 @@ export function FieldEditorModal({
 
       // Initialize config based on field type
       const fieldType = field?.type as FieldType;
-      if (fieldType === "DROPDOWN" || fieldType === "NAME" || fieldType === "CHECKBOXES") {
+      if (fieldType === "DROPDOWN" || fieldType === "NAME" || fieldType === "CHECKBOXES" || fieldType === "ADDRESS") {
         setConfig(field?.options || undefined);
       } else {
         setConfig(field?.validation || undefined);
@@ -104,26 +104,19 @@ export function FieldEditorModal({
     setType(newType);
     
     // Clear config if switching between incompatible types
-    if (
-      (oldType === "DROPDOWN" || oldType === "NAME" || oldType === "CHECKBOXES") &&
-      newType !== "DROPDOWN" &&
-      newType !== "NAME" &&
-      newType !== "CHECKBOXES"
-    ) {
+    const isOptionsType = (t: FieldType) =>
+      t === "DROPDOWN" || t === "NAME" || t === "CHECKBOXES" || t === "ADDRESS";
+
+    if (isOptionsType(oldType) && !isOptionsType(newType)) {
       setConfig(undefined);
-    } else if (
-      (newType === "DROPDOWN" || newType === "NAME" || newType === "CHECKBOXES") &&
-      oldType !== "DROPDOWN" &&
-      oldType !== "NAME" &&
-      oldType !== "CHECKBOXES"
-    ) {
+    } else if (isOptionsType(newType) && !isOptionsType(oldType)) {
       setConfig(undefined);
     }
     // Otherwise preserve config (e.g., TEXT -> EMAIL keeps validation)
   };
 
   const hasConfig = type !== "CHECKBOX";
-  const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "DATE";
+  const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "DATE" && type !== "ADDRESS";
   const title = field ? "Edit Field" : "Add Field";
 
   const canSave = useMemo(() => {
@@ -189,7 +182,7 @@ export function FieldEditorModal({
     }
 
     // Assign config to appropriate field based on type
-    if (type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES") {
+    if (type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS") {
       draft.options = config;
       draft.validation = undefined;
     } else if (hasConfig) {
