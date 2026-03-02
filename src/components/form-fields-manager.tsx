@@ -14,6 +14,7 @@ import {
   updateField,
 } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteFieldDialog } from "@/components/delete-field-dialog";
 
 type FormFieldsManagerProps = {
   formId: string;
@@ -27,6 +28,11 @@ export function FormFieldsManager({
   const [fieldList, setFieldList] = useState(fields);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingField, setDeletingField] = useState<{
+    id: string;
+    name: string;
+    label: string;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -103,12 +109,23 @@ export function FormFieldsManager({
   };
 
   const handleDelete = (fieldId: string) => {
+    const field = fieldList.find((f) => f.id === fieldId);
+    if (field) {
+      setDeletingField({ id: field.id, name: field.name, label: field.label });
+    }
+  };
+
+  const handleDeleteConfirm = (purgeData: boolean) => {
+    if (!deletingField) return;
+    const { id: fieldId } = deletingField;
+    setDeletingField(null);
+
     startTransition(() => {
       void (async () => {
         const previous = fieldList;
         setFieldList((prev) => prev.filter((field) => field.id !== fieldId));
         try {
-          await deleteField(formId, fieldId);
+          await deleteField(formId, fieldId, purgeData);
         } catch (deleteError) {
           console.error(deleteError);
           toast.error("Unable to delete field. Please try again.");
@@ -178,6 +195,18 @@ export function FormFieldsManager({
         onSave={handleSave}
         field={draftField}
       />
+      {deletingField && (
+        <DeleteFieldDialog
+          open={!!deletingField}
+          onOpenChange={(open) => {
+            if (!open) setDeletingField(null);
+          }}
+          formId={formId}
+          fieldName={deletingField.name}
+          fieldLabel={deletingField.label}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
       {isPending ? (
         <p className="text-xs text-zinc-500">Saving changes...</p>
       ) : null}

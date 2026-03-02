@@ -8,7 +8,7 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
-import { FieldType } from "@prisma/client";
+import { FieldType, Prisma } from "@prisma/client";
 import { getOwnedFormMinimal } from "@/lib/data-access/forms";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
@@ -130,7 +130,25 @@ export async function updateField(
   return updated;
 }
 
-export async function deleteField(formId: string, fieldId: string) {
+export async function checkFieldHasData(formId: string, fieldName: string) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  const count = await prisma.submission.count({
+    where: {
+      formId,
+      data: { path: [fieldName], not: Prisma.DbNull },
+    },
+  });
+
+  return count;
+}
+
+export async function deleteField(
+  formId: string,
+  fieldId: string,
+  purgeData?: boolean
+) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
@@ -143,6 +161,14 @@ export async function deleteField(formId: string, fieldId: string) {
 
   if (!field) {
     throw new Error("Field not found");
+  }
+
+  if (purgeData) {
+    await prisma.$executeRaw`
+      UPDATE submissions
+      SET data = data - ${field.name}
+      WHERE "formId" = ${formId}
+    `;
   }
 
   await prisma.field.delete({ where: { id: fieldId } });
