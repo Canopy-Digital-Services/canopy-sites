@@ -170,3 +170,4 @@ This ordering ensures each phase is independently shippable and testable.
 - **Integrate panel** moved to a Sheet triggered by header button (no longer uses the panel slot)
 - **Old `PreviewPanel`** deleted — replaced by `LivePreviewPanel`
 - **`FormOptions.formId`** made optional in embed to allow construction for inline rendering
+- **Mobile preview** — a fixed side handle tab on the right edge (`lg:hidden`) opens `LivePreviewPanel` in a `RightPanel` Sheet, satisfying AC #8

@@ -4,12 +4,13 @@ import { useState } from "react";
 import { EditorLayout } from "@/components/patterns/editor-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Code, Save, Check } from "lucide-react";
+import { Code, Save, Check, Eye } from "lucide-react";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { HeaderSection } from "@/components/forms/header-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
 import { IntegratePanel } from "@/components/forms/integrate-panel";
+import { RightPanel } from "@/components/patterns/right-panel";
 import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 
@@ -57,6 +58,7 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
 function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
   const { state, saveStatus, updateName } = useFormContext();
   const [integrateOpen, setIntegrateOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const header = (
     <div className="max-w-[640px] mx-auto">
@@ -105,6 +107,28 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
   return (
     <>
       <EditorLayout header={header} main={main} panel={panel} />
+
+      {/* Mobile preview handle — fixed tab on right edge */}
+      <button
+        onClick={() => setPreviewOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 lg:hidden flex flex-col items-center gap-1.5 rounded-l-lg border border-r-0 border-border/50 bg-background/90 backdrop-blur-sm px-1.5 py-3 shadow-md transition-colors hover:bg-muted/80"
+        aria-label="Open preview"
+      >
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        <span className="text-[10px] font-heading font-medium text-muted-foreground uppercase tracking-wider [writing-mode:vertical-lr]">
+          Preview
+        </span>
+      </button>
+
+      {/* Mobile preview sheet */}
+      <RightPanel
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title="Preview"
+      >
+        <LivePreviewPanel />
+      </RightPanel>
+
       <IntegratePanel
         open={integrateOpen}
         onClose={() => setIntegrateOpen(false)}

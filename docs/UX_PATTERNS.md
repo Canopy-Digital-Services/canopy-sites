@@ -831,7 +831,7 @@ import { EditorLayout } from "@/components/patterns/editor-layout";
 **Panel behavior (Epic 17)**:
 - On `lg+`: The panel renders as a sticky sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with `bg-muted/30` background and `border-l border-border/50` separator
 - The panel is `sticky top-[73px]` with `h-[calc(100vh-73px)] overflow-y-auto` — stays in view as the editor scrolls
-- On `<lg`: The panel slot is hidden via `hidden lg:flex`
+- On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
 
 ### FormContext (Unified State)
 
