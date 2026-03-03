@@ -57,8 +57,8 @@ export function ResponsiveSidebarLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">{children}</div>
+        <main className="flex-1 flex flex-col min-h-0">
+          {children}
         </main>
       </div>
 

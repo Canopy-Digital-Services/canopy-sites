@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { PageContent } from "@/components/patterns/page-content";
 
 function generateSlug(name: string): string {
   return name
@@ -67,6 +68,7 @@ async function handleCreateForm(formData: FormData) {
 export default async function NewFormPage() {
 
   return (
+    <PageContent>
     <div className="max-w-[640px] mx-auto space-y-8">
       <h1 className="text-3xl font-heading font-semibold tracking-tight">
         Create form
@@ -93,5 +95,6 @@ export default async function NewFormPage() {
         </div>
       </form>
     </div>
+    </PageContent>
   );
 }

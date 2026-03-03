@@ -4,7 +4,8 @@ import { useState } from "react";
 import { EditorLayout } from "@/components/patterns/editor-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Code, Save, Check, Eye } from "lucide-react";
+import { ArrowLeft, Code, Save, Check, Eye, Pencil } from "lucide-react";
+import Link from "next/link";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { HeaderSection } from "@/components/forms/header-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
@@ -59,42 +60,60 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
   const { state, saveStatus, updateName } = useFormContext();
   const [integrateOpen, setIntegrateOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
 
   const header = (
-    <div className="max-w-[640px] mx-auto">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <Input
-            value={state.name}
-            onChange={(e) => updateName(e.target.value)}
-            className="text-lg font-semibold max-w-md"
-            placeholder="Form name"
-          />
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {saveStatus === "saving" && (
-            <span className="text-sm text-muted-foreground flex items-center gap-2">
-              <Save className="h-4 w-4 animate-pulse" />
-              Saving...
-            </span>
-          )}
-          {saveStatus === "saved" && (
-            <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              Saved
-            </span>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setIntegrateOpen(true)}>
-            <Code className="mr-2 h-4 w-4" />
-            Integrate
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex items-center gap-3">
+        <Link href={`/forms/${form.id}`}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" aria-label="Back to form">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
+        </Link>
+        <div className="space-y-1">
+          {editingName ? (
+            <Input
+              autoFocus
+              value={state.name}
+              onChange={(e) => updateName(e.target.value)}
+              onBlur={() => setEditingName(false)}
+              onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
+              className="text-3xl font-heading font-semibold tracking-tight h-auto"
+              placeholder="Form name"
+            />
+          ) : (
+            <h1 className="text-3xl font-heading font-semibold tracking-tight flex items-center gap-2">
+              {state.name}
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setEditingName(true)} aria-label="Rename form">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </h1>
+          )}
         </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {saveStatus === "saving" && (
+          <span className="text-sm text-muted-foreground flex items-center gap-2">
+            <Save className="h-4 w-4 animate-pulse" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Saved
+          </span>
+        )}
+        <Button variant="outline" size="sm" onClick={() => setIntegrateOpen(true)}>
+          <Code className="mr-2 h-4 w-4" />
+          Integrate
+        </Button>
       </div>
     </div>
   );
 
   const main = (
-    <div className="space-y-8 max-w-[640px] mx-auto">
+    <div className="max-w-[640px] mx-auto space-y-8">
       <HeaderSection />
       <FieldsSection formId={form.id} />
       <AppearanceSection />

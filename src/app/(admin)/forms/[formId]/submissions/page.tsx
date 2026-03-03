@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { Download, FileText, ChevronDown } from "lucide-react";
+import { PageContent } from "@/components/patterns/page-content";
 
 export default async function SubmissionsPage({
   params,
@@ -105,11 +106,14 @@ export default async function SubmissionsPage({
   ];
 
   return (
+    <PageContent>
     <div className="space-y-6">
       <PageHeader
-        title="Submissions"
-        description={`Submissions for ${form.name}`}
+        title={form.name}
+        description="Submissions"
+        backHref={`/forms/${formId}`}
         actions={
+          <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -131,6 +135,7 @@ export default async function SubmissionsPage({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </>
         }
       />
 
@@ -185,5 +190,6 @@ export default async function SubmissionsPage({
         <DataTable columns={columns} data={submissions} />
       )}
     </div>
+    </PageContent>
   );
 }

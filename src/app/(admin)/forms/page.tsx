@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/tooltip";
 import { DeleteFormIcon } from "@/components/delete-form-icon";
 import Link from "next/link";
-import { FileText, Plus, Pencil, ClipboardList } from "lucide-react";
+import { FileText, Plus, Eye, ClipboardList } from "lucide-react";
+import { PageContent } from "@/components/patterns/page-content";
 
 export default async function FormsPage() {
   const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
@@ -23,7 +24,7 @@ export default async function FormsPage() {
       key: "name",
       header: "Name",
       cell: (form: typeof forms[0]) => (
-        <Link href={`/forms/${form.id}/edit`} className="font-medium hover:underline">
+        <Link href={`/forms/${form.id}`} className="font-medium hover:underline">
           {form.name}
         </Link>
       ),
@@ -50,19 +51,19 @@ export default async function FormsPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href={`/forms/${form.id}/edit`}>
+                <Link href={`/forms/${form.id}`}>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
-                    aria-label="Edit form"
+                    aria-label="View form"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </Link>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Edit form</p>
+                <p>View form</p>
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -90,6 +91,7 @@ export default async function FormsPage() {
   ];
 
   return (
+    <PageContent>
     <div className="space-y-6">
       <PageHeader
         title="Forms"
@@ -110,6 +112,7 @@ export default async function FormsPage() {
         <DataTable columns={columns} data={forms} />
       )}
     </div>
+    </PageContent>
   );
 }
 

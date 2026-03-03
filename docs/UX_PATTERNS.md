@@ -798,7 +798,17 @@ import { PageHeader } from "@/components/patterns/page-header";
 <PageHeader
   title="Forms"
   description="Manage your forms"
-  action={<Button>Create Form</Button>}
+  actions={<Button>Create Form</Button>}
+/>
+```
+
+Optional `backHref` prop renders an ArrowLeft icon link before the title for back-navigation:
+
+```tsx
+<PageHeader
+  title={form.name}
+  description="Submissions"
+  backHref={`/forms/${formId}`}
 />
 ```
 
@@ -822,15 +832,17 @@ import { FileText } from "lucide-react";
 import { EditorLayout } from "@/components/patterns/editor-layout";
 
 <EditorLayout
-  header={<FormHeader />}
+  header={<PageHeaderContent />}
   main={<FormFields />}
   panel={<LivePreviewPanel />}
 />
 ```
 
+The `header` prop is optional. When provided, it renders **full-width above the two-column split** with `px-4 md:px-8 pt-4 md:pt-8` padding and `max-w-7xl mx-auto` centering — matching `PageContent`'s layout exactly. This ensures headers align consistently when navigating between standard pages (view, submissions) and the editor. The `main` area uses matching `px-4 md:px-8` horizontal padding so content aligns with the header.
+
 **Panel behavior (Epic 17)**:
-- On `lg+`: The panel renders as a sticky sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with `bg-muted/30` background and `border-l border-border/50` separator
-- The panel is `sticky top-[73px]` with `h-[calc(100vh-73px)] overflow-y-auto` — stays in view as the editor scrolls
+- On `lg+`: The panel renders as a sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with a `border-l border-border/50` separator and no background — the embed renders directly without admin-UI card chrome so the preview is an honest representation of the embedded form
+- The `EditorLayout` outer div uses `h-screen` so the editor fills the full viewport height. The panel column is `h-full overflow-y-auto` so it scrolls independently while the editor column scrolls independently.
 - On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
 
 ### FormContext (Unified State)
@@ -870,7 +882,7 @@ import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
 - Loads `embed.js` script, creates a `CanopyForm` instance via `window.CanopyForms.CanopyForm`
 - Calls `renderFromDefinition()` with a projection of `FormState` → embed `FormDefinition`
 - Re-renders on state change with 150ms debounce
-- Visual design: "quiet frame" — white card inside muted zone with subtle border
+- Visual design: no admin-UI chrome — the embed container renders directly below a small "PREVIEW" label. No card wrapper, no background. What the user sees is exactly what gets embedded on their site.
 
 ### Settings Section
 
@@ -908,7 +920,7 @@ import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sideba
 **Behavior**:
 - **Desktop (md+)**: Fixed sidebar on the left (w-64, border-r, bg-muted/40, p-6)
 - **Mobile (<md)**: Sidebar hidden; hamburger menu button in header opens left-sliding drawer
-- **Main content**: Responsive padding (p-4 on mobile, p-8 on desktop)
+- **Main content**: No padding or max-width — the `<main>` area is bare (`flex-1 flex flex-col min-h-0`). Each page is responsible for its own spacing via `PageContent` or by rendering a full-bleed layout like `EditorLayout`.
 - **Footer**: When provided, footer is pinned to bottom with `border-t` and `pt-4` separation
 
 **Accessibility**:
@@ -917,6 +929,59 @@ import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sideba
 - Drawer includes backdrop overlay and escape key support
 
 **Used in**: Admin console layout (`src/app/(admin)/layout.tsx`) and Operator console layout (`src/app/operator/layout.tsx`)
+
+### PageContent
+
+Standard padding + max-width wrapper for admin pages that are **not** full-bleed editors.
+
+```tsx
+import { PageContent } from "@/components/patterns/page-content";
+
+export default function SomePage() {
+  return (
+    <PageContent>
+      <PageHeader title="Forms" ... />
+      <DataTable ... />
+    </PageContent>
+  );
+}
+```
+
+Provides `p-4 md:p-8` padding and `max-w-7xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses `EditorLayout` directly.
+
+**Do not** wrap the form editor (`/forms/[formId]/edit`) in `PageContent` — `EditorLayout` fills the full viewport with `h-screen`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
+
+### View Page with Preview
+
+Detail/view pages that show a preview of an entity (e.g. form) with layout toggle. Pattern:
+
+```tsx
+<PageContent>
+  <PageHeader
+    title={entity.name}
+    description="metadata summary"
+    backHref="/forms"
+    actions={<>action buttons (Edit, Submissions, etc.)</>}
+  />
+  <Tabs value={mode} onValueChange={setMode}>
+    <TabsList>
+      <TabsTrigger value="embed"><Monitor /> Embed</TabsTrigger>
+      <TabsTrigger value="page"><AppWindow /> Page</TabsTrigger>
+    </TabsList>
+    <TabsContent value="embed">
+      <div className="border rounded-lg bg-background p-6 min-h-[400px]">
+        <FormPreview form={form} mode="embed" />
+      </div>
+    </TabsContent>
+    <TabsContent value="page">...</TabsContent>
+  </Tabs>
+</PageContent>
+```
+
+- **Route**: `/forms/[formId]` — primary entry point from list (Eye icon)
+- **Edit** is a secondary action (outline button) linking to `/forms/[formId]/edit`
+- Preview modes control width: embed (`max-w-lg`) vs page (`max-w-2xl`)
+- Uses `FormPreview` component which loads the embed script via `useEmbedScript` hook
 
 ### User Account Footer
 
@@ -1358,6 +1423,7 @@ For more prominent empty states, use the `EmptyState` component.
 | useToast | `src/hooks/use-toast.ts` |
 | EmptyState | `src/components/patterns/empty-state.tsx` |
 | PageHeader | `src/components/patterns/page-header.tsx` |
+| PageContent | `src/components/patterns/page-content.tsx` |
 | EditorLayout | `src/components/patterns/editor-layout.tsx` |
 | ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
 | UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |

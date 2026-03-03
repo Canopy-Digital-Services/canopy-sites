@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { PageContent } from "@/components/patterns/page-content";
 
 async function updateStatus(
   formId: string,
@@ -86,6 +87,7 @@ export default async function SubmissionDetailPage({
   };
 
   return (
+    <PageContent>
     <div className="space-y-6">
       <PageHeader
         title="Submission Details"
@@ -219,5 +221,6 @@ export default async function SubmissionDetailPage({
         </CardFooter>
       </Card>
     </div>
+    </PageContent>
   );
 }
