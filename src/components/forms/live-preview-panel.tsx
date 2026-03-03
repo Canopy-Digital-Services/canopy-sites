@@ -129,7 +129,7 @@ export function LivePreviewPanel() {
       <p className="text-xs font-heading font-medium text-muted-foreground uppercase tracking-wider mb-4">
         Preview
       </p>
-      <div className="rounded-lg border border-border/40 bg-background shadow-sm p-4">
+      <div className="rounded-lg border border-border/40 bg-card shadow-sm p-4">
         <div ref={containerRef}>
           {!ready && (
             <div className="text-muted-foreground text-sm p-4">
