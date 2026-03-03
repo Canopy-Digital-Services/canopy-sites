@@ -1,12 +1,13 @@
 "use strict";
 
-import { CanOForm } from "./form";
+import { CanopyForm } from "./form";
 import { baseStyles } from "./styles";
 
 declare global {
   interface Window {
     CanopyForms?: {
       init: () => void;
+      CanopyForm: typeof CanopyForm;
     };
   }
 }
@@ -70,7 +71,7 @@ function init() {
 
     const themeOverrides = parseTheme(container);
     const baseUrl = getBaseUrl(container);
-    const form = new CanOForm(container, {
+    const form = new CanopyForm(container, {
       formId,
       themeOverrides,
       baseUrl,
@@ -87,4 +88,5 @@ if (document.readyState === "loading") {
 
 window.CanopyForms = {
   init,
+  CanopyForm,
 };

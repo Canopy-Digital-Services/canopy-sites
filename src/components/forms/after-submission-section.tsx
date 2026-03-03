@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -13,57 +13,99 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChevronDown, ChevronRight, Plus, Trash2, Check, Save } from "lucide-react";
-import { updateAfterSubmission } from "@/actions/forms";
-import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useFormContext } from "@/components/forms/form-context";
 
 const MAX_NOTIFY_EMAILS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AfterSubmissionSectionProps = {
-  formId: string;
-  successMessage: string | null;
-  redirectUrl: string | null;
-  emailNotificationsEnabled: boolean;
-  notifyEmails: string[];
   ownerEmail: string;
-  allowedOrigins: string[];
-  stopAt: Date | null;
-  maxSubmissions: number | null;
 };
 
-export function AfterSubmissionSection({
-  formId,
-  successMessage: initialSuccessMessage,
-  redirectUrl: initialRedirectUrl,
-  emailNotificationsEnabled: initialEmailNotificationsEnabled,
-  notifyEmails: initialNotifyEmails,
-  ownerEmail,
-  allowedOrigins: initialAllowedOrigins,
-  stopAt: initialStopAt,
-  maxSubmissions: initialMaxSubmissions,
-}: AfterSubmissionSectionProps) {
-  const { toast } = useToast();
+export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionProps) {
+  const { state, saveStatus, updateSubmissionSettings } = useFormContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [, startTransition] = useTransition();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  // Determine initial radio selection based on existing data
+  // UI-only state
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
-    initialRedirectUrl ? "redirect" : "message"
+    state.redirectUrl ? "redirect" : "message"
   );
-
-  const [successMessage, setSuccessMessage] = useState(initialSuccessMessage || "");
-  const [redirectUrl, setRedirectUrl] = useState(initialRedirectUrl || "");
-  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(initialEmailNotificationsEnabled);
-  const [notifyEmails, setNotifyEmails] = useState<string[]>(initialNotifyEmails || []);
   const [newEmailInput, setNewEmailInput] = useState("");
   const [emailInputTouched, setEmailInputTouched] = useState(false);
-  const [allowedOrigins, setAllowedOrigins] = useState<string[]>(initialAllowedOrigins || []);
+
+  // Derived validation for the new email input
+  const trimmedNewEmail = newEmailInput.trim().toLowerCase();
+  const newEmailError = emailInputTouched && trimmedNewEmail
+    ? !EMAIL_REGEX.test(trimmedNewEmail)
+      ? "Enter a valid email address"
+      : state.notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail)
+        ? "This email is already in the list"
+        : state.notifyEmails.length >= MAX_NOTIFY_EMAILS
+          ? `Maximum ${MAX_NOTIFY_EMAILS} recipients allowed`
+          : null
+    : null;
+
+  const canAddEmail =
+    trimmedNewEmail !== "" &&
+    EMAIL_REGEX.test(trimmedNewEmail) &&
+    !state.notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail) &&
+    state.notifyEmails.length < MAX_NOTIFY_EMAILS;
+
+  // Handle toggle on — auto-populate owner email if list is empty
+  const handleToggleNotifications = (checked: boolean) => {
+    if (checked && state.notifyEmails.length === 0 && ownerEmail) {
+      updateSubmissionSettings({ emailNotificationsEnabled: checked, notifyEmails: [ownerEmail] });
+    } else {
+      updateSubmissionSettings({ emailNotificationsEnabled: checked });
+    }
+  };
+
+  const handleAddEmail = () => {
+    if (!canAddEmail) return;
+    updateSubmissionSettings({ notifyEmails: [...state.notifyEmails, trimmedNewEmail] });
+    setNewEmailInput("");
+    setEmailInputTouched(false);
+  };
+
+  const handleRemoveEmail = (index: number) => {
+    updateSubmissionSettings({ notifyEmails: state.notifyEmails.filter((_, i) => i !== index) });
+  };
+
+  const handleEmailInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddEmail();
+    }
+  };
+
+  const handleAddOrigin = () => {
+    updateSubmissionSettings({ allowedOrigins: [...state.allowedOrigins, ""] });
+  };
+
+  const handleRemoveOrigin = (index: number) => {
+    updateSubmissionSettings({ allowedOrigins: state.allowedOrigins.filter((_, i) => i !== index) });
+  };
+
+  const handleOriginChange = (index: number, value: string) => {
+    const updated = [...state.allowedOrigins];
+    updated[index] = value;
+    updateSubmissionSettings({ allowedOrigins: updated });
+  };
+
+  const handleAfterSubmissionTypeChange = (value: "message" | "redirect") => {
+    setAfterSubmissionType(value);
+    // Clear the inactive field
+    if (value === "message") {
+      updateSubmissionSettings({ redirectUrl: null });
+    } else {
+      updateSubmissionSettings({ successMessage: null });
+    }
+  };
 
   // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
   const formatDatetimeLocal = (date: Date | null): string => {
@@ -75,135 +117,6 @@ export function AfterSubmissionSection({
     const hours = String(d.getHours()).padStart(2, "0");
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const [stopAt, setStopAt] = useState(formatDatetimeLocal(initialStopAt));
-  const [maxSubmissions, setMaxSubmissions] = useState(initialMaxSubmissions?.toString() || "");
-
-  // Derived validation for the new email input
-  const trimmedNewEmail = newEmailInput.trim().toLowerCase();
-  const newEmailError = emailInputTouched && trimmedNewEmail
-    ? !EMAIL_REGEX.test(trimmedNewEmail)
-      ? "Enter a valid email address"
-      : notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail)
-        ? "This email is already in the list"
-        : notifyEmails.length >= MAX_NOTIFY_EMAILS
-          ? `Maximum ${MAX_NOTIFY_EMAILS} recipients allowed`
-          : null
-    : null;
-
-  const canAddEmail =
-    trimmedNewEmail !== "" &&
-    EMAIL_REGEX.test(trimmedNewEmail) &&
-    !notifyEmails.map(e => e.toLowerCase()).includes(trimmedNewEmail) &&
-    notifyEmails.length < MAX_NOTIFY_EMAILS;
-
-  // Handle toggle on — auto-populate owner email if list is empty
-  const handleToggleNotifications = (checked: boolean) => {
-    setEmailNotificationsEnabled(checked);
-    if (checked && notifyEmails.length === 0 && ownerEmail) {
-      setNotifyEmails([ownerEmail]);
-    }
-  };
-
-  const handleAddEmail = () => {
-    if (!canAddEmail) return;
-    setNotifyEmails([...notifyEmails, trimmedNewEmail]);
-    setNewEmailInput("");
-    setEmailInputTouched(false);
-  };
-
-  const handleRemoveEmail = (index: number) => {
-    setNotifyEmails(notifyEmails.filter((_, i) => i !== index));
-  };
-
-  const handleEmailInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddEmail();
-    }
-  };
-
-  // Auto-save with debouncing
-  useEffect(() => {
-    // Don't save on initial mount
-    // Only check the active field based on afterSubmissionType
-    const activeFieldChanged = afterSubmissionType === "message"
-      ? successMessage !== (initialSuccessMessage || "")
-      : redirectUrl !== (initialRedirectUrl || "");
-
-    const hasChanges =
-      activeFieldChanged ||
-      emailNotificationsEnabled !== initialEmailNotificationsEnabled ||
-      JSON.stringify(notifyEmails) !== JSON.stringify(initialNotifyEmails) ||
-      JSON.stringify(allowedOrigins) !== JSON.stringify(initialAllowedOrigins) ||
-      stopAt !== formatDatetimeLocal(initialStopAt) ||
-      maxSubmissions !== (initialMaxSubmissions?.toString() || "");
-
-    if (!hasChanges) return;
-
-    const timeoutId = setTimeout(() => {
-      setSaveStatus("saving");
-      startTransition(() => {
-        void (async () => {
-          try {
-            await updateAfterSubmission(formId, {
-              successMessage: afterSubmissionType === "message" ? (successMessage || null) : null,
-              redirectUrl: afterSubmissionType === "redirect" ? (redirectUrl || null) : null,
-              emailNotificationsEnabled,
-              notifyEmails,
-              allowedOrigins: allowedOrigins.filter(o => o.trim() !== ""),
-              stopAt: stopAt ? new Date(stopAt) : null,
-              maxSubmissions: maxSubmissions ? parseInt(maxSubmissions, 10) : null,
-            });
-            setSaveStatus("saved");
-            setTimeout(() => setSaveStatus("idle"), 2000);
-          } catch (error) {
-            console.error("Failed to save after submission settings:", error);
-            toast.error("Failed to save settings");
-            setSaveStatus("idle");
-          }
-        })();
-      });
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    formId,
-    afterSubmissionType,
-    successMessage,
-    redirectUrl,
-    emailNotificationsEnabled,
-    notifyEmails,
-    allowedOrigins,
-    stopAt,
-    maxSubmissions,
-    initialSuccessMessage,
-    initialRedirectUrl,
-    initialEmailNotificationsEnabled,
-    initialNotifyEmails,
-    initialAllowedOrigins,
-    initialStopAt,
-    initialMaxSubmissions,
-    toast,
-  ]);
-
-  const handleAddOrigin = () => {
-    setAllowedOrigins([...allowedOrigins, ""]);
-  };
-
-  const handleRemoveOrigin = (index: number) => {
-    setAllowedOrigins(allowedOrigins.filter((_, i) => i !== index));
-  };
-
-  const handleOriginChange = (index: number, value: string) => {
-    const updated = [...allowedOrigins];
-    updated[index] = value;
-    setAllowedOrigins(updated);
-  };
-
-  const handleAfterSubmissionTypeChange = (value: "message" | "redirect") => {
-    setAfterSubmissionType(value);
   };
 
   return (
@@ -256,8 +169,8 @@ export function AfterSubmissionSection({
                     <Label htmlFor="successMessage">Success message</Label>
                     <Textarea
                       id="successMessage"
-                      value={successMessage}
-                      onChange={(e) => setSuccessMessage(e.target.value)}
+                      value={state.successMessage ?? ""}
+                      onChange={(e) => updateSubmissionSettings({ successMessage: e.target.value || null })}
                       rows={2}
                       className="resize-none"
                       placeholder="Thank you for your submission!"
@@ -268,8 +181,8 @@ export function AfterSubmissionSection({
                     <Label htmlFor="redirectUrl">Redirect URL</Label>
                     <Input
                       id="redirectUrl"
-                      value={redirectUrl}
-                      onChange={(e) => setRedirectUrl(e.target.value)}
+                      value={state.redirectUrl ?? ""}
+                      onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
                       placeholder="https://example.com/thanks"
                     />
                     <p className="text-sm text-muted-foreground">
@@ -291,18 +204,18 @@ export function AfterSubmissionSection({
                 <input
                   type="checkbox"
                   id="emailNotifications"
-                  checked={emailNotificationsEnabled}
+                  checked={state.emailNotificationsEnabled}
                   onChange={(e) => handleToggleNotifications(e.target.checked)}
                   className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
                 />
               </div>
 
-              {emailNotificationsEnabled && (
+              {state.emailNotificationsEnabled && (
                 <div className="space-y-3">
                   {/* Email list */}
-                  {notifyEmails.length > 0 && (
+                  {state.notifyEmails.length > 0 && (
                     <div className="space-y-2">
-                      {notifyEmails.map((email, index) => (
+                      {state.notifyEmails.map((email, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <span className="text-sm flex-1 truncate">{email}</span>
                           <Tooltip>
@@ -324,7 +237,7 @@ export function AfterSubmissionSection({
                   )}
 
                   {/* Add email input */}
-                  {notifyEmails.length < MAX_NOTIFY_EMAILS && (
+                  {state.notifyEmails.length < MAX_NOTIFY_EMAILS && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Input
@@ -370,13 +283,13 @@ export function AfterSubmissionSection({
                   Add Origin
                 </Button>
               </div>
-              {allowedOrigins.length === 0 ? (
+              {state.allowedOrigins.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No origins configured. Submissions will be blocked unless you add allowed domains.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {allowedOrigins.map((origin, index) => (
+                  {state.allowedOrigins.map((origin, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <Input
                         value={origin}
@@ -413,8 +326,8 @@ export function AfterSubmissionSection({
                   <Input
                     id="stopAt"
                     type="datetime-local"
-                    value={stopAt}
-                    onChange={(e) => setStopAt(e.target.value)}
+                    value={formatDatetimeLocal(state.stopAt)}
+                    onChange={(e) => updateSubmissionSettings({ stopAt: e.target.value ? new Date(e.target.value) : null })}
                   />
                   <p className="text-sm text-muted-foreground">
                     Leave empty to accept submissions indefinitely
@@ -427,8 +340,8 @@ export function AfterSubmissionSection({
                     id="maxSubmissions"
                     type="number"
                     min="1"
-                    value={maxSubmissions}
-                    onChange={(e) => setMaxSubmissions(e.target.value)}
+                    value={state.maxSubmissions?.toString() ?? ""}
+                    onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}
                     placeholder="Unlimited"
                   />
                   <p className="text-sm text-muted-foreground">

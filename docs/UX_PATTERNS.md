@@ -824,9 +824,53 @@ import { EditorLayout } from "@/components/patterns/editor-layout";
 <EditorLayout
   header={<FormHeader />}
   main={<FormFields />}
-  panel={showPreview ? <PreviewPanel /> : null}
+  panel={<LivePreviewPanel />}
 />
 ```
+
+**Panel behavior (Epic 17)**:
+- On `lg+`: The panel renders as a sticky sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with `bg-muted/30` background and `border-l border-border/50` separator
+- The panel is `sticky top-[73px]` with `h-[calc(100vh-73px)] overflow-y-auto` — stays in view as the editor scrolls
+- On `<lg`: The panel slot is hidden via `hidden lg:flex`
+
+### FormContext (Unified State)
+
+The form editor uses a `FormProvider` context that holds all form state and provides granular updaters with auto-save:
+
+```tsx
+import { FormProvider, useFormContext } from "@/components/forms/form-context";
+
+// Wrap editor in provider
+<FormProvider initialForm={form}>
+  <FormEditorInner />
+</FormProvider>
+
+// In any child component
+const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
+```
+
+**Save groups** — changes auto-save after 1s debounce per group:
+| Group | Fields | Server action |
+|-------|--------|---------------|
+| basics | `name` | `updateFormBasics` |
+| header | `title`, `description` | `updateFormHeader` |
+| theme | `defaultTheme` | `updateFormAppearance` |
+| afterSubmission | success/redirect/email/origins/stop/max | `updateAfterSubmission` |
+
+Field operations (create/update/delete/reorder) call server actions **immediately**, not through auto-save.
+
+### LivePreviewPanel
+
+Always-on preview that renders the form using the actual embed renderer:
+
+```tsx
+import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
+```
+
+- Loads `embed.js` script, creates a `CanopyForm` instance via `window.CanopyForms.CanopyForm`
+- Calls `renderFromDefinition()` with a projection of `FormState` → embed `FormDefinition`
+- Re-renders on state change with 150ms debounce
+- Visual design: "quiet frame" — white card inside muted zone with subtle border
 
 ### Settings Section
 

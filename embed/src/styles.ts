@@ -50,7 +50,7 @@ export const baseStyles = `
   border-radius: var(--canopy-radius, 8px);
   border: 1px solid var(--canopy-border, #e4e4e7) !important;
   padding: 10px 12px;
-  font-family: inherit;
+  font-family: var(--canopy-font, inherit);
   font-size: var(--canopy-font-size, 14px);
   background: var(--canopy-field-bg, #ffffff) !important;
   color: inherit;

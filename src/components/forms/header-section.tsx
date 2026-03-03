@@ -1,65 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Save, Check } from "lucide-react";
-import { updateFormHeader } from "@/actions/forms";
+import { useFormContext } from "@/components/forms/form-context";
 
-type HeaderSectionProps = {
-  formId: string;
-  title: string | null;
-  description: string | null;
-};
-
-export function HeaderSection({ formId, title: initialTitle, description: initialDescription }: HeaderSectionProps) {
-  const [title, setTitle] = useState(initialTitle ?? "");
-  const [description, setDescription] = useState(initialDescription ?? "");
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-
-  useEffect(() => {
-    const currentTitle = title || null;
-    if (currentTitle === initialTitle) return;
-
-    const timeoutId = setTimeout(() => {
-      setSaveStatus("saving");
-      void (async () => {
-        try {
-          await updateFormHeader(formId, { title: title || null });
-          setSaveStatus("saved");
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        } catch (error) {
-          console.error("Failed to save title:", error);
-          setSaveStatus("idle");
-        }
-      })();
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [title, formId, initialTitle]);
-
-  useEffect(() => {
-    const currentDescription = description || null;
-    if (currentDescription === initialDescription) return;
-
-    const timeoutId = setTimeout(() => {
-      setSaveStatus("saving");
-      void (async () => {
-        try {
-          await updateFormHeader(formId, { description: description || null });
-          setSaveStatus("saved");
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        } catch (error) {
-          console.error("Failed to save description:", error);
-          setSaveStatus("idle");
-        }
-      })();
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [description, formId, initialDescription]);
+export function HeaderSection() {
+  const { state, saveStatus, updateHeader } = useFormContext();
 
   return (
     <Card className="border-l-4 border-l-primary">
@@ -88,8 +37,8 @@ export function HeaderSection({ formId, title: initialTitle, description: initia
           <Label htmlFor="form-title">Title</Label>
           <Input
             id="form-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={state.title ?? ""}
+            onChange={(e) => updateHeader({ title: e.target.value || null })}
             placeholder="e.g. Contact Us"
             maxLength={120}
           />
@@ -98,8 +47,8 @@ export function HeaderSection({ formId, title: initialTitle, description: initia
           <Label htmlFor="form-description">Description</Label>
           <Textarea
             id="form-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={state.description ?? ""}
+            onChange={(e) => updateHeader({ description: e.target.value || null })}
             placeholder="e.g. Fill out the form below and we'll get back to you."
             maxLength={400}
             rows={3}

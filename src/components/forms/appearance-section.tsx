@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -17,10 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Save, Check } from "lucide-react";
-import { updateFormAppearance } from "@/actions/forms";
-import { useToast } from "@/hooks/use-toast";
 import { FontPicker } from "@/components/ui/font-picker";
-
+import { useFormContext } from "@/components/forms/form-context";
 
 /** Add '#' prefix if missing from a hex color string. */
 function normalizeHex(value: string): string {
@@ -86,177 +84,75 @@ function SubSection({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-type AppearanceSectionProps = {
-  formId: string;
-  defaultTheme: unknown;
-};
-
-export function AppearanceSection({
-  formId,
-  defaultTheme: initialTheme,
-}: AppearanceSectionProps) {
-  const { toast } = useToast();
+export function AppearanceSection() {
+  const { state, saveStatus, updateTheme } = useFormContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [, startTransition] = useTransition();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const theme =
-    typeof initialTheme === "object" && initialTheme !== null
-      ? (initialTheme as Record<string, string | number>)
-      : {};
+  const theme = state.defaultTheme ?? {};
 
-  // Store initial values for comparison
-  const initialBodyFont = String(theme.bodyFont || "inherit");
-  const initialHeadingFont = String(theme.headingFont || "inherit");
-  const initialFontSize = String(theme.fontSize || "");
-  const initialBackground = String(theme.background || "");
-  const initialFieldBackground = String(theme.fieldBackground || "");
-  const initialBorder = String(theme.border || "");
-  const initialText = String(theme.text || "");
-  const initialPrimary = String(theme.primary || "");
-  const initialRadius = String(theme.radius || "");
-  const initialDensity = String(theme.density || "");
-  const initialButtonWidth = String(theme.buttonWidth || "full");
-  const initialButtonAlign = String(theme.buttonAlign || "left");
-  const initialButtonText = String(theme.buttonText || "");
-  const initialTitleSize = String(theme.titleSize || "md");
-  const initialTitleWeight = String(theme.titleWeight || "semibold");
-  const initialTitleColor = String(theme.titleColor || "");
-  const initialLabelWeight = String(theme.labelWeight || "medium");
-  const initialLabelTransform = String(theme.labelTransform || "none");
+  // Read current theme values
+  const bodyFont = String(theme.bodyFont || "inherit");
+  const headingFont = String(theme.headingFont || "inherit");
+  const fontSize = String(theme.fontSize || "");
+  const background = String(theme.background || "");
+  const fieldBackground = String(theme.fieldBackground || "");
+  const border = String(theme.border || "");
+  const text = String(theme.text || "");
+  const primary = String(theme.primary || "");
+  const radius = String(theme.radius || "");
+  const density = String(theme.density || "");
+  const buttonWidth = String(theme.buttonWidth || "full");
+  const buttonAlign = String(theme.buttonAlign || "left");
+  const buttonText = String(theme.buttonText || "");
+  const titleSize = String(theme.titleSize || "md");
+  const titleWeight = String(theme.titleWeight || "semibold");
+  const titleColor = String(theme.titleColor || "");
+  const labelWeight = String(theme.labelWeight || "medium");
+  const labelTransform = String(theme.labelTransform || "none");
 
-  // State
-  const [bodyFont, setBodyFont] = useState(initialBodyFont);
-  const [headingFont, setHeadingFont] = useState(initialHeadingFont);
-  const [fontSize, setFontSize] = useState(initialFontSize);
-  const [background, setBackground] = useState(initialBackground);
-  const [fieldBackground, setFieldBackground] = useState(initialFieldBackground);
-  const [border, setBorder] = useState(initialBorder);
-  const [text, setText] = useState(initialText);
-  const [primary, setPrimary] = useState(initialPrimary);
-  const [radius, setRadius] = useState(initialRadius);
-  const [density, setDensity] = useState(initialDensity);
-  const [buttonWidth, setButtonWidth] = useState(initialButtonWidth);
-  const [buttonAlign, setButtonAlign] = useState(initialButtonAlign);
-  const [buttonText, setButtonText] = useState(initialButtonText);
-  const [titleSize, setTitleSize] = useState(initialTitleSize);
-  const [titleWeight, setTitleWeight] = useState(initialTitleWeight);
-  const [titleColor, setTitleColor] = useState(initialTitleColor);
-  const [labelWeight, setLabelWeight] = useState(initialLabelWeight);
-  const [labelTransform, setLabelTransform] = useState(initialLabelTransform);
+  // Build a new theme object from all current values, applying any single field change
+  const buildTheme = (overrides: Record<string, string>) => {
+    const merged = {
+      bodyFont, headingFont, fontSize, background, fieldBackground,
+      border, text, primary, radius, density, buttonWidth, buttonAlign,
+      buttonText, titleSize, titleWeight, titleColor, labelWeight, labelTransform,
+      ...overrides,
+    };
 
-  // Subsection open states
+    const newTheme: Record<string, string | number> = {};
+
+    newTheme.bodyFont = merged.bodyFont || "inherit";
+    newTheme.headingFont = merged.headingFont || "inherit";
+
+    if (merged.fontSize) newTheme.fontSize = parseInt(merged.fontSize, 10);
+    if (merged.background) newTheme.background = normalizeHex(merged.background);
+    if (merged.fieldBackground) newTheme.fieldBackground = normalizeHex(merged.fieldBackground);
+    if (merged.border) newTheme.border = normalizeHex(merged.border);
+    if (merged.text) newTheme.text = normalizeHex(merged.text);
+    if (merged.primary) newTheme.primary = normalizeHex(merged.primary);
+    if (merged.radius) newTheme.radius = parseInt(merged.radius, 10);
+    if (merged.density) newTheme.density = merged.density;
+    if (merged.buttonWidth) newTheme.buttonWidth = merged.buttonWidth;
+    if (merged.buttonAlign) newTheme.buttonAlign = merged.buttonAlign;
+    if (merged.buttonText) newTheme.buttonText = merged.buttonText;
+    if (merged.titleSize && merged.titleSize !== "md") newTheme.titleSize = merged.titleSize;
+    if (merged.titleWeight && merged.titleWeight !== "semibold") newTheme.titleWeight = merged.titleWeight;
+    if (merged.titleColor) newTheme.titleColor = normalizeHex(merged.titleColor);
+    if (merged.labelWeight && merged.labelWeight !== "medium") newTheme.labelWeight = merged.labelWeight;
+    if (merged.labelTransform && merged.labelTransform !== "none") newTheme.labelTransform = merged.labelTransform;
+
+    return newTheme;
+  };
+
+  const set = (key: string, value: string) => {
+    updateTheme(buildTheme({ [key]: value }));
+  };
+
+  // Subsection open states (UI-only)
   const [typographyOpen, setTypographyOpen] = useState(false);
   const [titleStyleOpen, setTitleStyleOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [buttonOpen, setButtonOpen] = useState(false);
-
-  // Auto-save with debouncing
-  useEffect(() => {
-    const hasChanges =
-      bodyFont !== initialBodyFont ||
-      headingFont !== initialHeadingFont ||
-      fontSize !== initialFontSize ||
-      background !== initialBackground ||
-      fieldBackground !== initialFieldBackground ||
-      border !== initialBorder ||
-      text !== initialText ||
-      primary !== initialPrimary ||
-      radius !== initialRadius ||
-      density !== initialDensity ||
-      buttonWidth !== initialButtonWidth ||
-      buttonAlign !== initialButtonAlign ||
-      buttonText !== initialButtonText ||
-      titleSize !== initialTitleSize ||
-      titleWeight !== initialTitleWeight ||
-      titleColor !== initialTitleColor ||
-      labelWeight !== initialLabelWeight ||
-      labelTransform !== initialLabelTransform;
-
-    if (!hasChanges) return;
-
-    const timeoutId = setTimeout(() => {
-      setSaveStatus("saving");
-      startTransition(() => {
-        void (async () => {
-          try {
-            const newTheme: Record<string, string | number> = {};
-
-            newTheme.bodyFont = bodyFont || "inherit";
-            newTheme.headingFont = headingFont || "inherit";
-
-            if (fontSize) newTheme.fontSize = parseInt(fontSize, 10);
-            if (background) newTheme.background = normalizeHex(background);
-            if (fieldBackground) newTheme.fieldBackground = normalizeHex(fieldBackground);
-            if (border) newTheme.border = normalizeHex(border);
-            if (text) newTheme.text = normalizeHex(text);
-            if (primary) newTheme.primary = normalizeHex(primary);
-            if (radius) newTheme.radius = parseInt(radius, 10);
-            if (density) newTheme.density = density;
-            if (buttonWidth) newTheme.buttonWidth = buttonWidth;
-            if (buttonAlign) newTheme.buttonAlign = buttonAlign;
-            if (buttonText) newTheme.buttonText = buttonText;
-            if (titleSize && titleSize !== "md") newTheme.titleSize = titleSize;
-            if (titleWeight && titleWeight !== "semibold") newTheme.titleWeight = titleWeight;
-            if (titleColor) newTheme.titleColor = normalizeHex(titleColor);
-            if (labelWeight && labelWeight !== "medium") newTheme.labelWeight = labelWeight;
-            if (labelTransform && labelTransform !== "none") newTheme.labelTransform = labelTransform;
-
-            await updateFormAppearance(formId, {
-              defaultTheme: newTheme,
-            });
-            setSaveStatus("saved");
-            setTimeout(() => setSaveStatus("idle"), 2000);
-          } catch (error) {
-            console.error("Failed to save appearance settings:", error);
-            toast.error("Failed to save settings");
-            setSaveStatus("idle");
-          }
-        })();
-      });
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    formId,
-    bodyFont,
-    headingFont,
-    fontSize,
-    background,
-    fieldBackground,
-    border,
-    text,
-    primary,
-    radius,
-    density,
-    buttonWidth,
-    buttonAlign,
-    buttonText,
-    titleSize,
-    titleWeight,
-    titleColor,
-    labelWeight,
-    labelTransform,
-    initialBodyFont,
-    initialHeadingFont,
-    initialFontSize,
-    initialBackground,
-    initialFieldBackground,
-    initialBorder,
-    initialText,
-    initialPrimary,
-    initialRadius,
-    initialDensity,
-    initialButtonWidth,
-    initialButtonAlign,
-    initialButtonText,
-    initialTitleSize,
-    initialTitleWeight,
-    initialTitleColor,
-    initialLabelWeight,
-    initialLabelTransform,
-    toast,
-  ]);
 
   // ─── Summary chips for collapsed subsections ───────────────────────────────
 
@@ -353,14 +249,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(background, "#ffffff")}
-                      onChange={(e) => setBackground(e.target.value)}
+                      onChange={(e) => set("background", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="background"
                       value={background}
-                      onChange={(e) => setBackground(e.target.value)}
-                      onBlur={() => setBackground(normalizeHex(background))}
+                      onChange={(e) => set("background", e.target.value)}
+                      onBlur={() => set("background", normalizeHex(background))}
                       placeholder="#ffffff"
                     />
                   </div>
@@ -371,14 +267,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(fieldBackground, "#ffffff")}
-                      onChange={(e) => setFieldBackground(e.target.value)}
+                      onChange={(e) => set("fieldBackground", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="fieldBackground"
                       value={fieldBackground}
-                      onChange={(e) => setFieldBackground(e.target.value)}
-                      onBlur={() => setFieldBackground(normalizeHex(fieldBackground))}
+                      onChange={(e) => set("fieldBackground", e.target.value)}
+                      onBlur={() => set("fieldBackground", normalizeHex(fieldBackground))}
                       placeholder="#ffffff"
                     />
                   </div>
@@ -389,14 +285,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(border, "#e4e4e7")}
-                      onChange={(e) => setBorder(e.target.value)}
+                      onChange={(e) => set("border", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="border"
                       value={border}
-                      onChange={(e) => setBorder(e.target.value)}
-                      onBlur={() => setBorder(normalizeHex(border))}
+                      onChange={(e) => set("border", e.target.value)}
+                      onBlur={() => set("border", normalizeHex(border))}
                       placeholder="#e4e4e7"
                     />
                   </div>
@@ -407,14 +303,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(text, "#18181b")}
-                      onChange={(e) => setText(e.target.value)}
+                      onChange={(e) => set("text", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="text"
                       value={text}
-                      onChange={(e) => setText(e.target.value)}
-                      onBlur={() => setText(normalizeHex(text))}
+                      onChange={(e) => set("text", e.target.value)}
+                      onBlur={() => set("text", normalizeHex(text))}
                       placeholder="#18181b"
                     />
                   </div>
@@ -425,14 +321,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(primary, "#005F6A")}
-                      onChange={(e) => setPrimary(e.target.value)}
+                      onChange={(e) => set("primary", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="primary"
                       value={primary}
-                      onChange={(e) => setPrimary(e.target.value)}
-                      onBlur={() => setPrimary(normalizeHex(primary))}
+                      onChange={(e) => set("primary", e.target.value)}
+                      onBlur={() => set("primary", normalizeHex(primary))}
                       placeholder="#005F6A"
                     />
                   </div>
@@ -447,13 +343,13 @@ export function AppearanceSection({
                 <Input
                   id="radius"
                   value={radius}
-                  onChange={(e) => setRadius(e.target.value)}
+                  onChange={(e) => set("radius", e.target.value)}
                   placeholder="8"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="density">Density</Label>
-                <Select value={density || "normal"} onValueChange={setDensity}>
+                <Select value={density || "normal"} onValueChange={(v) => set("density", v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select density" />
                   </SelectTrigger>
@@ -479,7 +375,7 @@ export function AppearanceSection({
                   <FontPicker
                     id="bodyFont"
                     value={bodyFont}
-                    onChange={setBodyFont}
+                    onChange={(v) => set("bodyFont", v)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -487,7 +383,7 @@ export function AppearanceSection({
                   <FontPicker
                     id="headingFont"
                     value={headingFont}
-                    onChange={setHeadingFont}
+                    onChange={(v) => set("headingFont", v)}
                   />
                 </div>
               </div>
@@ -500,7 +396,7 @@ export function AppearanceSection({
                     min="10"
                     max="24"
                     value={fontSize}
-                    onChange={(e) => setFontSize(e.target.value)}
+                    onChange={(e) => set("fontSize", e.target.value)}
                     placeholder="14"
                   />
                 </div>
@@ -517,7 +413,7 @@ export function AppearanceSection({
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="titleSize">Size</Label>
-                  <Select value={titleSize} onValueChange={setTitleSize}>
+                  <Select value={titleSize} onValueChange={(v) => set("titleSize", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select size" />
                     </SelectTrigger>
@@ -531,7 +427,7 @@ export function AppearanceSection({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="titleWeight">Weight</Label>
-                  <Select value={titleWeight} onValueChange={setTitleWeight}>
+                  <Select value={titleWeight} onValueChange={(v) => set("titleWeight", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select weight" />
                     </SelectTrigger>
@@ -548,14 +444,14 @@ export function AppearanceSection({
                     <input
                       type="color"
                       value={toColorInputValue(titleColor, "#18181b")}
-                      onChange={(e) => setTitleColor(e.target.value)}
+                      onChange={(e) => set("titleColor", e.target.value)}
                       className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
                     />
                     <Input
                       id="titleColor"
                       value={titleColor}
-                      onChange={(e) => setTitleColor(e.target.value)}
-                      onBlur={() => setTitleColor(titleColor ? normalizeHex(titleColor) : "")}
+                      onChange={(e) => set("titleColor", e.target.value)}
+                      onBlur={() => set("titleColor", titleColor ? normalizeHex(titleColor) : "")}
                       placeholder="inherit"
                     />
                   </div>
@@ -573,7 +469,7 @@ export function AppearanceSection({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="labelWeight">Weight</Label>
-                  <Select value={labelWeight} onValueChange={setLabelWeight}>
+                  <Select value={labelWeight} onValueChange={(v) => set("labelWeight", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select weight" />
                     </SelectTrigger>
@@ -586,7 +482,7 @@ export function AppearanceSection({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="labelTransform">Transform</Label>
-                  <Select value={labelTransform} onValueChange={setLabelTransform}>
+                  <Select value={labelTransform} onValueChange={(v) => set("labelTransform", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select transform" />
                     </SelectTrigger>
@@ -609,7 +505,7 @@ export function AppearanceSection({
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="buttonWidth">Button Width</Label>
-                  <Select value={buttonWidth || "full"} onValueChange={setButtonWidth}>
+                  <Select value={buttonWidth || "full"} onValueChange={(v) => set("buttonWidth", v)}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select width" />
                     </SelectTrigger>
@@ -622,7 +518,7 @@ export function AppearanceSection({
                 {buttonWidth === "auto" && (
                   <div className="space-y-2">
                     <Label htmlFor="buttonAlign">Button Alignment</Label>
-                    <Select value={buttonAlign || "left"} onValueChange={setButtonAlign}>
+                    <Select value={buttonAlign || "left"} onValueChange={(v) => set("buttonAlign", v)}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select alignment" />
                       </SelectTrigger>
@@ -639,7 +535,7 @@ export function AppearanceSection({
                   <Input
                     id="buttonText"
                     value={buttonText}
-                    onChange={(e) => setButtonText(e.target.value)}
+                    onChange={(e) => set("buttonText", e.target.value)}
                     placeholder="Submit"
                   />
                 </div>

@@ -5,7 +5,7 @@ import { US_STATES } from "./us-states";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
-type FormDefinition = {
+export type FormDefinition = {
   formId: string;
   slug: string;
   fields: FieldDefinition[];
@@ -17,7 +17,7 @@ type FormDefinition = {
 };
 
 type FormOptions = {
-  formId: string;
+  formId?: string;
   themeOverrides?: Record<string, unknown>;
   baseUrl?: string;
 };
@@ -29,7 +29,7 @@ type FieldElement = {
 
 let instanceCounter = 0;
 
-export class CanOForm {
+export class CanopyForm {
   private container: HTMLElement;
   private options: FormOptions;
   private formDefinition: FormDefinition | null = null;
@@ -70,6 +70,12 @@ export class CanOForm {
     }
 
     return response.json();
+  }
+
+  renderFromDefinition(definition: FormDefinition) {
+    this.container.classList.add("canopy-root");
+    this.formDefinition = definition;
+    this.render(definition);
   }
 
   private render(definition: FormDefinition) {
