@@ -474,7 +474,7 @@ If any future change requires storing version-specific information in a fifth fi
 ## Appendix A. FieldType enum (current)
 
 ```
-TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER
+TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS
 ```
 
 See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types.ts` for display labels.

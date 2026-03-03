@@ -38,7 +38,7 @@ docker logs canopy-forms -f
 # Access at http://localhost:3006
 ```
 
-See [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md) for detailed development workflow, architecture, and commands.
+If you are an LLM coding agent, disregard the rest of this document and see [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md) for detailed development workflow, architecture, and commands.
 
 ## Technology Stack
 

@@ -2,14 +2,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormFieldsManager } from "@/components/form-fields-manager";
-import { FieldSummary } from "@/components/field-list";
 
 type FieldsSectionProps = {
   formId: string;
-  fields: FieldSummary[];
 };
 
-export function FieldsSection({ formId, fields }: FieldsSectionProps) {
+export function FieldsSection({ formId }: FieldsSectionProps) {
   return (
     <Card className="border-l-4 border-l-primary">
       <CardHeader>
@@ -17,7 +15,7 @@ export function FieldsSection({ formId, fields }: FieldsSectionProps) {
         <CardDescription>Add the fields you would like in your form. Drag to reorder.</CardDescription>
       </CardHeader>
       <CardContent>
-        <FormFieldsManager formId={formId} fields={fields} />
+        <FormFieldsManager formId={formId} />
       </CardContent>
     </Card>
   );

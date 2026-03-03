@@ -58,6 +58,7 @@ For each field, you can configure:
   - An internal key is automatically generated from the label (e.g., "Email Address" → `email_address`)
   - The internal key is used in submissions and stays stable even if you change the label later
   - You can see the internal key when editing an existing field
+  - **Deleting and re-adding fields**: If you delete a field and later add a new one with the same label, it receives the same internal key. New submissions will be stored under that key again, just as before. Submissions collected while the field was absent will simply be missing that key. Submissions from before the deletion are unaffected — their data is preserved as-is.
 - **Placeholder** - Hint text shown in empty fields
 - **Required** - Whether the field must be filled before submission
 - **Help text** - Optional guidance text displayed below the input field in a muted style (v3.7.2+)

@@ -64,6 +64,24 @@ export async function GET(
       });
     }
 
+    // Build composite field map for CSV column expansion
+    const compositeFields = new Map<string, { type: string; parts: string[] }>();
+    for (const field of form.fields) {
+      if (field.type === "NAME") {
+        const opts = field.options as { parts?: string[] } | null;
+        compositeFields.set(field.name, {
+          type: "NAME",
+          parts: opts?.parts || ["first", "last"],
+        });
+      } else if (field.type === "ADDRESS") {
+        const opts = field.options as { showLine2?: boolean } | null;
+        const parts = ["line1"];
+        if (opts?.showLine2 !== false) parts.push("line2");
+        parts.push("city", "region", "postalCode");
+        compositeFields.set(field.name, { type: "ADDRESS", parts });
+      }
+    }
+
     // Build CSV export (default)
     const allKeys = new Set<string>();
     submissions.forEach((submission) => {
@@ -71,13 +89,41 @@ export async function GET(
       Object.keys(data).forEach((key) => allKeys.add(key));
     });
 
+    // Expand composite keys into separate columns
     const dataKeys = Array.from(allKeys);
+    type CsvColumn = { header: string; getValue: (data: Record<string, unknown>) => string };
+    const columns: CsvColumn[] = [];
+
+    for (const key of dataKeys) {
+      const composite = compositeFields.get(key);
+      if (composite) {
+        for (const part of composite.parts) {
+          columns.push({
+            header: `${key}_${part}`,
+            getValue: (data) => {
+              const obj = data[key] as Record<string, unknown> | undefined;
+              return obj?.[part] != null ? String(obj[part]) : "";
+            },
+          });
+        }
+      } else {
+        columns.push({
+          header: key,
+          getValue: (data) => {
+            const value = data[key];
+            if (value === null || value === undefined) return "";
+            return typeof value === "object" ? JSON.stringify(value) : String(value);
+          },
+        });
+      }
+    }
+
     const headers = [
       "ID",
       "Date",
       "Status",
       "Is Spam",
-      ...dataKeys,
+      ...columns.map((c) => c.header),
       "IP Hash",
       "User Agent",
       "Referrer",
@@ -95,13 +141,7 @@ export async function GET(
         submission.createdAt.toISOString(),
         submission.status,
         submission.isSpam ? "Yes" : "No",
-        ...dataKeys.map((key) => {
-          const value = data[key];
-          if (value === null || value === undefined) return "";
-          return typeof value === "object"
-            ? JSON.stringify(value)
-            : String(value);
-        }),
+        ...columns.map((col) => col.getValue(data)),
         meta.ipHash || "",
         meta.userAgent || "",
         meta.referrer || "",

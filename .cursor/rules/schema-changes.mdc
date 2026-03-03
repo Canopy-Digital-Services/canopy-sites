@@ -1,0 +1,23 @@
+---
+description: Schema change protocol — migration required, understand the deployment pipeline
+globs: prisma/schema.prisma
+alwaysApply: false
+---
+
+# Schema Change Protocol
+
+When modifying `prisma/schema.prisma`:
+
+1. **If the change affects the database** (adding/removing/renaming columns, tables, indexes, enums), you MUST create a migration: `npx prisma migrate dev --name descriptive_name`. Never use `prisma db push`.
+2. **Read the generated SQL** in the new `prisma/migrations/` directory. Confirm it does what you intended.
+3. **Never modify or delete existing migration files** — deployed databases have already applied them.
+4. **Commit the schema and migration together** as one atomic commit.
+5. **Run verification**: `npm run build && npm run lint && npx prisma migrate status`.
+
+## Why this matters
+
+After you push, Coolify runs `prisma migrate deploy` against the deployed database (dev or prod — not your local DB). If the migration file is missing, the database never gets updated but the Prisma client expects the new columns → P2022 error → app is down. If the migration SQL is wrong, the container fails to start.
+
+After pushing a schema change, tell the user to check Coolify logs for `[canopy-forms] Migrations complete.`
+
+**Update docs if the model shape changed**: `docs/AGENT_CONTEXT.md` appendix B (data model summary) and appendix A (FieldType enum, if types changed).

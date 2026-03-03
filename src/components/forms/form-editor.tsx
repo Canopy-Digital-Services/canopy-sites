@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { EditorLayout } from "@/components/patterns/editor-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Code, Save, Check } from "lucide-react";
+import { Code, Save, Check, Eye } from "lucide-react";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { HeaderSection } from "@/components/forms/header-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
-import { PreviewPanel } from "@/components/forms/preview-panel";
 import { IntegratePanel } from "@/components/forms/integrate-panel";
-import { useToast } from "@/hooks/use-toast";
-import { updateFormBasics } from "@/actions/forms";
+import { RightPanel } from "@/components/patterns/right-panel";
+import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
+import { FormProvider, useFormContext } from "@/components/forms/form-context";
 
 type FormEditorProps = {
-  apiUrl: string; // Pass from server-side page
+  apiUrl: string;
   ownerEmail: string;
   form: {
     id: string;
@@ -48,44 +48,25 @@ type FormEditorProps = {
 };
 
 export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
-  const { toast } = useToast();
-  const [formName, setFormName] = useState(form.name);
-  const [panelType, setPanelType] = useState<"preview" | "integrate" | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  return (
+    <FormProvider initialForm={form}>
+      <FormEditorInner apiUrl={apiUrl} ownerEmail={ownerEmail} form={form} />
+    </FormProvider>
+  );
+}
 
-  // Auto-save form name with debouncing
-  useEffect(() => {
-    if (formName === form.name) return;
-
-    const timeoutId = setTimeout(() => {
-      setSaveStatus("saving");
-      void (async () => {
-        try {
-          await updateFormBasics(form.id, { name: formName });
-          setSaveStatus("saved");
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        } catch (error) {
-          console.error("Failed to save form name:", error);
-          toast.error("Failed to save form name");
-          setSaveStatus("idle");
-        }
-      })();
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [formName, form.name, form.id, toast]);
-
-  const handleOpenPreview = () => setPanelType("preview");
-  const handleOpenIntegrate = () => setPanelType("integrate");
-  const handleClosePanel = () => setPanelType(null);
+function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
+  const { state, saveStatus, updateName } = useFormContext();
+  const [integrateOpen, setIntegrateOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const header = (
     <div className="max-w-[640px] mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <Input
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
+            value={state.name}
+            onChange={(e) => updateName(e.target.value)}
             className="text-lg font-semibold max-w-md"
             placeholder="Form name"
           />
@@ -103,11 +84,7 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
               Saved
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={handleOpenPreview}>
-            <Eye className="mr-2 h-4 w-4" />
-            Preview
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleOpenIntegrate}>
+          <Button variant="outline" size="sm" onClick={() => setIntegrateOpen(true)}>
             <Code className="mr-2 h-4 w-4" />
             Integrate
           </Button>
@@ -118,44 +95,46 @@ export function FormEditor({ apiUrl, ownerEmail, form }: FormEditorProps) {
 
   const main = (
     <div className="space-y-8 max-w-[640px] mx-auto">
-      {/* Header Section - Title and description */}
-      <HeaderSection formId={form.id} title={form.title} description={form.description} />
-
-      {/* Fields Section - Expanded by default */}
-      <FieldsSection formId={form.id} fields={form.fields} />
-
-      {/* Appearance Section - Collapsible */}
-      <AppearanceSection formId={form.id} defaultTheme={form.defaultTheme} />
-
-      {/* After Submission Section - Collapsible */}
-      <AfterSubmissionSection
-        formId={form.id}
-        successMessage={form.successMessage}
-        redirectUrl={form.redirectUrl}
-        emailNotificationsEnabled={form.emailNotificationsEnabled}
-        notifyEmails={form.notifyEmails}
-        ownerEmail={ownerEmail}
-        allowedOrigins={form.allowedOrigins}
-        stopAt={form.stopAt}
-        maxSubmissions={form.maxSubmissions}
-      />
+      <HeaderSection />
+      <FieldsSection formId={form.id} />
+      <AppearanceSection />
+      <AfterSubmissionSection ownerEmail={ownerEmail} />
     </div>
   );
 
-  const panel = panelType === "preview" ? (
-    <PreviewPanel
-      open={true}
-      onClose={handleClosePanel}
-      form={form}
-    />
-  ) : panelType === "integrate" ? (
-    <IntegratePanel
-      open={true}
-      onClose={handleClosePanel}
-      apiUrl={apiUrl}
-      form={form}
-    />
-  ) : null;
+  const panel = <LivePreviewPanel />;
 
-  return <EditorLayout header={header} main={main} panel={panel} />;
+  return (
+    <>
+      <EditorLayout header={header} main={main} panel={panel} />
+
+      {/* Mobile preview handle — fixed tab on right edge */}
+      <button
+        onClick={() => setPreviewOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 lg:hidden flex flex-col items-center gap-1.5 rounded-l-lg border border-r-0 border-border/50 bg-background/90 backdrop-blur-sm px-1.5 py-3 shadow-md transition-colors hover:bg-muted/80"
+        aria-label="Open preview"
+      >
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        <span className="text-[10px] font-heading font-medium text-muted-foreground uppercase tracking-wider [writing-mode:vertical-lr]">
+          Preview
+        </span>
+      </button>
+
+      {/* Mobile preview sheet */}
+      <RightPanel
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title="Preview"
+      >
+        <LivePreviewPanel />
+      </RightPanel>
+
+      <IntegratePanel
+        open={integrateOpen}
+        onClose={() => setIntegrateOpen(false)}
+        apiUrl={apiUrl}
+        form={form}
+      />
+    </>
+  );
 }

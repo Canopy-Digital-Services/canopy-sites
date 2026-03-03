@@ -182,12 +182,12 @@ Buttons use the `Button` component from `src/components/ui/button.tsx`.
 
 | Variant | Usage |
 |---------|-------|
-| `default` | Primary actions (Save, Submit, Create) |
-| `destructive` | Dangerous actions (Delete, Remove) |
+| `default` | Primary actions (Save, Submit, Create). Also the "safe" choice when paired with a destructive alternative. |
+| `destructive` | Dangerous actions when there is a single confirm/cancel choice (e.g., Delete / Cancel) |
 | `outline` | Secondary actions (Cancel, Back) |
 | `ghost` | Tertiary/icon-only actions in toolbars |
 | `secondary` | Alternative secondary styling |
-| `link` | Text-style links |
+| `link` | Text-style actions. Use with `text-destructive` to de-emphasize a dangerous option next to a safer primary. |
 
 ### Sizes
 
@@ -487,7 +487,7 @@ showError();         // "Something went wrong"
 
 ## Confirmation Dialogs
 
-Use `ConfirmDialog` for any action that needs user confirmation.
+Use `ConfirmDialog` for simple confirm/cancel actions. For dialogs where the user chooses between a safe and a dangerous option, see [Destructive Actions with Data Retention](#destructive-actions-with-data-retention) below.
 
 ```tsx
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -514,6 +514,34 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 | `onConfirm` | () => void | Callback when confirmed |
 | `trigger` | ReactNode | Element that opens the dialog |
 | `destructive` | boolean | Use destructive button styling |
+
+### Dialog Footer Hierarchy: Safe vs. Dangerous Choices
+
+When a dialog presents competing actions with different risk levels (not just confirm/cancel), use **visual weight and position** to guide the user toward the safer choice:
+
+1. **Safe action rightmost with primary variant** — the strongest visual weight lands in the natural endpoint of left-to-right scanning
+2. **Dangerous action as `link` variant + `text-destructive`** — present but low visual weight; the user must consciously choose it
+3. **Cancel isolated left** — `mr-auto` on the cancel button creates a two-group layout: escape (left) vs. decisions (right)
+4. **Let design do the persuading** — avoid redundant warning text ("are you sure?"); the layout and visual hierarchy should be sufficient
+
+```
+[ Cancel ]                    Dangerous option    [ Safe option ]
+   outline,                     link variant,        default (primary)
+   mr-auto (pushed left)        text-destructive     variant, rightmost
+```
+
+> **Do not use `variant="destructive"` (filled red button) when a safer alternative is present.** The filled destructive button is for single-action confirmations (Delete / Cancel) where there is no competing safe choice. When two actions compete, de-emphasize the dangerous one with `link` + `text-destructive` instead.
+
+### Destructive Actions with Data Retention
+
+Apply the footer hierarchy above when a destructive action may affect persisted user data (e.g., deleting a field that has submission data). Instead of `ConfirmDialog`, build a custom dialog that:
+
+- Is controlled via `open`/`onOpenChange` (opened programmatically, no trigger)
+- Checks for affected data asynchronously on mount (shows spinner while loading)
+- If **no data exists**: falls back to simple confirmation (Cancel / Delete)
+- If **data exists**: shows the count and offers a safe option (keep data) and a dangerous option (purge data), using the footer hierarchy above
+
+**Reference implementation:** `DeleteFieldDialog` (`src/components/delete-field-dialog.tsx`)
 
 ---
 
@@ -796,9 +824,53 @@ import { EditorLayout } from "@/components/patterns/editor-layout";
 <EditorLayout
   header={<FormHeader />}
   main={<FormFields />}
-  panel={showPreview ? <PreviewPanel /> : null}
+  panel={<LivePreviewPanel />}
 />
 ```
+
+**Panel behavior (Epic 17)**:
+- On `lg+`: The panel renders as a sticky sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with `bg-muted/30` background and `border-l border-border/50` separator
+- The panel is `sticky top-[73px]` with `h-[calc(100vh-73px)] overflow-y-auto` — stays in view as the editor scrolls
+- On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
+
+### FormContext (Unified State)
+
+The form editor uses a `FormProvider` context that holds all form state and provides granular updaters with auto-save:
+
+```tsx
+import { FormProvider, useFormContext } from "@/components/forms/form-context";
+
+// Wrap editor in provider
+<FormProvider initialForm={form}>
+  <FormEditorInner />
+</FormProvider>
+
+// In any child component
+const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
+```
+
+**Save groups** — changes auto-save after 1s debounce per group:
+| Group | Fields | Server action |
+|-------|--------|---------------|
+| basics | `name` | `updateFormBasics` |
+| header | `title`, `description` | `updateFormHeader` |
+| theme | `defaultTheme` | `updateFormAppearance` |
+| afterSubmission | success/redirect/email/origins/stop/max | `updateAfterSubmission` |
+
+Field operations (create/update/delete/reorder) call server actions **immediately**, not through auto-save.
+
+### LivePreviewPanel
+
+Always-on preview that renders the form using the actual embed renderer:
+
+```tsx
+import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
+```
+
+- Loads `embed.js` script, creates a `CanopyForm` instance via `window.CanopyForms.CanopyForm`
+- Calls `renderFromDefinition()` with a projection of `FormState` → embed `FormDefinition`
+- Re-renders on state change with 150ms debounce
+- Visual design: "quiet frame" — white card inside muted zone with subtle border
 
 ### Settings Section
 
@@ -1232,7 +1304,8 @@ For more prominent empty states, use the `EmptyState` component.
 | Scenario | Component/Pattern |
 |----------|-------------------|
 | User feedback (success/error) | `toast.success()` / `toast.error()` |
-| Confirm destructive action | `ConfirmDialog` with `destructive={true}` |
+| Confirm destructive action (single choice) | `ConfirmDialog` with `destructive={true}` |
+| Destructive action with safe/dangerous options | Custom dialog with footer hierarchy (see Confirmation Dialogs) |
 | Reorderable list | `SortableList` with drag handle |
 | High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
