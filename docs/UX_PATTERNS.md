@@ -181,6 +181,8 @@ Appearance  (always-open Card)
 
 **Heading/label style**: The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform (uppercase) is label-specific and lives in Headings. Title Size is title-specific (labels always render at body font size).
 
+**Font pickers**: Body and Headings each use the `FontPicker` component (`src/components/ui/font-picker.tsx`) with different curated lists. The **Body** font uses `variant="body"` (default), which shows `CURATED_FONTS` from `src/lib/google-fonts.ts` (sans, serif, mono options suited to body text). The **Headings** font uses `variant="heading"`, which shows `CURATED_HEADING_FONTS` (display/expressive typefaces). In both cases the user can search to filter over the full Google Fonts catalogue; the variant only changes the default scrollable list when not searching.
+
 Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
 ### Dark Mode Status
@@ -1480,3 +1482,4 @@ For more prominent empty states, use the `EmptyState` component.
 | ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
 | UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |
 | AccountDashboard | `src/components/account/account-dashboard.tsx` |
+| FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`) |

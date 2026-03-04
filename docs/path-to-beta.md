@@ -81,7 +81,7 @@ Validate core flows with real people before calling it beta.
 
 Prevent abuse and set expectations for launch.
 
-- **Limit**: Enforce a maximum of 3 forms per account during beta (config or feature flag). Show clear messaging when at the limit (and optionally when approaching it).
+- **Limit**: Enforce a maximum of 1 form per account during beta (config or feature flag). Show clear messaging when at the limit (and optionally when approaching it).
 - **Paid tier**: Document or implement the intended path for post-beta paid plans (e.g. higher form limit, remove "beta" cap). No need to ship payment before beta; the path (pricing idea, upgrade entry point) should be defined so launch isn't blocked.
 
 ---
