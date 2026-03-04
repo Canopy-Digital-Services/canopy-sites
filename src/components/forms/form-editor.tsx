@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { EditorLayout } from "@/components/patterns/editor-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Code, Save, Check, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Code, Save, Check, Eye, Pencil, Globe, GlobeLock } from "lucide-react";
 import Link from "next/link";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { HeaderSection } from "@/components/forms/header-section";
@@ -14,6 +14,8 @@ import { IntegratePanel } from "@/components/forms/integrate-panel";
 import { RightPanel } from "@/components/patterns/right-panel";
 import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
+import { toggleFormPublished } from "@/actions/forms";
+import { toast } from "sonner";
 
 type FormEditorProps = {
   apiUrl: string;
@@ -33,6 +35,7 @@ type FormEditorProps = {
     defaultTheme: unknown;
     stopAt: Date | null;
     maxSubmissions: number | null;
+    published: boolean;
     fields: Array<{
       id: string;
       name: string;
@@ -61,6 +64,8 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
   const [integrateOpen, setIntegrateOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [published, setPublished] = useState(form.published);
+  const [isPublishing, startPublishTransition] = useTransition();
 
   const header = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -104,6 +109,30 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
             Saved
           </span>
         )}
+        <Button
+          variant={published ? "outline" : "default"}
+          size="sm"
+          disabled={isPublishing}
+          onClick={() => {
+            const next = !published;
+            startPublishTransition(async () => {
+              try {
+                await toggleFormPublished(form.id, next);
+                setPublished(next);
+                toast.success(next ? "Form published" : "Form unpublished");
+              } catch {
+                toast.error("Failed to update publish status");
+              }
+            });
+          }}
+        >
+          {published ? (
+            <GlobeLock className="mr-2 h-4 w-4" />
+          ) : (
+            <Globe className="mr-2 h-4 w-4" />
+          )}
+          {isPublishing ? "Updating..." : published ? "Unpublish" : "Publish"}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setIntegrateOpen(true)}>
           <Code className="mr-2 h-4 w-4" />
           Integrate
@@ -153,6 +182,7 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
         onClose={() => setIntegrateOpen(false)}
         apiUrl={apiUrl}
         form={form}
+        published={published}
       />
     </>
   );

@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedForm, formExists } from "@/lib/data-access/forms";
 import { HostedFormPage } from "@/components/forms/hosted-form-page";
-import Image from "next/image";
 
 type Props = {
   params: Promise<{ formId: string }>;
