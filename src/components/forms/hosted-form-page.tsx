@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition } from "@/lib/embed-preview";
+import { cn } from "@/lib/utils";
 
 type HostedFormPageProps = {
   form: {
@@ -37,8 +38,17 @@ export function HostedFormPage({ form }: HostedFormPageProps) {
     formInstanceRef.current.renderFromDefinition(definition);
   }, [ready, formInstanceRef, form]);
 
+  // Extract pageBackground from theme (JSON stored as unknown)
+  const themeObj = typeof form.defaultTheme === "object" && form.defaultTheme !== null
+    ? (form.defaultTheme as Record<string, unknown>)
+    : null;
+  const pageBackground = typeof themeObj?.pageBackground === "string" ? themeObj.pageBackground : null;
+
   return (
-    <div className="min-h-screen bg-muted/40 flex flex-col">
+    <div
+      className={cn("min-h-screen flex flex-col", !pageBackground && "bg-muted/40")}
+      style={pageBackground ? { backgroundColor: pageBackground } : undefined}
+    >
       <main className="flex-1 flex items-start justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-2xl">
           <div ref={containerRef}>
