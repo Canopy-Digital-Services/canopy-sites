@@ -49,6 +49,35 @@ export async function getOwnedFormMinimal(formId: string, accountId: string) {
 }
 
 /**
+ * Get a published form by ID (public, no auth).
+ * Returns null if form doesn't exist or isn't published.
+ */
+export async function getPublishedForm(formId: string) {
+  return prisma.form.findFirst({
+    where: {
+      id: formId,
+      published: true,
+    },
+    include: {
+      fields: {
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+}
+
+/**
+ * Check if a form exists by ID (public, no auth).
+ * Used to distinguish 404 from "not published".
+ */
+export async function formExists(formId: string) {
+  const count = await prisma.form.count({
+    where: { id: formId },
+  });
+  return count > 0;
+}
+
+/**
  * Get all forms for an account.
  * Used for forms list page.
  */

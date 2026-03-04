@@ -386,6 +386,19 @@ export async function updateFormAppearance(
   revalidatePath(`/forms/${formId}/edit`);
 }
 
+export async function toggleFormPublished(formId: string, published: boolean) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  await prisma.form.update({
+    where: { id: formId },
+    data: { published },
+  });
+
+  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/f/${formId}`);
+}
+
 export async function deleteForm(formId: string) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
