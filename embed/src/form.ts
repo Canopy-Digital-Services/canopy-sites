@@ -57,8 +57,12 @@ export class CanopyForm {
 
   private async fetchDefinition(): Promise<FormDefinition> {
     const baseUrl = this.options.baseUrl || "";
+    const formId = this.options.formId || this.formDefinition?.formId;
+    if (!formId) {
+      throw new Error("Form configuration error: no formId");
+    }
     const response = await fetch(
-      `${baseUrl}/api/embed/${this.options.formId}`,
+      `${baseUrl}/api/embed/${formId}`,
       {
         method: "GET",
         credentials: "omit",
@@ -936,8 +940,13 @@ export class CanopyForm {
 
     try {
       const baseUrl = this.options.baseUrl || "";
+      const formId = this.options.formId || this.formDefinition?.formId;
+      if (!formId) {
+        this.setStatus("Form configuration error.", "error");
+        return;
+      }
       const response = await fetch(
-        `${baseUrl}/api/embed/${this.options.formId}`,
+        `${baseUrl}/api/embed/${formId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
