@@ -24,7 +24,7 @@ export function EditorLayout({ header, main, panel }: EditorLayoutProps) {
         {/* Preview column */}
         {panel ? (
           <aside className="hidden lg:flex lg:flex-col lg:w-[400px] xl:w-[480px] shrink-0 border-l border-border/50">
-            <div className="h-full overflow-y-auto p-6">
+            <div className="h-full overflow-y-auto flex flex-col">
               {panel}
             </div>
           </aside>

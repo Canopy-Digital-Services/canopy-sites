@@ -384,6 +384,7 @@ export async function updateFormAppearance(
   });
 
   revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/f/${formId}`);
 }
 
 export async function toggleFormPublished(formId: string, published: boolean) {

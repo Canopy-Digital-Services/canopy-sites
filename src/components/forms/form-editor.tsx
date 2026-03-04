@@ -163,7 +163,7 @@ function FormEditorInner({ apiUrl, ownerEmail, form }: FormEditorProps) {
         aria-label="Open preview"
       >
         <Eye className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[10px] font-heading font-medium text-muted-foreground uppercase tracking-wider [writing-mode:vertical-lr]">
+        <span className="text-[10px] text-muted-foreground font-medium [writing-mode:vertical-lr]">
           Preview
         </span>
       </button>
