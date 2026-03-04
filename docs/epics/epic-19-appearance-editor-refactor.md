@@ -1,6 +1,6 @@
 # Epic 19: Appearance Editor Refactor
 
-## Status: Complete
+## Status: Complete (v4.9.0)
 
 ## Summary
 

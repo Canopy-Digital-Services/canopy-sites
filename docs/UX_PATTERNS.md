@@ -137,13 +137,36 @@ text:            "#18181b"   // Labels and body copy        (--canopy-text)
 // ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
 ```
 
+**Hosted-only token** (not applied by embed, read by `hosted-form-page.tsx`):
+```typescript
+pageBackground?: string  // Page wrapper background color for /f/[formId]
+                         // Falls back to bg-muted/40 when unset
+```
+
 Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
 ```typescript
 success: "#5FD48C"    // Highlight Green
 error:   "#FF6B5A"    // Pop Coral
 ```
 
-Form owners can override all stored tokens through the Appearance section of the form editor. Each color has a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
+### Appearance Editor Structure
+
+The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 4 collapsible SubSection groups. Each group shows summary chips when collapsed:
+
+```
+Appearance  (always-open Card)
+├─ Page        [swatch]                        ← hosted-only settings
+├─ Colors      [swatch] [swatch] [swatch]      ← all color pickers
+├─ Layout      radius 8 · compact · auto btn   ← spatial/sizing controls
+└─ Text        Inter · 14px · title L          ← typography + text content
+```
+
+- **Page**: Page Background Color (hosted pages only), with helper text
+- **Colors**: Form Background, Field Background, Field Border, Text Color, Button Color, Title Color (6 pickers in a grid)
+- **Layout**: Border Radius, Density, Button Width, Button Alignment (conditional)
+- **Text**: Body Font, Heading Font, Base Font Size, then separator sub-areas for Title (Size, Weight), Labels (Weight, Transform), and Button (Text)
+
+Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
 ### Dark Mode Status
 

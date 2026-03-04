@@ -5,6 +5,18 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2026-03-04
+
+### Added
+
+- **Appearance Editor Refactor (Epic 19)**: Restructured appearance editor from two-level collapse into 4 always-visible collapsed groups (Page, Colors, Layout, Text) with summary chips
+  - New `pageBackground` theme token for hosted form page background color
+  - Hosted pages at `/f/[formId]` respect `pageBackground` with fallback to default gray
+  - Title Color moved to Colors group; Button Width/Alignment moved to Layout group
+  - Title, Labels, and Button Text consolidated under Text group with separator sub-areas
+
+---
+
 ## [4.8.0] - 2026-03-04
 
 ### Added
