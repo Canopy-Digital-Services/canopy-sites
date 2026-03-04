@@ -1,41 +1,40 @@
-type ThemeTokens = {
-  // New font fields (family name only, e.g. "Inter" or "inherit")
+// Tokens that have a default value — DEFAULT_THEME must provide all of these.
+// To add a new token with a default: add it here + add the value to DEFAULT_THEME.
+type ThemeDefaults = {
+  fontSize: number;
+  text: string;
+  background: string;
+  fieldBackground: string;
+  primary: string;
+  border: string;
+  radius: number;
+  density: "compact" | "normal" | "comfortable";
+  buttonWidth: "full" | "auto";
+  buttonAlign: "left" | "center" | "right";
+  titleSize: "sm" | "md" | "lg" | "xl";
+  titleWeight: "normal" | "semibold" | "bold";
+  labelWeight: "normal" | "medium" | "semibold";
+  labelTransform: "none" | "uppercase";
+};
+
+// Tokens that are optional — no default, omitted when unset.
+// To add a new optional token: add it here. No other changes needed.
+type ThemeOverrides = {
   bodyFont?: string;
   headingFont?: string;
-  fontSize?: number;
-  text?: string;
-  background?: string;
-  fieldBackground?: string;
-  primary?: string;
-  border?: string;
-  radius?: number;
-  density?: "compact" | "normal" | "comfortable";
-  buttonWidth?: "full" | "auto";
-  buttonAlign?: "left" | "center" | "right";
   buttonText?: string;
-  // Title style controls
-  titleSize?: "sm" | "md" | "lg" | "xl";
-  titleWeight?: "normal" | "semibold" | "bold";
   titleColor?: string;
-  // Label controls
-  labelWeight?: "normal" | "medium" | "semibold";
-  labelTransform?: "none" | "uppercase";
-  // Hosted page settings (not used in embed)
   pageBackground?: string;
-  // Legacy fields — still read for backward compatibility
+  /** @deprecated Use bodyFont instead */
   fontFamily?: string;
+  /** @deprecated Use ensureFontsLoaded instead */
   fontUrl?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText" | "titleColor" | "pageBackground">> & {
-  bodyFont?: string;
-  headingFont?: string;
-  fontUrl?: string;
-  fontFamily?: string;
-  buttonText?: string;
-  titleColor?: string;
-  pageBackground?: string;
-} = {
+// Stored themes only include tokens the user has set, so defaults are partial.
+type ThemeTokens = Partial<ThemeDefaults> & ThemeOverrides;
+
+const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
@@ -48,14 +47,8 @@ const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fo
   buttonAlign: "left",
   titleSize: "md",
   titleWeight: "semibold",
-  titleColor: undefined,
   labelWeight: "medium",
   labelTransform: "none",
-  bodyFont: undefined,
-  headingFont: undefined,
-  fontUrl: undefined,
-  fontFamily: undefined,
-  buttonText: undefined,
 };
 
 const loadedFonts = new Set<string>();
