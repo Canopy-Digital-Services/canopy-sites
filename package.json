@@ -1,6 +1,6 @@
 {
   "name": "canopy-forms",
-  "version": "4.7.1",
+  "version": "4.8.0",
   "private": true,
   "description": "SaaS forms management platform with form builder UI for static sites",
   "repository": {

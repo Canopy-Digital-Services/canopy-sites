@@ -5,6 +5,25 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-03-04
+
+### Added
+
+- **Hosted Forms (Epic 18)**: Public form pages at `/f/[formId]` — shareable links that render forms directly on the Canopy domain without embedding
+  - Forms must be explicitly published via the editor's Publish button
+  - Published forms get OpenGraph metadata for rich link previews
+  - Unpublished forms show a branded "Form Not Available" page
+  - "Powered by Canopy Forms" footer branding on hosted pages
+  - Hosted URL shown in Integrate panel when published
+- **Publish/Unpublish toggle** in the form editor header bar
+- `published` field on Form model (defaults to `false`)
+
+### Fixed
+
+- Embed script `handleSubmit` and `fetchDefinition` now fall back to `formDefinition.formId` when `options.formId` is undefined, fixing submissions from admin preview and hosted pages
+
+---
+
 ## [4.7.1] - 2026-02-28
 
 ### Removed

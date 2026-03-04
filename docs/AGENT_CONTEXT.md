@@ -51,6 +51,7 @@ See `package.json` → `version` for the current version number. See `CHANGELOG.
 |-------|---------|----------|
 | Admin UI | Form builder, submission viewer, settings | `src/app/(admin)/*` |
 | Embed script | Client-side form renderer | `embed/src/*` → `public/embed.js` |
+| Hosted Forms | Public form pages at `/f/[formId]` | `src/app/f/[formId]/page.tsx` |
 | Public Embed API | Serve form definitions, accept submissions | `src/app/api/embed/[formId]/route.ts` |
 | Public Submit API | Accept submissions (white-box HTML forms) | `src/app/api/submit/[formId]/route.ts` |
 | Operator Console | Platform admin (metadata-only) | `src/app/operator/*` |
@@ -486,7 +487,7 @@ See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types
 ```
 Account (id, createdAt)
   └─ User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
-  └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, ...)
+  └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, ...)
        └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
        └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
 
