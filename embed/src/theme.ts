@@ -20,18 +20,21 @@ type ThemeTokens = {
   // Label controls
   labelWeight?: "normal" | "medium" | "semibold";
   labelTransform?: "none" | "uppercase";
+  // Hosted page settings (not used in embed)
+  pageBackground?: string;
   // Legacy fields — still read for backward compatibility
   fontFamily?: string;
   fontUrl?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText" | "titleColor">> & {
+const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText" | "titleColor" | "pageBackground">> & {
   bodyFont?: string;
   headingFont?: string;
   fontUrl?: string;
   fontFamily?: string;
   buttonText?: string;
   titleColor?: string;
+  pageBackground?: string;
 } = {
   fontSize: 14,
   text: "#18181b",
