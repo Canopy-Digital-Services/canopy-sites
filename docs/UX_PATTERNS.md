@@ -123,10 +123,16 @@ Most UI components automatically use semantic colors through their variants:
 
 ### Embed Forms
 
-Embedded forms use a separate theming system (`embed/src/theme.ts`) with matching defaults:
+Embedded forms use a separate theming system (`embed/src/theme.ts`). The type system uses two groups:
+
+- **`ThemeDefaults`** — tokens that have a default value (e.g. `background`, `primary`, `radius`). `DEFAULT_THEME` must provide all of these. To add a new token with a default: add it to `ThemeDefaults` + add the value to `DEFAULT_THEME`.
+- **`ThemeOverrides`** — optional tokens with no default (e.g. `bodyFont`, `titleColor`, `pageBackground`). To add a new optional token: add it to `ThemeOverrides`. No other changes needed.
+- **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides` — the public type used by consumers. All fields are optional since stored themes only include tokens the user has set.
+
+Default values:
 
 ```typescript
-// Default embed theme (full token set)
+// ThemeDefaults — DEFAULT_THEME values
 background:      "#ffffff"   // Form container background  (--canopy-bg)
 fieldBackground: "#ffffff"   // Input/textarea background  (--canopy-field-bg)
 primary:         "#005F6A"   // Button background / focus rings (--canopy-primary)
@@ -137,7 +143,7 @@ text:            "#18181b"   // Labels and body copy        (--canopy-text)
 // ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
 ```
 
-**Hosted-only token** (not applied by embed, read by `hosted-form-page.tsx`):
+**Hosted-only token** (in `ThemeOverrides`, read by `hosted-form-page.tsx`, ignored by embed):
 ```typescript
 pageBackground?: string  // Page wrapper background color for /f/[formId]
                          // Falls back to bg-muted/40 when unset

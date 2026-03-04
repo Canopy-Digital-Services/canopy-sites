@@ -40,7 +40,7 @@ Appearance  (always-open Card, no outer collapse)
 
 | File | Change |
 |------|--------|
-| `embed/src/theme.ts` | Added `pageBackground?: string` to `ThemeTokens` type |
+| `embed/src/theme.ts` | Split `ThemeTokens` into `ThemeDefaults` + `ThemeOverrides`; added `pageBackground` to overrides |
 | `public/embed.js` | Rebuilt with updated type |
 | `src/components/forms/appearance-section.tsx` | Full restructure into Page/Colors/Layout/Text groups |
 | `src/components/forms/hosted-form-page.tsx` | Reads `pageBackground` from theme, applies to page wrapper |
@@ -50,3 +50,4 @@ Appearance  (always-open Card, no outer collapse)
 1. `feat(embed): add pageBackground token to ThemeTokens` — theme.ts + embed.js
 2. `refactor(appearance): restructure editor into Page/Colors/Layout/Text groups` — appearance-section.tsx
 3. `feat(hosted): apply pageBackground color to hosted form pages` — hosted-form-page.tsx
+4. `refactor(embed): split ThemeTokens into ThemeDefaults + ThemeOverrides` — theme.ts + embed.js

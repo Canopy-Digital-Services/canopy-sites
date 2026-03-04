@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hosted pages at `/f/[formId]` respect `pageBackground` with fallback to default gray
   - Title Color moved to Colors group; Button Width/Alignment moved to Layout group
   - Title, Labels, and Button Text consolidated under Text group with separator sub-areas
+  - `ThemeTokens` type split into `ThemeDefaults` + `ThemeOverrides` for easier token management
 
 ---
 
