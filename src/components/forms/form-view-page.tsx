@@ -7,6 +7,8 @@ import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 import { FormPreview } from "@/components/forms/form-preview";
 import type { formToEmbedDefinition } from "@/lib/embed-preview";
 
@@ -20,6 +22,12 @@ type FormViewPageProps = {
 
 export function FormViewPage({ form }: FormViewPageProps) {
   const [mode, setMode] = useState<"embed" | "page">("embed");
+
+  // Extract page-level theme tokens
+  const themeObj = typeof form.defaultTheme === "object" && form.defaultTheme !== null
+    ? (form.defaultTheme as Record<string, unknown>)
+    : null;
+  const page = extractPageTheme(themeObj);
 
   return (
     <PageContent>
@@ -68,8 +76,19 @@ export function FormViewPage({ form }: FormViewPageProps) {
           </TabsContent>
 
           <TabsContent value="page">
-            <div className="border rounded-lg bg-background p-6 min-h-[400px]">
-              <FormPreview form={form} mode="page" />
+            <div
+              className={cn(
+                "border rounded-lg p-6 min-h-[400px] flex justify-center",
+                page.verticalAlign === "center" ? "items-center" : "items-start",
+                !page.pageBackground && "bg-muted/40",
+              )}
+              style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
+            >
+              <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
+                <div style={cardWrapperStyle(page)}>
+                  <FormPreview form={form} mode="page" />
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

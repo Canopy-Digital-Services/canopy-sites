@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition } from "@/lib/embed-preview";
 import { cn } from "@/lib/utils";
+import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 
 type HostedFormPageProps = {
   form: {
@@ -32,31 +33,36 @@ export function HostedFormPage({ form }: HostedFormPageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { formInstanceRef, ready } = useEmbedScript(containerRef);
 
+  // Extract page-level theme tokens
+  const themeObj = typeof form.defaultTheme === "object" && form.defaultTheme !== null
+    ? (form.defaultTheme as Record<string, unknown>)
+    : null;
+  const page = extractPageTheme(themeObj);
+
   useEffect(() => {
     if (!ready || !formInstanceRef.current) return;
     const definition = formToEmbedDefinition(form);
     formInstanceRef.current.renderFromDefinition(definition);
   }, [ready, formInstanceRef, form]);
 
-  // Extract pageBackground from theme (JSON stored as unknown)
-  const themeObj = typeof form.defaultTheme === "object" && form.defaultTheme !== null
-    ? (form.defaultTheme as Record<string, unknown>)
-    : null;
-  const pageBackground = typeof themeObj?.pageBackground === "string" ? themeObj.pageBackground : null;
-
   return (
     <div
-      className={cn("min-h-screen flex flex-col", !pageBackground && "bg-muted/40")}
-      style={pageBackground ? { backgroundColor: pageBackground } : undefined}
+      className={cn("min-h-screen flex flex-col", !page.pageBackground && "bg-muted/40")}
+      style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
     >
-      <main className="flex-1 flex items-start justify-center px-4 py-8 sm:py-12">
-        <div className="w-full max-w-2xl">
-          <div ref={containerRef}>
-            {!ready && (
-              <div className="text-muted-foreground text-sm p-4 text-center">
-                Loading form...
-              </div>
-            )}
+      <main className={cn(
+        "flex-1 flex justify-center px-4 py-8 sm:py-12",
+        page.verticalAlign === "center" ? "items-center" : "items-start",
+      )}>
+        <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
+          <div style={cardWrapperStyle(page)}>
+            <div ref={containerRef}>
+              {!ready && (
+                <div className="text-muted-foreground text-sm p-4 text-center">
+                  Loading form...
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

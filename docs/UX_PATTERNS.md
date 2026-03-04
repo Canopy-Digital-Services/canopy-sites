@@ -143,11 +143,16 @@ text:            "#18181b"   // Labels and body copy        (--canopy-text)
 // ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
 ```
 
-**Hosted-only token** (in `ThemeOverrides`, read by `hosted-form-page.tsx`, ignored by embed):
+**Hosted-only tokens** (in `ThemeOverrides`, read by page wrappers, ignored by embed script):
 ```typescript
-pageBackground?: string  // Page wrapper background color for /f/[formId]
-                         // Falls back to bg-muted/40 when unset
+pageBackground?: string                    // Page background color — falls back to bg-muted/40
+cardEnabled?: boolean                      // Wrap form in a card (default: true)
+cardShadow?: "none" | "sm" | "md" | "lg"  // Card shadow: none/light/medium/heavy (default: "md")
+contentWidth?: "sm" | "md" | "lg"         // Max width: 480/640/768px (default: "md")
+verticalAlign?: "top" | "center"          // Vertical position on page (default: "top")
 ```
+
+Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx`, `live-preview-panel.tsx`, and `form-view-page.tsx`.
 
 Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
 ```typescript
@@ -157,20 +162,24 @@ error:   "#FF6B5A"    // Pop Coral
 
 ### Appearance Editor Structure
 
-The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 4 collapsible SubSection groups. Each group shows summary chips when collapsed:
+The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 5 collapsible SubSection rows. Each row shows summary chips when collapsed. There is no third nesting tier — all SubSections are peers. Colors are co-located with the element they affect rather than grouped into a separate section.
 
 ```
 Appearance  (always-open Card)
-├─ Page        [swatch]                        ← hosted-only settings
-├─ Colors      [swatch] [swatch] [swatch]      ← all color pickers
-├─ Layout      radius 8 · compact · auto btn   ← spatial/sizing controls
-└─ Text        Inter · 14px · title L          ← typography + text content
+├─ Page        [swatch]                            ← hosted-only settings
+├─ Form        [swatch] [swatch] [swatch] · radius 8  ← surfaces, borders, spacing
+├─ Headings    Montserrat · Semibold · [swatch]    ← title + label shared style
+├─ Body        Lato · 14px · [swatch]              ← body font, size + text color
+└─ Button      Submit · [swatch]                   ← button text + color
 ```
 
 - **Page**: Page Background Color (hosted pages only), with helper text
-- **Colors**: Form Background, Field Background, Field Border, Text Color, Button Color, Title Color (6 pickers in a grid)
-- **Layout**: Border Radius, Density, Button Width, Button Alignment (conditional)
-- **Text**: Body Font, Heading Font, Base Font Size, then separator sub-areas for Title (Size, Weight), Labels (Weight, Transform), and Button (Text)
+- **Form**: Background, Field Background, Field Border (3 color pickers), Border Radius, Density, Button Width, Button Alignment (conditional)
+- **Headings**: Font, Weight, Color, Label Transform, Title Size — applied to both the form title and all field labels as one shared style
+- **Body**: Font (body typeface), Base Font Size (px), Text Color
+- **Button**: Button Text (custom submit label), Button Color
+
+**Heading/label style**: The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform (uppercase) is label-specific and lives in Headings. Title Size is title-specific (labels always render at body font size).
 
 Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
@@ -328,7 +337,7 @@ Apply `font-heading` to all semantic headings and titles:
 </h1>
 
 // Section label with Urbanist
-<h3 className="text-sm font-heading font-medium">
+<h3 className="text-sm font-heading font-semibold">
   Email Notifications
 </h3>
 
@@ -350,16 +359,30 @@ Both typefaces support variable weights. Common usage:
 | Weight | Class | Usage |
 |--------|-------|-------|
 | 400 (Regular) | `font-normal` | Body text (Inter default) |
-| 500 (Medium) | `font-medium` | Labels, small headings |
-| 600 (Semibold) | `font-semibold` | Subheadings, emphasis |
-| 700 (Bold) | `font-bold` | Primary headings, high emphasis |
+| 500 (Medium) | `font-medium` | Field labels, form inputs |
+| 600 (Semibold) | `font-semibold` | Card titles, section headings within panels (`CardTitle`, `SettingsSection`, `SubSection`) |
+| 700 (Bold) | `font-bold` | Page headings, high emphasis (`PageHeader`) |
+
+### Heading Hierarchy
+
+The admin UI uses a four-level typographic hierarchy. Maintain size and weight separation between levels:
+
+| Level | Example | Classes | Size |
+|-------|---------|---------|------|
+| Page title | "Forms", "Account" | `text-3xl font-heading font-semibold` | 30px |
+| Card title | "Header", "Fields", "Appearance" | `text-xl text-primary font-heading font-semibold` | 20px |
+| Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px |
+| Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px |
+
+Card titles are separated from section headings by **size** (20px vs 16px) and **color** (primary teal). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels. Urbanist renders slightly smaller than Inter at the same point size, so card and section headings use larger sizes (20px, 16px) to keep hierarchy obvious.
 
 ### Component Patterns Using Typography
 
 These shared components already apply `font-heading` correctly:
-- `PageHeader` - page titles
-- `EmptyState` - empty state titles  
-- `SettingsSection` - section labels
+- `PageHeader` - page titles (`text-3xl font-heading font-semibold`)
+- `CardTitle` - card titles (`text-xl text-primary font-heading font-semibold`)
+- `SettingsSection` - section headings (`text-sm font-heading font-semibold`)
+- `EmptyState` - empty state titles (`text-lg font-heading font-semibold`)
 - `Markdown` - h1/h2/h3 renderers
 
 When creating new title/heading components, follow this pattern.

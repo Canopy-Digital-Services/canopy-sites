@@ -26,7 +26,7 @@ export type FormState = {
   title: string | null;
   description: string | null;
   fields: FieldState[];
-  defaultTheme: Record<string, string | number> | null;
+  defaultTheme: Record<string, string | number | boolean> | null;
   successMessage: string | null;
   redirectUrl: string | null;
   emailNotificationsEnabled: boolean;
@@ -44,7 +44,7 @@ type FormContextValue = {
   saveStatus: SaveStatus;
   updateName: (name: string) => void;
   updateHeader: (patch: { title?: string | null; description?: string | null }) => void;
-  updateTheme: (theme: Record<string, string | number>) => void;
+  updateTheme: (theme: Record<string, string | number | boolean>) => void;
   updateSubmissionSettings: (patch: {
     successMessage?: string | null;
     redirectUrl?: string | null;
@@ -236,9 +236,9 @@ type FormProviderProps = {
   children: React.ReactNode;
 };
 
-function parseTheme(theme: unknown): Record<string, string | number> | null {
+function parseTheme(theme: unknown): Record<string, string | number | boolean> | null {
   if (typeof theme === "object" && theme !== null) {
-    return theme as Record<string, string | number>;
+    return theme as Record<string, string | number | boolean>;
   }
   return null;
 }
@@ -286,7 +286,7 @@ export function FormProvider({ initialForm, children }: FormProviderProps) {
     setState(prev => ({ ...prev, ...patch }));
   };
 
-  const updateTheme = (theme: Record<string, string | number>) => {
+  const updateTheme = (theme: Record<string, string | number | boolean>) => {
     setState(prev => ({ ...prev, defaultTheme: theme }));
   };
 

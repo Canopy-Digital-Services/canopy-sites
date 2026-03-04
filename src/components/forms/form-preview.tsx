@@ -23,7 +23,7 @@ export function FormPreview({ form, mode }: FormPreviewProps) {
   return (
     <div
       className={
-        mode === "embed" ? "max-w-lg mx-auto" : "max-w-2xl mx-auto w-full"
+        mode === "embed" ? "max-w-lg mx-auto" : "w-full"
       }
     >
       <div ref={containerRef}>

@@ -13,6 +13,7 @@ type ThemeDefaults = {
   buttonAlign: "left" | "center" | "right";
   titleSize: "sm" | "md" | "lg" | "xl";
   titleWeight: "normal" | "semibold" | "bold";
+  labelSize: "sm" | "md" | "lg" | "xl";
   labelWeight: "normal" | "medium" | "semibold";
   labelTransform: "none" | "uppercase";
 };
@@ -25,6 +26,10 @@ type ThemeOverrides = {
   buttonText?: string;
   titleColor?: string;
   pageBackground?: string;
+  cardEnabled?: boolean;
+  cardShadow?: "none" | "sm" | "md" | "lg";
+  contentWidth?: "sm" | "md" | "lg";
+  verticalAlign?: "top" | "center";
   /** @deprecated Use bodyFont instead */
   fontFamily?: string;
   /** @deprecated Use ensureFontsLoaded instead */
@@ -47,6 +52,7 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   buttonAlign: "left",
   titleSize: "md",
   titleWeight: "semibold",
+  labelSize: "md",
   labelWeight: "medium",
   labelTransform: "none",
 };
@@ -171,8 +177,9 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 
-  const titleSizeMap = { sm: "1em", md: "1.25em", lg: "1.5em", xl: "1.875em" };
-  container.style.setProperty("--canopy-title-size", titleSizeMap[theme.titleSize ?? "md"]);
+  const sizeMap = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
+  container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
+  container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
 
   const titleWeightMap = { normal: "400", semibold: "600", bold: "700" };
   container.style.setProperty("--canopy-title-weight", titleWeightMap[theme.titleWeight ?? "semibold"]);
@@ -184,9 +191,7 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     container.style.removeProperty("--canopy-title-color");
   }
 
-  const labelWeightMap = { normal: "400", medium: "500", semibold: "600" };
-  container.style.setProperty("--canopy-label-weight", labelWeightMap[theme.labelWeight ?? "medium"]);
-  container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-heading-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 
 export function getDensityClass(theme: ThemeTokens) {

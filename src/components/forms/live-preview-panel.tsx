@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { useFormContext, type FormState } from "@/components/forms/form-context";
 import { useEmbedScript } from "@/hooks/use-embed-script";
+import { cn } from "@/lib/utils";
+import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 import type { EmbedDefinition } from "@/lib/embed-preview";
 
 function toEmbedDefinition(state: FormState): EmbedDefinition {
@@ -35,6 +37,9 @@ export function LivePreviewPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { formInstanceRef, ready } = useEmbedScript(containerRef);
 
+  // Extract page-level theme tokens
+  const page = extractPageTheme(state.defaultTheme as Record<string, unknown> | null);
+
   // Re-render when state changes (debounced)
   useEffect(() => {
     if (!ready || !formInstanceRef.current) return;
@@ -48,16 +53,24 @@ export function LivePreviewPanel() {
   }, [state, ready, formInstanceRef]);
 
   return (
-    <div>
-      <p className="text-xs font-heading font-medium text-muted-foreground uppercase tracking-wider mb-4">
-        Preview
-      </p>
-      <div ref={containerRef}>
-        {!ready && (
-          <div className="text-muted-foreground text-sm p-4">
-            Loading preview...
+    <div
+      className={cn(
+        "flex-1 flex justify-center p-6",
+        page.verticalAlign === "center" ? "items-center" : "items-start",
+        !page.pageBackground && "bg-muted/40",
+      )}
+      style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
+    >
+      <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
+        <div style={cardWrapperStyle(page)}>
+          <div ref={containerRef}>
+            {!ready && (
+              <div className="text-muted-foreground text-sm p-4">
+                Loading preview...
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
