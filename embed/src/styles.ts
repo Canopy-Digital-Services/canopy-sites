@@ -32,9 +32,11 @@ export const baseStyles = `
 }
 
 .canopy-label {
-  font-size: var(--canopy-font-size, 14px);
-  font-weight: var(--canopy-label-weight, 500);
-  text-transform: var(--canopy-label-transform, none);
+  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
+  font-size: var(--canopy-label-size, 1.5em);
+  font-weight: var(--canopy-title-weight, 600);
+  color: var(--canopy-title-color, var(--canopy-text, #18181b));
+  text-transform: var(--canopy-heading-transform, none);
 }
 
 .canopy-required {
@@ -181,9 +183,10 @@ export const baseStyles = `
 
 .canopy-title {
   font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
-  font-size: var(--canopy-title-size, 1.25em);
+  font-size: var(--canopy-title-size, 1.5em);
   font-weight: var(--canopy-title-weight, 600);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
+  text-transform: var(--canopy-heading-transform, none);
   margin: 0 0 4px 0;
   line-height: 1.3;
 }
