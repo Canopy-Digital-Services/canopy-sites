@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Popover } from "radix-ui";
 import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CURATED_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";
+import { CURATED_FONTS, CURATED_HEADING_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";
 
 const INHERIT_VALUE = "inherit";
 const INHERIT_LABEL = "Inherit from host page";
@@ -14,9 +14,11 @@ type FontPickerProps = {
   onChange: (value: string) => void;
   label?: string;
   id?: string;
+  /** "body" shows body-optimized fonts; "heading" shows heading/display fonts. */
+  variant?: "body" | "heading";
 };
 
-export function FontPicker({ value, onChange, id }: FontPickerProps) {
+export function FontPicker({ value, onChange, id, variant = "body" }: FontPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -28,10 +30,11 @@ export function FontPicker({ value, onChange, id }: FontPickerProps) {
 
   const isSearching = search.trim().length > 0;
   const query = search.trim().toLowerCase();
+  const curatedList = variant === "heading" ? CURATED_HEADING_FONTS : CURATED_FONTS;
 
   const filteredFonts = isSearching
     ? ALL_GOOGLE_FONTS.filter((f) => f.toLowerCase().includes(query))
-    : CURATED_FONTS;
+    : curatedList;
 
   const handleSelect = useCallback((font: string) => {
     onChange(font);

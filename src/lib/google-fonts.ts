@@ -33,6 +33,37 @@ export const CURATED_FONTS: string[] = [
 ];
 
 /**
+ * Curated list for heading font picker (display/expressive fonts).
+ * Shown by default when FontPicker variant is "heading".
+ */
+export const CURATED_HEADING_FONTS: string[] = [
+  "Staatliches",
+  "Bungee",
+  "Righteous",
+  "Pacifico",
+  "Lobster Two",
+  "Sacramento",
+  "Cookie",
+  "Urbanist",
+  "Indie Flower",
+  "Caveat",
+  "Permanent Marker",
+  "Rock Salt",
+  "Cinzel Decorative",
+  "Special Elite",
+  "Creepster",
+  "Cormorant Garamond",
+  "Montserrat",
+  "Inter",
+  "Fraunces",
+  "IBM Plex Mono",
+  "Playfair Display",
+  "Oleo Script",
+  "Marvel",
+  "Arvo",
+];
+
+/**
  * Full Google Fonts catalogue sorted by popularity (1918 families).
  * Used for full-text search in the FontPicker.
  */

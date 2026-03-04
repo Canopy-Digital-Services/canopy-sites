@@ -473,6 +473,7 @@ export function AppearanceSection() {
                 id="headingFont"
                 value={headingFont}
                 onChange={(v) => set("headingFont", v)}
+                variant="heading"
               />
             </div>
             <div className="space-y-2">
