@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 type TopNavLayoutProps = {
   logo: React.ReactNode;
-  navItems: React.ReactNode;
+  navItems?: React.ReactNode;
   userMenu: React.ReactNode;
   children: React.ReactNode;
 };
