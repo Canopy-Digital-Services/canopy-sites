@@ -32,7 +32,7 @@ This project uses **shadcn/ui** components built on Radix UI primitives with Tai
 
 **Component locations:**
 - **Base UI components**: `src/components/ui/` (button, input, dialog, etc.)
-- **Layout patterns**: `src/components/patterns/` (app-shell, page-header, etc.)
+- **Layout patterns**: `src/components/patterns/` (top-nav-layout, page-header, etc.)
 - **Feature components**: `src/components/` (confirm-dialog, field-list, etc.)
 
 **Key dependencies:**
@@ -182,6 +182,8 @@ Appearance  (always-open Card)
 **Heading/label style**: The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform (uppercase) is label-specific and lives in Headings. Title Size is title-specific (labels always render at body font size).
 
 **Font pickers**: Body and Headings each use the `FontPicker` component (`src/components/ui/font-picker.tsx`) with different curated lists. The **Body** font uses `variant="body"` (default), which shows `CURATED_FONTS` from `src/lib/google-fonts.ts` (sans, serif, mono options suited to body text). The **Headings** font uses `variant="heading"`, which shows `CURATED_HEADING_FONTS` (display/expressive typefaces). In both cases the user can search to filter over the full Google Fonts catalogue; the variant only changes the default scrollable list when not searching.
+
+**Font previews**: Each option in the curated list renders in its own typeface. When the picker opens, the curated list is loaded via `src/lib/load-google-fonts.ts`, which injects a single combined `fonts.googleapis.com/css2` stylesheet into `document.head` (deduplicated — each family is only requested once per session). The currently selected font is also loaded eagerly on mount so the closed trigger button renders in the correct typeface. Search results do not load fonts — users typing a specific name already know what they want.
 
 Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
@@ -896,7 +898,7 @@ The `header` prop is optional. When provided, it renders **full-width above the 
 
 **Panel behavior (Epic 17)**:
 - On `lg+`: The panel renders as a sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with a `border-l border-border/50` separator and no background — the embed renders directly without admin-UI card chrome so the preview is an honest representation of the embedded form
-- The `EditorLayout` outer div uses `h-screen` so the editor fills the full viewport height. The panel column is `h-full overflow-y-auto` so it scrolls independently while the editor column scrolls independently.
+- The `EditorLayout` outer div uses `h-full` so the editor fills its flex parent (the `flex-1 min-h-0` main area under the top nav). The panel column is `h-full overflow-y-auto` so it scrolls independently while the editor column scrolls independently.
 - On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
 
 ### FormContext (Unified State)
@@ -951,36 +953,40 @@ import { SettingsSection } from "@/components/patterns/settings-section";
 </SettingsSection>
 ```
 
-### Responsive Sidebar Layout
+### Top Nav Layout
 
 ```tsx
-import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sidebar-layout";
+import { TopNavLayout } from "@/components/patterns/top-nav-layout";
+import { UserMenu } from "@/components/patterns/user-menu";
 
-<ResponsiveSidebarLayout 
-  sidebar={<nav>...</nav>}
-  sidebarFooter={<UserAccountFooter email={user.email} />}
+<TopNavLayout
+  logo={<Link href="/forms"><BrandMark size="sm" /></Link>}
+  navItems={<>
+    <Link href="/forms"><Button variant="ghost" size="sm">Forms</Button></Link>
+    <Link href="/docs"><Button variant="ghost" size="sm">Help</Button></Link>
+  </>}
+  userMenu={<UserMenu email={session.user?.email} />}
 >
   {children}
-</ResponsiveSidebarLayout>
+</TopNavLayout>
 ```
 
-**Purpose**: Provides a responsive layout with a fixed sidebar on desktop and a collapsible hamburger menu drawer on mobile.
+**Purpose**: Provides a responsive top navigation bar with logo, nav links, and user menu. Replaces the old sidebar layout.
 
 **Props**:
-- `sidebar` (required): Main navigation content
-- `sidebarFooter` (optional): Footer content pinned to bottom of sidebar (e.g., user account indicator)
+- `logo` (required): Brand mark or title, shown left in the nav bar
+- `navItems` (required): Nav links, shown beside the logo on desktop; in drawer on mobile
+- `userMenu` (required): User account trigger (avatar dropdown), shown right on desktop; bottom of drawer on mobile
 - `children` (required): Main page content
 
 **Behavior**:
-- **Desktop (md+)**: Fixed sidebar on the left (w-64, border-r, bg-muted/40, p-6)
-- **Mobile (<md)**: Sidebar hidden; hamburger menu button in header opens left-sliding drawer
-- **Main content**: No padding or max-width — the `<main>` area is bare (`flex-1 flex flex-col min-h-0`). Each page is responsible for its own spacing via `PageContent` or by rendering a full-bleed layout like `EditorLayout`.
-- **Footer**: When provided, footer is pinned to bottom with `border-t` and `pt-4` separation
+- **Desktop (md+)**: Horizontal nav bar (h-14, border-b, bg-muted/40). Logo left, nav items beside it, user menu right.
+- **Mobile (<md)**: Logo left, hamburger button right. Hamburger opens a left-sliding Sheet drawer containing logo, nav items, and user menu.
+- **Main content**: `flex-1 min-h-0 flex flex-col overflow-auto`. Each page adds its own spacing via `PageContent` or `EditorLayout`.
 
 **Accessibility**:
-- Hamburger button includes `aria-label="Open navigation menu"`
-- Tooltip displays "Menu" on hover
-- Drawer includes backdrop overlay and escape key support
+- Hamburger button includes `aria-label="Open navigation menu"` and a tooltip
+- Drawer includes escape key support and a visually hidden title
 
 **Used in**: Admin console layout (`src/app/(admin)/layout.tsx`) and Operator console layout (`src/app/operator/layout.tsx`)
 
@@ -1003,7 +1009,7 @@ export default function SomePage() {
 
 Provides `p-4 md:p-8` padding and `max-w-7xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses `EditorLayout` directly.
 
-**Do not** wrap the form editor (`/forms/[formId]/edit`) in `PageContent` — `EditorLayout` fills the full viewport with `h-screen`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
+**Do not** wrap the form editor (`/forms/[formId]/edit`) in `PageContent` — `EditorLayout` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
 
 ### View Page with Preview
 
@@ -1037,51 +1043,27 @@ Detail/view pages that show a preview of an entity (e.g. form) with layout toggl
 - Preview modes control width: embed (`max-w-lg`) vs page (`max-w-2xl`)
 - Uses `FormPreview` component which loads the embed script via `useEmbedScript` hook
 
-### User Account Footer
+### User Menu
 
 ```tsx
-import { UserAccountFooter } from "@/components/patterns/user-account-footer";
+import { UserMenu } from "@/components/patterns/user-menu";
 
-<UserAccountFooter email={session.user.email} />
+<UserMenu email={session.user?.email} />
 ```
 
-**Purpose**: Interactive account menu trigger at the bottom of the sidebar, providing access to account management and sign-out.
+**Purpose**: Compact avatar button in the top nav bar that opens an account dropdown.
 
-**Design principles**:
-- **Quiet but interactive**: Small avatar with initials + truncated email + chevron indicator
-- **Hover state**: `hover:bg-accent/50` for discoverability
-- **Popup menu**: DropdownMenu opens upward (`side="top"`) with "Manage Account" and "Sign Out"
-- **Visual separation**: Rendered in sidebar footer with border-top separator
-- **Consistent placement**: Always at the bottom of the sidebar, below navigation
+**Design**:
+- **Trigger**: 32px circle with user initials (`bg-muted`). No email text visible — keeps the nav bar uncluttered.
+- **Dropdown**: Opens downward (`side="bottom" align="end"`). Shows email (display only), Manage Account link, Sign Out action.
+- **Fallback**: Shows "?" for missing/invalid emails.
 
 **Implementation details**:
-- **Client component**: Uses `"use client"` directive for DropdownMenu interactivity
-- **Initials**: Derived from first 2 alphanumeric characters of email local part (before @), uppercased
-- **Avatar**: 32px circle with `bg-muted` and `text-muted-foreground`
-- **Email**: `text-sm text-muted-foreground` with truncation
-- **Chevron**: `ChevronsUpDown` icon indicates interactivity
-- **Fallback**: Shows "?" for missing/invalid emails
+- Client component (`"use client"`) for dropdown interactivity
+- Initials derived from first 2 alphanumeric chars of email local part, uppercased
+- Menu items: Manage Account → `/account`; Sign Out → `signOutAction()` server action
 
-**Menu items**:
-- **Manage Account**: Links to `/account` dashboard page
-- **Sign Out**: Calls `signOutAction()` server action, redirects to `/login`
-
-**Usage pattern**:
-Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
-
-```tsx
-<ResponsiveSidebarLayout
-  sidebar={nav}
-  sidebarFooter={<UserAccountFooter email={session.user?.email} />}
->
-  {children}
-</ResponsiveSidebarLayout>
-```
-
-**Why this pattern**:
-- Keeps account actions consolidated in one discoverable location
-- Replaces standalone sign-out button in nav with a more capable account menu
-- Works on both desktop and mobile (footer appears in mobile drawer too)
+**Usage**: Pass as `userMenu` prop to `TopNavLayout`.
 
 ---
 
@@ -1430,8 +1412,8 @@ For more prominent empty states, use the `EmptyState` component.
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
 | Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
-| Responsive sidebar (mobile drawer) | `ResponsiveSidebarLayout` with `sidebar` and optional `sidebarFooter` props |
-| User account menu | `UserAccountFooter` in sidebar footer (initials + email + dropdown) |
+| Top nav (mobile drawer) | `TopNavLayout` with `logo`, `navItems`, and `userMenu` props |
+| User account menu | `UserMenu` in top nav right side (initials avatar + dropdown) |
 | Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
 | Icon-only action button | `Button variant="ghost" size="icon-sm"` |
 | Icon-only button accessibility | Wrap in `Tooltip` |
@@ -1479,7 +1461,7 @@ For more prominent empty states, use the `EmptyState` component.
 | PageHeader | `src/components/patterns/page-header.tsx` |
 | PageContent | `src/components/patterns/page-content.tsx` |
 | EditorLayout | `src/components/patterns/editor-layout.tsx` |
-| ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
-| UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |
+| TopNavLayout | `src/components/patterns/top-nav-layout.tsx` |
+| UserMenu | `src/components/patterns/user-menu.tsx` |
 | AccountDashboard | `src/components/account/account-dashboard.tsx` |
-| FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`) |
+| FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`, font loader: `src/lib/load-google-fonts.ts`) |

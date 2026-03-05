@@ -6,7 +6,7 @@ type EditorLayoutProps = {
 
 export function EditorLayout({ header, main, panel }: EditorLayoutProps) {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       {/* Full-width header above the column split — matches PageContent padding */}
       {header ? (
         <div className="shrink-0 px-4 md:px-8 pt-4 md:pt-8">

@@ -2,8 +2,8 @@ import { requireOperator } from "@/lib/auth-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
-import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sidebar-layout";
-import { UserAccountFooter } from "@/components/patterns/user-account-footer";
+import { TopNavLayout } from "@/components/patterns/top-nav-layout";
+import { UserMenu } from "@/components/patterns/user-menu";
 
 export default async function OperatorLayout({
   children,
@@ -12,28 +12,26 @@ export default async function OperatorLayout({
 }) {
   const session = await requireOperator();
 
-  const nav = (
-    <>
-      <div className="mb-8">
-        <h1 className="text-xl font-heading font-bold">Operator Console</h1>
-      </div>
-      <nav className="space-y-2">
-        <Link href="/operator/accounts">
-          <Button variant="ghost" className="w-full justify-start">
-            <Users className="mr-2 h-4 w-4" />
-            Accounts
-          </Button>
-        </Link>
-      </nav>
-    </>
+  const logo = (
+    <span className="text-sm font-heading font-semibold">Operator Console</span>
+  );
+
+  const navItems = (
+    <Link href="/operator/accounts">
+      <Button variant="ghost" size="sm">
+        <Users className="mr-2 h-4 w-4" />
+        Accounts
+      </Button>
+    </Link>
   );
 
   return (
-    <ResponsiveSidebarLayout
-      sidebar={nav}
-      sidebarFooter={<UserAccountFooter email={session.user?.email} />}
+    <TopNavLayout
+      logo={logo}
+      navItems={navItems}
+      userMenu={<UserMenu email={session.user?.email} />}
     >
       {children}
-    </ResponsiveSidebarLayout>
+    </TopNavLayout>
   );
 }
