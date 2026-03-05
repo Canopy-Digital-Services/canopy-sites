@@ -262,15 +262,13 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: Works
             </div>
 
             {/* Preview area */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto flex flex-col">
               {previewMode === "embed" ? (
-                <div className="p-6 min-h-[400px]">
-                  <FormPreview
-                    live={editing}
-                    form={editing ? undefined : form}
-                    mode="embed"
-                  />
-                </div>
+                <FormPreview
+                  live={editing}
+                  form={editing ? undefined : form}
+                  mode="embed"
+                />
               ) : (
                 <FormPreview
                   live={editing}

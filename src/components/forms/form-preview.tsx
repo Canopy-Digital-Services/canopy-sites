@@ -59,7 +59,14 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   );
 
   if (mode === "embed") {
-    return <div className="max-w-lg mx-auto">{preview}</div>;
+    return (
+      <div
+        className="flex-1 flex items-start justify-center p-6"
+        style={{ backgroundColor: page.formBackground }}
+      >
+        <div className="w-full max-w-lg">{preview}</div>
+      </div>
+    );
   }
 
   // Page mode — apply page-theme styling
