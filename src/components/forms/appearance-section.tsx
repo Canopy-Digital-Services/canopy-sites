@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronRight, Save, Check } from "lucide-react";
 import { FontPicker } from "@/components/ui/font-picker";
 import { useFormContext } from "@/components/forms/form-context";
+import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
 
 /** Add '#' prefix if missing from a hex color string. */
 function normalizeHex(value: string): string {
@@ -117,7 +118,15 @@ export function AppearanceSection() {
   const buttonAlign = String(theme.buttonAlign || "left");
   const buttonText = String(theme.buttonText || "");
   const titleSize = String(theme.titleSize || "md");
-  const titleWeight = String(theme.titleWeight || "semibold");
+  // Normalize legacy "semibold" to "bold" for display; default is "normal"
+  const titleWeight = (() => {
+    const w = String(theme.titleWeight ?? "normal");
+    return w === "semibold" ? "bold" : w;
+  })();
+  // Whether the selected heading font has a genuine 300 (Light) weight
+  const headingFontHasLight = headingFont === "inherit"
+    ? false
+    : FONTS_WITH_LIGHT.has(headingFont);
   const titleColor = String(theme.titleColor || "");
   const labelSize = String(theme.labelSize ?? "md");
   const labelTransform = String(theme.labelTransform || "none");
@@ -156,7 +165,7 @@ export function AppearanceSection() {
     if (s("buttonAlign")) newTheme.buttonAlign = s("buttonAlign");
     if (s("buttonText")) newTheme.buttonText = s("buttonText");
     if (s("titleSize") && s("titleSize") !== "md") newTheme.titleSize = s("titleSize");
-    if (s("titleWeight") && s("titleWeight") !== "semibold") newTheme.titleWeight = s("titleWeight");
+    if (s("titleWeight") && s("titleWeight") !== "normal") newTheme.titleWeight = s("titleWeight");
     if (s("titleColor")) newTheme.titleColor = normalizeHex(s("titleColor"));
     if (s("labelSize") && s("labelSize") !== "md") newTheme.labelSize = s("labelSize");
     if (s("labelTransform") && s("labelTransform") !== "none") newTheme.labelTransform = s("labelTransform");
@@ -211,7 +220,7 @@ export function AppearanceSection() {
       {headingFont !== "inherit" && <Chip>{headingFont}</Chip>}
       {titleSize !== "md" && <Chip>title {titleSizeLabels[titleSize] ?? titleSize}</Chip>}
       {labelSize !== "md" && <Chip>label {titleSizeLabels[labelSize] ?? labelSize}</Chip>}
-      {titleWeight !== "semibold" && <Chip>{titleWeight}</Chip>}
+      {titleWeight !== "normal" && (headingFontHasLight || titleWeight !== "light") && <Chip>{titleWeight === "light" ? "Light" : titleWeight === "bold" ? "Bold" : titleWeight}</Chip>}
       <ColorDot color={titleColor} fallback="#18181b" />
       {labelTransform === "uppercase" && <Chip>uppercase</Chip>}
     </>
@@ -478,13 +487,16 @@ export function AppearanceSection() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="titleWeight">Weight</Label>
-              <Select value={titleWeight} onValueChange={(v) => set("titleWeight", v)}>
+              <Select
+                value={!headingFontHasLight && titleWeight === "light" ? "normal" : titleWeight}
+                onValueChange={(v) => set("titleWeight", v)}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select weight" />
                 </SelectTrigger>
                 <SelectContent>
+                  {headingFontHasLight && <SelectItem value="light">Light</SelectItem>}
                   <SelectItem value="normal">Regular</SelectItem>
-                  <SelectItem value="semibold">Semibold</SelectItem>
                   <SelectItem value="bold">Bold</SelectItem>
                 </SelectContent>
               </Select>
