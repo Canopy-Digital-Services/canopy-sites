@@ -1,15 +1,18 @@
 import { requireAuth } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { notFound } from "next/navigation";
-import { FormViewPage } from "@/components/forms/form-view-page";
+import { FormWorkspace } from "@/components/forms/form-workspace";
 
 export default async function FormViewRoute({
   params,
+  searchParams,
 }: {
   params: Promise<{ formId: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { formId } = await params;
-  await requireAuth();
+  const { mode } = await searchParams;
+  const session = await requireAuth();
   const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
   let form;
@@ -25,5 +28,12 @@ export default async function FormViewRoute({
     "http://localhost:3006"
   ).replace(/\/$/, "");
 
-  return <FormViewPage form={form} apiUrl={apiUrl} />;
+  return (
+    <FormWorkspace
+      apiUrl={apiUrl}
+      ownerEmail={session.user.email || ""}
+      form={form}
+      initialMode={mode === "edit" ? "edit" : "view"}
+    />
+  );
 }

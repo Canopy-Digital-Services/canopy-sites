@@ -152,7 +152,7 @@ contentWidth?: "sm" | "md" | "lg"         // Max width: 480/640/768px (default: 
 verticalAlign?: "top" | "center"          // Vertical position on page (default: "top")
 ```
 
-Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx`, `live-preview-panel.tsx`, and `form-view-page.tsx`.
+Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx` and `form-preview.tsx` (unified preview component).
 
 Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
 ```typescript
@@ -882,24 +882,32 @@ import { FileText } from "lucide-react";
 />
 ```
 
-### Editor Layout
+### FormWorkspace (Unified View/Edit)
+
+The `FormWorkspace` component (`src/components/forms/form-workspace.tsx`) consolidates the old separate view and edit pages into a single component with an animated CSS transition between modes:
 
 ```tsx
-import { EditorLayout } from "@/components/patterns/editor-layout";
+import { FormWorkspace } from "@/components/forms/form-workspace";
 
-<EditorLayout
-  header={<PageHeaderContent />}
-  main={<FormFields />}
-  panel={<LivePreviewPanel />}
+<FormWorkspace
+  apiUrl={apiUrl}
+  ownerEmail={session.user.email}
+  form={form}
+  initialMode={mode === "edit" ? "edit" : "view"}
 />
 ```
 
-The `header` prop is optional. When provided, it renders **full-width above the two-column split** with `px-4 md:px-8 pt-4 md:pt-8` padding and `max-w-7xl mx-auto` centering — matching `PageContent`'s layout exactly. This ensures headers align consistently when navigating between standard pages (view, submissions) and the editor. The `main` area uses matching `px-4 md:px-8` horizontal padding so content aligns with the header.
+**Mode behavior**:
+- **View mode**: Back arrow to `/forms`, form name (read-only), Edit button, Submissions link. Preview centered with Embed/Page tabs.
+- **Edit mode**: Close (X) button + "Done" button to exit edit mode, editable form name, save status, Publish/Unpublish toggle, Integrate button. Editor panel slides in from left (300ms CSS transition on `lg+`).
+- Mode switch is client-side state toggle — no route change or DOM remount.
+- New forms are created with `?mode=edit` query param so they land directly in edit mode.
+- `/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`.
 
-**Panel behavior (Epic 17)**:
-- On `lg+`: The panel renders as a sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with a `border-l border-border/50` separator and no background — the embed renders directly without admin-UI card chrome so the preview is an honest representation of the embedded form
-- The `EditorLayout` outer div uses `h-full` so the editor fills its flex parent (the `flex-1 min-h-0` main area under the top nav). The panel column is `h-full overflow-y-auto` so it scrolls independently while the editor column scrolls independently.
-- On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
+**Layout**:
+- On `lg+`: Editor column uses `lg:w-[480px] xl:w-[640px]` with CSS `transition-all duration-300 ease-in-out`. Preview column fills remaining space with `flex-1`.
+- On `<lg` in edit mode: Editor controls are full-width, preview is hidden. A fixed side handle tab on the right edge opens preview in a `RightPanel` Sheet.
+- Embed/Page tabs are always visible above the preview in both modes.
 
 ### FormContext (Unified State)
 
@@ -908,16 +916,16 @@ The form editor uses a `FormProvider` context that holds all form state and prov
 ```tsx
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 
-// Wrap editor in provider
-<FormProvider initialForm={form}>
-  <FormEditorInner />
+// Wrap editor in provider — autoSaveEnabled controls whether changes are persisted
+<FormProvider initialForm={form} autoSaveEnabled={editing}>
+  <WorkspaceInner />
 </FormProvider>
 
 // In any child component
 const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
 ```
 
-**Save groups** — changes auto-save after 1s debounce per group:
+**Save groups** — changes auto-save after 1s debounce per group (when `autoSaveEnabled` is true):
 | Group | Fields | Server action |
 |-------|--------|---------------|
 | basics | `name` | `updateFormBasics` |
@@ -927,18 +935,23 @@ const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
 
 Field operations (create/update/delete/reorder) call server actions **immediately**, not through auto-save.
 
-### LivePreviewPanel
+### FormPreview (Unified Preview)
 
-Always-on preview that renders the form using the actual embed renderer:
+Single preview component that handles both static and live rendering in embed or page mode:
 
 ```tsx
-import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
+import { FormPreview } from "@/components/forms/form-preview";
+
+// Static preview (view mode)
+<FormPreview form={form} mode="embed" />
+
+// Live preview (edit mode — reads from FormContext, debounces 150ms)
+<FormPreview live mode="page" />
 ```
 
-- Loads `embed.js` script, creates a `CanopyForm` instance via `window.CanopyForms.CanopyForm`
-- Calls `renderFromDefinition()` with a projection of `FormState` → embed `FormDefinition`
-- Re-renders on state change with 150ms debounce
-- Visual design: no admin-UI chrome — the embed container renders directly below a small "PREVIEW" label. No card wrapper, no background. What the user sees is exactly what gets embedded on their site.
+- `mode="embed"`: Simple centered container (`max-w-lg mx-auto`)
+- `mode="page"`: Full page-theme styling (background color, content width, card wrapper) via `extractPageTheme()`
+- `live` prop: When true, reads state from `useFormContext()` and debounces re-renders at 150ms
 
 ### Settings Section
 

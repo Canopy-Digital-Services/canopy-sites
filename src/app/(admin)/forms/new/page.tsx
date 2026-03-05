@@ -62,7 +62,7 @@ async function handleCreateForm(formData: FormData) {
     slug,
   });
 
-  redirect(`/forms/${form.id}/edit`);
+  redirect(`/forms/${form.id}?mode=edit`);
 }
 
 export default async function NewFormPage() {

@@ -26,11 +26,8 @@ export type EmbedFormInstance = {
   renderFromDefinition: (definition: EmbedDefinition) => void;
 };
 
-/**
- * Convert a DB-shaped form (from getOwnedForm) into an EmbedDefinition
- * suitable for renderFromDefinition().
- */
-export function formToEmbedDefinition(form: {
+/** Shape accepted by formToEmbedDefinition — covers both DB form and FormState. */
+export type EmbedFormInput = {
   id: string;
   slug: string;
   title: string | null;
@@ -49,7 +46,13 @@ export function formToEmbedDefinition(form: {
     options: unknown;
     validation: unknown;
   }>;
-}): EmbedDefinition {
+};
+
+/**
+ * Convert a DB-shaped form or FormState into an EmbedDefinition
+ * suitable for renderFromDefinition().
+ */
+export function formToEmbedDefinition(form: EmbedFormInput): EmbedDefinition {
   return {
     formId: form.id,
     slug: form.slug,
