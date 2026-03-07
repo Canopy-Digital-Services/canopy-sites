@@ -10,6 +10,7 @@ type IntegratePanelProps = {
   open: boolean;
   onClose: () => void;
   apiUrl: string; // Added: pass from server-side
+  published: boolean;
   form: {
     id: string;
     name: string;
@@ -26,7 +27,7 @@ type IntegratePanelProps = {
   };
 };
 
-export function IntegratePanel({ open, onClose, apiUrl, form }: IntegratePanelProps) {
+export function IntegratePanel({ open, onClose, apiUrl, form, published }: IntegratePanelProps) {
   const endpoint = `${apiUrl}/api/submit/${form.id}`;
 
   const embedCode = `<div 
@@ -77,6 +78,35 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
   return (
     <RightPanel open={open} onOpenChange={(isOpen) => !isOpen && onClose()} title="Integrate">
       <div className="space-y-4">
+        {published ? (
+          <Card className="border-green-300 dark:border-green-800">
+            <CardHeader>
+              <CardTitle className="text-base text-green-700 dark:text-green-400">
+                Hosted Form URL
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center gap-2">
+                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                  {apiUrl}/f/{form.id}
+                </code>
+                <CopyButton text={`${apiUrl}/f/${form.id}`} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Share this link directly — no website or embed code needed.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-muted">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground text-center">
+                Publish your form to get a hosted URL you can share directly.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <p className="text-sm text-muted-foreground">
           Add this form to your website using one of the methods below.
         </p>

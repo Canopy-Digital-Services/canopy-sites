@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Markdown } from '@/components/markdown';
 import { ChevronLeft } from 'lucide-react';
+import { PageContent } from "@/components/patterns/page-content";
 
 const docsDir = path.join(process.cwd(), 'content/docs');
 
@@ -47,6 +48,7 @@ export default async function DocPage({ params }: DocPageProps) {
       ).join(' ');
 
   return (
+    <PageContent>
     <div>
       <div className="mb-6">
         <Link href="/docs">
@@ -69,5 +71,6 @@ export default async function DocPage({ params }: DocPageProps) {
         </Link>
       </div>
     </div>
+    </PageContent>
   );
 }

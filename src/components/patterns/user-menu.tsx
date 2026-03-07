@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronsUpDown, Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, BookOpen } from "lucide-react";
 import { signOutAction } from "@/actions/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -19,34 +20,42 @@ function getInitials(email: string | null | undefined): string {
   return chars ? chars.toUpperCase() : "?";
 }
 
-type UserAccountFooterProps = {
+type UserMenuProps = {
   email: string | null | undefined;
 };
 
-export function UserAccountFooter({ email }: UserAccountFooterProps) {
+export function UserMenu({ email }: UserMenuProps) {
   const initials = getInitials(email);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex w-full items-center gap-2 min-w-0 rounded-md p-1 -m-1 hover:bg-accent/50 transition-colors text-left">
-          <div
-            className="h-8 w-8 shrink-0 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-medium"
-            aria-hidden
-          >
-            {initials}
-          </div>
-          <span className="text-sm text-muted-foreground truncate flex-1" title={email ?? undefined}>
-            {email ?? "—"}
-          </span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+        <button
+          className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-medium hover:bg-accent/50 transition-colors"
+          aria-label="User menu"
+        >
+          {initials}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+      <DropdownMenuContent side="bottom" align="end" className="w-48">
+        {email ? (
+          <>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground truncate">
+              {email}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem asChild>
           <Link href="/account">
             <Settings className="h-4 w-4" />
             Manage Account
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/docs">
+            <BookOpen className="h-4 w-4" />
+            Help
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -1,58 +1,60 @@
-type ThemeTokens = {
-  // New font fields (family name only, e.g. "Inter" or "inherit")
+// Tokens that have a default value — DEFAULT_THEME must provide all of these.
+// To add a new token with a default: add it here + add the value to DEFAULT_THEME.
+type ThemeDefaults = {
+  fontSize: number;
+  text: string;
+  background: string;
+  fieldBackground: string;
+  primary: string;
+  border: string;
+  radius: number;
+  density: "compact" | "normal" | "comfortable";
+  buttonWidth: "full" | "auto";
+  buttonAlign: "left" | "center" | "right";
+  titleSize: "sm" | "md" | "lg" | "xl";
+  titleWeight: "light" | "normal" | "bold";
+  labelSize: "sm" | "md" | "lg" | "xl";
+  labelWeight: "normal" | "medium" | "semibold";
+  labelTransform: "none" | "uppercase";
+};
+
+// Tokens that are optional — no default, omitted when unset.
+// To add a new optional token: add it here. No other changes needed.
+type ThemeOverrides = {
   bodyFont?: string;
   headingFont?: string;
-  fontSize?: number;
-  text?: string;
-  background?: string;
-  fieldBackground?: string;
-  primary?: string;
-  border?: string;
-  radius?: number;
-  density?: "compact" | "normal" | "comfortable";
-  buttonWidth?: "full" | "auto";
-  buttonAlign?: "left" | "center" | "right";
   buttonText?: string;
-  // Title style controls
-  titleSize?: "sm" | "md" | "lg" | "xl";
-  titleWeight?: "normal" | "semibold" | "bold";
   titleColor?: string;
-  // Label controls
-  labelWeight?: "normal" | "medium" | "semibold";
-  labelTransform?: "none" | "uppercase";
-  // Legacy fields — still read for backward compatibility
+  pageBackground?: string;
+  cardEnabled?: boolean;
+  cardShadow?: "none" | "sm" | "md" | "lg";
+  contentWidth?: "sm" | "md" | "lg";
+  verticalAlign?: "top" | "center";
+  /** @deprecated Use bodyFont instead */
   fontFamily?: string;
+  /** @deprecated Use ensureFontsLoaded instead */
   fontUrl?: string;
 };
 
-const DEFAULT_THEME: Required<Omit<ThemeTokens, "bodyFont" | "headingFont" | "fontUrl" | "fontFamily" | "buttonText" | "titleColor">> & {
-  bodyFont?: string;
-  headingFont?: string;
-  fontUrl?: string;
-  fontFamily?: string;
-  buttonText?: string;
-  titleColor?: string;
-} = {
+// Stored themes only include tokens the user has set, so defaults are partial.
+type ThemeTokens = Partial<ThemeDefaults> & ThemeOverrides;
+
+const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   fontSize: 14,
   text: "#18181b",
   background: "#ffffff",
   fieldBackground: "#ffffff",
   primary: "#005F6A",
   border: "#e4e4e7",
-  radius: 8,
+  radius: 4,
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
   titleSize: "md",
-  titleWeight: "semibold",
-  titleColor: undefined,
+  titleWeight: "normal",
+  labelSize: "md",
   labelWeight: "medium",
   labelTransform: "none",
-  bodyFont: undefined,
-  headingFont: undefined,
-  fontUrl: undefined,
-  fontFamily: undefined,
-  buttonText: undefined,
 };
 
 const loadedFonts = new Set<string>();
@@ -175,11 +177,19 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 
-  const titleSizeMap = { sm: "1em", md: "1.25em", lg: "1.5em", xl: "1.875em" };
-  container.style.setProperty("--canopy-title-size", titleSizeMap[theme.titleSize ?? "md"]);
+  const sizeMap = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
+  container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
+  container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
 
-  const titleWeightMap = { normal: "400", semibold: "600", bold: "700" };
-  container.style.setProperty("--canopy-title-weight", titleWeightMap[theme.titleWeight ?? "semibold"]);
+  // Legacy: stored themes may have "semibold" — map to bold (700)
+  const titleWeightMap: Record<string, string> = {
+    light: "300",
+    normal: "400",
+    bold: "700",
+    semibold: "700",
+  };
+  const weight = theme.titleWeight ?? "normal";
+  container.style.setProperty("--canopy-title-weight", titleWeightMap[weight] ?? "400");
 
   const resolvedTitleColor = theme.titleColor ? normalizeColor(theme.titleColor, "") : "";
   if (resolvedTitleColor) {
@@ -188,9 +198,7 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     container.style.removeProperty("--canopy-title-color");
   }
 
-  const labelWeightMap = { normal: "400", medium: "500", semibold: "600" };
-  container.style.setProperty("--canopy-label-weight", labelWeightMap[theme.labelWeight ?? "medium"]);
-  container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-heading-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 
 export function getDensityClass(theme: ThemeTokens) {
@@ -233,7 +241,7 @@ export function ensureFontsLoaded(families: (string | undefined)[]) {
   if (toLoad.length === 0) return;
 
   const params = toLoad
-    .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700`)
+    .map((f) => `family=${encodeURIComponent(f)}:wght@300;400;700`)
     .join("&");
   const url = `https://fonts.googleapis.com/css2?${params}&display=swap`;
 

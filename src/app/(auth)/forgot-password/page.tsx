@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
       {formSubmitted ? (
         <CardContent>
           <div className="mb-4 space-y-1 text-center">
-            <h2 className="text-xl font-semibold">Check your email</h2>
+            <h2 className="text-xl font-heading font-semibold">Check your email</h2>
             <p className="text-sm text-muted-foreground">
               Check your email for instructions
             </p>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSubmit} noValidate>
           <CardContent className="space-y-4">
             <div className="mb-4 space-y-1 text-center">
-              <h2 className="text-xl font-semibold">Reset your password</h2>
+              <h2 className="text-xl font-heading font-semibold">Reset your password</h2>
               <p className="text-sm text-muted-foreground">
                 Enter your email address and we&apos;ll send you a reset link
               </p>

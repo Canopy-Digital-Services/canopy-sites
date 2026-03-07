@@ -51,9 +51,9 @@ export function DeleteFormIcon({ formId, formName }: DeleteFormIconProps) {
             trigger={
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon-sm"
                 disabled={isDeleting}
-                className="h-8 w-8 p-0 hover:text-destructive"
+                className="hover:text-destructive"
                 aria-label="Delete form"
               >
                 <Trash2 className="h-4 w-4" />
