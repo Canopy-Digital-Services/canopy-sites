@@ -14,7 +14,10 @@ export default async function AuthLayout({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40">
+    <div
+      className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/Forms%20Background.png')" }}
+    >
       <div className="w-full max-w-md px-4">
         {children}
       </div>
