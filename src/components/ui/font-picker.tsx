@@ -5,6 +5,7 @@ import { Popover } from "radix-ui";
 import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CURATED_FONTS, CURATED_HEADING_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";
+import { loadGoogleFonts } from "@/lib/load-google-fonts";
 
 const INHERIT_VALUE = "inherit";
 const INHERIT_LABEL = "Inherit from host page";
@@ -64,6 +65,20 @@ export function FontPicker({ value, onChange, id, variant = "body" }: FontPicker
     }
   }, [open]);
 
+  // Load the currently selected font so the trigger renders in its own typeface
+  useEffect(() => {
+    if (value && value !== INHERIT_VALUE) {
+      loadGoogleFonts([value]);
+    }
+  }, [value]);
+
+  // Load curated fonts so each option can render in its own typeface
+  useEffect(() => {
+    if (open) {
+      loadGoogleFonts(curatedList);
+    }
+  }, [open, curatedList]);
+
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
@@ -82,7 +97,10 @@ export function FontPicker({ value, onChange, id, variant = "body" }: FontPicker
             open && "ring-1 ring-ring"
           )}
         >
-          <span className="truncate text-left">
+          <span
+            className="truncate text-left"
+            style={value && value !== INHERIT_VALUE ? { fontFamily: `'${value}', sans-serif` } : undefined}
+          >
             {displayLabel}
           </span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -210,7 +228,9 @@ function FontOption({ font, label, selected, onSelect }: FontOptionProps) {
           selected ? "opacity-100" : "opacity-0"
         )}
       />
-      {label}
+      <span style={font !== "inherit" ? { fontFamily: `'${font}', sans-serif` } : undefined}>
+        {label}
+      </span>
     </div>
   );
 }
