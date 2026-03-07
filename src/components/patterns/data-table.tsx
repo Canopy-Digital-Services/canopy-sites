@@ -30,7 +30,7 @@ export function DataTable<T>({
   return (
     <div className="space-y-4">
       {filters ? <div>{filters}</div> : null}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

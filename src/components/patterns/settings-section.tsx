@@ -1,3 +1,5 @@
+// UI: see docs/UX_PATTERNS.md for layout and component conventions.
+
 type SettingsSectionProps = {
   label: string;
   description?: string;
@@ -12,7 +14,7 @@ export function SettingsSection({
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-base font-heading font-semibold">{label}</h3>
+        <h3 className="text-base font-semibold">{label}</h3>
         {description ? (
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}

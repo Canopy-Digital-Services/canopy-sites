@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Markdown } from '@/components/markdown';
 import { PageContent } from "@/components/patterns/page-content";
+import { PageHeader } from "@/components/patterns/page-header";
 
 const docsDir = path.join(process.cwd(), 'content/docs');
 
@@ -33,10 +34,10 @@ export default async function DocsPage() {
   if (hasError) {
     return (
       <PageContent><div>
-        <h1 className="text-3xl font-heading font-bold mb-4">Help Documentation</h1>
-        <p className="text-muted-foreground">
-          Documentation is being set up. Please check back soon.
-        </p>
+        <PageHeader
+          title="Help Documentation"
+          description="Documentation is being set up. Please check back soon."
+        />
       </div></PageContent>
     );
   }
@@ -44,12 +45,10 @@ export default async function DocsPage() {
   return (
     <PageContent>
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-heading font-bold mb-2">Help Documentation</h1>
-        <p className="text-muted-foreground">
-          Learn how to use Can-O-Forms to collect form submissions from your static sites
-        </p>
-      </div>
+      <PageHeader
+        title="Help Documentation"
+        description="Learn how to use Can-O-Forms to collect form submissions from your static sites"
+      />
 
       <div className="mb-8">
         <Markdown content={content} />

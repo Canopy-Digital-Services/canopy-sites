@@ -1,3 +1,4 @@
+// UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ export function PageHeader({ title, description, actions, backHref }: PageHeader
           </Link>
         ) : null}
         <div className="space-y-1">
-          <h1 className="text-3xl font-heading font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-heading font-semibold tracking-tight">{title}</h1>
           {description ? (
             <p className="text-sm text-muted-foreground">{description}</p>
           ) : null}
