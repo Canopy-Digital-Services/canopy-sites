@@ -107,8 +107,11 @@ export class CanopyForm {
     );
     this.container.classList.add(getDensityClass(theme));
 
-    if (!definition.fields || definition.fields.length === 0) {
-      this.renderError("This form is not configured yet.");
+    const hasFields = definition.fields && definition.fields.length > 0;
+    const hasHeader = definition.title || definition.description;
+
+    if (!hasFields && !hasHeader) {
+      this.renderSkeleton();
       return;
     }
 
@@ -985,6 +988,63 @@ export class CanopyForm {
         this.submitButton.style.cursor = "pointer";
       }
     }
+  }
+
+  private renderSkeleton() {
+    this.container.innerHTML = "";
+
+    const skeleton = document.createElement("div");
+    skeleton.className = "canopy-skeleton";
+
+    const fields = [
+      { labelW: "30%", type: "input" },
+      { labelW: "45%", type: "input" },
+      { labelW: "25%", type: "textarea" },
+    ];
+
+    let delay = 0;
+
+    // Title + description ghost bars
+    const title = document.createElement("div");
+    title.className = "canopy-skeleton-bar canopy-skeleton-title";
+    title.style.animationDelay = `${delay}s`;
+    skeleton.appendChild(title);
+    delay += 0.15;
+
+    const desc = document.createElement("div");
+    desc.className = "canopy-skeleton-bar canopy-skeleton-desc";
+    desc.style.animationDelay = `${delay}s`;
+    skeleton.appendChild(desc);
+    delay += 0.15;
+
+    // Fields
+    for (const f of fields) {
+      const fieldWrap = document.createElement("div");
+      fieldWrap.className = "canopy-skeleton-field";
+
+      const label = document.createElement("div");
+      label.className = "canopy-skeleton-bar canopy-skeleton-label";
+      label.style.width = f.labelW;
+      label.style.animationDelay = `${delay}s`;
+      fieldWrap.appendChild(label);
+      delay += 0.1;
+
+      const input = document.createElement("div");
+      input.className = `canopy-skeleton-bar canopy-skeleton-${f.type}`;
+      input.style.animationDelay = `${delay}s`;
+      fieldWrap.appendChild(input);
+      delay += 0.15;
+
+      skeleton.appendChild(fieldWrap);
+    }
+
+    // Button
+    const btn = document.createElement("div");
+    btn.className = "canopy-skeleton-bar canopy-skeleton-button";
+    btn.style.animationDelay = `${delay}s`;
+    skeleton.appendChild(btn);
+
+    this.container.appendChild(skeleton);
   }
 
   private renderError(message: string) {

@@ -6,6 +6,9 @@ export const baseStyles = `
   background: var(--canopy-bg, #ffffff);
   padding: 4px;
   --canopy-heading-font: var(--canopy-font, inherit);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .canopy-form {
@@ -34,7 +37,7 @@ export const baseStyles = `
 .canopy-label {
   font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
   font-size: var(--canopy-label-size, 1.5em);
-  font-weight: var(--canopy-title-weight, 600);
+  font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
   text-transform: var(--canopy-heading-transform, none);
 }
@@ -181,10 +184,72 @@ export const baseStyles = `
   margin-bottom: 16px;
 }
 
+/* Skeleton empty state */
+@keyframes canopy-shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
+}
+
+.canopy-skeleton {
+  display: grid;
+  gap: 16px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.canopy-skeleton-bar {
+  border-radius: var(--canopy-radius, 8px);
+  background: var(--canopy-border, #e4e4e7);
+  animation: canopy-shimmer 2s ease-in-out infinite;
+}
+
+.canopy-skeleton-title {
+  height: 1.4em;
+  width: 55%;
+  border-radius: 4px;
+}
+
+.canopy-skeleton-desc {
+  height: 0.85em;
+  width: 80%;
+  border-radius: 4px;
+  margin-top: -8px;
+}
+
+.canopy-skeleton-field {
+  display: grid;
+  gap: 6px;
+}
+
+.canopy-skeleton-label {
+  height: 0.85em;
+  border-radius: 4px;
+}
+
+.canopy-skeleton-input {
+  height: 40px;
+  border: 1px solid var(--canopy-border, #e4e4e7);
+  background: var(--canopy-field-bg, #ffffff);
+}
+
+.canopy-skeleton-textarea {
+  height: 80px;
+  border: 1px solid var(--canopy-border, #e4e4e7);
+  background: var(--canopy-field-bg, #ffffff);
+}
+
+.canopy-skeleton-button {
+  height: 40px;
+  width: var(--canopy-button-width, 100%);
+  background: var(--canopy-primary, #005F6A);
+  opacity: 0.25;
+}
+
 .canopy-title {
   font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
   font-size: var(--canopy-title-size, 1.5em);
-  font-weight: var(--canopy-title-weight, 600);
+  font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
   text-transform: var(--canopy-heading-transform, none);
   margin: 0 0 4px 0;

@@ -12,7 +12,7 @@ type ThemeDefaults = {
   buttonWidth: "full" | "auto";
   buttonAlign: "left" | "center" | "right";
   titleSize: "sm" | "md" | "lg" | "xl";
-  titleWeight: "normal" | "semibold" | "bold";
+  titleWeight: "light" | "normal" | "bold";
   labelSize: "sm" | "md" | "lg" | "xl";
   labelWeight: "normal" | "medium" | "semibold";
   labelTransform: "none" | "uppercase";
@@ -46,12 +46,12 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   fieldBackground: "#ffffff",
   primary: "#005F6A",
   border: "#e4e4e7",
-  radius: 8,
+  radius: 4,
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
   titleSize: "md",
-  titleWeight: "semibold",
+  titleWeight: "normal",
   labelSize: "md",
   labelWeight: "medium",
   labelTransform: "none",
@@ -181,8 +181,15 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
   container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
 
-  const titleWeightMap = { normal: "400", semibold: "600", bold: "700" };
-  container.style.setProperty("--canopy-title-weight", titleWeightMap[theme.titleWeight ?? "semibold"]);
+  // Legacy: stored themes may have "semibold" — map to bold (700)
+  const titleWeightMap: Record<string, string> = {
+    light: "300",
+    normal: "400",
+    bold: "700",
+    semibold: "700",
+  };
+  const weight = theme.titleWeight ?? "normal";
+  container.style.setProperty("--canopy-title-weight", titleWeightMap[weight] ?? "400");
 
   const resolvedTitleColor = theme.titleColor ? normalizeColor(theme.titleColor, "") : "";
   if (resolvedTitleColor) {
@@ -234,7 +241,7 @@ export function ensureFontsLoaded(families: (string | undefined)[]) {
   if (toLoad.length === 0) return;
 
   const params = toLoad
-    .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700`)
+    .map((f) => `family=${encodeURIComponent(f)}:wght@300;400;700`)
     .join("&");
   const url = `https://fonts.googleapis.com/css2?${params}&display=swap`;
 
