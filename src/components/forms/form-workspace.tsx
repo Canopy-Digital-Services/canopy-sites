@@ -1,35 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  Code,
   Save,
   Check,
-  Eye,
   Pencil,
-  Globe,
-  GlobeLock,
-  ClipboardList,
-  X,
+  Eye,
   Monitor,
   AppWindow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { HeaderSection } from "@/components/forms/header-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
-import { IntegratePanel } from "@/components/forms/integrate-panel";
+import { PublishContent } from "@/components/forms/publish-content";
+import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
+import { FormTabNav } from "@/components/forms/form-tab-nav";
 import { toggleFormPublished } from "@/actions/forms";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
 
 type WorkspaceForm = {
   id: string;
@@ -61,24 +58,41 @@ type WorkspaceForm = {
   }>;
 };
 
+type Submission = {
+  id: string;
+  createdAt: string;
+  status: string;
+  isSpam: boolean;
+  data: Record<string, unknown>;
+};
+
 type FormWorkspaceProps = {
   apiUrl: string;
   ownerEmail: string;
   form: WorkspaceForm;
-  initialMode?: "edit" | "view";
+  submissions?: Submission[];
+  statusFilter?: string;
+  spamFilter?: string;
 };
 
-export function FormWorkspace({ apiUrl, ownerEmail, form, initialMode = "view" }: FormWorkspaceProps) {
-  const [editing, setEditing] = useState(initialMode === "edit");
+export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all" }: FormWorkspaceProps) {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const activeTab =
+    mode === "submissions" ? "submissions" :
+    mode === "publish" ? "publish" :
+    "editor";
 
   return (
-    <FormProvider initialForm={form} autoSaveEnabled={editing}>
+    <FormProvider initialForm={form} autoSaveEnabled={activeTab === "editor"}>
       <WorkspaceInner
         apiUrl={apiUrl}
         ownerEmail={ownerEmail}
         form={form}
-        editing={editing}
-        setEditing={setEditing}
+        activeTab={activeTab}
+        submissions={submissions}
+        statusFilter={statusFilter}
+        spamFilter={spamFilter}
       />
     </FormProvider>
   );
@@ -88,62 +102,90 @@ type WorkspaceInnerProps = {
   apiUrl: string;
   ownerEmail: string;
   form: WorkspaceForm;
-  editing: boolean;
-  setEditing: (editing: boolean) => void;
+  activeTab: string;
+  submissions: Submission[];
+  statusFilter: string;
+  spamFilter: string;
 };
 
-function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: WorkspaceInnerProps) {
+function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter }: WorkspaceInnerProps) {
+  const router = useRouter();
   const { state, saveStatus, updateName } = useFormContext();
+
+  const handleTabChange = (tab: string) => {
+    const mode = tab === "editor" ? "edit" : tab;
+    router.push(`/forms/${form.id}?mode=${mode}`);
+  };
   const [previewMode, setPreviewMode] = useState<"embed" | "page">("embed");
-  const [integrateOpen, setIntegrateOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [published, setPublished] = useState(form.published);
   const [isPublishing, startPublishTransition] = useTransition();
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  const editing = activeTab === "editor";
+
+  useThumbnailCapture({
+    formId: form.id,
+    saveStatus,
+    previewRef: previewContainerRef,
+    enabled: editing,
+  });
+
+  const handlePublishToggle = () => {
+    const next = !published;
+    startPublishTransition(async () => {
+      try {
+        await toggleFormPublished(form.id, next);
+        setPublished(next);
+        toast.success(next ? "Form published" : "Form unpublished");
+      } catch {
+        toast.error("Failed to update publish status");
+      }
+    });
+  };
 
   return (
     <>
       <div className="flex flex-col h-full">
         {/* ─── Header ──────────────────────────────────────────────────── */}
-        <div className="shrink-0 px-4 md:px-8 pt-4 md:pt-6 pb-2">
-          <div className="max-w-7xl mx-auto">
+        <div className="shrink-0 px-4 md:px-8 pt-4 md:pt-6 pb-0">
+          <div className="max-w-5xl mx-auto space-y-3">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              {/* Left: navigation + title */}
+              {/* Left: back arrow + form name */}
               <div className="flex items-center gap-3 min-w-0">
-                {editing ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 shrink-0"
-                    aria-label="Done editing"
-                    onClick={() => setEditing(false)}
-                  >
-                    <X className="h-4 w-4" />
+                <Link href="/forms">
+                  <Button variant="ghost" size="icon-sm" aria-label="Back to forms">
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
-                ) : (
-                  <Link href="/forms">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" aria-label="Back to forms">
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                )}
+                </Link>
 
                 <div className="min-w-0">
-                  {editing && editingName ? (
-                    <Input
-                      autoFocus
-                      value={state.name}
-                      onChange={(e) => updateName(e.target.value)}
-                      onBlur={() => setEditingName(false)}
-                      onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
-                      className="text-2xl font-heading font-semibold tracking-tight h-auto"
-                      placeholder="Form name"
-                    />
+                  {editingName ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        autoFocus
+                        value={state.name}
+                        onChange={(e) => updateName(e.target.value)}
+                        onBlur={() => setEditingName(false)}
+                        onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
+                        className="text-2xl font-heading font-semibold tracking-tight h-auto"
+                        placeholder="Form name"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditingName(false)}
+                        aria-label="Confirm name"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   ) : (
                     <h1 className="text-2xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
-                      {editing ? state.name : form.name}
+                      {state.name || form.name}
                       {editing && (
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setEditingName(true)} aria-label="Rename form">
+                        <Button variant="ghost" size="icon-sm" onClick={() => setEditingName(true)} aria-label="Rename form">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -152,9 +194,9 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: Works
                 </div>
               </div>
 
-              {/* Right: action buttons */}
+              {/* Right: contextual actions */}
               <div className="flex items-center gap-2 shrink-0">
-                {editing ? (
+                {editing && (
                   <>
                     {saveStatus === "saving" && (
                       <span className="text-sm text-muted-foreground flex items-center gap-2">
@@ -168,69 +210,47 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: Works
                         Saved
                       </span>
                     )}
-                    <Button
-                      variant={published ? "outline" : "default"}
-                      size="sm"
-                      disabled={isPublishing}
-                      onClick={() => {
-                        const next = !published;
-                        startPublishTransition(async () => {
-                          try {
-                            await toggleFormPublished(form.id, next);
-                            setPublished(next);
-                            toast.success(next ? "Form published" : "Form unpublished");
-                          } catch {
-                            toast.error("Failed to update publish status");
-                          }
-                        });
-                      }}
-                    >
-                      {published ? (
-                        <GlobeLock className="mr-2 h-4 w-4" />
-                      ) : (
-                        <Globe className="mr-2 h-4 w-4" />
-                      )}
-                      {isPublishing ? "Updating..." : published ? "Unpublish" : "Publish"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIntegrateOpen(true)}>
-                      <Code className="mr-2 h-4 w-4" />
-                      Integrate
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
-                      Done
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Link href={`/forms/${form.id}/submissions`}>
-                      <Button variant="outline" size="sm">
-                        <ClipboardList className="mr-2 h-4 w-4" />
-                        Submissions
-                      </Button>
-                    </Link>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Tab navigation */}
+            <FormTabNav
+              formId={form.id}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+            />
           </div>
         </div>
 
-        {/* ─── Body: editor column + preview column ────────────────────── */}
-        <div className="flex flex-1 min-h-0">
-          {/* Editor column — animates width on desktop, full-width on mobile when editing */}
-          <div
-            className={cn(
-              "overflow-hidden transition-all duration-300 ease-in-out",
-              editing
-                ? "w-full lg:w-[480px] xl:w-[640px] lg:opacity-100 shrink-0"
-                : "w-0 opacity-0",
-            )}
-          >
-            <div className="w-full lg:w-[480px] xl:w-[640px] overflow-y-auto h-full px-4 md:px-8 py-6">
+        {/* ─── Body ────────────────────────────────────────────────────── */}
+        {activeTab === "submissions" ? (
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
+            <SubmissionsContent
+              formId={form.id}
+              submissions={submissions}
+              statusFilter={statusFilter}
+              spamFilter={spamFilter}
+            />
+          </div>
+        ) : activeTab === "publish" ? (
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
+            <div className="max-w-5xl mx-auto">
+              <PublishContent
+                apiUrl={apiUrl}
+                form={form}
+                published={published}
+                isPublishing={isPublishing}
+                onPublishToggle={handlePublishToggle}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Editor tab: editor column + preview column */
+          <div className="flex flex-1 min-h-0 justify-center">
+            {/* Editor column */}
+            <div className="w-[600px] shrink-0 overflow-y-auto h-full px-4 md:px-8 py-6">
               <div className="max-w-[640px] mx-auto space-y-8">
                 <HeaderSection />
                 <FieldsSection formId={form.id} />
@@ -238,50 +258,41 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: Works
                 <AfterSubmissionSection ownerEmail={ownerEmail} />
               </div>
             </div>
-          </div>
 
-          {/* Preview column — fills remaining space */}
-          <div className={cn(
-            "flex-1 min-w-0 flex flex-col border-l border-border/50 overflow-hidden",
-            editing && "hidden lg:flex",
-          )}>
-            {/* Embed / Page tab bar */}
-            <div className="shrink-0 px-4 pt-3 pb-1">
-              <Tabs value={previewMode} onValueChange={(v) => setPreviewMode(v as "embed" | "page")}>
-                <TabsList>
-                  <TabsTrigger value="embed">
+            {/* Preview column — fixed width, floating shadow on both sides */}
+            <div className="w-[600px] shrink-0 hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
+              {/* Embed / Page toggle */}
+              <div className="shrink-0 px-4 pt-3 pb-1">
+                <div className="flex gap-1">
+                  <Button
+                    variant={previewMode === "embed" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setPreviewMode("embed")}
+                  >
                     <Monitor className="h-4 w-4" />
                     Embed
-                  </TabsTrigger>
-                  <TabsTrigger value="page">
+                  </Button>
+                  <Button
+                    variant={previewMode === "page" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setPreviewMode("page")}
+                  >
                     <AppWindow className="h-4 w-4" />
                     Page
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+                  </Button>
+                </div>
+              </div>
 
-            {/* Preview area */}
-            <div className="flex-1 overflow-y-auto flex flex-col">
-              {previewMode === "embed" ? (
-                <FormPreview
-                  live={editing}
-                  form={editing ? undefined : form}
-                  mode="embed"
-                />
-              ) : (
-                <FormPreview
-                  live={editing}
-                  form={editing ? undefined : form}
-                  mode="page"
-                />
-              )}
+              {/* Preview area */}
+              <div ref={previewContainerRef} className="flex-1 overflow-y-auto flex flex-col">
+                <FormPreview live mode={previewMode} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Mobile preview handle — fixed tab on right edge (only in edit mode) */}
+      {/* Mobile preview handle — fixed tab on right edge (only in editor tab) */}
       {editing && (
         <button
           onClick={() => setPreviewOpen(true)}
@@ -303,14 +314,6 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, editing, setEditing }: Works
       >
         <FormPreview live mode="page" />
       </RightPanel>
-
-      <IntegratePanel
-        open={integrateOpen}
-        onClose={() => setIntegrateOpen(false)}
-        apiUrl={apiUrl}
-        form={form}
-        published={published}
-      />
     </>
   );
 }

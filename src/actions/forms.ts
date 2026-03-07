@@ -411,6 +411,23 @@ export async function deleteForm(formId: string) {
   revalidatePath(`/forms`);
 }
 
+export async function updateFormThumbnail(formId: string, thumbnailBase64: string) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  // Max ~150KB decoded image
+  if (thumbnailBase64.length > 200_000) {
+    throw new Error("Thumbnail too large");
+  }
+
+  const thumbnailBytes = Buffer.from(thumbnailBase64, "base64");
+
+  await prisma.form.update({
+    where: { id: formId },
+    data: { thumbnail: thumbnailBytes },
+  });
+}
+
 export async function createForm(data: {
   name: string;
   slug: string;

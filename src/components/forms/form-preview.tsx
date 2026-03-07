@@ -61,7 +61,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   if (mode === "embed") {
     return (
       <div
-        className="flex-1 flex items-start justify-center p-6"
+        className="flex-1 flex items-start justify-center p-10"
         style={{ backgroundColor: page.formBackground }}
       >
         <div className="w-full max-w-lg">{preview}</div>
@@ -73,7 +73,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   return (
     <div
       className={cn(
-        "flex-1 flex justify-center p-6",
+        "flex-1 flex justify-center p-10",
         page.verticalAlign === "center" ? "items-center" : "items-start",
         !page.pageBackground && "bg-muted/40",
       )}

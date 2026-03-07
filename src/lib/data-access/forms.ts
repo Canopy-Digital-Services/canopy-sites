@@ -78,22 +78,49 @@ export async function formExists(formId: string) {
 }
 
 /**
- * Get all forms for an account.
+ * Get all forms for an account with new-submission counts.
  * Used for forms list page.
  */
 export async function getUserForms(accountId: string) {
-  return prisma.form.findMany({
-    where: {
-      accountId,
-    },
-    include: {
-      _count: {
-        select: {
-          submissions: true,
-          fields: true,
-        },
-      },
+  const forms = await prisma.form.findMany({
+    where: { accountId },
+    select: {
+      id: true,
+      accountId: true,
+      createdByUserId: true,
+      name: true,
+      title: true,
+      description: true,
+      slug: true,
+      allowedOrigins: true,
+      notifyEmails: true,
+      emailNotificationsEnabled: true,
+      honeypotField: true,
+      successMessage: true,
+      redirectUrl: true,
+      defaultTheme: true,
+      stopAt: true,
+      maxSubmissions: true,
+      published: true,
+      createdAt: true,
+      _count: { select: { submissions: true, fields: true } },
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const newCounts = await prisma.submission.groupBy({
+    by: ["formId"],
+    _count: true,
+    where: {
+      formId: { in: forms.map((f) => f.id) },
+      status: "NEW",
+      isSpam: false,
+    },
+  });
+
+  const newCountMap = new Map(newCounts.map((c) => [c.formId, c._count]));
+  return forms.map((form) => ({
+    ...form,
+    newSubmissionsCount: newCountMap.get(form.id) ?? 0,
+  }));
 }
