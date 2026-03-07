@@ -19,16 +19,16 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       {/* Desktop nav bar */}
-      <header className="hidden md:flex items-center h-14 px-6 border-b bg-muted/40 shrink-0 gap-6">
+      <header className="hidden md:flex items-center h-14 px-6 border-b bg-muted/40 sticky top-0 z-10 backdrop-blur-sm gap-6">
         <div className="shrink-0">{logo}</div>
         <nav className="flex items-center gap-1">{navItems}</nav>
         <div className="ml-auto">{userMenu}</div>
       </header>
 
       {/* Mobile nav bar */}
-      <header className="md:hidden flex items-center h-14 px-4 border-b bg-muted/40 shrink-0">
+      <header className="md:hidden flex items-center h-14 px-4 border-b bg-muted/40 sticky top-0 z-10 backdrop-blur-sm">
         <div className="shrink-0">{logo}</div>
         <div className="ml-auto">
           {navItems ? (
@@ -52,7 +52,7 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
       </header>
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 flex flex-col overflow-auto">
+      <main className="flex-1 flex flex-col">
         {children}
       </main>
 
