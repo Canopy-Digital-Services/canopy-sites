@@ -448,7 +448,7 @@ Key rules (quick reference):
 - **Dialogs**: Never use `alert()`, `confirm()`, or `prompt()`. Use `toast` and `ConfirmDialog`.
 - **Reordering**: Never use Up/Down buttons. Use `SortableList` with drag-and-drop.
 - **Icon buttons**: Always wrap in `Tooltip`. Standard icons: `GripVertical` (drag), `Trash2` (delete), `Pencil` (edit).
-- **Typography**: `font-heading` (Urbanist) for all headings/titles. Body text uses Inter by default.
+- **Typography**: `font-heading` (Inter alias) for all headings/titles. Body text uses Inter by default. Single-typeface system for a clean, professional look.
 - **Branding**: Use `BrandMark` component (`src/components/brand-mark.tsx`). Assets in `public/brand/`.
 - **Admin validation**: Custom inline validation with touched/submitted pattern, `noValidate` on forms. Never use native HTML5 validation in admin/auth pages.
 - **Embed validation**: Native HTML5 popups via `setCustomValidity()`. Never use custom inline validation in embed.
@@ -487,7 +487,7 @@ See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types
 ```
 Account (id, createdAt)
   └─ User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
-  └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, ...)
+  └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
        └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
        └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
 

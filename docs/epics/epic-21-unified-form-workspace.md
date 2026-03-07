@@ -12,7 +12,7 @@ This consolidates two pages, two preview components, and two layout components i
 
 | Route | Component | Layout |
 |-------|-----------|--------|
-| `/forms/[formId]` | `FormViewPage` | `PageContent` (centered, max-w-7xl) |
+| `/forms/[formId]` | `FormViewPage` | `PageContent` (centered, max-w-5xl) |
 | `/forms/[formId]/edit` | `FormEditor` → `EditorLayout` | Two-column: editor left, preview panel right |
 
 Navigation between them is a full route change via `<Link>`. The browser unmounts one page entirely and mounts the other. There is no shared state or transition.

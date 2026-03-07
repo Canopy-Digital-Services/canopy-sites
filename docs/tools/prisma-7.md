@@ -356,7 +356,15 @@ docker.exe exec canopy-forms rm -rf prisma/migrations/20260220_test_migration
 rm -rf prisma/migrations/20260220_test_migration
 ```
 
-This applies to any files created by `docker exec` commands, not just migrations.
+This applies to any files created by `docker exec` commands, not just migrations. A common case is `.next/` — if a production build was previously run inside the container, `.next/` is root-owned and `rm -rf .next` from the WSL2 host will fail with "Permission denied". Always run builds inside the container:
+
+```bash
+# ✅ Run the build inside the container (clears its own .next output before writing)
+docker.exe exec -e NODE_ENV=production canopy-forms npm run build
+
+# ❌ Running on the host fails if .next/ was container-built
+npm run build
+```
 
 #### Database Commands Reference
 

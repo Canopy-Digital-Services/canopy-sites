@@ -77,7 +77,17 @@ Validate core flows with real people before calling it beta.
 
 ---
 
-## 8. Beta form limit and paid tier path
+## 8. Accessibility (a11y)
+
+Admin and embed should be usable with keyboard and assistive tech; no critical a11y gaps before beta.
+
+- **Admin**: Keyboard navigation (tab order, focus visible), focus trapped in modals/dialogs, icon-only buttons have tooltips or `aria-label`, form controls have associated labels, errors surfaced to screen readers (e.g. `aria-invalid`, `aria-describedby`). Follow existing rules in `docs/UX_PATTERNS.md` (e.g. tooltips on icon buttons, semantic color, alt text).
+- **Embed**: Labels for every field (visible or `aria-label`), logical tab order, sufficient color contrast for text and focus indicators, validation errors announced and associated with controls. Hosted form pages must meet the same bar.
+- **Audit**: Run a focused pass (keyboard-only use, one screen reader or aXe-style check) on: form builder (add/edit field, settings), integrate/embed code flow, and a sample embedded form. Fix critical blockers; document known minor issues if not fixed before beta.
+
+---
+
+## 9. Beta form limit and paid tier path
 
 Prevent abuse and set expectations for launch.
 
@@ -86,9 +96,21 @@ Prevent abuse and set expectations for launch.
 
 ---
 
+## 10. Notifications (documented and discoverable)
+
+Email notifications (new submission, multi-recipient) are already implemented (Epic 4, Epic 7). For beta, ensure they are visible and well explained.
+
+- **In-app**: After Submission → Notifications (toggle, recipient list) is clear; labels and help text explain what recipients receive and any limits (e.g. max recipients).
+- **Docs**: Help and docs updated for notifications (how to enable, configure recipients, what the email contains). Section 4 (help documentation) should cover this; confirm no outdated or missing copy.
+
+No new notification features required for beta—only clarity and documentation so users can discover and use what exists.
+
+---
+
 ## Ordering and dependencies
 
 - **1 (field types)** and **5 (hosted forms)** are product foundations; do early.
 - **3 (integrate CTA)** and **4 (help docs)** support first-time setup; complete before or with beta invite.
-- **2 (feedback)** and **8 (limits)** are operational; have them in place before announcing.
+- **2 (feedback)** and **9 (limits)** are operational; have them in place before announcing.
 - **6 (styling)** and **7 (usability testing)** can overlap; run testing after styling is "good enough" so feedback reflects the real experience.
+- **8 (accessibility)** and **10 (notifications)** can run in parallel with other work; a11y audit before or during usability testing; notifications segment is doc/clarity only, can align with **4 (help docs)**.

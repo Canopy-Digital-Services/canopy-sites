@@ -23,6 +23,10 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 15. [Card layout and primary actions](#card-layout-and-primary-actions)
 16. [Form Inputs](#form-inputs)
 17. [Empty States](#empty-states)
+18. [Table Data Patterns](#table-data-patterns)
+19. [Action Button Hierarchy](#action-button-hierarchy)
+20. [Filter Patterns](#filter-patterns)
+21. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
 
 ---
 
@@ -292,14 +296,13 @@ Always use `ghost` variant with `icon-sm` size for icon-only action buttons:
 
 ## Typography
 
-This project uses a two-typeface system optimized for readability and brand consistency.
+This project uses a single-typeface system for a clean, professional look. `font-heading` is an alias for Inter (the body font) — it exists so heading elements are explicitly marked even though the rendered font is the same.
 
 ### Typeface Choices
 
 | Typeface | Usage | Tailwind Utility |
 |----------|-------|------------------|
-| **Inter** | Body text, UI elements, descriptions, buttons | `font-sans` (default) |
-| **Urbanist** | Headings, titles, page headers, section labels | `font-heading` |
+| **Inter** | Everything: body text, headings, UI elements, buttons | `font-sans` (default), `font-heading` (alias) |
 | **Geist Mono** | Code blocks, monospace content | `font-mono` |
 
 ### Implementation
@@ -309,16 +312,16 @@ Fonts are loaded via `next/font/google` in `src/app/layout.tsx` and mapped to Ta
 ```css
 @theme inline {
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-urbanist);
+  --font-heading: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 ```
 
-**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. Only headings need explicit `font-heading` classes.
+**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. The `font-heading` class is used on headings for semantic clarity but renders the same font.
 
 ### When to Use `font-heading`
 
-Apply `font-heading` to all semantic headings and titles:
+Apply `font-heading` to all semantic headings and titles (for semantic clarity and future flexibility):
 
 **✅ Always use on:**
 - Page titles (`<h1>` in PageHeader, docs pages)
@@ -335,12 +338,12 @@ Apply `font-heading` to all semantic headings and titles:
 ### Examples
 
 ```tsx
-// Page header with Urbanist
-<h1 className="text-3xl font-heading font-semibold tracking-tight">
+// Page header
+<h1 className="text-2xl font-heading font-semibold tracking-tight">
   Forms
 </h1>
 
-// Section label with Urbanist
+// Section label
 <h3 className="text-sm font-heading font-semibold">
   Email Notifications
 </h3>
@@ -373,19 +376,19 @@ The admin UI uses a four-level typographic hierarchy. Maintain size and weight s
 
 | Level | Example | Classes | Size |
 |-------|---------|---------|------|
-| Page title | "Forms", "Account" | `text-3xl font-heading font-semibold` | 30px |
-| Card title | "Header", "Fields", "Appearance" | `text-xl text-primary font-heading font-semibold` | 20px |
+| Page title | "Forms", "Account" | `text-2xl font-heading font-semibold tracking-tight` | 24px |
+| Card title | "Header", "Fields", "Appearance" | `text-xl font-heading font-semibold tracking-tight` | 20px |
 | Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px |
 | Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px |
 
-Card titles are separated from section headings by **size** (20px vs 16px) and **color** (primary teal). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels. Urbanist renders slightly smaller than Inter at the same point size, so card and section headings use larger sizes (20px, 16px) to keep hierarchy obvious.
+Card titles are separated from section headings by **size** (20px vs 16px). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels.
 
 ### Component Patterns Using Typography
 
 These shared components already apply `font-heading` correctly:
-- `PageHeader` - page titles (`text-3xl font-heading font-semibold`)
-- `CardTitle` - card titles (`text-xl text-primary font-heading font-semibold`)
-- `SettingsSection` - section headings (`text-sm font-heading font-semibold`)
+- `PageHeader` - page titles (`text-2xl font-heading font-semibold tracking-tight`)
+- `CardTitle` - card titles (`text-xl font-heading font-semibold tracking-tight`)
+- `SettingsSection` - section headings (`text-base font-heading font-semibold`)
 - `EmptyState` - empty state titles (`text-lg font-heading font-semibold`)
 - `Markdown` - h1/h2/h3 renderers
 
@@ -848,6 +851,8 @@ const header = (
 
 ### Page Header
 
+**All admin pages must use `PageHeader`** — never use inline `<h1>` elements for page titles. This ensures consistent typography (Urbanist `text-2xl`) and spacing across the application.
+
 ```tsx
 import { PageHeader } from "@/components/patterns/page-header";
 
@@ -858,7 +863,7 @@ import { PageHeader } from "@/components/patterns/page-header";
 />
 ```
 
-Optional `backHref` prop renders an ArrowLeft icon link before the title for back-navigation:
+Optional `backHref` prop renders an ArrowLeft icon link before the title for back-navigation. **Prefer `backHref` over a "Back to X" action button** — it's more compact and consistent:
 
 ```tsx
 <PageHeader
@@ -867,6 +872,63 @@ Optional `backHref` prop renders an ArrowLeft icon link before the title for bac
   backHref={`/forms/${formId}`}
 />
 ```
+
+### Table Data Patterns
+
+**Numeric counts** in table cells should use plain text, not Badge components. Badges are for status/category labels, not raw numbers:
+
+```tsx
+// ✅ Good - plain text for counts
+<span className="text-sm text-muted-foreground">{form._count.fields}</span>
+
+// ❌ Bad - badges for numeric counts
+<Badge variant="secondary">{form._count.fields}</Badge>
+```
+
+**Table action columns** should avoid redundant navigation. If the row name is already a clickable link to the detail page, don't also include a "View" icon button:
+
+```tsx
+// ✅ Row has clickable name link → only show non-obvious actions (submissions, delete)
+// ❌ Row has clickable name link → don't also add an Eye "View" icon button
+```
+
+### Action Button Hierarchy
+
+When presenting multiple action buttons (e.g., on a submission detail page), use variant hierarchy to guide the user toward the most likely next action:
+
+```tsx
+// "Mark as Read" is primary (default variant) when status is NEW
+<Button variant={submission.status === "NEW" ? "default" : "outline"}>
+  Mark as Read
+</Button>
+// Other actions stay outline
+<Button variant="outline">Archive</Button>
+```
+
+### Filter Patterns
+
+Filters should use **consistent label casing** (title case for display, uppercase for enum values sent as params):
+
+```tsx
+// ✅ Good - title case labels, consistent active state
+{[
+  { value: "all", label: "All" },
+  { value: "NEW", label: "New" },
+  { value: "READ", label: "Read" },
+  { value: "ARCHIVED", label: "Archived" },
+].map((option) => (
+  <Button variant={active === option.value ? "secondary" : "outline"} size="sm">
+    {option.label}
+  </Button>
+))}
+
+// ❌ Bad - raw enum values as labels, filled primary for active state
+{["all", "NEW", "READ", "ARCHIVED"].map((status) => (
+  <Button variant={active === status ? "default" : "outline"}>{status}</Button>
+))}
+```
+
+Active filter buttons use `variant="secondary"` (soft highlight) rather than `variant="default"` (filled primary), since filters are selection state indicators, not primary actions.
 
 ### Empty State
 
@@ -1020,9 +1082,9 @@ export default function SomePage() {
 }
 ```
 
-Provides `p-4 md:p-8` padding and `max-w-7xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses `EditorLayout` directly.
+Provides `p-4 md:p-6` padding and `max-w-5xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
 
-**Do not** wrap the form editor (`/forms/[formId]/edit`) in `PageContent` — `EditorLayout` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
+**Do not** wrap the form editor (`/forms/[formId]`) in `PageContent` — `FormWorkspace` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
 
 ### View Page with Preview
 
@@ -1434,7 +1496,7 @@ For more prominent empty states, use the `EmptyState` component.
 | Delete action icon | `Trash2` from lucide-react |
 | Edit action icon | `Pencil` from lucide-react |
 | Drag handle icon | `GripVertical` from lucide-react |
-| Page/section headings | Add `font-heading` class (Urbanist) |
+| Page/section headings | Add `font-heading` class (Inter alias, for semantic clarity) |
 | Body text | No class needed (Inter is default via `font-sans`) |
 | Code/monospace | Add `font-mono` class (Geist Mono) |
 
@@ -1452,10 +1514,51 @@ For more prominent empty states, use the `EmptyState` component.
 8. **Never let editor layouts span full screen width** - use 640px max-width
 9. **Never forget `stopPropagation`** when applying dragHandleProps to entire row
 10. **Never use hover-reveal with drag-and-drop lists** - CSS hover states conflict with drag operations
-11. **Never forget `font-heading` on headings/titles** - maintain typeface consistency
+11. **Never forget `font-heading` on headings/titles** - maintain semantic clarity and future flexibility
 12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
 13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
 14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
+
+---
+
+## Dashboard Cards & View Toggle
+
+The forms landing page (`/forms`) uses a card-based grid layout by default, with a toggle to switch to a compact list view.
+
+### View toggle
+
+- Implemented as two `Link` components (server component, no JS required) inside a pill-shaped `bg-muted` container.
+- Active view gets `bg-background shadow-sm`; inactive is `text-muted-foreground`.
+- Persisted via URL search param `?view=grid` or `?view=list`. Default is `grid` when param is absent.
+- Icons: `LayoutGrid` (grid) and `List` (list) from lucide-react.
+- Component: `src/components/forms/view-toggle.tsx`.
+
+### Dashboard cards
+
+Card layout (top to bottom):
+1. **Thumbnail** — 16:10 aspect-ratio preview image, linked to the form editor. No border between thumbnail and content (seamless flow).
+2. **Name row** — form name (bold, linked, truncated) with hover-reveal action icons (submissions, delete) on the right.
+3. **Meta row** — published/draft `Badge` inline with field count, submission count, and new submission count (in `text-success`), all on one line.
+
+Design details:
+- Cards use `group` class; action icons are `opacity-0 group-hover:opacity-100 transition-opacity` (hidden at rest, revealed on hover).
+- Cards use a single `div` for content (no CardHeader/CardContent split) — compact `px-4 py-3` padding.
+- `hover:shadow-md transition-shadow overflow-hidden` for hover feedback and border-radius clipping.
+- Thumbnails are auto-captured (JPEG, half-res) from the preview panel after each save via `useThumbnailCapture` hook. Stored as `Bytes` in DB, served via `GET /api/forms/[formId]/thumbnail`.
+- Fallback: `bg-muted/40` background shown when no thumbnail exists (new forms, capture not yet triggered). The `<img>` hides itself on 404 via `onError`.
+- Grid layout: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
+- Component: `src/components/forms/form-card.tsx`.
+
+### Summary strip
+
+- A single line of `text-sm text-muted-foreground` above the grid/list showing aggregate totals: "5 forms · 20 submissions · 3 new".
+- "new" count rendered in `text-success font-medium`.
+- Only shown when forms exist (hidden in empty state).
+
+### When to use cards vs tables
+
+- **Cards (grid)**: Default for dashboard/landing pages where visual scanning and at-a-glance status matter. Good for < 50 items.
+- **Tables (list)**: Better for power users with many items, or when sorting/filtering by columns is needed. Offered as a toggle alternative.
 
 ---
 
@@ -1477,4 +1580,6 @@ For more prominent empty states, use the `EmptyState` component.
 | TopNavLayout | `src/components/patterns/top-nav-layout.tsx` |
 | UserMenu | `src/components/patterns/user-menu.tsx` |
 | AccountDashboard | `src/components/account/account-dashboard.tsx` |
+| FormCard | `src/components/forms/form-card.tsx` |
+| ViewToggle | `src/components/forms/view-toggle.tsx` |
 | FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`, font loader: `src/lib/load-google-fonts.ts`) |
