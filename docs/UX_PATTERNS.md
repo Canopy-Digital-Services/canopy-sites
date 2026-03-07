@@ -61,7 +61,7 @@ The application uses three brand colors with specific semantic roles:
 |-------|-----|-------|
 | **Main Teal** | `#005F6A` | Primary actions, buttons, links, headings, brand emphasis |
 | **Highlight Green** | `#5FD48C` | Success states, positive feedback, CTAs |
-| **Pop Coral** | `#FF6B5A` | Destructive actions, error states, warnings, critical alerts |
+| **Pop Coral** | `#FF6B5A` | Destructive actions, error states, critical alerts |
 
 ### Semantic CSS Variables
 
@@ -124,6 +124,63 @@ Most UI components automatically use semantic colors through their variants:
 <Alert variant="default">Standard</Alert>
 <Alert variant="destructive">Uses destructive color</Alert>
 ```
+
+### Status Indicators
+
+Two patterns for indicating status. Choose based on context:
+
+| Context | Pattern | Example |
+|---------|---------|---------|
+| **Prominent display** (status cards, detail headers) | Dot + text | Publish tab status |
+| **Compact metadata** (cards, tables, list rows) | Badge | Dashboard card meta row |
+
+**Dot + text** for standalone status where the indicator is a focal element:
+
+```tsx
+// Active/live — pulsing green dot
+<span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+  Live
+</span>
+
+// Inactive/draft — static muted dot
+<span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+  Draft
+</span>
+```
+
+Only use `animate-pulse` for active/live states. Don't animate inactive states.
+
+**Badge** for status labels in dense contexts alongside other metadata:
+
+```tsx
+<Badge variant="default">Published</Badge>
+<Badge variant="outline">Draft</Badge>
+```
+
+Don't use Badge in prominent status displays — it resembles a button and creates ambiguity about whether it's interactive.
+
+### Informational Notices
+
+Use color treatment to match the severity of the message:
+
+| Treatment | When to use | Example |
+|-----------|-------------|---------|
+| **Amber notice** | Non-critical guidance: missing config, setup hints | "Add your domain under Allowed Origins in Submission Settings" |
+| **`text-destructive`** | Validation errors, failed operations, things that are **wrong** | "Email is required" |
+| **`toast.error()`** | Transient operation failures | "Failed to save changes" |
+
+When something is merely **incomplete or needs attention**, use an amber notice — it's informative without being alarming:
+
+```tsx
+<div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3.5 py-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+  <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+  <p>Guidance text here.</p>
+</div>
+```
+
+Reserve `text-destructive` for things that are **wrong**, not things that are **not yet configured**.
 
 ### Embed Forms
 
@@ -1518,6 +1575,8 @@ For more prominent empty states, use the `EmptyState` component.
 12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
 13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
 14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
+15. **Never use `text-destructive` for informational notices** - use the amber notice pattern for missing config or setup guidance; reserve destructive for actual errors
+16. **Never use Badge for prominent status displays** - use dot + text; Badge is for compact metadata in lists/tables
 
 ---
 

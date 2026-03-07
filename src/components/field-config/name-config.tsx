@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NameOptions } from "@/types/field-config";
@@ -104,12 +105,10 @@ export function NameConfig({
         <div className="space-y-2">
           {(Object.keys(PART_LABELS) as NamePart[]).map((part) => (
             <div key={part} className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id={`name-part-${part}`}
                 checked={selectedParts.includes(part)}
-                onChange={() => handlePartToggle(part)}
-                className="h-4 w-4"
+                onCheckedChange={() => handlePartToggle(part)}
               />
               <Label
                 htmlFor={`name-part-${part}`}
@@ -151,12 +150,10 @@ export function NameConfig({
             </p>
             {selectedParts.map((part) => (
               <div key={part} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id={`name-required-${part}`}
                   checked={options.partsRequired?.[part] || false}
-                  onChange={() => handlePartRequiredToggle(part)}
-                  className="h-4 w-4"
+                  onCheckedChange={() => handlePartRequiredToggle(part)}
                 />
                 <Label
                   htmlFor={`name-required-${part}`}

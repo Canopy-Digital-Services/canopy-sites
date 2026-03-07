@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -235,22 +236,18 @@ export function DropdownConfig({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="select-allow-other"
-                checked={config.allowOther || false}
-                onChange={(e) => handleAllowOtherChange(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <Label
-                htmlFor="select-allow-other"
-                className="text-sm font-normal cursor-pointer"
-              >
-                Allow &quot;Other&quot; with text input field
-              </Label>
-            </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="select-allow-other"
+              checked={config.allowOther || false}
+              onCheckedChange={(checked) => handleAllowOtherChange(checked === true)}
+            />
+            <Label
+              htmlFor="select-allow-other"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Allow &quot;Other&quot; with text input field
+            </Label>
           </div>
         </>
       )}
