@@ -85,7 +85,7 @@ export async function createField(formId: string, data: FieldInput) {
     },
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
   return field;
 }
 
@@ -126,7 +126,7 @@ export async function updateField(
     },
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
   return updated;
 }
 
@@ -189,7 +189,7 @@ export async function deleteField(
     )
   );
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
 }
 
 export async function reorderFields(formId: string, fieldIds: string[]) {
@@ -217,7 +217,7 @@ export async function reorderFields(formId: string, fieldIds: string[]) {
     )
   );
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
 }
 
 // ============================================================================
@@ -258,7 +258,7 @@ export async function updateFormBasics(
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
   revalidatePath(`/forms`);
 }
 
@@ -325,7 +325,7 @@ export async function updateAfterSubmission(
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
 }
 
 // Legacy alias for backwards compatibility (if needed)
@@ -364,7 +364,7 @@ export async function updateFormHeader(
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
 }
 
 export async function updateFormAppearance(
@@ -383,7 +383,21 @@ export async function updateFormAppearance(
     },
   });
 
-  revalidatePath(`/forms/${formId}/edit`);
+  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/f/${formId}`);
+}
+
+export async function toggleFormPublished(formId: string, published: boolean) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  await prisma.form.update({
+    where: { id: formId },
+    data: { published },
+  });
+
+  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/f/${formId}`);
 }
 
 export async function deleteForm(formId: string) {
@@ -395,6 +409,23 @@ export async function deleteForm(formId: string) {
   });
 
   revalidatePath(`/forms`);
+}
+
+export async function updateFormThumbnail(formId: string, thumbnailBase64: string) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  // Max ~150KB decoded image
+  if (thumbnailBase64.length > 200_000) {
+    throw new Error("Thumbnail too large");
+  }
+
+  const thumbnailBytes = Buffer.from(thumbnailBase64, "base64");
+
+  await prisma.form.update({
+    where: { id: formId },
+    data: { thumbnail: thumbnailBytes },
+  });
 }
 
 export async function createForm(data: {

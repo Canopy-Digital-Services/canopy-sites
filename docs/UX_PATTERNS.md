@@ -23,6 +23,10 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 15. [Card layout and primary actions](#card-layout-and-primary-actions)
 16. [Form Inputs](#form-inputs)
 17. [Empty States](#empty-states)
+18. [Table Data Patterns](#table-data-patterns)
+19. [Action Button Hierarchy](#action-button-hierarchy)
+20. [Filter Patterns](#filter-patterns)
+21. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
 
 ---
 
@@ -32,7 +36,7 @@ This project uses **shadcn/ui** components built on Radix UI primitives with Tai
 
 **Component locations:**
 - **Base UI components**: `src/components/ui/` (button, input, dialog, etc.)
-- **Layout patterns**: `src/components/patterns/` (app-shell, page-header, etc.)
+- **Layout patterns**: `src/components/patterns/` (top-nav-layout, page-header, etc.)
 - **Feature components**: `src/components/` (confirm-dialog, field-list, etc.)
 
 **Key dependencies:**
@@ -123,10 +127,16 @@ Most UI components automatically use semantic colors through their variants:
 
 ### Embed Forms
 
-Embedded forms use a separate theming system (`embed/src/theme.ts`) with matching defaults:
+Embedded forms use a separate theming system (`embed/src/theme.ts`). The type system uses two groups:
+
+- **`ThemeDefaults`** — tokens that have a default value (e.g. `background`, `primary`, `radius`). `DEFAULT_THEME` must provide all of these. To add a new token with a default: add it to `ThemeDefaults` + add the value to `DEFAULT_THEME`.
+- **`ThemeOverrides`** — optional tokens with no default (e.g. `bodyFont`, `titleColor`, `pageBackground`). To add a new optional token: add it to `ThemeOverrides`. No other changes needed.
+- **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides` — the public type used by consumers. All fields are optional since stored themes only include tokens the user has set.
+
+Default values:
 
 ```typescript
-// Default embed theme (full token set)
+// ThemeDefaults — DEFAULT_THEME values
 background:      "#ffffff"   // Form container background  (--canopy-bg)
 fieldBackground: "#ffffff"   // Input/textarea background  (--canopy-field-bg)
 primary:         "#005F6A"   // Button background / focus rings (--canopy-primary)
@@ -137,13 +147,49 @@ text:            "#18181b"   // Labels and body copy        (--canopy-text)
 // ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
 ```
 
+**Hosted-only tokens** (in `ThemeOverrides`, read by page wrappers, ignored by embed script):
+```typescript
+pageBackground?: string                    // Page background color — falls back to bg-muted/40
+cardEnabled?: boolean                      // Wrap form in a card (default: true)
+cardShadow?: "none" | "sm" | "md" | "lg"  // Card shadow: none/light/medium/heavy (default: "md")
+contentWidth?: "sm" | "md" | "lg"         // Max width: 480/640/768px (default: "md")
+verticalAlign?: "top" | "center"          // Vertical position on page (default: "top")
+```
+
+Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx` and `form-preview.tsx` (unified preview component).
+
 Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
 ```typescript
 success: "#5FD48C"    // Highlight Green
 error:   "#FF6B5A"    // Pop Coral
 ```
 
-Form owners can override all stored tokens through the Appearance section of the form editor. Each color has a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
+### Appearance Editor Structure
+
+The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 5 collapsible SubSection rows. Each row shows summary chips when collapsed. There is no third nesting tier — all SubSections are peers. Colors are co-located with the element they affect rather than grouped into a separate section.
+
+```
+Appearance  (always-open Card)
+├─ Page        [swatch]                            ← hosted-only settings
+├─ Form        [swatch] [swatch] [swatch] · radius 8  ← surfaces, borders, spacing
+├─ Headings    Montserrat · Semibold · [swatch]    ← title + label shared style
+├─ Body        Lato · 14px · [swatch]              ← body font, size + text color
+└─ Button      Submit · [swatch]                   ← button text + color
+```
+
+- **Page**: Page Background Color (hosted pages only), with helper text
+- **Form**: Background, Field Background, Field Border (3 color pickers), Border Radius, Density, Button Width, Button Alignment (conditional)
+- **Headings**: Font, Weight, Color, Label Transform, Title Size — applied to both the form title and all field labels as one shared style
+- **Body**: Font (body typeface), Base Font Size (px), Text Color
+- **Button**: Button Text (custom submit label), Button Color
+
+**Heading/label style**: The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform (uppercase) is label-specific and lives in Headings. Title Size is title-specific (labels always render at body font size).
+
+**Font pickers**: Body and Headings each use the `FontPicker` component (`src/components/ui/font-picker.tsx`) with different curated lists. The **Body** font uses `variant="body"` (default), which shows `CURATED_FONTS` from `src/lib/google-fonts.ts` (sans, serif, mono options suited to body text). The **Headings** font uses `variant="heading"`, which shows `CURATED_HEADING_FONTS` (display/expressive typefaces). In both cases the user can search to filter over the full Google Fonts catalogue; the variant only changes the default scrollable list when not searching.
+
+**Font previews**: Each option in the curated list renders in its own typeface. When the picker opens, the curated list is loaded via `src/lib/load-google-fonts.ts`, which injects a single combined `fonts.googleapis.com/css2` stylesheet into `document.head` (deduplicated — each family is only requested once per session). The currently selected font is also loaded eagerly on mount so the closed trigger button renders in the correct typeface. Search results do not load fonts — users typing a specific name already know what they want.
+
+Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
 
 ### Dark Mode Status
 
@@ -250,14 +296,13 @@ Always use `ghost` variant with `icon-sm` size for icon-only action buttons:
 
 ## Typography
 
-This project uses a two-typeface system optimized for readability and brand consistency.
+This project uses a single-typeface system for a clean, professional look. `font-heading` is an alias for Inter (the body font) — it exists so heading elements are explicitly marked even though the rendered font is the same.
 
 ### Typeface Choices
 
 | Typeface | Usage | Tailwind Utility |
 |----------|-------|------------------|
-| **Inter** | Body text, UI elements, descriptions, buttons | `font-sans` (default) |
-| **Urbanist** | Headings, titles, page headers, section labels | `font-heading` |
+| **Inter** | Everything: body text, headings, UI elements, buttons | `font-sans` (default), `font-heading` (alias) |
 | **Geist Mono** | Code blocks, monospace content | `font-mono` |
 
 ### Implementation
@@ -267,16 +312,16 @@ Fonts are loaded via `next/font/google` in `src/app/layout.tsx` and mapped to Ta
 ```css
 @theme inline {
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-urbanist);
+  --font-heading: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 ```
 
-**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. Only headings need explicit `font-heading` classes.
+**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. The `font-heading` class is used on headings for semantic clarity but renders the same font.
 
 ### When to Use `font-heading`
 
-Apply `font-heading` to all semantic headings and titles:
+Apply `font-heading` to all semantic headings and titles (for semantic clarity and future flexibility):
 
 **✅ Always use on:**
 - Page titles (`<h1>` in PageHeader, docs pages)
@@ -293,13 +338,13 @@ Apply `font-heading` to all semantic headings and titles:
 ### Examples
 
 ```tsx
-// Page header with Urbanist
-<h1 className="text-3xl font-heading font-semibold tracking-tight">
+// Page header
+<h1 className="text-2xl font-heading font-semibold tracking-tight">
   Forms
 </h1>
 
-// Section label with Urbanist
-<h3 className="text-sm font-heading font-medium">
+// Section label
+<h3 className="text-sm font-heading font-semibold">
   Email Notifications
 </h3>
 
@@ -321,16 +366,30 @@ Both typefaces support variable weights. Common usage:
 | Weight | Class | Usage |
 |--------|-------|-------|
 | 400 (Regular) | `font-normal` | Body text (Inter default) |
-| 500 (Medium) | `font-medium` | Labels, small headings |
-| 600 (Semibold) | `font-semibold` | Subheadings, emphasis |
-| 700 (Bold) | `font-bold` | Primary headings, high emphasis |
+| 500 (Medium) | `font-medium` | Field labels, form inputs |
+| 600 (Semibold) | `font-semibold` | Card titles, section headings within panels (`CardTitle`, `SettingsSection`, `SubSection`) |
+| 700 (Bold) | `font-bold` | Page headings, high emphasis (`PageHeader`) |
+
+### Heading Hierarchy
+
+The admin UI uses a four-level typographic hierarchy. Maintain size and weight separation between levels:
+
+| Level | Example | Classes | Size |
+|-------|---------|---------|------|
+| Page title | "Forms", "Account" | `text-2xl font-heading font-semibold tracking-tight` | 24px |
+| Card title | "Header", "Fields", "Appearance" | `text-xl font-heading font-semibold tracking-tight` | 20px |
+| Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px |
+| Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px |
+
+Card titles are separated from section headings by **size** (20px vs 16px). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels.
 
 ### Component Patterns Using Typography
 
 These shared components already apply `font-heading` correctly:
-- `PageHeader` - page titles
-- `EmptyState` - empty state titles  
-- `SettingsSection` - section labels
+- `PageHeader` - page titles (`text-2xl font-heading font-semibold tracking-tight`)
+- `CardTitle` - card titles (`text-xl font-heading font-semibold tracking-tight`)
+- `SettingsSection` - section headings (`text-base font-heading font-semibold`)
+- `EmptyState` - empty state titles (`text-lg font-heading font-semibold`)
 - `Markdown` - h1/h2/h3 renderers
 
 When creating new title/heading components, follow this pattern.
@@ -792,15 +851,84 @@ const header = (
 
 ### Page Header
 
+**All admin pages must use `PageHeader`** — never use inline `<h1>` elements for page titles. This ensures consistent typography (Urbanist `text-2xl`) and spacing across the application.
+
 ```tsx
 import { PageHeader } from "@/components/patterns/page-header";
 
 <PageHeader
   title="Forms"
   description="Manage your forms"
-  action={<Button>Create Form</Button>}
+  actions={<Button>Create Form</Button>}
 />
 ```
+
+Optional `backHref` prop renders an ArrowLeft icon link before the title for back-navigation. **Prefer `backHref` over a "Back to X" action button** — it's more compact and consistent:
+
+```tsx
+<PageHeader
+  title={form.name}
+  description="Submissions"
+  backHref={`/forms/${formId}`}
+/>
+```
+
+### Table Data Patterns
+
+**Numeric counts** in table cells should use plain text, not Badge components. Badges are for status/category labels, not raw numbers:
+
+```tsx
+// ✅ Good - plain text for counts
+<span className="text-sm text-muted-foreground">{form._count.fields}</span>
+
+// ❌ Bad - badges for numeric counts
+<Badge variant="secondary">{form._count.fields}</Badge>
+```
+
+**Table action columns** should avoid redundant navigation. If the row name is already a clickable link to the detail page, don't also include a "View" icon button:
+
+```tsx
+// ✅ Row has clickable name link → only show non-obvious actions (submissions, delete)
+// ❌ Row has clickable name link → don't also add an Eye "View" icon button
+```
+
+### Action Button Hierarchy
+
+When presenting multiple action buttons (e.g., on a submission detail page), use variant hierarchy to guide the user toward the most likely next action:
+
+```tsx
+// "Mark as Read" is primary (default variant) when status is NEW
+<Button variant={submission.status === "NEW" ? "default" : "outline"}>
+  Mark as Read
+</Button>
+// Other actions stay outline
+<Button variant="outline">Archive</Button>
+```
+
+### Filter Patterns
+
+Filters should use **consistent label casing** (title case for display, uppercase for enum values sent as params):
+
+```tsx
+// ✅ Good - title case labels, consistent active state
+{[
+  { value: "all", label: "All" },
+  { value: "NEW", label: "New" },
+  { value: "READ", label: "Read" },
+  { value: "ARCHIVED", label: "Archived" },
+].map((option) => (
+  <Button variant={active === option.value ? "secondary" : "outline"} size="sm">
+    {option.label}
+  </Button>
+))}
+
+// ❌ Bad - raw enum values as labels, filled primary for active state
+{["all", "NEW", "READ", "ARCHIVED"].map((status) => (
+  <Button variant={active === status ? "default" : "outline"}>{status}</Button>
+))}
+```
+
+Active filter buttons use `variant="secondary"` (soft highlight) rather than `variant="default"` (filled primary), since filters are selection state indicators, not primary actions.
 
 ### Empty State
 
@@ -816,22 +944,32 @@ import { FileText } from "lucide-react";
 />
 ```
 
-### Editor Layout
+### FormWorkspace (Unified View/Edit)
+
+The `FormWorkspace` component (`src/components/forms/form-workspace.tsx`) consolidates the old separate view and edit pages into a single component with an animated CSS transition between modes:
 
 ```tsx
-import { EditorLayout } from "@/components/patterns/editor-layout";
+import { FormWorkspace } from "@/components/forms/form-workspace";
 
-<EditorLayout
-  header={<FormHeader />}
-  main={<FormFields />}
-  panel={<LivePreviewPanel />}
+<FormWorkspace
+  apiUrl={apiUrl}
+  ownerEmail={session.user.email}
+  form={form}
+  initialMode={mode === "edit" ? "edit" : "view"}
 />
 ```
 
-**Panel behavior (Epic 17)**:
-- On `lg+`: The panel renders as a sticky sidebar (`w-[400px]` on lg, `w-[480px]` on xl) with `bg-muted/30` background and `border-l border-border/50` separator
-- The panel is `sticky top-[73px]` with `h-[calc(100vh-73px)] overflow-y-auto` — stays in view as the editor scrolls
-- On `<lg`: The panel slot is hidden via `hidden lg:flex`. A fixed **side handle tab** on the right edge of the viewport (`lg:hidden`) opens the preview in a `RightPanel` Sheet. The handle uses an `Eye` icon with vertical "Preview" text, styled with `bg-background/90 backdrop-blur-sm` to match the header's glass effect.
+**Mode behavior**:
+- **View mode**: Back arrow to `/forms`, form name (read-only), Edit button, Submissions link. Preview centered with Embed/Page tabs.
+- **Edit mode**: Close (X) button + "Done" button to exit edit mode, editable form name, save status, Publish/Unpublish toggle, Integrate button. Editor panel slides in from left (300ms CSS transition on `lg+`).
+- Mode switch is client-side state toggle — no route change or DOM remount.
+- New forms are created with `?mode=edit` query param so they land directly in edit mode.
+- `/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`.
+
+**Layout**:
+- On `lg+`: Editor column uses `lg:w-[480px] xl:w-[640px]` with CSS `transition-all duration-300 ease-in-out`. Preview column fills remaining space with `flex-1`.
+- On `<lg` in edit mode: Editor controls are full-width, preview is hidden. A fixed side handle tab on the right edge opens preview in a `RightPanel` Sheet.
+- Embed/Page tabs are always visible above the preview in both modes.
 
 ### FormContext (Unified State)
 
@@ -840,16 +978,16 @@ The form editor uses a `FormProvider` context that holds all form state and prov
 ```tsx
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 
-// Wrap editor in provider
-<FormProvider initialForm={form}>
-  <FormEditorInner />
+// Wrap editor in provider — autoSaveEnabled controls whether changes are persisted
+<FormProvider initialForm={form} autoSaveEnabled={editing}>
+  <WorkspaceInner />
 </FormProvider>
 
 // In any child component
 const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
 ```
 
-**Save groups** — changes auto-save after 1s debounce per group:
+**Save groups** — changes auto-save after 1s debounce per group (when `autoSaveEnabled` is true):
 | Group | Fields | Server action |
 |-------|--------|---------------|
 | basics | `name` | `updateFormBasics` |
@@ -859,18 +997,23 @@ const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
 
 Field operations (create/update/delete/reorder) call server actions **immediately**, not through auto-save.
 
-### LivePreviewPanel
+### FormPreview (Unified Preview)
 
-Always-on preview that renders the form using the actual embed renderer:
+Single preview component that handles both static and live rendering in embed or page mode:
 
 ```tsx
-import { LivePreviewPanel } from "@/components/forms/live-preview-panel";
+import { FormPreview } from "@/components/forms/form-preview";
+
+// Static preview (view mode)
+<FormPreview form={form} mode="embed" />
+
+// Live preview (edit mode — reads from FormContext, debounces 150ms)
+<FormPreview live mode="page" />
 ```
 
-- Loads `embed.js` script, creates a `CanopyForm` instance via `window.CanopyForms.CanopyForm`
-- Calls `renderFromDefinition()` with a projection of `FormState` → embed `FormDefinition`
-- Re-renders on state change with 150ms debounce
-- Visual design: "quiet frame" — white card inside muted zone with subtle border
+- `mode="embed"`: Simple centered container (`max-w-lg mx-auto`)
+- `mode="page"`: Full page-theme styling (background color, content width, card wrapper) via `extractPageTheme()`
+- `live` prop: When true, reads state from `useFormContext()` and debounces re-renders at 150ms
 
 ### Settings Section
 
@@ -885,84 +1028,117 @@ import { SettingsSection } from "@/components/patterns/settings-section";
 </SettingsSection>
 ```
 
-### Responsive Sidebar Layout
+### Top Nav Layout
 
 ```tsx
-import { ResponsiveSidebarLayout } from "@/components/patterns/responsive-sidebar-layout";
+import { TopNavLayout } from "@/components/patterns/top-nav-layout";
+import { UserMenu } from "@/components/patterns/user-menu";
 
-<ResponsiveSidebarLayout 
-  sidebar={<nav>...</nav>}
-  sidebarFooter={<UserAccountFooter email={user.email} />}
+<TopNavLayout
+  logo={<Link href="/forms"><BrandMark size="sm" /></Link>}
+  navItems={<>
+    <Link href="/forms"><Button variant="ghost" size="sm">Forms</Button></Link>
+    <Link href="/docs"><Button variant="ghost" size="sm">Help</Button></Link>
+  </>}
+  userMenu={<UserMenu email={session.user?.email} />}
 >
   {children}
-</ResponsiveSidebarLayout>
+</TopNavLayout>
 ```
 
-**Purpose**: Provides a responsive layout with a fixed sidebar on desktop and a collapsible hamburger menu drawer on mobile.
+**Purpose**: Provides a responsive top navigation bar with logo, nav links, and user menu. Replaces the old sidebar layout.
 
 **Props**:
-- `sidebar` (required): Main navigation content
-- `sidebarFooter` (optional): Footer content pinned to bottom of sidebar (e.g., user account indicator)
+- `logo` (required): Brand mark or title, shown left in the nav bar
+- `navItems` (required): Nav links, shown beside the logo on desktop; in drawer on mobile
+- `userMenu` (required): User account trigger (avatar dropdown), shown right on desktop; bottom of drawer on mobile
 - `children` (required): Main page content
 
 **Behavior**:
-- **Desktop (md+)**: Fixed sidebar on the left (w-64, border-r, bg-muted/40, p-6)
-- **Mobile (<md)**: Sidebar hidden; hamburger menu button in header opens left-sliding drawer
-- **Main content**: Responsive padding (p-4 on mobile, p-8 on desktop)
-- **Footer**: When provided, footer is pinned to bottom with `border-t` and `pt-4` separation
+- **Desktop (md+)**: Horizontal nav bar (h-14, border-b, bg-muted/40). Logo left, nav items beside it, user menu right.
+- **Mobile (<md)**: Logo left, hamburger button right. Hamburger opens a left-sliding Sheet drawer containing logo, nav items, and user menu.
+- **Main content**: `flex-1 min-h-0 flex flex-col overflow-auto`. Each page adds its own spacing via `PageContent` or `EditorLayout`.
 
 **Accessibility**:
-- Hamburger button includes `aria-label="Open navigation menu"`
-- Tooltip displays "Menu" on hover
-- Drawer includes backdrop overlay and escape key support
+- Hamburger button includes `aria-label="Open navigation menu"` and a tooltip
+- Drawer includes escape key support and a visually hidden title
 
 **Used in**: Admin console layout (`src/app/(admin)/layout.tsx`) and Operator console layout (`src/app/operator/layout.tsx`)
 
-### User Account Footer
+### PageContent
+
+Standard padding + max-width wrapper for admin pages that are **not** full-bleed editors.
 
 ```tsx
-import { UserAccountFooter } from "@/components/patterns/user-account-footer";
+import { PageContent } from "@/components/patterns/page-content";
 
-<UserAccountFooter email={session.user.email} />
+export default function SomePage() {
+  return (
+    <PageContent>
+      <PageHeader title="Forms" ... />
+      <DataTable ... />
+    </PageContent>
+  );
+}
 ```
 
-**Purpose**: Interactive account menu trigger at the bottom of the sidebar, providing access to account management and sign-out.
+Provides `p-4 md:p-6` padding and `max-w-5xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
 
-**Design principles**:
-- **Quiet but interactive**: Small avatar with initials + truncated email + chevron indicator
-- **Hover state**: `hover:bg-accent/50` for discoverability
-- **Popup menu**: DropdownMenu opens upward (`side="top"`) with "Manage Account" and "Sign Out"
-- **Visual separation**: Rendered in sidebar footer with border-top separator
-- **Consistent placement**: Always at the bottom of the sidebar, below navigation
+**Do not** wrap the form editor (`/forms/[formId]`) in `PageContent` — `FormWorkspace` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
+
+### View Page with Preview
+
+Detail/view pages that show a preview of an entity (e.g. form) with layout toggle. Pattern:
+
+```tsx
+<PageContent>
+  <PageHeader
+    title={entity.name}
+    description="metadata summary"
+    backHref="/forms"
+    actions={<>action buttons (Edit, Submissions, etc.)</>}
+  />
+  <Tabs value={mode} onValueChange={setMode}>
+    <TabsList>
+      <TabsTrigger value="embed"><Monitor /> Embed</TabsTrigger>
+      <TabsTrigger value="page"><AppWindow /> Page</TabsTrigger>
+    </TabsList>
+    <TabsContent value="embed">
+      <div className="border rounded-lg bg-background p-6 min-h-[400px]">
+        <FormPreview form={form} mode="embed" />
+      </div>
+    </TabsContent>
+    <TabsContent value="page">...</TabsContent>
+  </Tabs>
+</PageContent>
+```
+
+- **Route**: `/forms/[formId]` — primary entry point from list (Eye icon)
+- **Edit** is a secondary action (outline button) linking to `/forms/[formId]/edit`
+- Preview modes control width: embed (`max-w-lg`) vs page (`max-w-2xl`)
+- Uses `FormPreview` component which loads the embed script via `useEmbedScript` hook
+
+### User Menu
+
+```tsx
+import { UserMenu } from "@/components/patterns/user-menu";
+
+<UserMenu email={session.user?.email} />
+```
+
+**Purpose**: Compact avatar button in the top nav bar that opens an account dropdown.
+
+**Design**:
+- **Trigger**: 32px circle with user initials (`bg-muted`). No email text visible — keeps the nav bar uncluttered.
+- **Dropdown**: Opens downward (`side="bottom" align="end"`). Shows email (display only), Manage Account link, Sign Out action.
+- **Fallback**: Shows "?" for missing/invalid emails.
 
 **Implementation details**:
-- **Client component**: Uses `"use client"` directive for DropdownMenu interactivity
-- **Initials**: Derived from first 2 alphanumeric characters of email local part (before @), uppercased
-- **Avatar**: 32px circle with `bg-muted` and `text-muted-foreground`
-- **Email**: `text-sm text-muted-foreground` with truncation
-- **Chevron**: `ChevronsUpDown` icon indicates interactivity
-- **Fallback**: Shows "?" for missing/invalid emails
+- Client component (`"use client"`) for dropdown interactivity
+- Initials derived from first 2 alphanumeric chars of email local part, uppercased
+- Menu items: Manage Account → `/account`; Sign Out → `signOutAction()` server action
 
-**Menu items**:
-- **Manage Account**: Links to `/account` dashboard page
-- **Sign Out**: Calls `signOutAction()` server action, redirects to `/login`
-
-**Usage pattern**:
-Pass as `sidebarFooter` prop to `ResponsiveSidebarLayout`:
-
-```tsx
-<ResponsiveSidebarLayout
-  sidebar={nav}
-  sidebarFooter={<UserAccountFooter email={session.user?.email} />}
->
-  {children}
-</ResponsiveSidebarLayout>
-```
-
-**Why this pattern**:
-- Keeps account actions consolidated in one discoverable location
-- Replaces standalone sign-out button in nav with a more capable account menu
-- Works on both desktop and mobile (footer appears in mobile drawer too)
+**Usage**: Pass as `userMenu` prop to `TopNavLayout`.
 
 ---
 
@@ -1311,8 +1487,8 @@ For more prominent empty states, use the `EmptyState` component.
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
 | Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
-| Responsive sidebar (mobile drawer) | `ResponsiveSidebarLayout` with `sidebar` and optional `sidebarFooter` props |
-| User account menu | `UserAccountFooter` in sidebar footer (initials + email + dropdown) |
+| Top nav (mobile drawer) | `TopNavLayout` with `logo`, `navItems`, and `userMenu` props |
+| User account menu | `UserMenu` in top nav right side (initials avatar + dropdown) |
 | Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
 | Icon-only action button | `Button variant="ghost" size="icon-sm"` |
 | Icon-only button accessibility | Wrap in `Tooltip` |
@@ -1320,7 +1496,7 @@ For more prominent empty states, use the `EmptyState` component.
 | Delete action icon | `Trash2` from lucide-react |
 | Edit action icon | `Pencil` from lucide-react |
 | Drag handle icon | `GripVertical` from lucide-react |
-| Page/section headings | Add `font-heading` class (Urbanist) |
+| Page/section headings | Add `font-heading` class (Inter alias, for semantic clarity) |
 | Body text | No class needed (Inter is default via `font-sans`) |
 | Code/monospace | Add `font-mono` class (Geist Mono) |
 
@@ -1338,10 +1514,51 @@ For more prominent empty states, use the `EmptyState` component.
 8. **Never let editor layouts span full screen width** - use 640px max-width
 9. **Never forget `stopPropagation`** when applying dragHandleProps to entire row
 10. **Never use hover-reveal with drag-and-drop lists** - CSS hover states conflict with drag operations
-11. **Never forget `font-heading` on headings/titles** - maintain typeface consistency
+11. **Never forget `font-heading` on headings/titles** - maintain semantic clarity and future flexibility
 12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
 13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
 14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
+
+---
+
+## Dashboard Cards & View Toggle
+
+The forms landing page (`/forms`) uses a card-based grid layout by default, with a toggle to switch to a compact list view.
+
+### View toggle
+
+- Implemented as two `Link` components (server component, no JS required) inside a pill-shaped `bg-muted` container.
+- Active view gets `bg-background shadow-sm`; inactive is `text-muted-foreground`.
+- Persisted via URL search param `?view=grid` or `?view=list`. Default is `grid` when param is absent.
+- Icons: `LayoutGrid` (grid) and `List` (list) from lucide-react.
+- Component: `src/components/forms/view-toggle.tsx`.
+
+### Dashboard cards
+
+Card layout (top to bottom):
+1. **Thumbnail** — 16:10 aspect-ratio preview image, linked to the form editor. No border between thumbnail and content (seamless flow).
+2. **Name row** — form name (bold, linked, truncated) with hover-reveal action icons (submissions, delete) on the right.
+3. **Meta row** — published/draft `Badge` inline with field count, submission count, and new submission count (in `text-success`), all on one line.
+
+Design details:
+- Cards use `group` class; action icons are `opacity-0 group-hover:opacity-100 transition-opacity` (hidden at rest, revealed on hover).
+- Cards use a single `div` for content (no CardHeader/CardContent split) — compact `px-4 py-3` padding.
+- `hover:shadow-md transition-shadow overflow-hidden` for hover feedback and border-radius clipping.
+- Thumbnails are auto-captured (JPEG, half-res) from the preview panel after each save via `useThumbnailCapture` hook. Stored as `Bytes` in DB, served via `GET /api/forms/[formId]/thumbnail`.
+- Fallback: `bg-muted/40` background shown when no thumbnail exists (new forms, capture not yet triggered). The `<img>` hides itself on 404 via `onError`.
+- Grid layout: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
+- Component: `src/components/forms/form-card.tsx`.
+
+### Summary strip
+
+- A single line of `text-sm text-muted-foreground` above the grid/list showing aggregate totals: "5 forms · 20 submissions · 3 new".
+- "new" count rendered in `text-success font-medium`.
+- Only shown when forms exist (hidden in empty state).
+
+### When to use cards vs tables
+
+- **Cards (grid)**: Default for dashboard/landing pages where visual scanning and at-a-glance status matter. Good for < 50 items.
+- **Tables (list)**: Better for power users with many items, or when sorting/filtering by columns is needed. Offered as a toggle alternative.
 
 ---
 
@@ -1358,7 +1575,11 @@ For more prominent empty states, use the `EmptyState` component.
 | useToast | `src/hooks/use-toast.ts` |
 | EmptyState | `src/components/patterns/empty-state.tsx` |
 | PageHeader | `src/components/patterns/page-header.tsx` |
+| PageContent | `src/components/patterns/page-content.tsx` |
 | EditorLayout | `src/components/patterns/editor-layout.tsx` |
-| ResponsiveSidebarLayout | `src/components/patterns/responsive-sidebar-layout.tsx` |
-| UserAccountFooter | `src/components/patterns/user-account-footer.tsx` |
+| TopNavLayout | `src/components/patterns/top-nav-layout.tsx` |
+| UserMenu | `src/components/patterns/user-menu.tsx` |
 | AccountDashboard | `src/components/account/account-dashboard.tsx` |
+| FormCard | `src/components/forms/form-card.tsx` |
+| ViewToggle | `src/components/forms/view-toggle.tsx` |
+| FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`, font loader: `src/lib/load-google-fonts.ts`) |

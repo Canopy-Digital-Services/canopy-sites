@@ -24,8 +24,9 @@ RUN npm run embed:build || true
 # Expose port
 EXPOSE 3000
 
-# Set environment to development
-ENV NODE_ENV=development
+# NOTE: Do NOT set NODE_ENV here. next dev sets it to "development" automatically,
+# and leaving it unset allows next build to set "production" when running build
+# verification inside the dev container.
 
 # Create entrypoint script that ensures dependencies are installed
 RUN echo '#!/bin/sh' > /entrypoint.sh && \

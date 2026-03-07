@@ -370,7 +370,7 @@ Delete `tailwind.config.js` (or keep it empty if needed for tooling).
   --spacing-section: 4rem;
   
   /* Custom fonts */
-  --font-heading: 'Urbanist', sans-serif;
+  --font-heading: var(--font-inter);
   --font-body: 'Inter', sans-serif;
   
   /* Custom breakpoints */
@@ -455,7 +455,7 @@ This project (Canopy Forms) currently:
 - ✅ No `tailwind.config.js` (CSS-first approach)
 - ✅ Using `@custom-variant` for dark mode
 - ✅ Using `@layer base` for global styles
-- ✅ Typography system: Inter (body via `font-sans`), Urbanist (headings via `font-heading`), Geist Mono (code via `font-mono`)
+- ✅ Typography system: Inter (body via `font-sans`, headings via `font-heading` alias), Geist Mono (code via `font-mono`)
 
 ## Troubleshooting
 

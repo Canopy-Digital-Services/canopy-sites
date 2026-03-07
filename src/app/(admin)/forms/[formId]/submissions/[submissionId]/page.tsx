@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { PageContent } from "@/components/patterns/page-content";
 
 async function updateStatus(
   formId: string,
@@ -86,22 +86,22 @@ export default async function SubmissionDetailPage({
   };
 
   return (
+    <PageContent>
     <div className="space-y-6">
       <PageHeader
         title="Submission Details"
-        description={`${form.name} • ${submission.createdAt.toLocaleString()}`}
-        actions={
-          <Link href={`/forms/${formId}/submissions`}>
-            <Button variant="outline">Back to Submissions</Button>
-          </Link>
-        }
+        description={form.name}
+        backHref={`/forms/${formId}?mode=submissions`}
       />
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-3">
         <Badge variant={submission.status === "NEW" ? "default" : "secondary"}>
           {submission.status}
         </Badge>
         {submission.isSpam && <Badge variant="destructive">SPAM</Badge>}
+        <span className="text-sm text-muted-foreground">
+          {submission.createdAt.toLocaleString()}
+        </span>
       </div>
 
       <Card>
@@ -179,7 +179,7 @@ export default async function SubmissionDetailPage({
             <form action={updateStatus.bind(null, formId, submissionId, "READ")}>
               <Button
                 type="submit"
-                variant="outline"
+                variant={submission.status === "NEW" ? "default" : "outline"}
                 disabled={submission.status === "READ"}
               >
                 Mark as Read
@@ -219,5 +219,6 @@ export default async function SubmissionDetailPage({
         </CardFooter>
       </Card>
     </div>
+    </PageContent>
   );
 }

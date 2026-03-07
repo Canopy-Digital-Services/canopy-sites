@@ -257,7 +257,7 @@ export function FieldEditorModal({
           {/* Section divider */}
           {hasConfig && (
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
                 Input Rules
               </h3>
               <FieldConfigRenderer type={type} value={config} onChange={setConfig} />

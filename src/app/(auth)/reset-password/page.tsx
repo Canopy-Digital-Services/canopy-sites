@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 space-y-1 text-center">
-            <h2 className="text-xl font-semibold">Reset your password</h2>
+            <h2 className="text-xl font-heading font-semibold">Reset your password</h2>
             <p className="text-sm text-muted-foreground">Validating reset link...</p>
           </div>
           <div className="flex justify-center py-8">
@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 space-y-1 text-center">
-            <h2 className="text-xl font-semibold">Invalid reset link</h2>
+            <h2 className="text-xl font-heading font-semibold">Invalid reset link</h2>
             <p className="text-sm text-muted-foreground">{tokenError}</p>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
       <form onSubmit={handleSubmit} noValidate>
         <CardContent className="space-y-4">
           <div className="mb-4 space-y-1 text-center">
-            <h2 className="text-xl font-semibold">Set new password</h2>
+            <h2 className="text-xl font-heading font-semibold">Set new password</h2>
             <p className="text-sm text-muted-foreground">Enter your new password below</p>
           </div>
           <div className="space-y-2">

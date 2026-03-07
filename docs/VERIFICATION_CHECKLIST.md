@@ -30,10 +30,13 @@ Not every change needs every check. Match the checks to what you changed:
 ### 1. Build
 
 ```bash
-npm run build
+# Inside dev container, NODE_ENV must be production:
+docker.exe exec -e NODE_ENV=production canopy-forms npm run build
 ```
 
 Must exit 0. Catches TypeScript errors, missing imports, broken server components, and compile-time assertions (like the `field-types.ts` coverage check).
+
+**Important:** The dev container has `NODE_ENV=development`, which causes Next.js 16 to fail prerendering `/_global-error` and `/_not-found` with a `useContext` null error. This is a known Next.js 16 issue — always set `NODE_ENV=production` when running build in the dev container. The Dockerfile build handles this automatically.
 
 ### 2. Lint
 

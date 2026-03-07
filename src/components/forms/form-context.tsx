@@ -26,7 +26,7 @@ export type FormState = {
   title: string | null;
   description: string | null;
   fields: FieldState[];
-  defaultTheme: Record<string, string | number> | null;
+  defaultTheme: Record<string, string | number | boolean> | null;
   successMessage: string | null;
   redirectUrl: string | null;
   emailNotificationsEnabled: boolean;
@@ -44,7 +44,7 @@ type FormContextValue = {
   saveStatus: SaveStatus;
   updateName: (name: string) => void;
   updateHeader: (patch: { title?: string | null; description?: string | null }) => void;
-  updateTheme: (theme: Record<string, string | number>) => void;
+  updateTheme: (theme: Record<string, string | number | boolean>) => void;
   updateSubmissionSettings: (patch: {
     successMessage?: string | null;
     redirectUrl?: string | null;
@@ -68,6 +68,11 @@ export function useFormContext() {
   return ctx;
 }
 
+/** Returns the FormContext value or null if not inside a FormProvider. */
+export function useOptionalFormContext() {
+  return useContext(FormContext);
+}
+
 // ─── Auto-save hook ─────────────────────────────────────────────────────────────
 
 type SaveGroup = "basics" | "header" | "theme" | "afterSubmission";
@@ -77,6 +82,7 @@ function useAutoSave(
   state: FormState,
   setSaveStatus: (status: SaveStatus) => void,
   toast: ReturnType<typeof useToast>["toast"],
+  enabled: boolean = true,
 ) {
   // Track which groups are dirty
   const dirtyRef = useRef<Set<SaveGroup>>(new Set());
@@ -150,12 +156,22 @@ function useAutoSave(
     const existing = timersRef.current.get(group);
     if (existing) clearTimeout(existing);
 
+    if (!enabled) return;
+
     const timer = setTimeout(() => {
       timersRef.current.delete(group);
       void save(group);
     }, 1000);
     timersRef.current.set(group, timer);
   };
+
+  // Clear all pending timers when disabled
+  useEffect(() => {
+    if (!enabled) {
+      timersRef.current.forEach(timer => clearTimeout(timer));
+      timersRef.current.clear();
+    }
+  }, [enabled]);
 
   // Detect changes and schedule saves
   useEffect(() => {
@@ -205,6 +221,7 @@ function useAutoSave(
 // ─── Provider ───────────────────────────────────────────────────────────────────
 
 type FormProviderProps = {
+  autoSaveEnabled?: boolean;
   initialForm: {
     id: string;
     name: string;
@@ -236,14 +253,14 @@ type FormProviderProps = {
   children: React.ReactNode;
 };
 
-function parseTheme(theme: unknown): Record<string, string | number> | null {
+function parseTheme(theme: unknown): Record<string, string | number | boolean> | null {
   if (typeof theme === "object" && theme !== null) {
-    return theme as Record<string, string | number>;
+    return theme as Record<string, string | number | boolean>;
   }
   return null;
 }
 
-export function FormProvider({ initialForm, children }: FormProviderProps) {
+export function FormProvider({ initialForm, autoSaveEnabled = true, children }: FormProviderProps) {
   const { toast } = useToast();
   const [state, setState] = useState<FormState>(() => ({
     id: initialForm.id,
@@ -276,7 +293,7 @@ export function FormProvider({ initialForm, children }: FormProviderProps) {
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
-  useAutoSave(initialForm.id, state, setSaveStatus, toast);
+  useAutoSave(initialForm.id, state, setSaveStatus, toast, autoSaveEnabled);
 
   const updateName = (name: string) => {
     setState(prev => ({ ...prev, name }));
@@ -286,7 +303,7 @@ export function FormProvider({ initialForm, children }: FormProviderProps) {
     setState(prev => ({ ...prev, ...patch }));
   };
 
-  const updateTheme = (theme: Record<string, string | number>) => {
+  const updateTheme = (theme: Record<string, string | number | boolean>) => {
     setState(prev => ({ ...prev, defaultTheme: theme }));
   };
 

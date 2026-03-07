@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SortableList } from "@/components/ui/sortable-list";
-import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { getFieldTypeLabel } from "@/lib/field-types";
 
 export type FieldSummary = {
@@ -57,7 +57,7 @@ export function FieldList({
               <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-medium text-[15px]">
+                  <span className="font-medium text-sm">
                     {field.label}
                     {field.required && (
                       <span className="text-red-500 ml-0.5">*</span>
@@ -109,6 +109,7 @@ export function FieldList({
         />
       )}
       <Button type="button" onClick={onAddField}>
+        <Plus className="h-4 w-4" />
         Add Field
       </Button>
     </div>

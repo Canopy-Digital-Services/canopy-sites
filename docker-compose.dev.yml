@@ -18,7 +18,8 @@ services:
       - .:/app
       - node_modules:/app/node_modules
     environment:
-      NODE_ENV: development
+      # NOTE: Do NOT set NODE_ENV here — next dev/build set it automatically.
+      # Hardcoding "development" prevents next build from working in the dev container.
       # Database - update with your PostgreSQL credentials
       DATABASE_URL: "postgresql://user:password@postgres:5432/canopy-forms?schema=public"
       
