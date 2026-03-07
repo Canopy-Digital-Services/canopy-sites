@@ -250,7 +250,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
           /* Editor tab: editor column + preview column */
           <div className="flex flex-1 min-h-0 justify-center">
             {/* Editor column */}
-            <div className="w-[600px] shrink-0 overflow-y-auto h-full px-4 md:px-8 py-6">
+            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto h-full px-4 md:px-8 py-6">
               <div className="max-w-[640px] mx-auto space-y-8">
                 <HeaderSection />
                 <FieldsSection formId={form.id} />
