@@ -119,6 +119,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   const [previewMode, setPreviewMode] = useState<"embed" | "page">("embed");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [openSection, setOpenSection] = useState<"header" | "fields" | "appearance" | "settings" | null>("fields");
   const [published, setPublished] = useState(form.published);
   const [isPublishing, startPublishTransition] = useTransition();
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -147,7 +148,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-[calc(100vh-3.5rem)]">
         {/* ─── Header ──────────────────────────────────────────────────── */}
         <div className="shrink-0 px-4 md:px-8 pt-4 md:pt-6 pb-0">
           <div className="max-w-5xl mx-auto space-y-3">
@@ -250,12 +251,26 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
           /* Editor tab: editor column + preview column */
           <div className="flex flex-1 min-h-0 justify-center">
             {/* Editor column */}
-            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto h-full px-4 md:px-8 py-6">
-              <div className="max-w-[640px] mx-auto space-y-8">
-                <HeaderSection />
-                <FieldsSection formId={form.id} />
-                <AppearanceSection />
-                <AfterSubmissionSection ownerEmail={ownerEmail} />
+            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto px-4 md:px-8 py-6">
+              <div className="max-w-[640px] mx-auto space-y-4">
+                <HeaderSection
+                  open={openSection === "header"}
+                  onOpenChange={(v) => setOpenSection(v ? "header" : null)}
+                />
+                <FieldsSection
+                  formId={form.id}
+                  open={openSection === "fields"}
+                  onOpenChange={(v) => setOpenSection(v ? "fields" : null)}
+                />
+                <AppearanceSection
+                  open={openSection === "appearance"}
+                  onOpenChange={(v) => setOpenSection(v ? "appearance" : null)}
+                />
+                <AfterSubmissionSection
+                  ownerEmail={ownerEmail}
+                  open={openSection === "settings"}
+                  onOpenChange={(v) => setOpenSection(v ? "settings" : null)}
+                />
               </div>
             </div>
 

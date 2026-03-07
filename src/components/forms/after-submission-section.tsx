@@ -26,11 +26,12 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AfterSubmissionSectionProps = {
   ownerEmail: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionProps) {
+export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: AfterSubmissionSectionProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
-  const [isOpen, setIsOpen] = useState(false);
 
   // UI-only state
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
@@ -122,8 +123,8 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
 
   return (
     <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => setIsOpen(!isOpen)}>
+      <Collapsible open={open} onOpenChange={onOpenChange}>
+        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => onOpenChange(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-start justify-between">
               <div>
@@ -143,7 +144,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                     Saved
                   </span>
                 )}
-                {isOpen ? (
+                {open ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
                   <ChevronRight className="h-4 w-4" />
