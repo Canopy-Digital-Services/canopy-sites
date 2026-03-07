@@ -63,6 +63,7 @@ model Form {
   stopAt                    DateTime? // Stop accepting submissions after this date/time
   maxSubmissions            Int?      // Maximum number of submissions allowed
   published                 Boolean  @default(false)  // Whether the form is accessible via hosted URL (/f/[formId])
+  thumbnail                 Bytes?   // JPEG thumbnail captured client-side from preview
   createdAt                 DateTime @default(now())
   
   account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
