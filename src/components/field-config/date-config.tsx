@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateValidation } from "@/types/field-config";
@@ -70,15 +71,16 @@ export function DateConfig({
             onChange={(e) => handleDateChange("minDate", e.target.value)}
             disabled={minIsToday}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="date-min-today"
               checked={minIsToday}
-              onChange={(e) => handleTodayToggle("minDate", e.target.checked)}
-              className="h-4 w-4"
+              onCheckedChange={(checked) => handleTodayToggle("minDate", checked === true)}
             />
-            No past dates
-          </label>
+            <Label htmlFor="date-min-today" className="text-sm font-normal cursor-pointer">
+              No past dates
+            </Label>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -92,15 +94,16 @@ export function DateConfig({
             onChange={(e) => handleDateChange("maxDate", e.target.value)}
             disabled={maxIsToday}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="date-max-today"
               checked={maxIsToday}
-              onChange={(e) => handleTodayToggle("maxDate", e.target.checked)}
-              className="h-4 w-4"
+              onCheckedChange={(checked) => handleTodayToggle("maxDate", checked === true)}
             />
-            No future dates
-          </label>
+            <Label htmlFor="date-max-today" className="text-sm font-normal cursor-pointer">
+              No future dates
+            </Label>
+          </div>
         </div>
       </div>
       <p className="text-xs text-muted-foreground">

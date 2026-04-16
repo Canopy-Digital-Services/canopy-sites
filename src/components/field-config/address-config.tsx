@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { AddressOptions } from "@/types/field-config";
 import { ConfigComponentProps } from "./types";
@@ -22,12 +23,10 @@ export function AddressConfig({
       <div className="space-y-2">
         <Label>Address Fields</Label>
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="address-show-line2"
             checked={options.showLine2 !== false}
-            onChange={handleLine2Toggle}
-            className="h-4 w-4"
+            onCheckedChange={handleLine2Toggle}
           />
           <Label
             htmlFor="address-show-line2"

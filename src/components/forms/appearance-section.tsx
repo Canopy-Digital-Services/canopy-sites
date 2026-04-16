@@ -97,7 +97,12 @@ function SubSection({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function AppearanceSection() {
+type AppearanceSectionProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps) {
   const { state, saveStatus, updateTheme } = useFormContext();
 
   const theme = state.defaultTheme ?? {};
@@ -245,29 +250,38 @@ export function AppearanceSection() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>Customize how your form looks</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {saveStatus === "saving" && (
-              <span className="text-sm text-muted-foreground flex items-center gap-2">
-                <Save className="h-4 w-4 animate-pulse" />
-                Saving...
-              </span>
-            )}
-            {saveStatus === "saved" && (
-              <span className="text-sm text-success flex items-center gap-2">
-                <Check className="h-4 w-4" />
-                Saved
-              </span>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-1">
+      <Collapsible open={open} onOpenChange={onOpenChange}>
+        <CardHeader className="cursor-pointer" onClick={() => onOpenChange(!open)}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Appearance</CardTitle>
+                <CardDescription>Customize how your form looks</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {saveStatus === "saving" && (
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Save className="h-4 w-4 animate-pulse" />
+                    Saving...
+                  </span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="text-sm text-success flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Saved
+                  </span>
+                )}
+                {open ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            </div>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-1">
 
         {/* ── Page ──────────────────────────────────────────────────── */}
         <SubSection
@@ -650,6 +664,8 @@ export function AppearanceSection() {
         </SubSection>
 
       </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

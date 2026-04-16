@@ -1,12 +1,17 @@
 "use client";
 
 import { CopyButton } from "@/components/copy-button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Globe, GlobeLock } from "lucide-react";
+import {
+  Globe,
+  GlobeLock,
+  Link2,
+  Code2,
+  ExternalLink,
+  Shield,
+  Info,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getFieldTypeLabel } from "@/lib/field-types";
 
 type PublishContentProps = {
   apiUrl: string;
@@ -29,8 +34,14 @@ type PublishContentProps = {
   };
 };
 
-export function PublishContent({ apiUrl, form, published, isPublishing, onPublishToggle }: PublishContentProps) {
-  const endpoint = `${apiUrl}/api/submit/${form.id}`;
+export function PublishContent({
+  apiUrl,
+  form,
+  published,
+  isPublishing,
+  onPublishToggle,
+}: PublishContentProps) {
+  const hostedUrl = `${apiUrl}/f/${form.id}`;
 
   const embedCode = `<div
   data-canopy-form="${form.id}"
@@ -38,48 +49,9 @@ export function PublishContent({ apiUrl, form, published, isPublishing, onPublis
 ></div>
 <script src="${apiUrl}/embed.js" defer></script>`;
 
-  const htmlExample = `<form id="contact-form">
-  <input type="text" name="name" placeholder="Your name" required>
-  <input type="email" name="email" placeholder="Your email" required>
-  <textarea name="message" placeholder="Your message" required></textarea>
-  ${form.honeypotField ? `<input type="text" name="${form.honeypotField}" style="display:none">` : ""}
-  <button type="submit">Send</button>
-</form>
-
-<script>
-document.getElementById('contact-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData.entries());
-
-  try {
-    const response = await fetch('${endpoint}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    const payload = await response.json();
-    if (response.ok) {
-      alert('Form submitted successfully!');
-      e.target.reset();
-    } else if (payload?.fields) {
-      alert('Validation failed. Check field errors in the response.');
-      console.warn('Field errors:', payload.fields);
-    } else {
-      alert(payload?.error || 'Failed to submit form');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('An error occurred');
-  }
-});
-</script>`;
-
   return (
     <div className="max-w-[640px] mx-auto space-y-6">
-      {/* Publish status */}
+      {/* ── Publish status ─────────────────────────────── */}
       <Card>
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
@@ -93,9 +65,17 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 <span className="font-medium text-sm">
                   {published ? "Published" : "Not published"}
                 </span>
-                <Badge variant={published ? "default" : "secondary"}>
-                  {published ? "Live" : "Draft"}
-                </Badge>
+                {published ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Live
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                    Draft
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {published
@@ -115,222 +95,106 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
             ) : (
               <Globe className="h-4 w-4" />
             )}
-            {isPublishing ? "Updating..." : published ? "Unpublish" : "Publish"}
+            {isPublishing
+              ? "Updating..."
+              : published
+                ? "Unpublish"
+                : "Publish"}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Hosted URL */}
+      {/* ── Share link (published only) ────────────────── */}
       {published && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Hosted Form URL</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
             <div className="flex items-center gap-2">
-              <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
-                {apiUrl}/f/{form.id}
-              </code>
-              <CopyButton text={`${apiUrl}/f/${form.id}`} />
+              <Link2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">Share Link</CardTitle>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Share this link directly — no website or embed code needed.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Integration methods */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Integration
-        </h2>
-
-        <Tabs defaultValue="embed" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="embed">Embed Code</TabsTrigger>
-            <TabsTrigger value="manual">Manual HTML</TabsTrigger>
-            <TabsTrigger value="single-field">Single Field</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="embed" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Embed Code (Recommended)</CardTitle>
-                  <CopyButton text={embedCode} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <pre className="text-xs bg-muted p-4 rounded overflow-x-auto">
-                  <code>{embedCode}</code>
-                </pre>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Paste this code where you want the form to appear.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">API Endpoint</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 mr-2">
-                    {endpoint}
-                  </code>
-                  <CopyButton text={endpoint} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Forms automatically submit to this endpoint.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="manual" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">HTML + JavaScript</CardTitle>
-                  <CopyButton text={htmlExample} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <pre className="text-xs bg-muted p-4 rounded overflow-x-auto">
-                  <code>{htmlExample}</code>
-                </pre>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="single-field" className="space-y-4">
-            <div className="text-sm text-muted-foreground mb-4">
-              <p>
-                Use these URLs when integrating with external tools that don&apos;t support
-                custom JSON payloads. Each field has its own dedicated endpoint.
-              </p>
-            </div>
-
-            {form.fields.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Add fields to your form to see single-field URLs.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {form.fields.map((field) => {
-                  const fieldEndpoint = `${apiUrl}/api/submit/${form.id}/${field.name}`;
-                  return (
-                    <Card key={field.id}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <CardTitle className="text-sm font-medium">
-                              {field.label}
-                            </CardTitle>
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                              {getFieldTypeLabel(field.type)}
-                            </span>
-                            {field.required && (
-                              <span className="text-xs text-destructive">Required</span>
-                            )}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
-                            {fieldEndpoint}
-                          </code>
-                          <CopyButton text={fieldEndpoint} />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Field name: <code className="bg-muted px-1 py-0.5 rounded">{field.name}</code>
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-
-            <Card className="border-blue-200 dark:border-blue-900">
-              <CardHeader>
-                <CardTitle className="text-base text-blue-600 dark:text-blue-400">
-                  Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm space-y-2 text-muted-foreground">
-                <p className="font-medium text-foreground">Payload Format:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>
-                    JSON: <code className="bg-muted px-1 py-0.5 rounded text-xs">{'{ "value": "..." }'}</code>
-                  </li>
-                  <li>
-                    Plain text: <code className="bg-muted px-1 py-0.5 rounded text-xs">your value here</code>
-                  </li>
-                </ul>
-                <p className="text-xs pt-2">
-                  These endpoints accept a single field value and create a submission
-                  with just that field populated. Perfect for simple integrations.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Notes */}
-      {form.honeypotField && (
-        <Card className="border-blue-200 dark:border-blue-900">
-          <CardHeader>
-            <CardTitle className="text-base text-blue-600 dark:text-blue-400">
-              Honeypot Field
-            </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <p>
-              This form uses a honeypot field named{" "}
-              <code className="bg-muted px-2 py-1 rounded">{form.honeypotField}</code>
-              {" "}for spam protection.
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>Include it in your form with display: none</li>
-              <li>Keep it empty for legitimate users</li>
-              <li>Filled fields are marked as spam</li>
-            </ul>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-muted px-3 py-2 rounded-md flex-1 break-all">
+                {hostedUrl}
+              </code>
+              <CopyButton text={hostedUrl} />
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Anyone with this link can fill out your form.
+              </p>
+              <a
+                href={hostedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+              >
+                Open
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </CardContent>
         </Card>
       )}
 
+      {/* ── Embed code ─────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Important Notes</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Code2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">Embed on Your Website</CardTitle>
+            </div>
+            <CopyButton text={embedCode} />
+          </div>
         </CardHeader>
-        <CardContent className="text-sm space-y-2 text-muted-foreground">
-          <ul className="list-disc list-inside space-y-1">
-            {form.allowedOrigins.length > 0 ? (
-              <li>
-                Allowed origins: {form.allowedOrigins.map((origin, i) => (
-                  <code key={i} className="bg-muted px-1 py-0.5 rounded mx-1">{origin}</code>
-                ))}
-              </li>
-            ) : (
-              <li className="text-destructive">
-                No allowed origins configured! Configure origins in Editor settings to allow submissions.
-              </li>
-            )}
-            <li>Rate limit: 10 submissions per IP per minute</li>
-            <li>Localhost is always allowed for development</li>
-            <li>CORS is enabled for allowed origins</li>
-          </ul>
+        <CardContent className="space-y-3">
+          <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
+            <code>{embedCode}</code>
+          </pre>
+          <p className="text-xs text-muted-foreground">
+            Paste this snippet into your HTML where you want the form to appear.
+          </p>
         </CardContent>
       </Card>
+
+      {/* ── Configuration notes ────────────────────────── */}
+      <div className="space-y-2.5 px-1">
+        {form.honeypotField && (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <Shield className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>
+              Spam protection is active — the embed handles this automatically.
+            </p>
+          </div>
+        )}
+
+        {form.allowedOrigins.length > 0 ? (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <Globe className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>
+              Allowed origins:{" "}
+              {form.allowedOrigins.map((origin, i) => (
+                <code
+                  key={i}
+                  className="bg-muted px-1.5 py-0.5 rounded mx-0.5"
+                >
+                  {origin}
+                </code>
+              ))}
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3.5 py-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>
+              To accept submissions, add your website&apos;s domain under
+              Allowed Origins in Submission Settings on the Editor tab.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

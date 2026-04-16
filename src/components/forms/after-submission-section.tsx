@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronRight, Plus, Trash2, Check, Save } from "lucide-react";
 import {
   Tooltip,
@@ -25,11 +26,12 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AfterSubmissionSectionProps = {
   ownerEmail: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionProps) {
+export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: AfterSubmissionSectionProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
-  const [isOpen, setIsOpen] = useState(false);
 
   // UI-only state
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
@@ -121,8 +123,8 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
 
   return (
     <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => setIsOpen(!isOpen)}>
+      <Collapsible open={open} onOpenChange={onOpenChange}>
+        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => onOpenChange(!open)}>
           <CollapsibleTrigger asChild>
             <div className="flex items-start justify-between">
               <div>
@@ -142,7 +144,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                     Saved
                   </span>
                 )}
-                {isOpen ? (
+                {open ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
                   <ChevronRight className="h-4 w-4" />
@@ -155,59 +157,68 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
           <CardContent className="space-y-6">
             {/* After Submission */}
             <div className="space-y-3">
-              <Tabs
+              <Label>After submission</Label>
+              <RadioGroup
                 value={afterSubmissionType}
                 onValueChange={(v) => handleAfterSubmissionTypeChange(v as "message" | "redirect")}
+                className="space-y-3"
               >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="message">Message</TabsTrigger>
-                  <TabsTrigger value="redirect">Redirect</TabsTrigger>
-                </TabsList>
-
-                <div className="rounded-md border bg-muted/30 p-4 min-h-[7.5rem]">
-                  <TabsContent value="message" className="m-0 space-y-2 data-[state=inactive]:hidden">
-                    <Label htmlFor="successMessage">Success message</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="message" id="afterSubmission-message" />
+                    <Label htmlFor="afterSubmission-message" className="font-normal cursor-pointer">
+                      Show a message
+                    </Label>
+                  </div>
+                  {afterSubmissionType === "message" && (
                     <Textarea
                       id="successMessage"
                       value={state.successMessage ?? ""}
                       onChange={(e) => updateSubmissionSettings({ successMessage: e.target.value || null })}
                       rows={2}
-                      className="resize-none"
+                      className="resize-none ml-6"
                       placeholder="Thank you for your submission!"
                     />
-                  </TabsContent>
-
-                  <TabsContent value="redirect" className="m-0 space-y-2 data-[state=inactive]:hidden">
-                    <Label htmlFor="redirectUrl">Redirect URL</Label>
-                    <Input
-                      id="redirectUrl"
-                      value={state.redirectUrl ?? ""}
-                      onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
-                      placeholder="https://example.com/thanks"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Redirect after a successful submission.
-                    </p>
-                  </TabsContent>
+                  )}
                 </div>
-              </Tabs>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="redirect" id="afterSubmission-redirect" />
+                    <Label htmlFor="afterSubmission-redirect" className="font-normal cursor-pointer">
+                      Redirect to a URL
+                    </Label>
+                  </div>
+                  {afterSubmissionType === "redirect" && (
+                    <div className="ml-6 space-y-2">
+                      <Input
+                        id="redirectUrl"
+                        value={state.redirectUrl ?? ""}
+                        onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
+                        placeholder="https://example.com/thanks"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Redirect after a successful submission.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </RadioGroup>
             </div>
 
             <div className="border-t" />
 
             {/* Notifications */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="emailNotifications"
+                  checked={state.emailNotificationsEnabled}
+                  onCheckedChange={(checked) => handleToggleNotifications(checked === true)}
+                />
                 <Label htmlFor="emailNotifications" className="cursor-pointer font-normal">
                   Email notifications
                 </Label>
-                <input
-                  type="checkbox"
-                  id="emailNotifications"
-                  checked={state.emailNotificationsEnabled}
-                  onChange={(e) => handleToggleNotifications(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
-                />
               </div>
 
               {state.emailNotificationsEnabled && (
@@ -284,7 +295,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                 </Button>
               </div>
               {state.allowedOrigins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   No origins configured. Submissions will be blocked unless you add allowed domains.
                 </p>
               ) : (
@@ -313,7 +324,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                   ))}
                 </div>
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Enter domains that can embed this form (e.g., example.com, staging.example.com).
                 Localhost is always allowed for development.
               </p>
@@ -329,7 +340,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                     value={formatDatetimeLocal(state.stopAt)}
                     onChange={(e) => updateSubmissionSettings({ stopAt: e.target.value ? new Date(e.target.value) : null })}
                   />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Leave empty to accept submissions indefinitely
                   </p>
                 </div>
@@ -344,7 +355,7 @@ export function AfterSubmissionSection({ ownerEmail }: AfterSubmissionSectionPro
                     onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}
                     placeholder="Unlimited"
                   />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Leave empty for no limit. Spam submissions are not counted.
                   </p>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -116,12 +117,10 @@ export function EmailConfig({
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Checkbox
             id="email-normalize"
             checked={validation.normalize || false}
-            onChange={(e) => handleChange("normalize", e.target.checked)}
-            className="h-4 w-4"
+            onCheckedChange={(checked) => handleChange("normalize", checked === true)}
           />
           <Label
             htmlFor="email-normalize"
