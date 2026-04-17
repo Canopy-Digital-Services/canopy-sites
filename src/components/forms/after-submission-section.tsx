@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronRight, Plus, Trash2, Check, Save } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2, Check, Save } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -85,20 +85,6 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
     }
   };
 
-  const handleAddOrigin = () => {
-    updateSubmissionSettings({ allowedOrigins: [...state.allowedOrigins, ""] });
-  };
-
-  const handleRemoveOrigin = (index: number) => {
-    updateSubmissionSettings({ allowedOrigins: state.allowedOrigins.filter((_, i) => i !== index) });
-  };
-
-  const handleOriginChange = (index: number, value: string) => {
-    const updated = [...state.allowedOrigins];
-    updated[index] = value;
-    updateSubmissionSettings({ allowedOrigins: updated });
-  };
-
   const handleAfterSubmissionTypeChange = (value: "message" | "redirect") => {
     setAfterSubmissionType(value);
     // Clear the inactive field
@@ -129,7 +115,7 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle>Submission Settings</CardTitle>
-                <CardDescription>Control responses, notifications, and access</CardDescription>
+                <CardDescription>Control responses, notifications, and limits</CardDescription>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {saveStatus === "saving" && (
@@ -276,58 +262,6 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
                   )}
                 </div>
               )}
-            </div>
-
-            <div className="border-t" />
-
-            {/* Access & Limits */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Allowed Origins</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAddOrigin}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Origin
-                </Button>
-              </div>
-              {state.allowedOrigins.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No origins configured. Submissions will be blocked unless you add allowed domains.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {state.allowedOrigins.map((origin, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={origin}
-                        onChange={(e) => handleOriginChange(index, e.target.value)}
-                        placeholder="example.com"
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleRemoveOrigin(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Remove origin</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Enter domains that can embed this form (e.g., example.com, staging.example.com).
-                Localhost is always allowed for development.
-              </p>
             </div>
 
             <div className="border-t pt-4">

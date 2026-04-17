@@ -84,7 +84,7 @@ export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], stat
     "editor";
 
   return (
-    <FormProvider initialForm={form} autoSaveEnabled={activeTab === "editor"}>
+    <FormProvider initialForm={form} autoSaveEnabled={activeTab === "editor" || activeTab === "publish"}>
       <WorkspaceInner
         apiUrl={apiUrl}
         ownerEmail={ownerEmail}
