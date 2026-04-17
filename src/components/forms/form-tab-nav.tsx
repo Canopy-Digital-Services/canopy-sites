@@ -12,8 +12,8 @@ type FormTabNavProps = {
 
 const TABS = [
   { key: "editor", label: "Editor" },
-  { key: "submissions", label: "Submissions" },
   { key: "publish", label: "Publish" },
+  { key: "submissions", label: "Submissions" },
 ] as const;
 
 const TAB_HREF: Record<string, (formId: string) => string> = {
