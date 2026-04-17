@@ -66,8 +66,8 @@ A **Submission** is a single form submission containing:
 2. **Create a Form** - Enter a form name and create your first form
 3. **Add Fields** - Use the field builder to configure form fields, validation, and styling
 4. **Configure Success Behavior** - Set up success messages or redirect URLs
-5. **Configure Allowed Origins** - Add the domains that can submit to this form (or leave empty to allow all origins during development)
-6. **Get Embed Code** - Copy the script embed code (or manual submit endpoint)
+5. **Configure Allowed Origins** - On the Publish tab, add the domains that can submit to this form (localhost is always allowed for development)
+6. **Get Embed Code** - Copy the script embed code from the Publish tab (or use the manual submit endpoint)
 7. **Add to Your Website** - Paste the embed script or integrate your HTML form
 8. **Test & View** - Submit a test form and view it in the admin dashboard
 

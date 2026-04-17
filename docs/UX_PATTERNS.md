@@ -167,7 +167,7 @@ Use color treatment to match the severity of the message:
 
 | Treatment | When to use | Example |
 |-----------|-------------|---------|
-| **Amber notice** | Non-critical guidance: missing config, setup hints | "Add your domain under Allowed Origins in Submission Settings" |
+| **Amber notice** | Non-critical guidance: missing config, setup hints | "Publish your form to enable live submissions" |
 | **`text-destructive`** | Validation errors, failed operations, things that are **wrong** | "Email is required" |
 | **`toast.error()`** | Transient operation failures | "Failed to save changes" |
 

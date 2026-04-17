@@ -128,12 +128,9 @@ The edit page has three main sections:
 
 Configure default theme for the embed. See [Form Appearance & Behavior](./form-customization.md) for detailed information about theme customization.
 
-### After Submission Section
+### Submission Settings Section
 
-Configure what happens after submission and form limits. This section autosaves changes.
-
-**Security:**
-- **Allowed Origins** - Domains that can embed and submit to this form
+Configure what happens after submission, notifications, and form limits. This section autosaves changes.
 
 **After Submission:**
 - Choose between showing a confirmation message or redirecting to a URL
@@ -151,9 +148,11 @@ Configure what happens after submission and form limits. This section autosaves 
 - **Maximum submissions** - Limit total number of submissions (spam not counted)
 - Leave empty for unlimited submissions
 
+> **Allowed Origins** are configured on the **Publish** tab alongside the embed code, since they control where the form can be embedded.
+
 ### Form Details
 
-The form name and After Submission settings auto-save as you make changes.
+The form name and Submission Settings auto-save as you make changes.
 
 ## Form Settings
 
