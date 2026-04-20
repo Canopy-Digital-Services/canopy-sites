@@ -176,8 +176,70 @@ export const baseStyles = `
   color: #FF6B5A;
 }
 
-.canopy-status.canopy-status-success {
-  color: #5FD48C;
+.canopy-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 32px 24px;
+  border-radius: var(--canopy-radius, 8px);
+  animation: canopy-success-in 300ms ease-out;
+}
+
+@keyframes canopy-success-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.canopy-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  background: var(--canopy-primary, #005F6A);
+  color: var(--canopy-button-text, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.canopy-success-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.canopy-success-message {
+  font-family: var(--canopy-font, inherit);
+  font-size: var(--canopy-font-size, 14px);
+  color: var(--canopy-text, #18181b);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 420px;
+  white-space: pre-wrap;
+}
+
+.canopy-success-reset {
+  background: none;
+  border: none;
+  color: var(--canopy-primary, #005F6A);
+  font-family: var(--canopy-font, inherit);
+  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--canopy-radius, 8px);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.canopy-success-reset:hover {
+  opacity: 0.75;
+}
+
+.canopy-success-reset:focus-visible {
+  outline: 2px solid var(--canopy-primary, #005F6A);
+  outline-offset: 2px;
 }
 
 .canopy-header {

@@ -215,11 +215,7 @@ verticalAlign?: "top" | "center"          // Vertical position on page (default:
 
 Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx` and `form-preview.tsx` (unified preview component).
 
-Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
-```typescript
-success: "#5FD48C"    // Highlight Green
-error:   "#FF6B5A"    // Pop Coral
-```
+Post-submission confirmation is a themed success card (`.canopy-success` in `embed/src/styles.ts`) that replaces the form: a circular checkmark icon filled with `--canopy-primary`, the configured `successMessage`, and a "Submit another response" button that re-renders the form. The inline status strip above the form is reserved for errors, which still use a fixed `#FF6B5A` since the theme has no dedicated error token.
 
 ### Appearance Editor Structure
 

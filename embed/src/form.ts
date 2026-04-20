@@ -35,6 +35,7 @@ export class CanopyForm {
   private formDefinition: FormDefinition | null = null;
   private fieldElements = new Map<string, FieldElement>();
   private statusEl: HTMLDivElement | null = null;
+  private formEl: HTMLFormElement | null = null;
   private submitButton: HTMLButtonElement | null = null;
   private instanceId = `canopy-${instanceCounter++}`;
 
@@ -145,6 +146,7 @@ export class CanopyForm {
     const form = document.createElement("form");
     form.className = "canopy-form";
     form.addEventListener("submit", (event) => this.handleSubmit(event));
+    this.formEl = form;
 
     definition.fields.forEach((field) => {
       const { wrapper, input, errorEl } = this.createField(field);
@@ -971,11 +973,10 @@ export class CanopyForm {
         return;
       }
 
-      this.setStatus(
-        this.formDefinition.successMessage || "Thanks for your submission!",
-        "success"
-      );
       (event.target as HTMLFormElement).reset();
+      this.renderSuccess(
+        this.formDefinition.successMessage || "Thanks for your submission!"
+      );
     } catch (error) {
       console.error(error);
       this.setStatus("Submission failed. Please try again.", "error");
@@ -988,6 +989,50 @@ export class CanopyForm {
         this.submitButton.style.cursor = "pointer";
       }
     }
+  }
+
+  private renderSuccess(message: string) {
+    if (this.statusEl) {
+      this.statusEl.textContent = "";
+      this.statusEl.className = "canopy-status";
+    }
+    if (this.formEl) {
+      this.formEl.style.display = "none";
+    }
+
+    const existing = this.container.querySelector(".canopy-success");
+    if (existing) {
+      existing.remove();
+    }
+
+    const card = document.createElement("div");
+    card.className = "canopy-success";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "canopy-success-icon";
+    iconWrap.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    card.appendChild(iconWrap);
+
+    const text = document.createElement("p");
+    text.className = "canopy-success-message";
+    text.textContent = message;
+    card.appendChild(text);
+
+    const resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.className = "canopy-success-reset";
+    resetButton.textContent = "Submit another response";
+    resetButton.addEventListener("click", () => {
+      if (this.formDefinition) {
+        this.render(this.formDefinition);
+      }
+    });
+    card.appendChild(resetButton);
+
+    this.container.appendChild(card);
   }
 
   private renderSkeleton() {
