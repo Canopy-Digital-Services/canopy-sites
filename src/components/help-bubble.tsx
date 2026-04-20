@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { HelpCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getHelpHref } from "@/lib/docs-route-map";
 
 export function HelpBubble() {
@@ -16,20 +15,13 @@ export function HelpBubble() {
 
   return (
     <div className="fixed bottom-6 right-6 z-40 print:hidden">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            href={href}
-            aria-label="Open help documentation"
-            className="group inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side="left" sideOffset={8}>
-          Help
-        </TooltipContent>
-      </Tooltip>
+      <Link
+        href={href}
+        aria-label="Open help documentation"
+        className="group inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <HelpCircle className="h-5 w-5" />
+      </Link>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { FieldsSection } from "@/components/forms/fields-section";
@@ -155,11 +156,16 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               {/* Left: back arrow + form name */}
               <div className="flex items-center gap-3 min-w-0">
-                <Link href="/forms">
-                  <Button variant="ghost" size="icon-sm" aria-label="Back to forms">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/forms">
+                      <Button variant="ghost" size="icon-sm" aria-label="Back to forms">
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Back to forms</TooltipContent>
+                </Tooltip>
 
                 <div className="min-w-0">
                   {editingName ? (
@@ -186,9 +192,14 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                     <h1 className="text-2xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
                       {state.name || form.name}
                       {editing && (
-                        <Button variant="ghost" size="icon-sm" onClick={() => setEditingName(true)} aria-label="Rename form">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" onClick={() => setEditingName(true)} aria-label="Rename form">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Rename form</TooltipContent>
+                        </Tooltip>
                       )}
                     </h1>
                   )}

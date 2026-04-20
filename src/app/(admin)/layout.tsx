@@ -27,7 +27,7 @@ export default async function AdminLayout({
           </Link>
         }
         userMenu={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-3">
             <NotificationBell />
             <UserMenu email={session.user?.email} />
           </div>

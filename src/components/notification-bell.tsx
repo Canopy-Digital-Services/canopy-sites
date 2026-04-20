@@ -10,7 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   listMyNotifications,
   dismissNotification,
@@ -118,31 +117,26 @@ export function NotificationBell() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="relative inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={
-                totalCount > 0
-                  ? `Notifications, ${totalCount} unread`
-                  : "Notifications"
-              }
+      <DropdownMenuTrigger asChild>
+        <button
+          className="relative inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={
+            totalCount > 0
+              ? `Notifications, ${totalCount} unread`
+              : "Notifications"
+          }
+        >
+          <Bell className="h-5 w-5" />
+          {totalCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold leading-none flex items-center justify-center"
+              aria-hidden="true"
             >
-              <Bell className="h-4 w-4" />
-              {totalCount > 0 && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold leading-none flex items-center justify-center"
-                  aria-hidden="true"
-                >
-                  {badgeText}
-                </span>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Notifications</TooltipContent>
-      </Tooltip>
+              {badgeText}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-80 p-0">
         <div className="flex items-center justify-between px-3 py-2 border-b">
           <span className="text-sm font-medium">Notifications</span>

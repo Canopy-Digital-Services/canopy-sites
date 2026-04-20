@@ -5,7 +5,6 @@ import { useState, useSyncExternalStore } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TopNavLayoutProps = {
   logo: React.ReactNode;
@@ -32,19 +31,14 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
         <div className="shrink-0">{logo}</div>
         <div className="ml-auto">
           {navItems ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setMobileMenuOpen(true)}
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Menu</TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
           ) : (
             userMenu
           )}
