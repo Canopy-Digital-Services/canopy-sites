@@ -1,13 +1,10 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Markdown } from '@/components/markdown';
-import { ChevronLeft } from 'lucide-react';
-import { PageContent } from "@/components/patterns/page-content";
-
-const docsDir = path.join(process.cwd(), 'content/docs');
+// UI: see docs/UX_PATTERNS.md for layout and component conventions.
+import { notFound } from "next/navigation";
+import { Markdown } from "@/components/markdown";
+import { getAllDocs, getDocBySlug, getPrevNext } from "@/lib/docs";
+import { DocsBreadcrumb } from "@/components/docs/docs-breadcrumb";
+import { DocTOC } from "@/components/docs/doc-toc";
+import { PrevNext } from "@/components/docs/prev-next";
 
 interface DocPageProps {
   params: Promise<{
@@ -15,62 +12,52 @@ interface DocPageProps {
   }>;
 }
 
-export async function generateStaticParams() {
-  try {
-    const files = await fs.readdir(docsDir);
-    return files
-      .filter(file => file.endsWith('.md') && file !== 'index.md')
-      .map(file => ({
-        slug: file.replace('.md', ''),
-      }));
-  } catch {
-    return [];
-  }
+export async function generateMetadata({ params }: DocPageProps) {
+  const { slug } = await params;
+  const doc = await getDocBySlug(slug);
+  if (!doc) return {};
+  return {
+    title: `${doc.title} · Canopy Forms docs`,
+    description: doc.description || undefined,
+  };
 }
 
 export default async function DocPage({ params }: DocPageProps) {
   const { slug } = await params;
-
-  const filePath = path.join(docsDir, `${slug}.md`);
-  let content = '';
-  try {
-    content = await fs.readFile(filePath, 'utf-8');
-  } catch {
+  if (slug === "index") {
     notFound();
   }
 
-  // Extract title from first # heading or use slug
-  const titleMatch = content.match(/^#\s+(.+)$/m);
-  const title = titleMatch
-    ? titleMatch[1]
-    : slug.split('-').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
+  const doc = await getDocBySlug(slug);
+  if (!doc) {
+    notFound();
+  }
+
+  const allDocs = await getAllDocs();
+  const { prev, next } = getPrevNext(slug, allDocs);
 
   return (
-    <PageContent>
-    <div>
-      <div className="mb-6">
-        <Link href="/docs">
-          <Button variant="ghost" className="mb-4">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Docs
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-heading font-bold">{title}</h1>
+    <div className="flex gap-10">
+      <div className="flex-1 min-w-0">
+        <DocsBreadcrumb title={doc.title} group={doc.group} />
+
+        <header className="mb-8">
+          <h1 className="text-4xl font-heading font-bold tracking-tight">
+            {doc.title}
+          </h1>
+          {doc.description ? (
+            <p className="mt-3 text-lg text-muted-foreground leading-relaxed">
+              {doc.description}
+            </p>
+          ) : null}
+        </header>
+
+        <Markdown content={doc.content} />
+
+        <PrevNext prev={prev} next={next} />
       </div>
 
-      <Markdown content={content} />
-
-      <div className="mt-8 border-t border-border pt-8">
-        <Link href="/docs">
-          <Button variant="ghost">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Documentation
-          </Button>
-        </Link>
-      </div>
+      <DocTOC headings={doc.headings} />
     </div>
-    </PageContent>
   );
 }

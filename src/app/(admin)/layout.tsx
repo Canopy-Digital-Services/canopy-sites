@@ -1,10 +1,12 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth-utils";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
+import { HelpBubble } from "@/components/help-bubble";
 
 export default async function AdminLayout({
   children,
@@ -33,6 +35,9 @@ export default async function AdminLayout({
       >
         {children}
       </TopNavLayout>
+      <Suspense fallback={null}>
+        <HelpBubble />
+      </Suspense>
     </div>
   );
 }
