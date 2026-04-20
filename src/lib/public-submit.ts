@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
 import { queueNewSubmissionNotification } from "@/lib/email-queue";
+import {
+  upsertLimitNotification,
+  upsertSubmissionNotification,
+} from "@/lib/data-access/notifications";
 
 type FieldDefinition = {
   name: string;
@@ -519,6 +523,7 @@ export async function handlePublicSubmit({
 
   // Check time-based submission limit
   if (form.stopAt && new Date() > new Date(form.stopAt)) {
+    await upsertLimitNotification(form.accountId, form.id, "LIMIT_DEADLINE_REACHED");
     return jsonResponse(
       { error: "This form is no longer accepting submissions" },
       403,
@@ -533,6 +538,7 @@ export async function handlePublicSubmit({
       where: { formId: form.id, isSpam: false },
     });
     if (count >= form.maxSubmissions) {
+      await upsertLimitNotification(form.accountId, form.id, "LIMIT_MAX_REACHED");
       return jsonResponse(
         { error: "This form has reached its maximum number of submissions" },
         403,
@@ -635,6 +641,11 @@ export async function handlePublicSubmit({
       submission.createdAt,
       form.notifyEmails
     );
+  }
+
+  // In-app bell notification (independent of email preferences)
+  if (!isSpam) {
+    await upsertSubmissionNotification(form.accountId, form.id);
   }
 
   return jsonResponse(

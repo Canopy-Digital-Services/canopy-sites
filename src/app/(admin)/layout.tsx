@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
+import { NotificationBell } from "@/components/notification-bell";
 
 export default async function AdminLayout({
   children,
@@ -23,7 +24,12 @@ export default async function AdminLayout({
             <BrandMark size="sm" className="gap-2" />
           </Link>
         }
-        userMenu={<UserMenu email={session.user?.email} />}
+        userMenu={
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <UserMenu email={session.user?.email} />
+          </div>
+        }
       >
         {children}
       </TopNavLayout>

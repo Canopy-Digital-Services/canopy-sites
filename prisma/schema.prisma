@@ -15,8 +15,9 @@ model Account {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
-  user      User?
-  forms     Form[]
+  user          User?
+  forms         Form[]
+  notifications Notification[]
 
   @@map("accounts")
 }
@@ -70,7 +71,8 @@ model Form {
   createdByUser   User         @relation("CreatedForms", fields: [createdByUserId], references: [id], onDelete: Cascade)
   fields          Field[]
   submissions     Submission[]
-  
+  notifications   Notification[]
+
   @@unique([accountId, slug])
   @@index([accountId])
   @@index([createdByUserId])
@@ -133,6 +135,31 @@ enum FieldType {
   NAME
   NUMBER
   ADDRESS
+}
+
+// In-app notifications (bell). Dismiss-on-interaction — no retention.
+// One row per (accountId, formId, type); NEW_SUBMISSION increments `count`.
+model Notification {
+  id        String           @id @default(cuid())
+  accountId String
+  formId    String
+  type      NotificationType
+  count     Int              @default(1)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  form    Form    @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, formId, type])
+  @@index([accountId, updatedAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  NEW_SUBMISSION
+  LIMIT_MAX_REACHED
+  LIMIT_DEADLINE_REACHED
 }
 
 // Password reset tokens

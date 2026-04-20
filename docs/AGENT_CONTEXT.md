@@ -488,8 +488,9 @@ See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types
 Account (id, createdAt)
   └─ User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
   └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
-       └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
-       └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
+  │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
+  │    └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
+  └─ Notification[] (formId, type:NotificationType, count, updatedAt)
 
 PasswordResetToken (userId, token, expiresAt, usedAt?)
 ```
