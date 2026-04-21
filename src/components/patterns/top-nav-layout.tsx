@@ -1,7 +1,7 @@
 "use client";
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -15,7 +15,10 @@ type TopNavLayoutProps = {
 
 export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
