@@ -385,8 +385,8 @@ If something works locally but fails on forms-dev or forms.canopyds.com, suspect
 
 | Variable | Purpose |
 |----------|---------|
-| `ADMIN_EMAIL` | Bootstrap admin user (used in `prisma/seed.ts`) |
-| `ADMIN_PASSWORD` | Bootstrap admin password (used in `prisma/seed.ts`) |
+| `ADMIN_EMAIL` | Bootstrap-only. Used by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote the matching user to `GLOBAL_ADMIN` on `UNLOCKED`. Not consulted at auth-check time. Safe to remove once a Global Admin exists. |
+| `ADMIN_PASSWORD` | Bootstrap-only. Used by `prisma/seed.ts` to set the initial admin password. |
 
 ### Local env files
 
@@ -465,14 +465,15 @@ Don't introduce alternate UI systems, icon packs, or color patterns.
 
 ### Epic/release update checklist
 
-Run these steps in order after completing an epic or cutting a release. These are the **only four files that need updating** — no other file contains version-specific information.
+Run these steps in order after completing an epic or cutting a release.
 
 1. **`package.json`** — bump `version` (e.g., `4.4.0` → `4.5.0`).
 2. **`CHANGELOG.md`** — add a new version entry at the top with date and changes.
 3. **`docs/epics/epic-N-name.md`** — create a completion report for the epic.
 4. **`docs/epics/README.md`** — add a row to the epic table with version, date, and link.
+5. **User-facing help docs** — walk `content/docs/*.md` (served at `/docs` in-app) and update any page whose content the epic invalidates: new features need a new page or a section added to an existing page, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of the affected areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip this step only if the release is purely internal (infra, refactors, no user-visible change).
 
-If any future change requires storing version-specific information in a fifth file, update this checklist at the same time.
+If any future change requires storing version-specific information in an additional file, update this checklist at the same time.
 
 ---
 
@@ -490,9 +491,10 @@ See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types
 
 ```
 Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
+Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
-  └─ User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
+  └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?, lastLoginAt?, ...)
   └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
   │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
   │    └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
@@ -501,6 +503,8 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
 PasswordResetToken (userId, token, expiresAt, usedAt?)
 ```
 
-Seeded Plan rows: `FREE` (maxPublishedForms=1), `HOSTING` (10), `PAID` (null=unlimited), `UNLOCKED` (null, isPublic=false, operator-granted only).
+Seeded Plan rows: `FREE` (maxPublishedForms=1), `HOSTING` (10), `PAID` (null=unlimited), `UNLOCKED` (null, isPublic=false, admin-granted only).
+
+Seeded Role rows: `USER` (default), `GLOBAL_ADMIN` (isPublic=false, admin-granted only). Operator console access is gated by `GLOBAL_ADMIN`; promotion automatically moves the account to the `UNLOCKED` plan.
 
 Canonical source: `prisma/schema.prisma`.
