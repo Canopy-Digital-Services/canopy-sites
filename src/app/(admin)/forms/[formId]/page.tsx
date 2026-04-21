@@ -5,6 +5,8 @@ import { FormWorkspace } from "@/components/forms/form-workspace";
 import { prisma } from "@/lib/db";
 import { SubmissionStatus } from "@prisma/client";
 import { buildSubmissionPreview } from "@/lib/submission-preview";
+import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { formatPublishDisabledReason } from "@/lib/copy/plans";
 
 export default async function FormViewRoute({
   params,
@@ -76,6 +78,15 @@ export default async function FormViewRoute({
     }));
   }
 
+  const entitlements = await getAccountEntitlements(await accountId);
+  const publishDisabledReason =
+    !form.published && !entitlements.canPublishAnother
+      ? formatPublishDisabledReason(
+          entitlements.planDisplayName,
+          entitlements.maxPublishedForms
+        )
+      : undefined;
+
   return (
     <FormWorkspace
       apiUrl={apiUrl}
@@ -84,6 +95,7 @@ export default async function FormViewRoute({
       submissions={submissions}
       statusFilter={statusFilter}
       spamFilter={spamFilter}
+      publishDisabledReason={publishDisabledReason}
     />
   );
 }

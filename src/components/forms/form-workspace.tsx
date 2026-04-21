@@ -26,6 +26,7 @@ import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
 import { FormTabNav } from "@/components/forms/form-tab-nav";
 import { toggleFormPublished } from "@/actions/forms";
+import { getPlanErrorCode, PLAN_ERROR_CODES } from "@/lib/errors/plan-errors";
 import { toast } from "sonner";
 import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
 
@@ -74,9 +75,10 @@ type FormWorkspaceProps = {
   submissions?: Submission[];
   statusFilter?: string;
   spamFilter?: string;
+  publishDisabledReason?: string;
 };
 
-export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all" }: FormWorkspaceProps) {
+export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const activeTab =
@@ -94,6 +96,7 @@ export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], stat
         submissions={submissions}
         statusFilter={statusFilter}
         spamFilter={spamFilter}
+        publishDisabledReason={publishDisabledReason}
       />
     </FormProvider>
   );
@@ -107,9 +110,10 @@ type WorkspaceInnerProps = {
   submissions: Submission[];
   statusFilter: string;
   spamFilter: string;
+  publishDisabledReason?: string;
 };
 
-function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter }: WorkspaceInnerProps) {
+function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
   const { state, saveStatus, updateName } = useFormContext();
 
@@ -141,8 +145,20 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         await toggleFormPublished(form.id, next);
         setPublished(next);
         toast.success(next ? "Form published" : "Form unpublished");
-      } catch {
-        toast.error("Failed to update publish status");
+      } catch (error) {
+        const code = getPlanErrorCode(error);
+        if (code === PLAN_ERROR_CODES.MAX_PUBLISHED_FORMS_REACHED) {
+          toast.error(
+            publishDisabledReason ||
+              "You have reached your plan's published-form limit."
+          );
+        } else if (code === PLAN_ERROR_CODES.PLAN_RESOLUTION_REQUIRED) {
+          toast.error(
+            "Your plan changed. Choose which forms stay published first."
+          );
+        } else {
+          toast.error("Failed to update publish status");
+        }
       }
     });
   };
@@ -255,6 +271,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                 published={published}
                 isPublishing={isPublishing}
                 onPublishToggle={handlePublishToggle}
+                publishDisabledReason={publishDisabledReason}
               />
             </div>
           </div>
