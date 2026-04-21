@@ -43,26 +43,45 @@ model Plan {
   @@map("plans")
 }
 
+// Role catalog. Seeded via migration; not user-editable at runtime.
+// User.roleCode references Role.code. Capability flags land as typed columns
+// when a second non-basic role ships.
+model Role {
+  code        String  @id
+  displayName String
+  description String?
+  isPublic    Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  users User[]
+
+  @@map("roles")
+}
+
 // Admin user account
 model User {
   id                  String    @id @default(cuid())
   email               String    @unique
   password            String    // bcrypt hashed
   createdAt           DateTime  @default(now())
-  
+  roleCode            String    @default("USER")
+
   // Link to internal account (one-to-one in v3)
   accountId           String    @unique
   account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  
+
+  role                Role      @relation(fields: [roleCode], references: [code])
+
   // Auth telemetry
   lastLoginAt         DateTime?
   failedLoginCount    Int       @default(0)
   lastFailedLoginAt   DateTime?
   passwordChangedAt   DateTime?
-  
+
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
-  
+
+  @@index([roleCode])
   @@map("users")
 }
 

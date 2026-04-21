@@ -34,6 +34,20 @@ async function main() {
   }
   console.log('✅ Plan catalog ensured');
 
+  // Ensure role catalog is present. Same upsert pattern as plans.
+  const roles = [
+    { code: 'USER',         displayName: 'User',         description: 'Standard account holder.',                             isPublic: true,  sortOrder: 10 },
+    { code: 'GLOBAL_ADMIN', displayName: 'Global Admin', description: 'Full operator-console access; UNLOCKED plan granted.', isPublic: false, sortOrder: 90 },
+  ];
+  for (const role of roles) {
+    await prisma.role.upsert({
+      where: { code: role.code },
+      create: role,
+      update: role,
+    });
+  }
+  console.log('✅ Role catalog ensured');
+
   // Create admin user with account
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
@@ -52,7 +66,8 @@ async function main() {
   } else {
     // Create account and user together. Fresh admin accounts are UNLOCKED so
     // the operator is never subject to the free-tier cap on their own
-    // deployment.
+    // deployment, and the bootstrap user lands with the GLOBAL_ADMIN role so
+    // they can access the operator console immediately.
     const account = await prisma.account.create({
       data: {
         planCode: 'UNLOCKED',
@@ -60,6 +75,7 @@ async function main() {
           create: {
             email: adminEmail,
             password: hashedPassword,
+            roleCode: 'GLOBAL_ADMIN',
           },
         },
       },
