@@ -1170,7 +1170,11 @@ export default function SomePage() {
 }
 ```
 
-Provides `p-4 md:p-6` padding and `max-w-5xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
+Provides `p-4 md:p-6` padding and a centered max-width container. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
+
+**Width variants** (via the `width` prop):
+- `"default"` (omit or pass `width="default"`): `max-w-5xl` (1024px). Use for standard pages: account settings, forms list, submission detail.
+- `"wide"`: `max-w-7xl` (1280px). Use for pages with wide data tables that would otherwise overflow (e.g. the operator Accounts table, which has 8 columns).
 
 **Do not** wrap the form editor (`/forms/[formId]`) in `PageContent` — `FormWorkspace` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
 

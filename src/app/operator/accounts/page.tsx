@@ -2,6 +2,7 @@ import { listAccountsMetadata } from "@/lib/data-access/accounts";
 import { listPlans } from "@/lib/data-access/plans";
 import { listRoles } from "@/lib/data-access/roles";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
+import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
@@ -135,21 +136,23 @@ export default async function AccountsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Accounts"
-        description="Manage platform accounts (metadata only)"
-      />
-
-      {accounts.length === 0 ? (
-        <EmptyState
-          icon={<Users className="h-10 w-10 text-muted-foreground" />}
-          title="No accounts"
-          description="No active accounts found"
+    <PageContent width="wide">
+      <div className="space-y-6">
+        <PageHeader
+          title="Accounts"
+          description="Manage platform accounts (metadata only)"
         />
-      ) : (
-        <DataTable columns={columns} data={accounts} />
-      )}
-    </div>
+
+        {accounts.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-10 w-10 text-muted-foreground" />}
+            title="No accounts"
+            description="No active accounts found"
+          />
+        ) : (
+          <DataTable columns={columns} data={accounts} />
+        )}
+      </div>
+    </PageContent>
   );
 }
