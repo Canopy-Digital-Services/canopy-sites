@@ -20,7 +20,7 @@ import {
 import { SortableList } from "@/components/ui/sortable-list";
 import { DropdownOptions } from "@/types/field-config";
 import { ConfigComponentProps } from "./types";
-import { Trash2, GripVertical } from "lucide-react";
+import { Trash2, GripVertical, Plus } from "lucide-react";
 
 type OptionWithId = {
   id: string;
@@ -130,22 +130,8 @@ export function DropdownConfig({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label>Options</Label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAddOption}
-        >
-          Add Option
-        </Button>
-      </div>
-      {options.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Add options to populate this dropdown field.
-        </p>
-      ) : (
+      <Label>Options</Label>
+      {options.length > 0 && (
         <>
           <SortableList
             items={optionsWithIds}
@@ -207,7 +193,20 @@ export function DropdownConfig({
               Options must be unique. Choose a different name.
             </p>
           )}
-
+        </>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={handleAddOption}
+        className="-ml-3 text-primary hover:text-primary hover:bg-primary/10"
+      >
+        <Plus className="h-4 w-4" />
+        Add option
+      </Button>
+      {options.length > 0 && (
+        <>
           <div className="space-y-2">
             <Label htmlFor="select-default" className="text-sm font-normal">
               Default Value
