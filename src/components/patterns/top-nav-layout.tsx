@@ -53,6 +53,10 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
         {children}
       </main>
 
+      <footer className="py-4 text-center text-xs text-muted-foreground/60">
+        &copy; 2026 Canopy Digital Services. All rights reserved.
+      </footer>
+
       {/* Mobile drawer — deferred to client to keep useId() tree consistent */}
       {mounted && (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
