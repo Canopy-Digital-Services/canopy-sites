@@ -12,14 +12,35 @@ datasource db {
 
 // Internal account construct (one per user in v3)
 model Account {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+  id                     String   @id @default(cuid())
+  createdAt              DateTime @default(now())
+  planCode               String   @default("FREE")
+  requiresPlanResolution Boolean  @default(false)
 
+  plan          Plan           @relation(fields: [planCode], references: [code])
   user          User?
   forms         Form[]
   notifications Notification[]
 
+  @@index([planCode])
   @@map("accounts")
+}
+
+// Plan catalog. Rows are seeded via migration; not user-editable at runtime.
+// Account.planCode references Plan.code. Entitlements (only maxPublishedForms
+// today) live as typed columns so each future entitlement is an explicit
+// migration, not a hidden JSON shape change.
+model Plan {
+  code              String  @id
+  displayName       String
+  description       String?
+  maxPublishedForms Int?
+  isPublic          Boolean @default(true)
+  sortOrder         Int     @default(0)
+
+  accounts Account[]
+
+  @@map("plans")
 }
 
 // Admin user account
