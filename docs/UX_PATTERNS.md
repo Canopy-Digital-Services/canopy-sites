@@ -655,6 +655,41 @@ Apply the footer hierarchy above when a destructive action may affect persisted 
 
 **Reference implementation:** `DeleteFieldDialog` (`src/components/delete-field-dialog.tsx`)
 
+### Blocking Layout Dialogs
+
+Some state transitions leave the account in a mode where piecemeal admin actions would be incoherent (for example, after a plan downgrade has unpublished every form and the user must pick which stay live). For these, render a **non-dismissible** dialog at the admin layout level so every admin route is intercepted until the user resolves the state.
+
+Rules for this pattern:
+
+- Mount the dialog from the admin `layout.tsx` server component based on a server-read flag; do not rely on client-side gating.
+- `Dialog open` is hard-coded; no `onOpenChange`. Pass `showCloseButton={false}`.
+- Block the Escape key and outside-click dismissal: `onEscapeKeyDown={(e) => e.preventDefault()}` and `onPointerDownOutside={(e) => e.preventDefault()}`.
+- Provide exactly two exits, both of which resolve the state. There is no "skip" that preserves the blocked state.
+- Keep the dialog self-contained: all data it needs comes from the layout as props. Do not fetch more inside the client component.
+
+**Reference implementation:** `PlanResolutionDialog` (`src/components/plan/plan-resolution-dialog.tsx`), mounted by `src/app/(admin)/layout.tsx` when `Account.requiresPlanResolution === true`.
+
+### Disabled Button Tooltips
+
+Radix's `Tooltip` does not fire on a button with `disabled` set because the browser skips pointer events. To keep a tooltip on a disabled action, wrap the button in a focusable `<span tabIndex={0}>` and use that as the trigger:
+
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <span tabIndex={0}>
+      <Button disabled aria-disabled="true">
+        Publish
+      </Button>
+    </span>
+  </TooltipTrigger>
+  <TooltipContent>Your Free plan allows 1 published form. Unpublish another form first.</TooltipContent>
+</Tooltip>
+```
+
+Use this only when the disabled state has a specific reason the user needs to see. For always-disabled (loading, in-flight) states, no tooltip is needed.
+
+**Reference implementation:** `PublishContent` (`src/components/forms/publish-content.tsx`) when the account is at its `maxPublishedForms` cap.
+
 ---
 
 ## Sortable Lists (Drag-to-Reorder)

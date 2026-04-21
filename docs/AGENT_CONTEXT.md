@@ -65,6 +65,8 @@ Always identify which layer a change touches before starting work.
 - Slug uniqueness: `@@unique([accountId, slug])`.
 - Fields are **relational rows** with explicit `order` and enum `FieldType`, not JSON blobs.
 - Field uniqueness: `@@unique([formId, name])`.
+- Every Account has a `Plan` (FK on `planCode`). `Plan.maxPublishedForms` is the only entitlement today; the catalog is seeded by migration, not user-editable at runtime. Plan enforcement runs through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`) — never re-implement the comparison at call sites.
+- `Account.requiresPlanResolution` is a one-bit flag set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker; it's cleared only by a successful `resolvePlan` call.
 
 ### Auth & ownership (non-negotiable)
 
@@ -93,9 +95,11 @@ Embed forms use native HTML5 validation popups via `setCustomValidity()` (one er
 - Rate limit: GET 60/min, POST 10/min per hashed IP.
 - Origin validation: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost always allowed.
 - Email notifications: individual emails to all addresses in `form.notifyEmails[]` (max 5).
+- **Unpublished gate**: when `form.published === false`, both GET and POST return `403` with `{ error: "This form is not currently accepting responses", code: "FORM_INACTIVE" }`. The embed script pattern-matches `code === "FORM_INACTIVE"` to render a dedicated "Form Not Available" state.
 
 **Submit API** (`src/app/api/submit/[formId]/route.ts`):
 - POST only. Same validation/storage as embed. For white-box HTML forms (no schema fetch).
+- Same `published` gate as the embed API: unpublished forms return the `FORM_INACTIVE` shape.
 
 ### Env vars in client components
 
@@ -485,7 +489,9 @@ See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types
 ## Appendix B. Data model (Prisma schema summary)
 
 ```
-Account (id, createdAt)
+Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
+
+Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
   └─ User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
   └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
   │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
@@ -494,5 +500,7 @@ Account (id, createdAt)
 
 PasswordResetToken (userId, token, expiresAt, usedAt?)
 ```
+
+Seeded Plan rows: `FREE` (maxPublishedForms=1), `HOSTING` (10), `PAID` (null=unlimited), `UNLOCKED` (null, isPublic=false, operator-granted only).
 
 Canonical source: `prisma/schema.prisma`.
