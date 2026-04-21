@@ -132,6 +132,20 @@ Client components cannot reliably read runtime env vars. Pattern: server compone
 | Field config panels | `src/components/field-config/` |
 | Brand assets | `public/brand/` |
 
+### Key application routes
+
+| Route | What it is |
+|-------|-----------|
+| `/` | Root — redirects authenticated users to `/forms`, unauthenticated to `/login` |
+| `/forms` | Admin dashboard landing page (forms list) |
+| `/forms/[formId]` | Form detail / preview |
+| `/forms/[formId]/edit` | Form builder (editor) |
+| `/account` | Account settings |
+| `/operator/accounts` | Operator console — accounts table |
+| `/f/[formId]` | Hosted public form page |
+
+When adding a navigation link that should take an operator or admin back to "home", link to `/forms` — not `/`.
+
 ### Documentation — when to read what
 
 | Document | Read it when... |

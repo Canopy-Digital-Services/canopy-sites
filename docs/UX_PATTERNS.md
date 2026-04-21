@@ -1146,6 +1146,7 @@ import { UserMenu } from "@/components/patterns/user-menu";
 - **Desktop (md+)**: Horizontal nav bar (h-14, border-b, bg-muted/40). Logo left, nav items beside it, user menu right.
 - **Mobile (<md)**: Logo left, hamburger button right. Hamburger opens a left-sliding Sheet drawer containing logo, nav items, and user menu.
 - **Main content**: `flex-1 min-h-0 flex flex-col overflow-auto`. Each page adds its own spacing via `PageContent` or `EditorLayout`.
+- **`logo` renders in both places**: The `logo` slot is rendered in the desktop header *and* the mobile drawer. Anything you put in `logo` (links, icon buttons, etc.) automatically appears in both — no need to handle mobile separately.
 
 **Accessibility**:
 - Hamburger button includes `aria-label="Open navigation menu"` and a tooltip
