@@ -69,10 +69,22 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Initial fetch + refetch on route change
+  // Initial fetch + refetch on route change.
+  // Inlined (rather than calling refresh()) so setState lives inside the
+  // promise callback, which the set-state-in-effect lint rule allows.
   useEffect(() => {
-    refresh();
-  }, [refresh, pathname]);
+    let cancelled = false;
+    listMyNotifications()
+      .then((next) => {
+        if (!cancelled) setItems(next);
+      })
+      .catch(() => {
+        // Swallow — polling retries.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   // Poll every POLL_MS while the tab is visible
   useEffect(() => {
