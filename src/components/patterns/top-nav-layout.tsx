@@ -5,7 +5,6 @@ import { useState, useSyncExternalStore } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TopNavLayoutProps = {
   logo: React.ReactNode;
@@ -14,9 +13,13 @@ type TopNavLayoutProps = {
   children: React.ReactNode;
 };
 
+const subscribeMounted = () => () => {};
+const getMountedClient = () => true;
+const getMountedServer = () => false;
+
 export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const mounted = useSyncExternalStore(subscribeMounted, getMountedClient, getMountedServer);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -32,19 +35,14 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
         <div className="shrink-0">{logo}</div>
         <div className="ml-auto">
           {navItems ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setMobileMenuOpen(true)}
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Menu</TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
           ) : (
             userMenu
           )}
@@ -55,6 +53,10 @@ export function TopNavLayout({ logo, navItems, userMenu, children }: TopNavLayou
       <main className="flex-1 flex flex-col">
         {children}
       </main>
+
+      <footer className="py-4 text-center text-xs text-muted-foreground/60">
+        &copy; 2026 Canopy Digital Services. All rights reserved.
+      </footer>
 
       {/* Mobile drawer — deferred to client to keep useId() tree consistent */}
       {mounted && (

@@ -1,217 +1,132 @@
-# Creating and Managing Forms
+---
+title: Forms
+description: Creating forms, field types, and the editor workspace.
+icon: Layers
+---
 
-Forms represent individual forms on your website. Each form has a unique slug and can be configured with fields, validation rules, email notifications, success behavior, and spam protection.
+A form is the central object in Canopy Forms. Each form has its own fields, theme, allowed origins, submission settings, and collected submissions.
 
-## Creating a Form
+## Creating a form
 
-1. Navigate to **Forms** in the sidebar
-2. Click **New Form**
-3. Enter a form name (e.g., "Newsletter signup", "Contact form")
-4. Click **Create form**
+1. From the **Forms** page, click **Create Form**.
+2. Enter a name (for example, "Contact" or "Newsletter signup").
+3. You'll land in the form workspace. The form exists in **Draft** state until you publish it.
 
-A URL-friendly slug is automatically generated from the form name. After creating a form, you'll be taken to the form editor where you can add fields, configure behavior, and customize appearance.
+A URL-friendly slug is generated automatically from the name and shown below it. The slug is kept even if you rename the form later, so bookmarks and share links stay stable.
 
-## Form Configuration
+## The form workspace
 
-### Form Slug
+Every form opens to a three-tab workspace:
 
-The slug is automatically generated from your form name and serves as a friendly identifier. It will be:
-- Lowercase
-- Alphanumeric with hyphens
-- Unique within your account
-- Descriptive (e.g., "contact", "newsletter", "job-application")
+- **Edit**: the builder, with accordion sections for Header, Fields, Appearance, and Submission Settings. On desktop, a live preview sits to the right, with a toggle between **Embed** (how the form looks inside someone else's page) and **Page** (how the hosted page looks).
+- **Publish**: publish status, allowed origins, embed snippet, and the hosted form link. See [Publishing](./publishing.md).
+- **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 
-If a slug already exists, a number is automatically appended (e.g., "contact-2"). The slug is used for display purposes and helps you identify forms in the dashboard.
+The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each accordion section.
 
-### Form Name
+## Header
 
-The form name is displayed in the admin dashboard and email notifications. It's a friendly identifier that helps you organize your forms.
+The **Header** section is the first accordion in the Edit tab. Both fields are optional.
 
-## Adding Fields to a Form
+- **Title**: shown above the form (max 120 characters). Leave blank if the surrounding page already provides one.
+- **Description**: a short paragraph shown under the title (max 400 characters).
 
-Forms support a visual field builder. To add fields:
+Both are rendered on the hosted page and by the embed. If your container already has its own heading, you'll usually leave these blank for the embed and rely on them for the hosted page.
 
-1. Click on a form name
-2. Click **Edit Form**
-3. Scroll to the **Fields** section
-4. Click **Add Field** to open the field editor
+## Fields
 
-### Field Types
+Open the **Fields** accordion to add and arrange inputs. Use **Add field**, then pick a type in the modal.
 
-Canopy Forms supports nine field types:
+### Field types
 
-- **Text** - Single-line text input
-- **Email** - Email input with automatic format validation
-- **Textarea** - Multi-line text input
-- **Select** - Dropdown menu (requires options to be configured)
-- **Checkbox** - Single checkbox input
-- **Phone** - Phone number input with format validation (v3.2.0+)
-- **Date** - Date picker input with date range validation (v3.2.0+)
-- **Name** - Composite name field with configurable parts (first, last, middle, etc.) (v3.2.0+)
-- **Hidden** - Hidden field (not visible to users, useful for tracking, UTM params, etc.)
+| Type | Label | Notes |
+|---|---|---|
+| Text | Single line of text | General-purpose input |
+| Email | Email address | Validates format automatically |
+| Paragraph | Multi-line text | For longer responses |
+| Phone | Phone number | Lenient or strict format |
+| Date | Date picker | Optional min / max, no-future, no-past rules |
+| Name | Name with parts | Choose which parts (first, last, middle, prefix, suffix) |
+| Dropdown | Single select | Configure value/label options |
+| Yes / No | Single checkbox | For consent-style prompts |
+| Checkboxes | Multi-select checkboxes | Configure options; submitted value is an array |
+| Number | Numeric input | Min/max bounds |
+| Address | Mailing address | Street, city, region, postal code, country |
 
-### Field Configuration
+### Configuring a field
 
-For each field, you can configure:
+Every field type has the same core options, plus type-specific ones.
 
-- **Label** - User-facing label displayed on the form (required)
-  - An internal key is automatically generated from the label (e.g., "Email Address" → `email_address`)
-  - The internal key is used in submissions and stays stable even if you change the label later
-  - You can see the internal key when editing an existing field
-  - **Deleting and re-adding fields**: If you delete a field and later add a new one with the same label, it receives the same internal key. New submissions will be stored under that key again, just as before. Submissions collected while the field was absent will simply be missing that key. Submissions from before the deletion are unaffected — their data is preserved as-is.
-- **Placeholder** - Hint text shown in empty fields
-- **Required** - Whether the field must be filled before submission
-- **Help text** - Optional guidance text displayed below the input field in a muted style (v3.7.2+)
-  - Helps users understand what to enter or provides context
-  - Appears below the input on the embedded form
-  - Available for all field types
-- **Validation Rules** (Text/Email/Textarea/Phone/Date only):
-  - Format (alphanumeric, numbers only, letters only, URL, postal codes, etc.)
-  - Minimum length
-  - Maximum length
-  - Date ranges (for Date fields)
-  - Phone format (lenient/strict for Phone fields)
-  - Email domain rules (for Email fields)
-- **Options** (Select only):
-  - Add value/label pairs for dropdown choices
-  - Reorder options using drag-and-drop
-  - Option values must be unique (duplicates can’t be saved)
+**Core options:**
 
-### Validation Defaults & Limits
+- **Label** (required): what the user sees. An internal key is derived from the label on first save; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
+- **Placeholder**: optional hint text inside the empty input.
+- **Required**: toggles whether the field must be filled before the form can submit.
+- **Help text**: optional muted text shown below the field to guide the user.
 
-Canopy Forms automatically applies sensible character limits to all text-based fields to ensure data quality and prevent abuse:
+**Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 
-**Default Character Limits** (when you don't set a maximum):
-- **Text fields**: 200 characters
-- **Email fields**: 254 characters (RFC 5321 standard)
-- **Textarea fields**: 2,000 characters
+- Text, Paragraph, Email, Phone: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length, custom error messages.
+- Date: min date, max date, "no future", "no past".
+- Dropdown, Checkboxes: the list of options (value/label pairs). Values must be unique.
+- Name: which name parts to include.
+- Address: which address components to include.
+- Number: min, max.
 
-**Absolute Maximum Limits** (enforced server-side for security):
-- **Text fields**: 500 characters maximum
-- **Email fields**: 320 characters maximum
-- **Textarea fields**: 10,000 characters maximum
+### Internal key behavior
 
-**How It Works**:
-- If you don't set a maximum length, the default applies automatically
-- If you set a custom maximum, it will be enforced (up to the absolute limit)
-- Textareas automatically size themselves based on the character limit
-- Limits are enforced at three levels: browser (HTML), client-side validation, and server-side validation
-- Textarea resize handles are disabled to maintain consistent appearance
+When a field's label is saved, an internal key is generated (for example, `Email Address` becomes `email_address`). Submissions store values under this key, not the label.
 
-### Reordering Fields
+- Renaming a field's label does **not** change the key. Existing submissions keep their data under the original key.
+- Deleting a field and re-adding one with the same label gives it the same key. New submissions will land under that key; the ones collected while the field was missing simply won't have that key; older submissions from before the deletion are untouched.
 
-Use the **Up** and **Down** buttons next to each field in the field list to change the order. Fields will appear in this order in the embed and manual submit forms.
+### Reordering
 
-## Viewing Form Details
+Each field row has Up and Down buttons. The order here is the order fields render in the embed, the hosted page, and submissions.
 
-Click on a form name to view:
-- Form configuration
-- Field list
-- Integration code (embed script or manual submit API)
-- List of recent submissions
-- Quick actions to edit or view submissions
+## Submission Settings
 
-## Editing a Form
+Open the **Submission Settings** accordion to control what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves.
 
-1. Click on a form name
-2. Click **Edit Form**
+### After submission
 
-The edit page has three main sections:
+Pick one:
 
-### Fields Section
+- **Show a message**: a short confirmation replaces the form inline (default: "Thank you for your submission!"). Keep this when you want the user to stay on your page.
+- **Redirect to a URL**: send them to a thank-you page, confirmation flow, or anywhere else after a successful submit.
 
-- Add, edit, delete, and reorder fields
-- Configure validation rules
-- Set field types and options
+Switching between options clears the inactive field, so you won't end up with stale redirect URLs sitting around.
 
-### Appearance Section
+### Email notifications
 
-Configure default theme for the embed. See [Form Appearance & Behavior](./form-customization.md) for detailed information about theme customization.
+Check **Email notifications** to receive an email each time the form gets a non-spam submission.
 
-### Submission Settings Section
+- When first enabled, your account email is added as the first recipient.
+- Add up to **5 recipients** total. Each recipient gets the same email.
+- The notification includes the form name, timestamp, and a link back to the submission in the dashboard. Submission field values are included so you can triage without logging in.
+- Spam submissions (honeypot caught) never trigger a notification.
+- Email delivery depends on the platform's SMTP config. If email isn't configured, submissions still save; they just don't trigger a notification.
 
-Configure what happens after submission, notifications, and form limits. This section autosaves changes.
+### Submission limits
 
-**After Submission:**
-- Choose between showing a confirmation message or redirecting to a URL
-- **Show confirmation message** - Display text inline after submission
-- **Redirect to URL** - Navigate users to another page after submission
+Both limits are optional and can be combined.
 
-**Notifications:**
-- **Notify me on new submission** - Receive email notifications for new submissions
-  - Notifications include form name, timestamp, and dashboard link
-  - Sent to your account email address
-  - Spam submissions do not trigger notifications
+- **Stop accepting submissions after**: a datetime. When that time has passed, the form shows "This form is no longer accepting submissions" and the API rejects new submissions.
+- **Maximum number of submissions**: a total count. When reached, the form shows "This form has reached its maximum number of submissions". Spam submissions do not count toward this limit.
 
-**Submission Limits:**
-- **Stop accepting after** - Set a date/time to stop accepting submissions
-- **Maximum submissions** - Limit total number of submissions (spam not counted)
-- Leave empty for unlimited submissions
+Leave both blank for no limit.
 
-> **Allowed Origins** are configured on the **Publish** tab alongside the embed code, since they control where the form can be embedded.
+## Honeypot (spam protection)
 
-### Form Details
+A honeypot field is an invisible field that most bots will fill in automatically, but humans won't see. When the honeypot field is non-empty in a submission, the submission is saved but marked as spam and will not trigger an email notification.
 
-The form name and Submission Settings auto-save as you make changes.
+If you embed using the snippet, the honeypot is handled for you once configured. If you use the manual HTML approach, you need to add the hidden field yourself; see [Publishing](./publishing.md) for the snippet.
 
-## Form Settings
+## Renaming and deleting
 
-### Honeypot Field (Spam Protection)
+Rename a form by clicking the pencil icon beside its name in the workspace header. Changes save when you press Enter or click the confirm icon. The slug does not change when you rename.
 
-A honeypot field is a hidden form field that helps catch spam bots. If a bot fills in this field, the submission is marked as spam.
+Delete a form from the Forms list page by clicking the trash icon.
 
-**How it works**:
-1. Configure a honeypot field name in the form settings (e.g., "website" or "url")
-2. Add a hidden input field to your HTML form (if using manual submit API)
-3. Use CSS to hide it from users: `display: none;`
-4. Legitimate users won't fill it, but bots will
-
-**Example** (for manual submit API):
-```html
-<input type="text" name="website" style="display: none;" />
-```
-
-**Note**: If you're using the embed script, the honeypot field is automatically handled for you.
-
-## Integration Helper
-
-Click **Integrate** on a form to see ready-to-use code snippets for:
-
-### Embed Script (Recommended)
-- Single `<script>` tag embed code
-- Works with Figma Sites and static pages
-- No HTML form writing required
-
-### Manual Submit API
-- HTML form examples
-- JavaScript/AJAX submissions
-- Fetch API examples
-
-Copy and paste the code directly into your static site. See the [Integration Guide](./integration.md) for detailed instructions.
-
-## Deleting a Form
-
-1. Go to the **Forms** list page
-2. Find the form you want to delete
-3. Click the **trash icon** in the Actions column
-4. Confirm the deletion
-
-**Warning**: Deleting a form will permanently delete all fields and submissions associated with it. This action cannot be undone.
-
-## Form Best Practices
-
-- Use descriptive slugs that match the form's purpose
-- Use clear, descriptive labels for fields (internal keys are auto-generated)
-- Set up email notifications to stay informed of submissions
-- Always use honeypot fields for public-facing forms
-- Test your forms after integration
-- Monitor submissions regularly through the admin dashboard
-- Use validation rules to ensure data quality
-- Set appropriate character limits for text fields
-
-## Related Documentation
-
-- [Form Appearance & Behavior](./form-customization.md) - Theme customization and styling
-- [Email Notifications](./email-notifications.md) - Configure email alerts
-- [Integration Guide](./integration.md) - Add forms to your site
-- [Submissions](./submissions.md) - View and manage form submissions
+> [!CAUTION]
+> Deleting a form permanently removes its fields, its submissions, and any associated data. There is no undo.

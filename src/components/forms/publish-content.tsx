@@ -28,6 +28,7 @@ type PublishContentProps = {
   published: boolean;
   isPublishing: boolean;
   onPublishToggle: () => void;
+  publishDisabledReason?: string;
   form: {
     id: string;
     name: string;
@@ -49,6 +50,7 @@ export function PublishContent({
   published,
   isPublishing,
   onPublishToggle,
+  publishDisabledReason,
 }: PublishContentProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
   const hostedUrl = `${apiUrl}/f/${form.id}`;
@@ -110,23 +112,42 @@ export function PublishContent({
               </p>
             </div>
           </div>
-          <Button
-            variant={published ? "outline" : "default"}
-            size="sm"
-            disabled={isPublishing}
-            onClick={onPublishToggle}
-          >
-            {published ? (
-              <GlobeLock className="h-4 w-4" />
-            ) : (
-              <Globe className="h-4 w-4" />
-            )}
-            {isPublishing
-              ? "Updating..."
-              : published
-                ? "Unpublish"
-                : "Publish"}
-          </Button>
+          {!published && publishDisabledReason ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Publish
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{publishDisabledReason}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              variant={published ? "outline" : "default"}
+              size="sm"
+              disabled={isPublishing}
+              onClick={onPublishToggle}
+            >
+              {published ? (
+                <GlobeLock className="h-4 w-4" />
+              ) : (
+                <Globe className="h-4 w-4" />
+              )}
+              {isPublishing
+                ? "Updating..."
+                : published
+                  ? "Unpublish"
+                  : "Publish"}
+            </Button>
+          )}
         </CardContent>
       </Card>
 

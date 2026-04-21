@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { FieldsSection } from "@/components/forms/fields-section";
@@ -25,6 +26,7 @@ import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
 import { FormTabNav } from "@/components/forms/form-tab-nav";
 import { toggleFormPublished } from "@/actions/forms";
+import { getPlanErrorCode, PLAN_ERROR_CODES } from "@/lib/errors/plan-errors";
 import { toast } from "sonner";
 import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
 
@@ -63,7 +65,7 @@ type Submission = {
   createdAt: string;
   status: string;
   isSpam: boolean;
-  data: Record<string, unknown>;
+  preview: string;
 };
 
 type FormWorkspaceProps = {
@@ -73,9 +75,10 @@ type FormWorkspaceProps = {
   submissions?: Submission[];
   statusFilter?: string;
   spamFilter?: string;
+  publishDisabledReason?: string;
 };
 
-export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all" }: FormWorkspaceProps) {
+export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const activeTab =
@@ -93,6 +96,7 @@ export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], stat
         submissions={submissions}
         statusFilter={statusFilter}
         spamFilter={spamFilter}
+        publishDisabledReason={publishDisabledReason}
       />
     </FormProvider>
   );
@@ -106,9 +110,10 @@ type WorkspaceInnerProps = {
   submissions: Submission[];
   statusFilter: string;
   spamFilter: string;
+  publishDisabledReason?: string;
 };
 
-function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter }: WorkspaceInnerProps) {
+function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
   const { state, saveStatus, updateName } = useFormContext();
 
@@ -140,8 +145,20 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         await toggleFormPublished(form.id, next);
         setPublished(next);
         toast.success(next ? "Form published" : "Form unpublished");
-      } catch {
-        toast.error("Failed to update publish status");
+      } catch (error) {
+        const code = getPlanErrorCode(error);
+        if (code === PLAN_ERROR_CODES.MAX_PUBLISHED_FORMS_REACHED) {
+          toast.error(
+            publishDisabledReason ||
+              "You have reached your plan's published-form limit."
+          );
+        } else if (code === PLAN_ERROR_CODES.PLAN_RESOLUTION_REQUIRED) {
+          toast.error(
+            "Your plan changed. Choose which forms stay published first."
+          );
+        } else {
+          toast.error("Failed to update publish status");
+        }
       }
     });
   };
@@ -155,11 +172,16 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               {/* Left: back arrow + form name */}
               <div className="flex items-center gap-3 min-w-0">
-                <Link href="/forms">
-                  <Button variant="ghost" size="icon-sm" aria-label="Back to forms">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/forms">
+                      <Button variant="ghost" size="icon-sm" aria-label="Back to forms">
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Back to forms</TooltipContent>
+                </Tooltip>
 
                 <div className="min-w-0">
                   {editingName ? (
@@ -186,9 +208,14 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                     <h1 className="text-2xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
                       {state.name || form.name}
                       {editing && (
-                        <Button variant="ghost" size="icon-sm" onClick={() => setEditingName(true)} aria-label="Rename form">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" onClick={() => setEditingName(true)} aria-label="Rename form">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Rename form</TooltipContent>
+                        </Tooltip>
                       )}
                     </h1>
                   )}
@@ -244,6 +271,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                 published={published}
                 isPublishing={isPublishing}
                 onPublishToggle={handlePublishToggle}
+                publishDisabledReason={publishDisabledReason}
               />
             </div>
           </div>

@@ -94,3 +94,6 @@
 - Clear halo on blur/mouseLeave. Consider debounce so rapid hover across controls doesn’t flicker.
 
 **Future enhancement:** Multiple titled sections on the form
+
+
+draft - reminders for things that might be easily forgotten like notification email.

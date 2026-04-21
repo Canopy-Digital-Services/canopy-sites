@@ -11,9 +11,14 @@ export const dynamic = "force-dynamic";
 const GET_RATE_LIMIT = { max: 60, windowMs: 60 * 1000 };
 const POST_RATE_LIMIT = { max: 10, windowMs: 60 * 1000 };
 
-function jsonError(message: string, status: number, origin?: string | null) {
+function jsonError(
+  message: string,
+  status: number,
+  origin?: string | null,
+  code?: string
+) {
   return NextResponse.json(
-    { error: message },
+    code ? { error: message, code } : { error: message },
     {
       status,
       headers: {
@@ -50,6 +55,15 @@ export async function GET(
 
     if (!validateOrigin(origin, form.allowedOrigins, referer)) {
       return jsonError("Origin not allowed", 403, origin);
+    }
+
+    if (!form.published) {
+      return jsonError(
+        "This form is not currently accepting responses",
+        403,
+        origin,
+        "FORM_INACTIVE"
+      );
     }
 
     const clientIP = getClientIP(request);

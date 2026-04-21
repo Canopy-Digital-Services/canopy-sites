@@ -4,5 +4,8 @@ set -e
 echo "[canopy-forms] Running database migrations..."
 node ./node_modules/prisma/build/index.js migrate deploy
 
+echo "[canopy-forms] Running post-migration backfills..."
+node ./scripts/backfill-global-admin.mjs
+
 echo "[canopy-forms] Migrations complete. Starting application..."
 exec node server.js

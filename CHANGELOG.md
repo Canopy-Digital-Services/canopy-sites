@@ -5,6 +5,42 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0] - 2026-04-21
+
+### Added
+
+- **Account Plans & Entitlements (Epic 23)**: Licensing foundation with a plan catalog and a `maxPublishedForms` entitlement per plan
+  - New `Plan` table seeded with `FREE` (1), `HOSTING` (10), `PAID` (unlimited), and `UNLOCKED` (unlimited, operator-granted only; non-public). `HOSTING` and `PAID` are placeholders until billing ships
+  - `Account.planCode` FK defaulted to `FREE`; `Account.requiresPlanResolution` flag drives the blocking dialog
+  - `getAccountEntitlements` is the single source of truth for every plan check; publishing, admin UI, and operator console all funnel through it
+  - Publishing a form is gated: `toggleFormPublished` throws `PlanLimitError` when at cap, `PlanResolutionRequiredError` when mid-resolution. Unpublishing is never gated
+  - Operator console gains a Plan column and a Change-Plan modal (`ChangePlanButton`) with a destructive warning when a downgrade would exceed the account's current published-form count
+  - When a plan change drops the cap below the live count, `setAccountPlan` unpublishes all of the account's forms in a transaction and flips `requiresPlanResolution = true`
+  - Admin layout intercepts every route with `PlanResolutionDialog` when resolution is pending. User picks up to the new cap or chooses "Keep everything as draft"; `resolvePlan` republishes the selection and clears the flag atomically
+  - Account dashboard shows the current plan and a "Published forms: N of M" usage line
+  - Backfill grandfathers any existing account running more than 1 published form to `UNLOCKED` so the migration never retroactively locks anyone out
+  - Signup continues to create accounts on `FREE`; freshly seeded admin accounts default to `UNLOCKED`
+
+### Fixed
+
+- **Ingestion gate (Epic 23 prereq)**: `Form.published` now gates `/api/embed/[formId]` GET/POST and `/api/submit/[formId]` POST (previously only the hosted `/f/[formId]` page respected it). Unpublished forms return 403 with `{ error, code: "FORM_INACTIVE" }`; the embed script detects the code and renders a dedicated "Form Not Available" block matching the hosted page copy
+
+---
+
+## [4.10.0] - 2026-04-20
+
+### Added
+
+- **Notification Bell (Epic 22)**: Top-nav bell icon surfaces in-app notifications for events on the user's forms
+  - New submissions stack per form (count increments on each non-spam submission); click-through navigates to the form's submissions page
+  - Submission-limit hits fire once per form+type and dedupe via upsert (`LIMIT_MAX_REACHED`, `LIMIT_DEADLINE_REACHED`)
+  - Dismiss-on-interaction model: clicking a row (or "Clear all") deletes the notification permanently — no read/unread state, no history
+  - Badge count caps at "9+"; dropdown polls every 60s while the tab is visible and refetches on route change
+  - Bell fires independently of email notification settings (separate systems)
+  - New `Notification` table keyed on `@@unique([accountId, formId, type])`; cascades on Account or Form delete
+
+---
+
 ## [4.9.0] - 2026-03-04
 
 ### Added

@@ -18,7 +18,7 @@ type Submission = {
   createdAt: string;
   status: string;
   isSpam: boolean;
-  data: Record<string, unknown>;
+  preview: string;
 };
 
 type SubmissionsContentProps = {
@@ -60,13 +60,13 @@ export function SubmissionsContent({
     {
       key: "preview",
       header: "Preview",
-      cell: (s: Submission) => {
-        const preview = Object.entries(s.data)
-          .slice(0, 2)
-          .map(([key, value]) => `${key}: ${String(value).substring(0, 30)}`)
-          .join(", ");
-        return <span className="text-sm truncate max-w-md">{preview}</span>;
-      },
+      cell: (s: Submission) => (
+        <span className="text-sm truncate max-w-md">
+          {s.preview || (
+            <span className="text-muted-foreground">&mdash;</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "actions",

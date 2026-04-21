@@ -215,11 +215,7 @@ verticalAlign?: "top" | "center"          // Vertical position on page (default:
 
 Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx` and `form-preview.tsx` (unified preview component).
 
-Status-message colors are hardcoded in `embed/src/styles.ts` (not user-configurable):
-```typescript
-success: "#5FD48C"    // Highlight Green
-error:   "#FF6B5A"    // Pop Coral
-```
+Post-submission confirmation is a themed success card (`.canopy-success` in `embed/src/styles.ts`) that replaces the form: a circular checkmark icon filled with `--canopy-primary`, the configured `successMessage`, and a "Submit another response" button that re-renders the form. The inline status strip above the form is reserved for errors, which still use a fixed `#FF6B5A` since the theme has no dedicated error token.
 
 ### Appearance Editor Structure
 
@@ -658,6 +654,41 @@ Apply the footer hierarchy above when a destructive action may affect persisted 
 - If **data exists**: shows the count and offers a safe option (keep data) and a dangerous option (purge data), using the footer hierarchy above
 
 **Reference implementation:** `DeleteFieldDialog` (`src/components/delete-field-dialog.tsx`)
+
+### Blocking Layout Dialogs
+
+Some state transitions leave the account in a mode where piecemeal admin actions would be incoherent (for example, after a plan downgrade has unpublished every form and the user must pick which stay live). For these, render a **non-dismissible** dialog at the admin layout level so every admin route is intercepted until the user resolves the state.
+
+Rules for this pattern:
+
+- Mount the dialog from the admin `layout.tsx` server component based on a server-read flag; do not rely on client-side gating.
+- `Dialog open` is hard-coded; no `onOpenChange`. Pass `showCloseButton={false}`.
+- Block the Escape key and outside-click dismissal: `onEscapeKeyDown={(e) => e.preventDefault()}` and `onPointerDownOutside={(e) => e.preventDefault()}`.
+- Provide exactly two exits, both of which resolve the state. There is no "skip" that preserves the blocked state.
+- Keep the dialog self-contained: all data it needs comes from the layout as props. Do not fetch more inside the client component.
+
+**Reference implementation:** `PlanResolutionDialog` (`src/components/plan/plan-resolution-dialog.tsx`), mounted by `src/app/(admin)/layout.tsx` when `Account.requiresPlanResolution === true`.
+
+### Disabled Button Tooltips
+
+Radix's `Tooltip` does not fire on a button with `disabled` set because the browser skips pointer events. To keep a tooltip on a disabled action, wrap the button in a focusable `<span tabIndex={0}>` and use that as the trigger:
+
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <span tabIndex={0}>
+      <Button disabled aria-disabled="true">
+        Publish
+      </Button>
+    </span>
+  </TooltipTrigger>
+  <TooltipContent>Your Free plan allows 1 published form. Unpublish another form first.</TooltipContent>
+</Tooltip>
+```
+
+Use this only when the disabled state has a specific reason the user needs to see. For always-disabled (loading, in-flight) states, no tooltip is needed.
+
+**Reference implementation:** `PublishContent` (`src/components/forms/publish-content.tsx`) when the account is at its `maxPublishedForms` cap.
 
 ---
 
@@ -1115,6 +1146,7 @@ import { UserMenu } from "@/components/patterns/user-menu";
 - **Desktop (md+)**: Horizontal nav bar (h-14, border-b, bg-muted/40). Logo left, nav items beside it, user menu right.
 - **Mobile (<md)**: Logo left, hamburger button right. Hamburger opens a left-sliding Sheet drawer containing logo, nav items, and user menu.
 - **Main content**: `flex-1 min-h-0 flex flex-col overflow-auto`. Each page adds its own spacing via `PageContent` or `EditorLayout`.
+- **`logo` renders in both places**: The `logo` slot is rendered in the desktop header *and* the mobile drawer. Anything you put in `logo` (links, icon buttons, etc.) automatically appears in both — no need to handle mobile separately.
 
 **Accessibility**:
 - Hamburger button includes `aria-label="Open navigation menu"` and a tooltip
@@ -1139,7 +1171,11 @@ export default function SomePage() {
 }
 ```
 
-Provides `p-4 md:p-6` padding and `max-w-5xl mx-auto` centering. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
+Provides `p-4 md:p-6` padding and a centered max-width container. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
+
+**Width variants** (via the `width` prop):
+- `"default"` (omit or pass `width="default"`): `max-w-5xl` (1024px). Use for standard pages: account settings, forms list, submission detail.
+- `"wide"`: `max-w-7xl` (1280px). Use for pages with wide data tables that would otherwise overflow (e.g. the operator Accounts table, which has 8 columns).
 
 **Do not** wrap the form editor (`/forms/[formId]`) in `PageContent` — `FormWorkspace` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
 

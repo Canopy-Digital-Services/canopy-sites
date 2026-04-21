@@ -1,95 +1,46 @@
-# Getting Started with Canopy Forms
+---
+title: Welcome to Canopy Forms
+description: A forms platform for static sites — build in the dashboard, embed or share, watch submissions flow back.
+icon: Home
+---
 
-Welcome to Canopy Forms v3, a complete SaaS forms management platform designed for static websites. Canopy Forms provides a full solution for creating, managing, and collecting form submissions without requiring server-side code on your static site.
+Canopy Forms is a forms platform for static sites. Build a form in the dashboard, drop a two-line embed snippet into your page (or share a hosted link), and submissions flow back to your dashboard.
 
-## What is Canopy Forms?
+> [!NOTE]
+> Canopy Forms is currently in **Beta**. Core features are stable; if you run into anything unexpected, see [Troubleshooting](./troubleshooting.md).
 
-Canopy Forms is a forms management platform with:
+## What's included
 
-- **Form Builder UI** - Create and edit forms with field management, validation rules, and theming
-- **Admin Interface** - Web application for managing forms, fields, and submissions
-- **Operator Console** - Platform operator interface for account management with privacy-first design (v3.0.0+)
-- **Script-Based Embeds** - Single `<script>` tag form rendering, no manual HTML needed
-- **Submission Management** - View, organize, and export form submissions (CSV and JSON)
-- **Email Notifications** - Automatic alerts for new submissions with per-form toggles (v2.5.0+)
-- **Account Management** - Self-service signup, login, and password reset (v2.2.0+)
-- **Theme System** - Customize colors, fonts, and styling per form
-- **Spam Protection** - Honeypot fields and IP-based rate limiting
-- **Origin Validation** - Domain-based security to prevent unauthorized submissions
+- **Form builder** with 11 field types, validation, and help text
+- **Theming** for colors, fonts, spacing, and hosted-page layout
+- **Embed snippet** for any static site, or a **hosted form page** at `forms.canopyds.com/f/<form-id>`
+- **Allowed origins** per form to control where submissions can come from
+- **Email notifications** to up to 5 recipients per form, with spam filtering
+- **Submissions dashboard** with status, spam filters, CSV / JSON export
+- **Submission limits** by deadline or total count
 
-**Platform URL**: https://forms.canopyds.com
+## Quick start
 
-**Status**: v3.0.0 - Production-ready platform with all planned features implemented
+1. Sign up at `forms.canopyds.com`, then log in.
+2. Click **Create Form**, name it, and you'll land in the form workspace.
+3. On the **Edit** tab, open the **Fields** section and add the fields you need.
+4. Open **Appearance** to match your site's brand.
+5. Open **Submission Settings** to choose what happens after submission and turn on email notifications.
+6. Switch to the **Publish** tab:
+   - Add your site's domain under **Allowed Origins** (you can also rely on the hosted page and skip this).
+   - Click **Publish**.
+   - Copy the embed snippet (or the hosted-form link).
+7. Paste the embed snippet into your site, or share the hosted link directly.
+8. Submit a test entry, then check the **Submissions** tab to confirm it arrived.
 
-## Key Concepts
+## Key concepts
 
-### Account
+**Form.** A single form you can embed or host. It holds its own fields, theme, allowed origins, submission settings, and submissions.
 
-An **Account** is an internal construct that represents a user's workspace. Each account:
-- Is created automatically when you sign up
-- Contains all your forms and submissions
-- Is not directly exposed in the UI (it's a behind-the-scenes organizational unit)
-- In v3, exactly one user per account
+**Field.** One input on a form. Each field has a type (Text, Email, Dropdown, etc.), a label, and optional validation. An internal key is auto-generated from the label; that key stays stable even if you rename the field later.
 
-### User
+**Submission.** One filled-in form entry. Submissions carry the field values plus metadata (timestamp, origin, referrer, hashed IP) and a status (New, Read, or Archived).
 
-A **User** is your authenticated identity:
-- Authenticated via email + password
-- Owns exactly one account
-- Can create multiple forms
-- Has login telemetry tracked for security (last login, failed attempts)
+**Allowed Origin.** A domain that's authorized to submit to this form. Configured on the Publish tab. Localhost is always allowed for development.
 
-### Forms
-
-A **Form** is a specific form that can be embedded on your website. Each form has:
-- A unique slug (URL-friendly identifier, auto-generated from the form name)
-- A unique form ID used in the API endpoints
-- Field definitions (added via the field builder)
-- Success behavior (inline message or redirect URL)
-- Theme customization (colors, fonts, spacing)
-- Allowed origins for security (configure which domains can submit to this form)
-- Optional email notification settings
-- Optional honeypot field for spam protection
-- Multiple submissions
-
-### Submissions
-
-A **Submission** is a single form submission containing:
-- The form data as JSON
-- Metadata (IP hash, user agent, referrer, origin)
-- Status (NEW, READ, ARCHIVED)
-- Spam flag
-
-## Quick Start
-
-1. **Sign Up** - Create your account at the platform URL
-2. **Create a Form** - Enter a form name and create your first form
-3. **Add Fields** - Use the field builder to configure form fields, validation, and styling
-4. **Configure Success Behavior** - Set up success messages or redirect URLs
-5. **Configure Allowed Origins** - On the Publish tab, add the domains that can submit to this form (localhost is always allowed for development)
-6. **Get Embed Code** - Copy the script embed code from the Publish tab (or use the manual submit endpoint)
-7. **Add to Your Website** - Paste the embed script or integrate your HTML form
-8. **Test & View** - Submit a test form and view it in the admin dashboard
-
-## Integration Options
-
-**Embed Script (Recommended)**
-- Single `<script>` tag - no HTML form writing required
-- Automatic rendering, validation, and submission
-- Built-in styling with theme customization
-- Perfect for Figma Sites and static pages
-
-**Manual Submit API (Advanced)**
-- Manual HTML forms with JavaScript
-- Direct POST to `/api/submit/{formId}`
-- Full control over form HTML and styling
-
-## Next Steps
-
-- Learn about [Authentication & Account Management](./authentication.md)
-- [Create and manage Forms](./forms.md)
-- [Integrate forms with your site](./integration.md)
-- [View and export Submissions](./submissions.md)
-- [Configure email notifications](./email-notifications.md)
-
-Ready to get started? Check out the detailed guides in the documentation cards below.
+**Published vs. Draft.** Only published forms accept submissions and serve a hosted page. A draft form still renders in your dashboard preview so you can iterate before going live.

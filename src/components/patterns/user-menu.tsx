@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Settings, LogOut, BookOpen } from "lucide-react";
+import { Settings, LogOut, BookOpen, Shield } from "lucide-react";
 import { signOutAction } from "@/actions/auth";
 import {
   DropdownMenu,
@@ -22,9 +22,10 @@ function getInitials(email: string | null | undefined): string {
 
 type UserMenuProps = {
   email: string | null | undefined;
+  isGlobalAdmin?: boolean;
 };
 
-export function UserMenu({ email }: UserMenuProps) {
+export function UserMenu({ email, isGlobalAdmin = false }: UserMenuProps) {
   const initials = getInitials(email);
 
   return (
@@ -46,6 +47,14 @@ export function UserMenu({ email }: UserMenuProps) {
             <DropdownMenuSeparator />
           </>
         ) : null}
+        {isGlobalAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/operator/accounts">
+              <Shield className="h-4 w-4" />
+              Operator Console
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/account">
             <Settings className="h-4 w-4" />

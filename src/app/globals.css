@@ -105,3 +105,49 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* Documentation prose: heading anchors, code-highlighting, and small tweaks
+ * that don't fit cleanly into component className props. */
+.docs-prose :where(h1, h2, h3, h4) {
+  scroll-margin-top: 5rem;
+  position: relative;
+}
+
+.docs-prose :where(h2, h3, h4) .heading-anchor {
+  color: var(--muted-foreground);
+  opacity: 0;
+  margin-left: 0.375rem;
+  font-weight: 400;
+  transition: opacity 150ms ease;
+  text-decoration: none;
+}
+
+.docs-prose :where(h2, h3, h4):hover .heading-anchor,
+.docs-prose :where(h2, h3, h4) .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+.docs-prose :where(h2, h3, h4) .heading-anchor:hover {
+  color: var(--primary);
+}
+
+/* Syntax highlighting — rehype-pretty-code emits inline styles on token spans.
+ * Tokens inherit color from their style attribute; we only tweak spacing and
+ * line numbers for long code blocks. */
+.docs-prose pre code {
+  display: grid;
+  counter-reset: line;
+}
+
+.docs-prose pre code [data-line] {
+  padding: 0 0.25rem;
+  min-height: 1.25rem;
+}
+
+.docs-prose pre [data-highlighted-line] {
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+  border-left: 2px solid var(--primary);
+  margin-left: -0.25rem;
+  padding-left: calc(0.25rem - 2px);
+}
+

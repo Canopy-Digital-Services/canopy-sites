@@ -21,9 +21,19 @@ import { useToast } from "@/hooks/use-toast";
 
 type AccountDashboardProps = {
   email: string;
+  planDisplayName: string;
+  publishedFormsCount: number;
+  maxPublishedForms: number | null;
+  totalFormsCount: number;
 };
 
-export function AccountDashboard({ email }: AccountDashboardProps) {
+export function AccountDashboard({
+  email,
+  planDisplayName,
+  publishedFormsCount,
+  maxPublishedForms,
+  totalFormsCount,
+}: AccountDashboardProps) {
   return (
     <div className="max-w-[640px] mx-auto space-y-6">
       <PageHeader
@@ -31,6 +41,12 @@ export function AccountDashboard({ email }: AccountDashboardProps) {
         description="Manage your account settings"
       />
       <EmailSection email={email} />
+      <PlanSection
+        planDisplayName={planDisplayName}
+        publishedFormsCount={publishedFormsCount}
+        maxPublishedForms={maxPublishedForms}
+        totalFormsCount={totalFormsCount}
+      />
       <PasswordSection />
       <DeleteAccountSection />
     </div>
@@ -48,6 +64,47 @@ function EmailSection({ email }: { email: string }) {
       </CardHeader>
       <CardContent>
         <p className="text-sm">{email}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanSection({
+  planDisplayName,
+  publishedFormsCount,
+  maxPublishedForms,
+  totalFormsCount,
+}: {
+  planDisplayName: string;
+  publishedFormsCount: number;
+  maxPublishedForms: number | null;
+  totalFormsCount: number;
+}) {
+  const cap =
+    maxPublishedForms === null ? "unlimited" : String(maxPublishedForms);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Plan</CardTitle>
+        <CardDescription>
+          Your current plan and usage.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-sm">
+          <span className="text-muted-foreground">Plan:</span>{" "}
+          <span className="font-medium">{planDisplayName}</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-muted-foreground">Published forms:</span>{" "}
+          <span className="font-medium">
+            {publishedFormsCount} of {cap}
+          </span>
+        </p>
+        <p className="text-sm">
+          <span className="text-muted-foreground">Total forms:</span>{" "}
+          <span className="font-medium">{totalFormsCount}</span>
+        </p>
       </CardContent>
     </Card>
   );

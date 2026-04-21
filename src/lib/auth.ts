@@ -65,6 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id,
           email: user.email,
+          role: user.roleCode,
           rememberMe: credentials.rememberMe === "true",
         };
       },
@@ -95,6 +96,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         token.id = user.id!;
         token.email = user.email;
+        token.role = (user as { role?: string }).role ?? "USER";
         token.rememberMe = remember;
         token.sessionIssuedAt = now;
         token.expiresAt = now + idleTimeout;
@@ -158,10 +160,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.id) {
         session.user.id = token.id;
         session.user.email = token.email as string;
+        session.user.role = token.role ?? "USER";
       } else {
         // Token expired: clear user identity so requireAuth catches it
         session.user.id = "";
         session.user.email = "";
+        session.user.role = "USER";
       }
       return session;
     },
@@ -172,6 +176,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 function expireToken(token: JWT): JWT {
   delete (token as Partial<JWT>).id;
   delete token.email;
+  delete token.role;
   delete token.rememberMe;
   delete token.sessionIssuedAt;
   delete token.expiresAt;

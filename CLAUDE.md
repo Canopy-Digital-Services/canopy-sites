@@ -59,6 +59,7 @@ After completing substantive work, check whether your changes affect documentati
 - **Embed theme/behavior changes** → update embed sections in `docs/UX_PATTERNS.md`.
 - **New npm scripts or dependencies** → update `docs/AGENT_CONTEXT.md` section 3.
 - **Coolify/Docker/infra changes** → update `docs/PRISMA_MIGRATIONS.md`.
+- **User-visible feature or flow changes** → review `content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `content/docs/meta.ts` if the feature has no existing home.
 - **Epic completion or version bump** → follow the release checklist in `docs/AGENT_CONTEXT.md` section 9.
 
 Before committing, run the applicable checks in `docs/VERIFICATION_CHECKLIST.md`.

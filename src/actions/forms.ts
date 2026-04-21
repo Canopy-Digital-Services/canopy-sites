@@ -10,6 +10,12 @@ import { prisma } from "@/lib/db";
 import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
 import { FieldType, Prisma } from "@prisma/client";
 import { getOwnedFormMinimal } from "@/lib/data-access/forms";
+import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import {
+  PLAN_ERROR_CODES,
+  PlanLimitError,
+  PlanResolutionRequiredError,
+} from "@/lib/errors/plan-errors";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
 
@@ -389,7 +395,25 @@ export async function updateFormAppearance(
 
 export async function toggleFormPublished(formId: string, published: boolean) {
   const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const form = await getOwnedFormMinimal(formId, accountId);
+
+  // Unpublishing is always allowed; it releases a slot and cannot violate a
+  // plan limit. Re-publishing an already-published form is also a no-op.
+  if (published && !form.published) {
+    const entitlements = await getAccountEntitlements(accountId);
+
+    if (entitlements.requiresPlanResolution) {
+      throw new PlanResolutionRequiredError();
+    }
+
+    if (!entitlements.canPublishAnother) {
+      throw new PlanLimitError({
+        code: PLAN_ERROR_CODES.MAX_PUBLISHED_FORMS_REACHED,
+        planCode: entitlements.planCode,
+        maxPublishedForms: entitlements.maxPublishedForms,
+      });
+    }
+  }
 
   await prisma.form.update({
     where: { id: formId },

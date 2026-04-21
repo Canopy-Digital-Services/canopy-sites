@@ -39,7 +39,7 @@ All relationships use `onDelete: Cascade`. Deleting an Account cascades through 
 | File | Purpose |
 |------|---------|
 | `src/lib/auth.ts` | NextAuth config: providers, JWT callbacks, session policy |
-| `src/lib/auth-utils.ts` | `requireAuth()`, `getCurrentAccountId()`, `requireOperator()` |
+| `src/lib/auth-utils.ts` | `requireAuth()`, `getCurrentAccountId()`, `requireGlobalAdmin()` |
 | `src/actions/auth.ts` | Server actions: signup, login, password change/reset, signout |
 | `src/actions/accounts.ts` | Server actions: account deletion (self-service and operator) |
 | `src/lib/data-access/accounts.ts` | Operator console queries (metadata only) |
@@ -217,13 +217,48 @@ The operator cannot delete their own account (guard in server action).
 ## Operator Account Management
 
 **Route:** `/operator/accounts`
-**Guard:** `requireOperator()` checks `session.user.email` against `ADMIN_EMAIL` env var
+**Guard:** `requireGlobalAdmin()` checks `session.user.role === "GLOBAL_ADMIN"`
 
 The operator console shows metadata only:
-- Email, created date, last login, form count, submission count
+- Email, created date, last login, form count, submission count, plan, role
 - No form content, submission data, or field definitions are ever exposed
 
-Non-operators are silently redirected to `/forms`.
+Non-admins are silently redirected to `/forms`.
+
+### Role system
+
+User roles live in the `roles` catalog table (Epic 24). `User.roleCode` is a
+FK to `Role.code`. Two roles ship today:
+
+| code           | purpose |
+|----------------|---------|
+| `USER`         | Default for every signup. No operator access. |
+| `GLOBAL_ADMIN` | Full operator-console access. Grants `UNLOCKED` plan automatically at promotion. |
+
+Role changes are made via the operator console (`Change Role` action). The
+acting admin cannot change their own role, and the system refuses to demote
+or delete the last remaining Global Admin.
+
+A role change takes effect on the affected user's **next login**. The
+session JWT carries the `role` claim and is not re-read from the database
+on every request.
+
+### `ADMIN_EMAIL` is bootstrap-only
+
+`ADMIN_EMAIL` is no longer consulted at auth-check time. It is used in two
+places:
+
+1. `prisma/seed.ts` — the seed script creates the initial admin user with
+   `roleCode = "GLOBAL_ADMIN"` and `planCode = "UNLOCKED"`.
+2. `scripts/backfill-global-admin.mjs` — runs on every container boot after
+   `prisma migrate deploy`. Idempotently promotes the user matching
+   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN` on the `UNLOCKED` plan.
+   If `ADMIN_EMAIL` is unset or no user matches, logs a notice and exits
+   cleanly.
+
+Once at least one Global Admin exists in the database, `ADMIN_EMAIL` can be
+removed from the deployment env with no functional impact. It stays
+documented as optional.
 
 ---
 
