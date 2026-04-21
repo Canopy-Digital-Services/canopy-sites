@@ -1,13 +1,21 @@
 import { listAccountsMetadata } from "@/lib/data-access/accounts";
+import { listPlans } from "@/lib/data-access/plans";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import { DeleteAccountButton } from "./delete-account-button";
+import { ChangePlanButton } from "./change-plan-button";
 
 export default async function AccountsPage() {
   const accounts = await listAccountsMetadata();
+  const plans = await listPlans();
+  const planOptions = plans.map((p) => ({
+    code: p.code,
+    displayName: p.displayName,
+    maxPublishedForms: p.maxPublishedForms,
+  }));
 
   const columns = [
     {
@@ -41,7 +49,9 @@ export default async function AccountsPage() {
       key: "formsCount",
       header: "Forms",
       cell: (account: typeof accounts[0]) => (
-        <Badge variant="secondary">{account.formsCount}</Badge>
+        <Badge variant="secondary">
+          {account.publishedFormsCount}/{account.formsCount}
+        </Badge>
       ),
     },
     {
@@ -52,13 +62,36 @@ export default async function AccountsPage() {
       ),
     },
     {
+      key: "plan",
+      header: "Plan",
+      cell: (account: typeof accounts[0]) => (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{account.planDisplayName}</Badge>
+          {account.requiresPlanResolution && (
+            <span className="text-xs text-muted-foreground">
+              (resolution pending)
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "actions",
       header: "Actions",
       cell: (account: typeof accounts[0]) => (
-        <DeleteAccountButton
-          accountId={account.id}
-          email={account.email}
-        />
+        <div className="flex items-center gap-1">
+          <ChangePlanButton
+            accountId={account.id}
+            email={account.email}
+            currentPlanCode={account.planCode}
+            currentPublishedFormsCount={account.publishedFormsCount}
+            plans={planOptions}
+          />
+          <DeleteAccountButton
+            accountId={account.id}
+            email={account.email}
+          />
+        </div>
       ),
     },
   ];
