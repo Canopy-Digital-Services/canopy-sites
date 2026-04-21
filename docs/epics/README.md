@@ -21,5 +21,6 @@
 | [Epic 18: Hosted Forms](epic-18-hosted-forms.md) | v4.8.0 | 2026-03-04 | ✅ Complete |
 | [Epic 19: Appearance Editor Refactor](epic-19-appearance-editor-refactor.md) | v4.9.0 | 2026-03-04 | ✅ Complete |
 | [Epic 22: Notification Bell (MVP)](epic-22-notification-bell.md) | v4.10.0 | 2026-04-20 | ✅ Complete |
+| [Epic 23: Account Plans & Entitlements](epic-23-account-plans-and-entitlements.md) | v4.11.0 | 2026-04-21 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

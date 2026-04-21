@@ -1,8 +1,8 @@
 # Epic 23: Account Plans & Entitlements
 
-**Version:** v4.11.0 (proposed)
-**Date:** TBD
-**Status:** Planned
+**Version:** v4.11.0
+**Date:** 2026-04-21
+**Status:** Complete
 
 ## Summary
 
