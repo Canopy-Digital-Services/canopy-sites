@@ -51,7 +51,10 @@ export default async function AdminLayout({
         userMenu={
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <UserMenu email={session.user?.email} />
+            <UserMenu
+              email={session.user?.email}
+              isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
+            />
           </div>
         }
       >

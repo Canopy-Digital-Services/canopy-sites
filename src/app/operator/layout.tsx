@@ -1,4 +1,4 @@
-import { requireOperator } from "@/lib/auth-utils";
+import { requireGlobalAdmin } from "@/lib/auth-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
@@ -10,7 +10,7 @@ export default async function OperatorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireOperator();
+  const session = await requireGlobalAdmin();
 
   const logo = (
     <span className="text-sm font-heading font-semibold">Operator Console</span>
@@ -29,7 +29,12 @@ export default async function OperatorLayout({
     <TopNavLayout
       logo={logo}
       navItems={navItems}
-      userMenu={<UserMenu email={session.user?.email} />}
+      userMenu={
+        <UserMenu
+          email={session.user?.email}
+          isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
+        />
+      }
     >
       {children}
     </TopNavLayout>
