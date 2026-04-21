@@ -1,12 +1,12 @@
 "use server";
 
 /**
- * Operator-gated plan management. Every action here runs through
- * requireOperator so non-operators cannot change anyone's plan.
+ * Global-Admin-gated plan management. Every action here runs through
+ * requireGlobalAdmin so non-admins cannot change anyone's plan.
  */
 
 import { prisma } from "@/lib/db";
-import { requireOperator } from "@/lib/auth-utils";
+import { requireGlobalAdmin } from "@/lib/auth-utils";
 import { getPlan } from "@/lib/data-access/plans";
 import { revalidatePath } from "next/cache";
 
@@ -27,7 +27,7 @@ export async function setAccountPlan(
   unpublishedCount: number;
   resolutionRequired: boolean;
 }> {
-  const session = await requireOperator();
+  const session = await requireGlobalAdmin();
   const actorEmail = session.user?.email ?? "unknown";
 
   const plan = await getPlan(planCode);

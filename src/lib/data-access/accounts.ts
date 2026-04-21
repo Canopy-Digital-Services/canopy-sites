@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 export type AccountMetadata = {
   id: string;
   createdAt: Date;
+  userId: string;
   email: string;
   lastLoginAt: Date | null;
   formsCount: number;
@@ -14,6 +15,8 @@ export type AccountMetadata = {
   planCode: string;
   planDisplayName: string;
   requiresPlanResolution: boolean;
+  roleCode: string;
+  roleDisplayName: string;
 };
 
 /**
@@ -36,8 +39,13 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
       },
       user: {
         select: {
+          id: true,
           email: true,
           lastLoginAt: true,
+          roleCode: true,
+          role: {
+            select: { displayName: true },
+          },
         },
       },
       _count: {
@@ -96,6 +104,7 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
   return accounts.map((account) => ({
     id: account.id,
     createdAt: account.createdAt,
+    userId: account.user?.id ?? "",
     email: account.user?.email ?? "Unknown",
     lastLoginAt: account.user?.lastLoginAt ?? null,
     formsCount: account._count.forms,
@@ -104,6 +113,8 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
     planCode: account.planCode,
     planDisplayName: account.plan.displayName,
     requiresPlanResolution: account.requiresPlanResolution,
+    roleCode: account.user?.roleCode ?? "USER",
+    roleDisplayName: account.user?.role.displayName ?? "User",
   }));
 }
 
