@@ -29,6 +29,13 @@ type FieldElement = {
 
 let instanceCounter = 0;
 
+class InactiveFormError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InactiveFormError";
+  }
+}
+
 export class CanopyForm {
   private container: HTMLElement;
   private options: FormOptions;
@@ -52,6 +59,10 @@ export class CanopyForm {
       this.render(definition);
     } catch (error) {
       console.error(error);
+      if (error instanceof InactiveFormError) {
+        this.renderInactive();
+        return;
+      }
       this.renderError("Unable to load form. Please try again later.");
     }
   }
@@ -71,6 +82,18 @@ export class CanopyForm {
     );
 
     if (!response.ok) {
+      if (response.status === 403) {
+        try {
+          const payload = await response.json();
+          if (payload?.code === "FORM_INACTIVE") {
+            throw new InactiveFormError(payload.error || "Form is inactive");
+          }
+        } catch (parseError) {
+          if (parseError instanceof InactiveFormError) {
+            throw parseError;
+          }
+        }
+      }
       throw new Error("Failed to load form definition");
     }
 
@@ -1098,5 +1121,25 @@ export class CanopyForm {
     status.className = "canopy-status canopy-status-error";
     status.textContent = message;
     this.container.appendChild(status);
+  }
+
+  private renderInactive() {
+    this.container.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "canopy-inactive";
+    wrap.setAttribute("role", "status");
+
+    const heading = document.createElement("h2");
+    heading.className = "canopy-inactive-heading";
+    heading.textContent = "Form Not Available";
+    wrap.appendChild(heading);
+
+    const body = document.createElement("p");
+    body.className = "canopy-inactive-body";
+    body.textContent =
+      "This form is not currently accepting responses. Please contact the form owner if you believe this is an error.";
+    wrap.appendChild(body);
+
+    this.container.appendChild(wrap);
   }
 }

@@ -176,6 +176,33 @@ export const baseStyles = `
   color: #FF6B5A;
 }
 
+.canopy-inactive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--canopy-text, #18181b);
+}
+
+.canopy-inactive-heading {
+  margin: 0;
+  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--canopy-title-color, var(--canopy-text, #18181b));
+}
+
+.canopy-inactive-body {
+  margin: 0;
+  max-width: 360px;
+  color: var(--canopy-muted-text, #71717a);
+  font-size: var(--canopy-font-size, 14px);
+  line-height: 1.5;
+}
+
 .canopy-success {
   display: flex;
   flex-direction: column;

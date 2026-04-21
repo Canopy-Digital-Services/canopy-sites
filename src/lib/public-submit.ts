@@ -501,6 +501,18 @@ export async function handlePublicSubmit({
     return jsonResponse({ error: "Form not found" }, 404, origin, allowMethods);
   }
 
+  if (!form.published) {
+    return jsonResponse(
+      {
+        error: "This form is not currently accepting responses",
+        code: "FORM_INACTIVE",
+      },
+      403,
+      origin,
+      allowMethods
+    );
+  }
+
   if (!validateOrigin(origin, form.allowedOrigins, referer)) {
     return jsonResponse(
       { error: "Origin not allowed" },
