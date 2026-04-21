@@ -68,31 +68,16 @@ export async function getCurrentAccountId(): Promise<string> {
 }
 
 /**
- * Get the current session and verify user is the platform operator
- * Redirects to /forms if not operator
+ * Get the current session and verify the user holds the GLOBAL_ADMIN role.
+ * Redirects to /forms if not. The role claim is read from the session JWT;
+ * a role change takes effect on the affected user's next login.
  */
-export async function requireOperator() {
+export async function requireGlobalAdmin() {
   const session = await requireAuth();
-  
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const userEmail = session.user.email?.trim().toLowerCase();
-  
-  if (!adminEmail) {
-    console.error("ADMIN_EMAIL environment variable is not set");
+
+  if (session.user.role !== "GLOBAL_ADMIN") {
     redirect("/forms");
   }
-  
-  if (userEmail !== adminEmail) {
-    // Log for debugging (only in development)
-    if (process.env.NODE_ENV === "development") {
-      console.log("Operator check failed:", {
-        userEmail,
-        adminEmail,
-        match: userEmail === adminEmail,
-      });
-    }
-    redirect("/forms");
-  }
-  
+
   return session;
 }
