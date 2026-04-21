@@ -9,7 +9,11 @@ export type AccountMetadata = {
   email: string;
   lastLoginAt: Date | null;
   formsCount: number;
+  publishedFormsCount: number;
   submissionsCount: number;
+  planCode: string;
+  planDisplayName: string;
+  requiresPlanResolution: boolean;
 };
 
 /**
@@ -18,11 +22,18 @@ export type AccountMetadata = {
  * Returns counts via aggregation queries.
  */
 export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
-  // Get accounts with user info and form counts
+  // Get accounts with user info, plan info, and form counts
   const accounts = await prisma.account.findMany({
     select: {
       id: true,
       createdAt: true,
+      planCode: true,
+      requiresPlanResolution: true,
+      plan: {
+        select: {
+          displayName: true,
+        },
+      },
       user: {
         select: {
           email: true,
@@ -37,6 +48,19 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // Count published forms per account in a single grouped query
+  const publishedCounts = await prisma.form.groupBy({
+    by: ["accountId"],
+    _count: true,
+    where: {
+      accountId: { in: accounts.map((a) => a.id) },
+      published: true,
+    },
+  });
+  const publishedCountMap = new Map(
+    publishedCounts.map((pc) => [pc.accountId, pc._count])
+  );
 
   // Get submission counts for all accounts in one query
   const submissionCounts = await prisma.submission.groupBy({
@@ -75,7 +99,11 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
     email: account.user?.email ?? "Unknown",
     lastLoginAt: account.user?.lastLoginAt ?? null,
     formsCount: account._count.forms,
+    publishedFormsCount: publishedCountMap.get(account.id) ?? 0,
     submissionsCount: accountSubmissionCounts.get(account.id) ?? 0,
+    planCode: account.planCode,
+    planDisplayName: account.plan.displayName,
+    requiresPlanResolution: account.requiresPlanResolution,
   }));
 }
 
