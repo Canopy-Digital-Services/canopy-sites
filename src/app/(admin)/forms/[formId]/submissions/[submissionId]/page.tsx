@@ -72,12 +72,26 @@ export default async function SubmissionDetailPage({
     notFound();
   }
 
-  // Build field type/options map for composite value formatting
+  // Build field lookup map (label, type, options) for pretty rendering
   const fieldMap = new Map(
-    form.fields.map((f) => [f.name, { type: f.type, options: f.options }])
+    form.fields.map((f) => [
+      f.name,
+      { label: f.label, type: f.type, options: f.options },
+    ])
   );
 
   const data = submission.data as Record<string, unknown>;
+
+  // Display entries in the form's current field order, then append any
+  // orphan keys (from fields that have since been removed from the form).
+  const orderedFieldNames = [...form.fields]
+    .sort((a, b) => a.order - b.order)
+    .map((f) => f.name);
+  const orphanKeys = Object.keys(data).filter((k) => !fieldMap.has(k));
+  const displayKeys = [
+    ...orderedFieldNames.filter((name) => name in data),
+    ...orphanKeys,
+  ];
   const meta = submission.meta as {
     ipHash?: string;
     userAgent?: string;
@@ -110,32 +124,33 @@ export default async function SubmissionDetailPage({
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {Object.entries(data).map(([key, value]) => (
-              <div key={key}>
-                <div className="text-sm font-medium text-muted-foreground">
-                  {key}
-                </div>
-                <div className="text-sm mt-1">
-                  {typeof value === "boolean"
-                    ? value ? "Yes" : "No"
-                    : Array.isArray(value)
-                    ? (value as string[]).join(", ")
-                    : typeof value === "object" && value !== null
-                    ? (() => {
-                        const fieldInfo = fieldMap.get(key);
-                        if (fieldInfo && isCompositeFieldType(fieldInfo.type)) {
-                          return formatCompositeValue(
+            {displayKeys.map((key) => {
+              const value = data[key];
+              const fieldInfo = fieldMap.get(key);
+              const label = fieldInfo?.label || key;
+              return (
+                <div key={key}>
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {label}
+                  </div>
+                  <div className="text-sm mt-1">
+                    {typeof value === "boolean"
+                      ? value ? "Yes" : "No"
+                      : Array.isArray(value)
+                      ? (value as string[]).join(", ")
+                      : typeof value === "object" && value !== null
+                      ? fieldInfo && isCompositeFieldType(fieldInfo.type)
+                        ? formatCompositeValue(
                             fieldInfo.type,
                             value as Record<string, unknown>,
                             fieldInfo.options
-                          );
-                        }
-                        return JSON.stringify(value, null, 2);
-                      })()
-                    : String(value)}
+                          )
+                        : JSON.stringify(value, null, 2)
+                      : String(value)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

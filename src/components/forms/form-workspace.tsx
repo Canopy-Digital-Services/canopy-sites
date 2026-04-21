@@ -64,7 +64,7 @@ type Submission = {
   createdAt: string;
   status: string;
   isSpam: boolean;
-  data: Record<string, unknown>;
+  preview: string;
 };
 
 type FormWorkspaceProps = {

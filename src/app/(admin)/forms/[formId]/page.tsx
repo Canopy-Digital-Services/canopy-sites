@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FormWorkspace } from "@/components/forms/form-workspace";
 import { prisma } from "@/lib/db";
 import { SubmissionStatus } from "@prisma/client";
+import { buildSubmissionPreview } from "@/lib/submission-preview";
 
 export default async function FormViewRoute({
   params,
@@ -38,7 +39,7 @@ export default async function FormViewRoute({
     createdAt: string;
     status: string;
     isSpam: boolean;
-    data: Record<string, unknown>;
+    preview: string;
   }> = [];
 
   if (mode === "submissions") {
@@ -57,12 +58,21 @@ export default async function FormViewRoute({
       take: 50,
     });
 
+    const previewFields = form.fields.map((f) => ({
+      name: f.name,
+      type: f.type,
+      options: f.options,
+    }));
+
     submissions = raw.map((s) => ({
       id: s.id,
       createdAt: s.createdAt.toISOString(),
       status: s.status,
       isSpam: s.isSpam,
-      data: s.data as Record<string, unknown>,
+      preview: buildSubmissionPreview(
+        previewFields,
+        s.data as Record<string, unknown>
+      ),
     }));
   }
 
