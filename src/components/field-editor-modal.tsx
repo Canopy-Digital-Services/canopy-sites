@@ -64,8 +64,8 @@ export function FieldEditorModal({
   onSave,
   field,
 }: FieldEditorModalProps) {
-  const [type, setType] = useState<FieldType>(
-    (field?.type as FieldType) ?? "TEXT"
+  const [type, setType] = useState<FieldType | "">(
+    (field?.type as FieldType) ?? ""
   );
   const [label, setLabel] = useState(field?.label ?? "");
   const [placeholder, setPlaceholder] = useState(field?.placeholder ?? "");
@@ -82,7 +82,7 @@ export function FieldEditorModal({
 
     // Use queueMicrotask to avoid synchronous setState in effect body
     queueMicrotask(() => {
-      setType((field?.type as FieldType) ?? "TEXT");
+      setType((field?.type as FieldType) ?? "");
       setLabel(field?.label ?? "");
       setPlaceholder(field?.placeholder ?? "");
       setRequired(Boolean(field?.required));
@@ -120,6 +120,10 @@ export function FieldEditorModal({
   const title = field ? "Edit Field" : "Add Field";
 
   const canSave = useMemo(() => {
+    if (!type) {
+      return false;
+    }
+
     if (!label.trim()) {
       return false;
     }
@@ -207,12 +211,11 @@ export function FieldEditorModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Stable skeleton - always visible */}
           <div className="space-y-2">
             <Label>Field Type</Label>
             <Select value={type} onValueChange={handleTypeChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select field type" />
+                <SelectValue placeholder="Choose a field type..." />
               </SelectTrigger>
               <SelectContent>
                 {FIELD_TYPE_OPTIONS.map((option) => (
@@ -224,57 +227,59 @@ export function FieldEditorModal({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="field-label">Label</Label>
-            <Input
-              id="field-label"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              placeholder={getLabelPlaceholder(type)}
-            />
-          </div>
+          {type && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="field-label">Label</Label>
+                <Input
+                  id="field-label"
+                  value={label}
+                  onChange={(event) => setLabel(event.target.value)}
+                  placeholder={getLabelPlaceholder(type)}
+                />
+              </div>
 
-          {showPlaceholder && (
-            <div className="space-y-2">
-              <Label htmlFor="field-placeholder">Placeholder</Label>
-              <Input
-                id="field-placeholder"
-                value={placeholder ?? ""}
-                onChange={(event) => setPlaceholder(event.target.value)}
-              />
-            </div>
+              {showPlaceholder && (
+                <div className="space-y-2">
+                  <Label htmlFor="field-placeholder">Placeholder</Label>
+                  <Input
+                    id="field-placeholder"
+                    value={placeholder ?? ""}
+                    onChange={(event) => setPlaceholder(event.target.value)}
+                  />
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={required}
+                  onChange={(event) => setRequired(event.target.checked)}
+                />
+                Required field
+              </label>
+
+              {hasConfig && (
+                <div className="border-t pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+                    Input Rules
+                  </h3>
+                  <FieldConfigRenderer type={type} value={config} onChange={setConfig} />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="field-help-text">Help text (optional)</Label>
+                <Textarea
+                  id="field-help-text"
+                  value={helpText ?? ""}
+                  onChange={(event) => setHelpText(event.target.value)}
+                  placeholder="Brief guidance for filling out this field"
+                  rows={2}
+                />
+              </div>
+            </>
           )}
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={required}
-              onChange={(event) => setRequired(event.target.checked)}
-            />
-            Required field
-          </label>
-
-          {/* Section divider */}
-          {hasConfig && (
-            <div className="border-t pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-                Input Rules
-              </h3>
-              <FieldConfigRenderer type={type} value={config} onChange={setConfig} />
-            </div>
-          )}
-
-          {/* Help text field - shown for all field types within Input Rules */}
-          <div className="space-y-2">
-            <Label htmlFor="field-help-text">Help text (optional)</Label>
-            <Textarea
-              id="field-help-text"
-              value={helpText ?? ""}
-              onChange={(event) => setHelpText(event.target.value)}
-              placeholder="Brief guidance for filling out this field"
-              rows={2}
-            />
-          </div>
         </div>
 
         <DialogFooter>

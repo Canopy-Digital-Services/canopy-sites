@@ -17,16 +17,17 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 9. [Toast Notifications](#toast-notifications)
 10. [Confirmation Dialogs](#confirmation-dialogs)
 11. [Sortable Lists (Drag-to-Reorder)](#sortable-lists-drag-to-reorder)
-12. [High-Density List Pattern](#high-density-list-pattern)
-13. [Required Field Indicators](#required-field-indicators)
-14. [Layout Patterns](#layout-patterns)
-15. [Card layout and primary actions](#card-layout-and-primary-actions)
-16. [Form Inputs](#form-inputs)
-17. [Empty States](#empty-states)
-18. [Table Data Patterns](#table-data-patterns)
-19. [Action Button Hierarchy](#action-button-hierarchy)
-20. [Filter Patterns](#filter-patterns)
-21. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
+12. [Adding Items to a List](#adding-items-to-a-list)
+13. [High-Density List Pattern](#high-density-list-pattern)
+14. [Required Field Indicators](#required-field-indicators)
+15. [Layout Patterns](#layout-patterns)
+16. [Card layout and primary actions](#card-layout-and-primary-actions)
+17. [Form Inputs](#form-inputs)
+18. [Empty States](#empty-states)
+19. [Table Data Patterns](#table-data-patterns)
+20. [Action Button Hierarchy](#action-button-hierarchy)
+21. [Filter Patterns](#filter-patterns)
+22. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
 
 ---
 
@@ -690,6 +691,20 @@ Use this only when the disabled state has a specific reason the user needs to se
 
 **Reference implementation:** `PublishContent` (`src/components/forms/publish-content.tsx`) when the account is at its `maxPublishedForms` cap.
 
+### Type-First Configuration Modals
+
+When a modal configures an entity whose available controls depend on a type/category choice (e.g., adding a form field where configuration differs per type, or picking an integration type where the fields below depend on the choice), **do not preselect a default type**. Preselecting creates a path-of-least-resistance trap where users accept a generic default (e.g., a `Text` field) when a more specific option (e.g., `Email`, `Phone`, `Address`) would give them better validation, better input affordances, and a better downstream experience.
+
+Rules:
+
+- **Open the modal with only the type selector visible.** Use a placeholder like "Choose a field type…" on the Select.
+- **Hide all downstream config controls until a type is selected.** Wrap them in a `{type && (<>...</>)}` block. Don't render them disabled — hide them so the modal reads as "ask me for a type first."
+- **Keep the primary action disabled** until both the type is selected and any required downstream fields (e.g. label) are filled.
+- **Edit mode is different** — when editing an existing entity, the type is known, so render the full form immediately. The picker-gated disclosure only applies to add/create flows.
+- **Preserve compatible config across type switches.** If a user changes their mind and picks a different type, keep state that's structurally compatible (e.g. label, help text) and only clear state that doesn't apply to the new type (e.g. options when switching from `DROPDOWN` to `TEXT`).
+
+**Reference implementation:** `FieldEditorModal` (`src/components/field-editor-modal.tsx`). See `handleTypeChange` for the compatible-config-preservation logic.
+
 ---
 
 ## Sortable Lists (Drag-to-Reorder)
@@ -780,6 +795,80 @@ const optionsWithIds = useMemo(
   })),
   [options]
 );
+```
+
+---
+
+## Adding Items to a List
+
+When a list allows users to add new items (e.g. dropdown options, checkbox options, form fields), place the "add" action **below** the list, not above it or in a header row beside the list's label. Users click where the new item will appear — this reinforces the cause-and-effect mental model and matches how every modern list builder works (Notion, Linear, Typeform, Google Forms).
+
+### Placement rule
+
+```
+[drag] [Item 1            ] [trash]
+[drag] [Item 2            ] [trash]
+[drag] [Item 3            ] [trash]
++ Add item
+```
+
+- Never render an Add button above the list or as a sibling of the list's label in a flex header row.
+- Keep the button at the bottom, flush-left with the section's content column.
+
+### Button style: match the parent's action hierarchy
+
+The correct variant depends on whether the list is the **primary** thing the user is building, or a **sub-list** inside a configuration panel that already has its own primary CTA.
+
+| Context | Variant | Reason |
+|---------|---------|--------|
+| **Primary list** — the main thing being built on the screen (e.g. "Add Field" on the form editor) | `Button` default variant, Plus icon + text | The add action *is* the primary call to action on that screen. |
+| **Sub-list inside a container with its own primary action** (e.g. "Add option" inside the Add Field dialog, which has "Save Field" as its CTA) | `Button variant="ghost" size="sm"` with `text-primary` (teal), Plus icon + text | Ghost + teal keeps the affordance visible without competing with the dialog's primary CTA. |
+
+### Primary list: "Add Field" pattern
+
+```tsx
+<Button type="button" onClick={onAddField}>
+  <Plus className="h-4 w-4" />
+  Add Field
+</Button>
+```
+
+Reference implementation: `src/components/field-list.tsx`
+
+### Sub-list: "Add option" pattern
+
+```tsx
+<Button
+  type="button"
+  variant="ghost"
+  size="sm"
+  onClick={handleAddOption}
+  className="-ml-3 text-primary hover:text-primary hover:bg-primary/10"
+>
+  <Plus className="h-4 w-4" />
+  Add option
+</Button>
+```
+
+- `size="sm"` — compact, doesn't compete with the parent dialog's Save button.
+- `text-primary` + `hover:bg-primary/10` — teal signals "add" while staying subtle. Override `hover:text-primary` so the ghost variant doesn't shift to foreground on hover.
+- `-ml-3` — cancels the button's internal `px-3` padding so the Plus icon aligns flush-left with the section content (same column as the section's `Label` and the drag handles). The button's clickable/hover area keeps its normal padding.
+
+Reference implementations: `src/components/field-config/dropdown-config.tsx`, `src/components/field-config/checkboxes-config.tsx`
+
+### Empty state: let the button speak for itself
+
+When the list is empty, the labeled Add button is enough — don't add a separate helper paragraph ("Add options to populate this field…"). The icon + label already communicate both the empty state and the action to take, and removing the paragraph eliminates a redundant element.
+
+```tsx
+<Label>Options</Label>
+{options.length > 0 && (
+  <SortableList items={options} ... />
+)}
+<Button variant="ghost" size="sm" className="-ml-3 text-primary hover:text-primary hover:bg-primary/10">
+  <Plus className="h-4 w-4" />
+  Add option
+</Button>
 ```
 
 ---
@@ -1576,6 +1665,8 @@ For more prominent empty states, use the `EmptyState` component.
 | Confirm destructive action (single choice) | `ConfirmDialog` with `destructive={true}` |
 | Destructive action with safe/dangerous options | Custom dialog with footer hierarchy (see Confirmation Dialogs) |
 | Reorderable list | `SortableList` with drag handle |
+| Add item to primary list | `Button` default variant with Plus icon + text, placed below the list |
+| Add item to sub-list (inside a container with its own primary CTA) | `Button variant="ghost" size="sm"` with `text-primary` + `-ml-3`, Plus icon + text, placed below the list |
 | High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
 | Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
 | Form editor max-width | `max-w-[640px] mx-auto` on content and header |
@@ -1613,6 +1704,10 @@ For more prominent empty states, use the `EmptyState` component.
 14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
 15. **Never use `text-destructive` for informational notices** - use the amber notice pattern for missing config or setup guidance; reserve destructive for actual errors
 16. **Never use Badge for prominent status displays** - use dot + text; Badge is for compact metadata in lists/tables
+17. **Never place an "Add item" button above its list** - place it below, where the new item will appear. Don't put it in a header row beside the list's label either.
+18. **Never show redundant empty-state helper text beside a labeled Add button** - the labeled button alone communicates the action; the paragraph is noise
+19. **Never pass `position="item-aligned"` to `SelectContent`** - the shared component defaults to `position="popper"` / `align="start"` for a reason. Item-aligned mode overlays the trigger with the selected item centered on it, which causes long lists to expand upward and show scroll-up/down chevrons. The default popper behavior is correct for virtually all selects; only override if you have a specific reason and understand the trade-off.
+20. **Never preselect a default option in a picker-gated configuration modal** - see "Type-First Configuration Modals" under Confirmation Dialogs. Preselecting a generic default (e.g. a `Text` field type) creates a path-of-least-resistance trap where users accept the default when a more specific option would serve them better.
 
 ---
 

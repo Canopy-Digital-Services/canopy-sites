@@ -17,17 +17,17 @@ import { FieldType } from "@prisma/client";
  * This defines both the value (enum) and label (human-readable)
  */
 export const FIELD_TYPE_OPTIONS = [
-  { value: "TEXT" as const, label: "Text" },
-  { value: "EMAIL" as const, label: "Email" },
-  { value: "TEXTAREA" as const, label: "Paragraph" },
-  { value: "PHONE" as const, label: "Phone" },
-  { value: "DATE" as const, label: "Date" },
   { value: "NAME" as const, label: "Name" },
-  { value: "DROPDOWN" as const, label: "Dropdown" },
-  { value: "CHECKBOX" as const, label: "Yes / No" },
-  { value: "CHECKBOXES" as const, label: "Checkboxes" },
-  { value: "NUMBER" as const, label: "Number" },
+  { value: "EMAIL" as const, label: "Email" },
+  { value: "PHONE" as const, label: "Phone" },
   { value: "ADDRESS" as const, label: "Address" },
+  { value: "DATE" as const, label: "Date" },
+  { value: "NUMBER" as const, label: "Number" },
+  { value: "TEXT" as const, label: "Text" },
+  { value: "TEXTAREA" as const, label: "Paragraph" },
+  { value: "DROPDOWN" as const, label: "Dropdown" },
+  { value: "CHECKBOXES" as const, label: "Checkboxes" },
+  { value: "CHECKBOX" as const, label: "Yes / No" },
 ] as const;
 
 /**
