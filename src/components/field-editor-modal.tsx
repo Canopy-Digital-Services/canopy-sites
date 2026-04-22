@@ -104,7 +104,7 @@ export function FieldEditorModal({
     setType(newType);
     
     // Clear config if switching between incompatible types
-    const isOptionsType = (t: FieldType) =>
+    const isOptionsType = (t: FieldType | "") =>
       t === "DROPDOWN" || t === "NAME" || t === "CHECKBOXES" || t === "ADDRESS";
 
     if (isOptionsType(oldType) && !isOptionsType(newType)) {
