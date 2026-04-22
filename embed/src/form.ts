@@ -435,12 +435,6 @@ export class CanopyForm {
           if (validation.maxDate) {
             date.max = this.resolveDate(validation.maxDate);
           }
-          if (validation.noFuture) {
-            date.max = new Date().toISOString().split("T")[0];
-          }
-          if (validation.noPast) {
-            date.min = new Date().toISOString().split("T")[0];
-          }
         }
         input = date;
         break;
@@ -840,6 +834,10 @@ export class CanopyForm {
       for (const input of addressInputs) {
         const part = input.getAttribute("data-address-part");
         if (part && addressCoreKeys.includes(part) && !input.value.trim()) return input;
+      }
+      // All required parts filled — format errors currently only apply to postalCode.
+      for (const input of addressInputs) {
+        if (input.getAttribute("data-address-part") === "postalCode") return input;
       }
       return addressInputs[0];
     }

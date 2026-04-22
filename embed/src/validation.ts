@@ -6,13 +6,10 @@ type FieldValidation = {
   format?: "lenient" | "strict" | "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
   minDate?: string;
   maxDate?: string;
-  noFuture?: boolean;
-  noPast?: boolean;
   domainRules?: {
     allow?: string[];
     block?: string[];
   };
-  normalize?: boolean;
   min?: number;
   max?: number;
   integer?: boolean;
@@ -217,16 +214,6 @@ export function validateSubmission(
       dateValue.setHours(0, 0, 0, 0);
 
       const validation = field.validation;
-      
-      if (validation?.noFuture && dateValue > today) {
-        errors[field.name] = `${label} cannot be a future date.`;
-        return;
-      }
-      
-      if (validation?.noPast && dateValue < today) {
-        errors[field.name] = `${label} cannot be a past date.`;
-        return;
-      }
 
       if (validation?.minDate) {
         const minDate = new Date(
@@ -321,14 +308,31 @@ export function validateSubmission(
           return;
         }
       }
+
+      const zip = addr?.postalCode?.trim() ?? "";
+      if (!/^\d{5}(-\d{4})?$/.test(zip)) {
+        errors[field.name] = "ZIP code must be a valid US postal code (e.g., 12345 or 12345-6789).";
+        return;
+      }
       return;
     }
 
-    if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
-      const optionValues = (field.options as FieldOption[]).map(
-        (option) => option.value
-      );
-      if (!optionValues.includes(String(value))) {
+    if (field.type === "DROPDOWN") {
+      const opts = field.options;
+      const isNewFormat =
+        opts !== undefined &&
+        opts !== null &&
+        typeof opts === "object" &&
+        !Array.isArray(opts) &&
+        "options" in opts;
+      const optionValues = isNewFormat
+        ? (opts as DropdownOptions).options.map((o) => o.value)
+        : Array.isArray(opts)
+          ? (opts as FieldOption[]).map((o) => o.value)
+          : [];
+      const allowOther = isNewFormat && (opts as DropdownOptions).allowOther === true;
+
+      if (optionValues.length > 0 && !allowOther && !optionValues.includes(String(value))) {
         errors[field.name] = `${label} must be a valid option.`;
         return;
       }

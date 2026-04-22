@@ -100,11 +100,8 @@ function validateFields(
             minLength?: number;
             maxLength?: number;
             format?: string;
-            message?: string;
             minDate?: string;
             maxDate?: string;
-            noFuture?: boolean;
-            noPast?: boolean;
           })
         : undefined;
 
@@ -166,20 +163,18 @@ function validateFields(
     if (field.type === "EMAIL") {
       const emailValue = String(value).trim();
       
-      // Get validation config
       const emailValidation = typeof field.validation === "object" && field.validation !== null
-        ? (field.validation as { message?: string; domainRules?: { allow?: string[]; block?: string[] }; normalize?: boolean })
+        ? (field.validation as { domainRules?: { allow?: string[]; block?: string[] }; normalize?: boolean })
         : undefined;
-      
-      // Validate email format (RFC 5322 compliant)
+
+      // RFC 5322 compliant
       const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      
+
       if (!emailRegex.test(emailValue)) {
-        errors[field.name] = emailValidation?.message || `Enter a valid email address`;
+        errors[field.name] = `Enter a valid email address`;
         continue;
       }
 
-      // Check domain rules
       const domainRules = emailValidation?.domainRules;
       if (domainRules) {
         const domain = emailValue.split("@")[1]?.toLowerCase();
@@ -187,7 +182,7 @@ function validateFields(
         if (domainRules.allow && Array.isArray(domainRules.allow) && domainRules.allow.length > 0) {
           const allowed = domainRules.allow.map((d: string) => d.toLowerCase());
           if (!allowed.includes(domain)) {
-            errors[field.name] = emailValidation?.message || `${label} must be from an allowed domain.`;
+            errors[field.name] = `${label} must be from an allowed domain.`;
             continue;
           }
         }
@@ -195,7 +190,7 @@ function validateFields(
         if (domainRules.block && Array.isArray(domainRules.block) && domainRules.block.length > 0) {
           const blocked = domainRules.block.map((d: string) => d.toLowerCase());
           if (blocked.includes(domain)) {
-            errors[field.name] = emailValidation?.message || `${label} domain is not allowed.`;
+            errors[field.name] = `${label} domain is not allowed.`;
             continue;
           }
         }
@@ -209,39 +204,28 @@ function validateFields(
       if (format === "lenient") {
         // Allow digits, spaces, dashes, parens, plus sign, dots, min 7 chars
         if (!/^[\d\s\-\(\)\+\.]{7,}$/.test(stringValue)) {
-          errors[field.name] =
-            validation?.message ||
-            `${label} must be a valid phone number.`;
+          errors[field.name] = `${label} must be a valid phone number.`;
           continue;
         }
       } else if (format === "strict") {
         // Strict US validation: must be 10 digits (with optional +1 prefix)
-        // Strip everything except digits and leading +
         let cleaned = stringValue.replace(/[^\d+]/g, "");
-        
-        // Remove +1 prefix if present
+
         if (cleaned.startsWith("+1")) {
           cleaned = cleaned.substring(2);
         } else if (cleaned.startsWith("+")) {
-          // Has + but not +1
-          errors[field.name] =
-            validation?.message ||
-            `${label} must be a valid US phone number (10 digits).`;
+          errors[field.name] = `${label} must be a valid US phone number (10 digits).`;
           continue;
         } else if (cleaned.startsWith("1") && cleaned.length === 11) {
-          // Has 1 prefix without +
           cleaned = cleaned.substring(1);
         }
-        
-        // Must be exactly 10 digits
+
         if (!/^\d{10}$/.test(cleaned)) {
-          errors[field.name] =
-            validation?.message ||
-            `${label} must be a valid US phone number (10 digits).`;
+          errors[field.name] = `${label} must be a valid US phone number (10 digits).`;
           continue;
         }
-        
-        // Normalize to E.164 format: +1XXXXXXXXXX
+
+        // Normalize to E.164: +1XXXXXXXXXX
         data[field.name] = `+1${cleaned}`;
       }
       
@@ -252,28 +236,15 @@ function validateFields(
     if (field.type === "DATE") {
       const stringValue = String(value);
       const dateValue = new Date(stringValue);
-      
+
       if (isNaN(dateValue.getTime())) {
-        errors[field.name] =
-          validation?.message || `${label} must be a valid date.`;
+        errors[field.name] = `${label} must be a valid date.`;
         continue;
       }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       dateValue.setHours(0, 0, 0, 0);
-
-      if (validation?.noFuture && dateValue > today) {
-        errors[field.name] =
-          validation.message || `${label} cannot be a future date.`;
-        continue;
-      }
-      
-      if (validation?.noPast && dateValue < today) {
-        errors[field.name] =
-          validation.message || `${label} cannot be a past date.`;
-        continue;
-      }
 
       if (validation?.minDate) {
         const minDate = new Date(
@@ -283,9 +254,7 @@ function validateFields(
         );
         minDate.setHours(0, 0, 0, 0);
         if (dateValue < minDate) {
-          errors[field.name] =
-            validation.message ||
-            `${label} must be on or after ${minDate.toLocaleDateString()}.`;
+          errors[field.name] = `${label} must be on or after ${minDate.toLocaleDateString()}.`;
           continue;
         }
       }
@@ -298,9 +267,7 @@ function validateFields(
         );
         maxDate.setHours(0, 0, 0, 0);
         if (dateValue > maxDate) {
-          errors[field.name] =
-            validation.message ||
-            `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
+          errors[field.name] = `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
           continue;
         }
       }
@@ -389,19 +356,40 @@ function validateFields(
         }
       }
       if (hasError) continue;
+
+      const zip = addr?.postalCode?.trim() ?? "";
+      if (!/^\d{5}(-\d{4})?$/.test(zip)) {
+        errors[field.name] = "ZIP code must be a valid US postal code (e.g., 12345 or 12345-6789).";
+        continue;
+      }
       continue;
     }
 
-    if (field.type === "DROPDOWN" && Array.isArray(field.options)) {
-      const optionValues = field.options
-        .map((option) =>
-          typeof option === "object" && option !== null
-            ? (option as { value?: string }).value
-            : null
-        )
-        .filter((option): option is string => Boolean(option));
+    if (field.type === "DROPDOWN") {
+      const opts = field.options;
+      const isNewFormat =
+        opts !== null &&
+        typeof opts === "object" &&
+        !Array.isArray(opts) &&
+        "options" in opts;
 
-      if (optionValues.length > 0 && !optionValues.includes(String(value))) {
+      const rawOptions = isNewFormat
+        ? (opts as { options: unknown }).options
+        : opts;
+
+      const optionValues = Array.isArray(rawOptions)
+        ? rawOptions
+            .map((option) =>
+              typeof option === "object" && option !== null
+                ? (option as { value?: string }).value
+                : null
+            )
+            .filter((option): option is string => Boolean(option))
+        : [];
+
+      const allowOther = isNewFormat && (opts as { allowOther?: boolean }).allowOther === true;
+
+      if (optionValues.length > 0 && !allowOther && !optionValues.includes(String(value))) {
         errors[field.name] = `${label} must be a valid option.`;
         continue;
       }
@@ -410,22 +398,16 @@ function validateFields(
     const stringValue = String(value);
     const effectiveMaxLength = getEffectiveMaxLength(field);
     
-    // Check minLength if configured
     if (
       validation?.minLength &&
       stringValue.length < validation.minLength
     ) {
-      errors[field.name] =
-        validation.message ||
-        `${label} must be at least ${validation.minLength} characters.`;
+      errors[field.name] = `${label} must be at least ${validation.minLength} characters.`;
       continue;
     }
 
-    // Check maxLength (with guardrails)
     if (stringValue.length > effectiveMaxLength) {
-      errors[field.name] =
-        validation?.message ||
-        `${label} must be at most ${effectiveMaxLength} characters.`;
+      errors[field.name] = `${label} must be at most ${effectiveMaxLength} characters.`;
       continue;
     }
 
@@ -470,7 +452,7 @@ function validateFields(
         }
 
         if (!isValid) {
-          errors[field.name] = validation?.message || defaultMessage;
+          errors[field.name] = defaultMessage;
         }
       }
     }
