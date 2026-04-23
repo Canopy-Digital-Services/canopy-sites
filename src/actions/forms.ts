@@ -435,6 +435,18 @@ export async function deleteForm(formId: string) {
   revalidatePath(`/forms`);
 }
 
+export async function markAllSubmissionsRead(formId: string) {
+  const accountId = await getCurrentAccountId();
+  await getOwnedFormMinimal(formId, accountId);
+
+  await prisma.submission.updateMany({
+    where: { formId, status: "NEW" },
+    data: { status: "READ" },
+  });
+
+  revalidatePath(`/forms/${formId}`);
+}
+
 export async function updateFormThumbnail(formId: string, thumbnailBase64: string) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);

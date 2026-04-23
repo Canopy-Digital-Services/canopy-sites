@@ -64,7 +64,6 @@ type Submission = {
   id: string;
   createdAt: string;
   status: string;
-  isSpam: boolean;
   preview: string;
 };
 
@@ -74,11 +73,10 @@ type FormWorkspaceProps = {
   form: WorkspaceForm;
   submissions?: Submission[];
   statusFilter?: string;
-  spamFilter?: string;
   publishDisabledReason?: string;
 };
 
-export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
+export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const activeTab =
@@ -95,7 +93,6 @@ export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], stat
         activeTab={activeTab}
         submissions={submissions}
         statusFilter={statusFilter}
-        spamFilter={spamFilter}
         publishDisabledReason={publishDisabledReason}
       />
     </FormProvider>
@@ -109,11 +106,10 @@ type WorkspaceInnerProps = {
   activeTab: string;
   submissions: Submission[];
   statusFilter: string;
-  spamFilter: string;
   publishDisabledReason?: string;
 };
 
-function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter, publishDisabledReason }: WorkspaceInnerProps) {
+function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
   const { state, saveStatus, updateName } = useFormContext();
 
@@ -259,7 +255,6 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
               formId={form.id}
               submissions={submissions}
               statusFilter={statusFilter}
-              spamFilter={spamFilter}
             />
           </div>
         ) : activeTab === "publish" ? (

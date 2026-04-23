@@ -401,6 +401,7 @@ If something works locally but fails on forms-dev or forms.canopyds.com, suspect
 |----------|---------|
 | `ADMIN_EMAIL` | Bootstrap-only. Used by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote the matching user to `GLOBAL_ADMIN` on `UNLOCKED`. Not consulted at auth-check time. Safe to remove once a Global Admin exists. |
 | `ADMIN_PASSWORD` | Bootstrap-only. Used by `prisma/seed.ts` to set the initial admin password. |
+| `FEEDBACK_RECIPIENT_EMAIL` | Recipient for the in-app "Give feedback" form in the help bubble. If unset, submissions return a friendly error and no email is sent. |
 
 ### Local env files
 

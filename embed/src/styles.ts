@@ -352,4 +352,40 @@ export const baseStyles = `
   margin: 0;
   line-height: 1.5;
 }
+
+.canopy-watermark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--canopy-border, #e4e4e7);
+  font-family: var(--canopy-font, inherit);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--canopy-text, #18181b);
+  opacity: 0.55;
+}
+
+.canopy-watermark-sep {
+  opacity: 0.6;
+}
+
+.canopy-root .canopy-watermark-link {
+  color: var(--canopy-primary, #005F6A);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.canopy-root .canopy-watermark-link:hover {
+  opacity: 0.8;
+}
+
+.canopy-root .canopy-watermark-link:focus-visible {
+  outline: 2px solid var(--canopy-primary, #005F6A);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 `;

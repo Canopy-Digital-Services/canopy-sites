@@ -92,6 +92,7 @@ export async function GET(
           options: field.options,
           validation: field.validation,
         })),
+        name: form.name,
         title: form.title || undefined,
         description: form.description || undefined,
         successMessage: form.successMessage || undefined,

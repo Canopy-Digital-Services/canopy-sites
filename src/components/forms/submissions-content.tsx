@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,13 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
-import { ArrowRight, Download, ChevronDown, FileText } from "lucide-react";
+import { ArrowRight, Download, ChevronDown, FileText, CheckCheck } from "lucide-react";
+import { markAllSubmissionsRead } from "@/actions/forms";
+import { cn } from "@/lib/utils";
 
 type Submission = {
   id: string;
   createdAt: string;
   status: string;
-  isSpam: boolean;
   preview: string;
 };
 
@@ -25,15 +27,22 @@ type SubmissionsContentProps = {
   formId: string;
   submissions: Submission[];
   statusFilter: string;
-  spamFilter: string;
 };
 
 export function SubmissionsContent({
   formId,
   submissions,
   statusFilter,
-  spamFilter,
 }: SubmissionsContentProps) {
+  const [isPending, startTransition] = useTransition();
+  const hasNew = submissions.some((s) => s.status === "NEW");
+
+  function handleMarkAllRead() {
+    startTransition(async () => {
+      await markAllSubmissionsRead(formId);
+    });
+  }
+
   const columns = [
     {
       key: "date",
@@ -49,12 +58,9 @@ export function SubmissionsContent({
       key: "status",
       header: "Status",
       cell: (s: Submission) => (
-        <div className="flex gap-2">
-          <Badge variant={s.status === "NEW" ? "default" : "secondary"}>
-            {s.status}
-          </Badge>
-          {s.isSpam && <Badge variant="destructive">SPAM</Badge>}
-        </div>
+        <Badge variant={s.status === "NEW" ? "default" : "secondary"}>
+          {s.status}
+        </Badge>
       ),
     },
     {
@@ -84,55 +90,45 @@ export function SubmissionsContent({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex gap-4 flex-wrap items-end">
-        <div>
-          <label className="text-sm font-medium">Status</label>
-          <div className="flex gap-2 mt-1">
-            {[
-              { value: "all", label: "All" },
-              { value: "NEW", label: "New" },
-              { value: "READ", label: "Read" },
-              { value: "ARCHIVED", label: "Archived" },
-            ].map((option) => (
-              <Link
-                key={option.value}
-                href={`?mode=submissions&status=${option.value}&spam=${spamFilter}`}
+      <div className="flex gap-4 flex-wrap items-center">
+        <div className="inline-flex h-8 items-center bg-muted-foreground/10 rounded-lg p-[3px]">
+          {[
+            { value: "all", label: "All" },
+            { value: "NEW", label: "New" },
+            { value: "READ", label: "Read" },
+            { value: "ARCHIVED", label: "Archived" },
+            { value: "spam", label: "Spam" },
+          ].map((option) => (
+            <Link
+              key={option.value}
+              href={`?mode=submissions&status=${option.value}`}
+              className="h-full"
+            >
+              <span
+                className={cn(
+                  "inline-flex h-full items-center rounded-md px-3 text-sm font-medium transition-colors",
+                  statusFilter === option.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                <Button
-                  variant={statusFilter === option.value ? "secondary" : "outline"}
-                  size="sm"
-                >
-                  {option.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
+                {option.label}
+              </span>
+            </Link>
+          ))}
         </div>
 
-        <div>
-          <label className="text-sm font-medium">Spam</label>
-          <div className="flex gap-2 mt-1">
-            {[
-              { value: "all", label: "All" },
-              { value: "no", label: "Not Spam" },
-              { value: "yes", label: "Spam" },
-            ].map((option) => (
-              <Link
-                key={option.value}
-                href={`?mode=submissions&status=${statusFilter}&spam=${option.value}`}
-              >
-                <Button
-                  variant={spamFilter === option.value ? "secondary" : "outline"}
-                  size="sm"
-                >
-                  {option.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-2 ${!hasNew ? "invisible" : ""}`}
+            onClick={handleMarkAllRead}
+            disabled={isPending || !hasNew}
+          >
+            <CheckCheck className="h-4 w-4" />
+            Mark all as read
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -160,8 +156,14 @@ export function SubmissionsContent({
       {submissions.length === 0 ? (
         <EmptyState
           icon={<FileText className="h-10 w-10 text-muted-foreground" />}
-          title="No submissions yet"
-          description="Submissions will appear here once your form receives data"
+          title={
+            statusFilter === "all" ? "No submissions yet" :
+            statusFilter === "NEW" ? "No new submissions" :
+            statusFilter === "READ" ? "No read submissions" :
+            statusFilter === "ARCHIVED" ? "No archived submissions" :
+            statusFilter === "spam" ? "No spam submissions" :
+            "No submissions"
+          }
         />
       ) : (
         <DataTable columns={columns} data={submissions} />

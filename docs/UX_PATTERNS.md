@@ -218,6 +218,10 @@ Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used b
 
 Post-submission confirmation is a themed success card (`.canopy-success` in `embed/src/styles.ts`) that replaces the form: a circular checkmark icon filled with `--canopy-primary`, the configured `successMessage`, and a "Submit another response" button that re-renders the form. The inline status strip above the form is reserved for errors, which still use a fixed `#FF6B5A` since the theme has no dedicated error token.
 
+### Beta Watermark
+
+All rendered embed forms include a `.canopy-watermark` footer that reads "Powered by Canopy Forms (Beta)" followed by a `Report an issue` `mailto:` link to `feedback@canopyds.com`. The subject and body are pre-filled with the form's title/name and form ID so the recipient can trace the report. The watermark is rendered in `render()`, `renderError()`, and `renderInactive()` (skipped in the loading skeleton). It uses `--canopy-primary` for the link color and `--canopy-border` for the divider so it stays theme-aware. Since the embed is bundled by esbuild and has no runtime env access, the recipient address is a constant in `embed/src/form.ts` (`FEEDBACK_EMAIL`).
+
 ### Appearance Editor Structure
 
 The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 5 collapsible SubSection rows. Each row shows summary chips when collapsed. There is no third nesting tier — all SubSections are peers. Colors are co-located with the element they affect rather than grouped into a separate section.
@@ -704,6 +708,17 @@ Rules:
 - **Preserve compatible config across type switches.** If a user changes their mind and picks a different type, keep state that's structurally compatible (e.g. label, help text) and only clear state that doesn't apply to the new type (e.g. options when switching from `DROPDOWN` to `TEXT`).
 
 **Reference implementation:** `FieldEditorModal` (`src/components/field-editor-modal.tsx`). See `handleTypeChange` for the compatible-config-preservation logic.
+
+---
+
+## Help Bubble
+
+The floating `?` bubble in the bottom-right corner of admin pages (`src/components/help-bubble.tsx`) is a dropdown, not a plain link. It offers two actions:
+
+- **Get help** routes to the most relevant `/docs/*` page for the current route, resolved via `getHelpHref` in `src/lib/docs-route-map.ts`. Fallback is `/docs`.
+- **Give feedback** opens the `FeedbackDialog` (`src/components/feedback-dialog.tsx`), which collects a message and calls the `submitFeedback` server action (`src/actions/feedback.ts`). The action auto-attaches the current pathname, query, form ID, and submission ID to the email so feedback arrives with context. Recipient is configured via `FEEDBACK_RECIPIENT_EMAIL`; throttled to one submission per user per minute.
+
+The bubble hides entirely on `/docs/*` and auth pages (login, signup, password reset) — don't reintroduce it there.
 
 ---
 

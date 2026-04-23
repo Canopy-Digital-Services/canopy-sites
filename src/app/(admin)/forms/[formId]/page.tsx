@@ -13,10 +13,10 @@ export default async function FormViewRoute({
   searchParams,
 }: {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ mode?: string; status?: string; spam?: string }>;
+  searchParams: Promise<{ mode?: string; status?: string }>;
 }) {
   const { formId } = await params;
-  const { mode, status: statusParam, spam: spamParam } = await searchParams;
+  const { mode, status: statusParam } = await searchParams;
   const session = await requireAuth();
   const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
 
@@ -34,28 +34,33 @@ export default async function FormViewRoute({
   ).replace(/\/$/, "");
 
   const statusFilter = statusParam || "all";
-  const spamFilter = spamParam || "all";
 
   let submissions: Array<{
     id: string;
     createdAt: string;
     status: string;
-    isSpam: boolean;
     preview: string;
   }> = [];
 
   if (mode === "submissions") {
-    const statusValue =
-      statusFilter !== "all" ? (statusFilter.toUpperCase() as SubmissionStatus) : undefined;
-    const spamValue =
-      spamFilter === "yes" ? true : spamFilter === "no" ? false : undefined;
+    const where: {
+      formId: string;
+      isSpam?: boolean;
+      status?: SubmissionStatus | { not: SubmissionStatus };
+    } = { formId };
+
+    if (statusFilter === "spam") {
+      where.isSpam = true;
+    } else if (statusFilter === "all") {
+      where.isSpam = false;
+      where.status = { not: "ARCHIVED" as SubmissionStatus };
+    } else {
+      where.isSpam = false;
+      where.status = statusFilter.toUpperCase() as SubmissionStatus;
+    }
 
     const raw = await prisma.submission.findMany({
-      where: {
-        formId,
-        ...(statusValue !== undefined ? { status: statusValue } : {}),
-        ...(spamValue !== undefined ? { isSpam: spamValue } : {}),
-      },
+      where,
       orderBy: { createdAt: "desc" },
       take: 50,
     });
@@ -70,7 +75,6 @@ export default async function FormViewRoute({
       id: s.id,
       createdAt: s.createdAt.toISOString(),
       status: s.status,
-      isSpam: s.isSpam,
       preview: buildSubmissionPreview(
         previewFields,
         s.data as Record<string, unknown>
@@ -94,7 +98,6 @@ export default async function FormViewRoute({
       form={form}
       submissions={submissions}
       statusFilter={statusFilter}
-      spamFilter={spamFilter}
       publishDisabledReason={publishDisabledReason}
     />
   );

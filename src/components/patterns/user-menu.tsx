@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Settings, LogOut, BookOpen, Shield } from "lucide-react";
+import { Settings, LogOut, Shield } from "lucide-react";
 import { signOutAction } from "@/actions/auth";
 import {
   DropdownMenu,
@@ -59,12 +59,6 @@ export function UserMenu({ email, isGlobalAdmin = false }: UserMenuProps) {
           <Link href="/account">
             <Settings className="h-4 w-4" />
             Manage Account
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/docs">
-            <BookOpen className="h-4 w-4" />
-            Help
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

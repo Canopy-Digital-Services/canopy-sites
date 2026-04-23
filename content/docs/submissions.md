@@ -9,20 +9,22 @@ Every filled-in form entry lands on the **Submissions** tab of the form workspac
 ## Viewing submissions
 
 1. Open the form and click the **Submissions** tab.
-2. Each row shows the date, status badge, a spam badge if applicable, and a preview of the first couple of fields.
+2. Each row shows the date, status badge, and a preview of the first couple of fields.
 3. Click **View** to open a submission's full detail page.
 
 The detail page shows every submitted field (with the field's label), plus the metadata collected at submit time: timestamp, origin, referrer, user agent, and a hashed IP address.
 
 ## Filters
 
-Two filter groups sit at the top of the list and compose:
+A single filter row sits at the top of the list:
 
-**Status:** All, New, Read, Archived.
+- **All**: every active submission for the form.
+- **New**: submissions you haven't reviewed yet.
+- **Read**: submissions you've already looked at.
+- **Archived**: older entries moved out of the active view.
+- **Spam**: submissions flagged as spam.
 
-**Spam:** All, Not Spam, Spam.
-
-Filters are URL-addressable, so you can bookmark or share a filtered view.
+The first four filters hide spam; **Spam** shows only spam. **All** also hides archived. Use the **Archived** filter when you want to see them. Filters are URL-addressable, so you can bookmark or share a filtered view.
 
 ## Status
 
@@ -33,6 +35,8 @@ Every submission has one of three statuses. Status is independent of the spam fl
 - **ARCHIVED**: older entries you want out of the default view.
 
 Change the status from the submission's detail page. Submissions move between statuses with a single click and the change is immediate.
+
+When any NEW submissions are visible, a **Mark all as read** button appears next to Export. It flips every NEW submission on the form to READ in one click.
 
 ## Spam
 
