@@ -9,12 +9,15 @@ export type FormDefinition = {
   formId: string;
   slug: string;
   fields: FieldDefinition[];
+  name?: string;
   title?: string;
   description?: string;
   successMessage?: string;
   redirectUrl?: string;
   defaultTheme?: Record<string, unknown>;
 };
+
+const FEEDBACK_EMAIL = "feedback@canopyds.com";
 
 type FormOptions = {
   formId?: string;
@@ -163,7 +166,8 @@ export class CanopyForm {
 
     const status = document.createElement("div");
     status.className = "canopy-status";
-    status.setAttribute("role", "status");
+    status.setAttribute("role", "alert");
+    status.setAttribute("aria-live", "assertive");
     this.statusEl = status;
 
     const form = document.createElement("form");
@@ -214,6 +218,44 @@ export class CanopyForm {
 
     this.container.appendChild(status);
     this.container.appendChild(form);
+    this.container.appendChild(this.renderWatermark(definition));
+  }
+
+  private renderWatermark(definition: FormDefinition | null): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "canopy-watermark";
+
+    const brand = document.createElement("span");
+    brand.className = "canopy-watermark-brand";
+    brand.textContent = "Powered by Canopy Forms (Beta)";
+    wrapper.appendChild(brand);
+
+    const sep = document.createElement("span");
+    sep.className = "canopy-watermark-sep";
+    sep.setAttribute("aria-hidden", "true");
+    sep.textContent = "·";
+    wrapper.appendChild(sep);
+
+    const label = definition?.title || definition?.name || definition?.formId || "unknown form";
+    const formId = definition?.formId || "unknown";
+    const subject = `Canopy Forms issue — ${label}`;
+    const body = [
+      `Form: ${label}`,
+      `Form ID: ${formId}`,
+      "",
+      "Describe the issue:",
+      "",
+    ].join("\n");
+    const mailto = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    const link = document.createElement("a");
+    link.className = "canopy-watermark-link";
+    link.href = mailto;
+    link.textContent = "Report an issue";
+    link.rel = "noopener";
+    wrapper.appendChild(link);
+
+    return wrapper;
   }
 
   private createField(field: FieldDefinition) {
@@ -231,6 +273,7 @@ export class CanopyForm {
       const required = document.createElement("span");
       required.className = "canopy-required";
       required.textContent = " *";
+      required.setAttribute("aria-hidden", "true");
       label.appendChild(required);
     }
 
@@ -262,7 +305,16 @@ export class CanopyForm {
         
         const select = document.createElement("select");
         select.className = "canopy-select";
-        
+
+        if (!defaultValue) {
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Choose one...";
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          select.appendChild(placeholder);
+        }
+
         options.forEach((option: FieldOption) => {
           const opt = document.createElement("option");
           opt.value = option.value;
@@ -324,6 +376,9 @@ export class CanopyForm {
         checkbox.type = "checkbox";
         checkbox.id = fieldId;
         checkbox.name = field.name;
+        if (field.required) {
+          checkbox.setAttribute("aria-required", "true");
+        }
         checkbox.addEventListener("change", () => {
           checkbox.setCustomValidity("");
         });
@@ -478,6 +533,9 @@ export class CanopyForm {
     input.id = fieldId;
     input.name = field.name;
     input.setAttribute("aria-invalid", "false");
+    if (field.required) {
+      input.setAttribute("aria-required", "true");
+    }
     if (field.placeholder) {
       input.setAttribute("placeholder", field.placeholder);
     }
@@ -530,8 +588,11 @@ export class CanopyForm {
     const fieldId = `${this.instanceId}-${field.name}`;
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field canopy-name-group";
+    wrapper.setAttribute("role", "group");
+    wrapper.setAttribute("aria-labelledby", `${fieldId}-group-label`);
 
-    const label = document.createElement("label");
+    const label = document.createElement("span");
+    label.id = `${fieldId}-group-label`;
     label.className = "canopy-label";
     label.textContent = field.label || field.name;
     // No top-level asterisk — required markers go on individual parts
@@ -578,6 +639,7 @@ export class CanopyForm {
         const req = document.createElement("span");
         req.className = "canopy-required";
         req.textContent = " *";
+        req.setAttribute("aria-hidden", "true");
         partLabel.appendChild(req);
       }
 
@@ -588,6 +650,9 @@ export class CanopyForm {
       partInput.name = `${field.name}.${part}`;
       partInput.setAttribute("data-name-part", part);
       partInput.setAttribute("data-name-field", field.name);
+      if (field.required || partsRequired[part]) {
+        partInput.setAttribute("aria-required", "true");
+      }
       
       // Clear validation state on all siblings — error could be on any subfield.
       partInput.addEventListener("input", () => {
@@ -620,8 +685,11 @@ export class CanopyForm {
     const options = (field.options as AddressOptions) || {};
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field canopy-address-group";
+    wrapper.setAttribute("role", "group");
+    wrapper.setAttribute("aria-labelledby", `${fieldId}-group-label`);
 
-    const label = document.createElement("label");
+    const label = document.createElement("span");
+    label.id = `${fieldId}-group-label`;
     label.className = "canopy-label";
     label.textContent = field.label || "Address";
     // No top-level asterisk — required markers go on individual parts
@@ -673,6 +741,7 @@ export class CanopyForm {
         const req = document.createElement("span");
         req.className = "canopy-required";
         req.textContent = " *";
+        req.setAttribute("aria-hidden", "true");
         partLabel.appendChild(req);
       }
 
@@ -722,6 +791,9 @@ export class CanopyForm {
       partInput.id = partId;
       partInput.setAttribute("data-address-part", part.key);
       partInput.setAttribute("data-address-field", field.name);
+      if (field.required && part.key !== "line2") {
+        partInput.setAttribute("aria-required", "true");
+      }
 
       partWrapper.appendChild(partLabel);
       partWrapper.appendChild(partInput);
@@ -1119,6 +1191,7 @@ export class CanopyForm {
     status.className = "canopy-status canopy-status-error";
     status.textContent = message;
     this.container.appendChild(status);
+    this.container.appendChild(this.renderWatermark(this.formDefinition));
   }
 
   private renderInactive() {
@@ -1139,5 +1212,6 @@ export class CanopyForm {
     wrap.appendChild(body);
 
     this.container.appendChild(wrap);
+    this.container.appendChild(this.renderWatermark(this.formDefinition));
   }
 }

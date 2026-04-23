@@ -20,8 +20,8 @@ type FormCardProps = {
 export function FormCard({ form }: FormCardProps) {
   return (
     <Card className="group hover:shadow-md transition-shadow overflow-hidden">
-      {/* Thumbnail */}
-      <Link href={`/forms/${form.id}`} className="block">
+      {/* Thumbnail — decorative link, form name below is the real nav target */}
+      <Link href={`/forms/${form.id}`} className="block" aria-hidden="true" tabIndex={-1}>
         <div className="aspect-[16/10] bg-muted/40 overflow-hidden">
           <img
             src={`/api/forms/${form.id}/thumbnail`}
@@ -44,15 +44,16 @@ export function FormCard({ form }: FormCardProps) {
           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href={`/forms/${form.id}?mode=submissions`}>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="View submissions"
-                  >
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="View submissions"
+                  asChild
+                >
+                  <Link href={`/forms/${form.id}?mode=submissions`}>
                     <ClipboardList className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </TooltipTrigger>
               <TooltipContent>View submissions</TooltipContent>
             </Tooltip>

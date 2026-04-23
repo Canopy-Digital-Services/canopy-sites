@@ -12,29 +12,31 @@ export function ViewToggle({ view }: ViewToggleProps) {
     <div className="flex gap-1">
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href="/forms?view=grid">
-            <Button
-              variant={view === "grid" ? "secondary" : "ghost"}
-              size="icon-sm"
-              aria-label="Grid view"
-            >
+          <Button
+            variant={view === "grid" ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Grid view"
+            asChild
+          >
+            <Link href="/forms?view=grid">
               <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Grid view</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href="/forms?view=list">
-            <Button
-              variant={view === "list" ? "secondary" : "ghost"}
-              size="icon-sm"
-              aria-label="List view"
-            >
+          <Button
+            variant={view === "list" ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="List view"
+            asChild
+          >
+            <Link href="/forms?view=list">
               <List className="h-4 w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </TooltipTrigger>
         <TooltipContent>List view</TooltipContent>
       </Tooltip>

@@ -212,9 +212,9 @@ export function FieldEditorModal({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Field Type</Label>
+            <Label htmlFor="field-type-select">Field Type</Label>
             <Select value={type} onValueChange={handleTypeChange}>
-              <SelectTrigger>
+              <SelectTrigger id="field-type-select">
                 <SelectValue placeholder="Choose a field type..." />
               </SelectTrigger>
               <SelectContent>

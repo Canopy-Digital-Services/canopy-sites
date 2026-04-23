@@ -60,7 +60,7 @@ export function FieldList({
                   <span className="font-medium text-sm">
                     {field.label}
                     {field.required && (
-                      <span className="text-red-500 ml-0.5">*</span>
+                      <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground/60">
@@ -75,6 +75,7 @@ export function FieldList({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={`Edit ${field.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onEditField(field.id);
@@ -92,6 +93,7 @@ export function FieldList({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={`Delete ${field.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteField(field.id);
