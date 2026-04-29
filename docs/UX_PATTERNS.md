@@ -1384,6 +1384,22 @@ Reference implementation: Account Password card in `src/components/account/accou
 
 ---
 
+## Type Chooser (Two-Card Selector)
+
+Used when a creation flow needs the user to commit to one of two mutually exclusive modes that shape the rest of the experience. The chooser is a radio group rendered as two side-by-side cards, each with a subdued icon, a one-line title, and a one-line description.
+
+**When to use:** at the top of a creation flow where the choice changes which downstream controls are shown (e.g. form type at `/forms/new` — Hosted vs Embedded). Don't use for binary toggles inside an existing object (use a Switch or Tabs).
+
+**Behavior:**
+- Cards render via `<button type="button" role="radio" aria-checked>` so they're keyboard-accessible and screen-reader-friendly without a visible radio circle.
+- Selected card: `border-primary` plus a faint `ring-1 ring-primary`, the icon shifts from `text-muted-foreground/60` to `text-primary`, and a small primary check chip appears in the top-right corner.
+- The submit button stays disabled until both the chooser and any sibling required inputs have a value. The disabled button is the affordance — no inline error.
+- Type immutability: once chosen and saved, the type doesn't change. Mention this in the surrounding copy if relevant.
+
+**Reference implementation:** `src/app/(admin)/forms/new/new-form-form.tsx` — name input + chooser + disabled-until-both-filled Create button.
+
+---
+
 ## Form Inputs
 
 Use standard shadcn/ui form components:

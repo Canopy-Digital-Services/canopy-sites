@@ -105,6 +105,7 @@ model Form {
   maxSubmissions            Int?      // Maximum number of submissions allowed
   published                 Boolean  @default(false)  // Whether the form is accessible via hosted URL (/f/[formId])
   thumbnail                 Bytes?   // JPEG thumbnail captured client-side from preview
+  type                      FormType // Whether the form is delivered via hosted page or embed snippet (locked at creation)
   createdAt                 DateTime @default(now())
   
   account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -175,6 +176,11 @@ enum FieldType {
   NAME
   NUMBER
   ADDRESS
+}
+
+enum FormType {
+  HOSTED
+  EMBEDDED
 }
 
 // In-app notifications (bell). Dismiss-on-interaction — no retention.

@@ -19,10 +19,13 @@ export type FieldState = {
   validation: unknown;
 };
 
+export type FormTypeValue = "HOSTED" | "EMBEDDED";
+
 export type FormState = {
   id: string;
   name: string;
   slug: string;
+  type: FormTypeValue;
   title: string | null;
   description: string | null;
   fields: FieldState[];
@@ -226,6 +229,7 @@ type FormProviderProps = {
     id: string;
     name: string;
     slug: string;
+    type: FormTypeValue;
     title: string | null;
     description: string | null;
     defaultTheme: unknown;
@@ -266,6 +270,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     id: initialForm.id,
     name: initialForm.name,
     slug: initialForm.slug,
+    type: initialForm.type,
     title: initialForm.title,
     description: initialForm.description,
     fields: initialForm.fields.map(f => ({

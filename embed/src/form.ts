@@ -23,6 +23,13 @@ type FormOptions = {
   formId?: string;
   themeOverrides?: Record<string, unknown>;
   baseUrl?: string;
+  /**
+   * Admin preview mode. The form is fully rendered and interactive (so the
+   * user can feel layout, typography, and HTML5 validation), but Submit is
+   * intercepted — no fetch, no submission row. The submit button gets a
+   * native tooltip explaining this.
+   */
+  preview?: boolean;
 };
 
 type FieldElement = {
@@ -36,6 +43,13 @@ class InactiveFormError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "InactiveFormError";
+  }
+}
+
+class HostedOnlyFormError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "HostedOnlyFormError";
   }
 }
 
@@ -66,6 +80,10 @@ export class CanopyForm {
         this.renderInactive();
         return;
       }
+      if (error instanceof HostedOnlyFormError) {
+        this.renderHostedOnly();
+        return;
+      }
       this.renderError("Unable to load form. Please try again later.");
     }
   }
@@ -91,8 +109,16 @@ export class CanopyForm {
           if (payload?.code === "FORM_INACTIVE") {
             throw new InactiveFormError(payload.error || "Form is inactive");
           }
+          if (payload?.code === "FORM_HOSTED_ONLY") {
+            throw new HostedOnlyFormError(
+              payload.error || "Form is only available at its hosted URL"
+            );
+          }
         } catch (parseError) {
-          if (parseError instanceof InactiveFormError) {
+          if (
+            parseError instanceof InactiveFormError ||
+            parseError instanceof HostedOnlyFormError
+          ) {
             throw parseError;
           }
         }
@@ -187,6 +213,13 @@ export class CanopyForm {
     submit.type = "submit";
     submit.className = "canopy-submit";
     submit.textContent = (theme as { buttonText?: string }).buttonText || "Submit";
+    if (this.options.preview) {
+      submit.classList.add("canopy-submit-preview");
+      submit.setAttribute(
+        "data-preview-tooltip",
+        "For preview only. No submission will be created"
+      );
+    }
     // Apply inline styles to defeat CSS resets like Figma's @layer figreset
     const computedStyle = getComputedStyle(this.container);
     const primaryColor = computedStyle.getPropertyValue("--canopy-primary").trim() || "#0ea5e9";
@@ -997,6 +1030,13 @@ export class CanopyForm {
       return;
     }
 
+    // Preview mode: HTML5 validation has already passed (browser only fires
+    // submit when required fields are filled), so the user has felt the
+    // validation flow. Stop here — no fetch, no submission.
+    if (this.options.preview) {
+      return;
+    }
+
     this.setStatus("", "info");
     
     // Clear any previous validation state (including visible inputs for pseudo-input fields)
@@ -1209,6 +1249,27 @@ export class CanopyForm {
     body.className = "canopy-inactive-body";
     body.textContent =
       "This form is not currently accepting responses. Please contact the form owner if you believe this is an error.";
+    wrap.appendChild(body);
+
+    this.container.appendChild(wrap);
+    this.container.appendChild(this.renderWatermark(this.formDefinition));
+  }
+
+  private renderHostedOnly() {
+    this.container.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "canopy-inactive";
+    wrap.setAttribute("role", "status");
+
+    const heading = document.createElement("h2");
+    heading.className = "canopy-inactive-heading";
+    heading.textContent = "Form Not Available";
+    wrap.appendChild(heading);
+
+    const body = document.createElement("p");
+    body.className = "canopy-inactive-body";
+    body.textContent =
+      "This form is only available at its hosted URL and cannot be embedded. Please contact the form owner.";
     wrap.appendChild(body);
 
     this.container.appendChild(wrap);

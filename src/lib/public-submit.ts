@@ -483,6 +483,18 @@ export async function handlePublicSubmit({
     return jsonResponse({ error: "Form not found" }, 404, origin, allowMethods);
   }
 
+  if (form.type === "HOSTED") {
+    return jsonResponse(
+      {
+        error: "This form is only available at its hosted URL.",
+        code: "FORM_HOSTED_ONLY",
+      },
+      403,
+      origin,
+      allowMethods
+    );
+  }
+
   if (!form.published) {
     return jsonResponse(
       {

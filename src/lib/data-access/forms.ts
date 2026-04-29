@@ -102,6 +102,7 @@ export async function getUserForms(accountId: string) {
       stopAt: true,
       maxSubmissions: true,
       published: true,
+      type: true,
       createdAt: true,
       _count: { select: { submissions: true, fields: true } },
     },

@@ -21,6 +21,55 @@ export const baseStyles = `
   justify-content: var(--canopy-button-align, left);
 }
 
+/* Admin preview only: instant tooltip pinned above the Submit button.
+   Class + data-attribute are added by the embed when options.preview is true,
+   so this never reaches production embeds. */
+.canopy-root .canopy-submit-preview {
+  position: relative;
+}
+
+.canopy-root .canopy-submit-preview::after {
+  content: attr(data-preview-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #18181b;
+  color: #fafafa;
+  font-family: var(--canopy-font, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  z-index: 1;
+}
+
+.canopy-root .canopy-submit-preview::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #18181b;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  z-index: 1;
+}
+
+.canopy-root .canopy-submit-preview:hover::after,
+.canopy-root .canopy-submit-preview:focus-visible::after,
+.canopy-root .canopy-submit-preview:hover::before,
+.canopy-root .canopy-submit-preview:focus-visible::before {
+  opacity: 1;
+}
+
 .canopy-density-compact .canopy-form {
   gap: 8px;
 }

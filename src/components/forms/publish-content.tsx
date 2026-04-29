@@ -53,6 +53,7 @@ export function PublishContent({
   publishDisabledReason,
 }: PublishContentProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
+  const isHosted = state.type === "HOSTED";
   const hostedUrl = `${apiUrl}/f/${form.id}`;
 
   const embedCode = `<div
@@ -151,8 +152,8 @@ export function PublishContent({
         </CardContent>
       </Card>
 
-      {/* ── Share link (published only) ────────────────── */}
-      {published && (
+      {/* ── Share link (hosted, published only) ────────── */}
+      {isHosted && published && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -185,7 +186,8 @@ export function PublishContent({
         </Card>
       )}
 
-      {/* ── Allowed Origins ────────────────────────────── */}
+      {/* ── Allowed Origins (embedded only) ────────────── */}
+      {!isHosted && (
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
@@ -256,8 +258,10 @@ export function PublishContent({
           </Button>
         </CardContent>
       </Card>
+      )}
 
-      {/* ── Embed code ─────────────────────────────────── */}
+      {/* ── Embed code (embedded only) ─────────────────── */}
+      {!isHosted && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -277,6 +281,7 @@ export function PublishContent({
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* ── Configuration notes ────────────────────────── */}
       {form.honeypotField && (

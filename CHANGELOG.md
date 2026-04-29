@@ -5,6 +5,25 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0] - 2026-04-29
+
+### Added
+
+- **Form Type Selection (Epic 25)**: Forms now declare their delivery surface up front and the editor tailors itself to the choice
+  - New `FormType` enum (`HOSTED` | `EMBEDDED`) on the `Form` model. Locked at form creation; not user-editable after
+  - `/forms/new` adds a two-card type chooser between the name input and Create button. Create is disabled until both name and type are set. Globe icon for hosted, AppWindow for embedded
+  - Migration backfill: existing forms with `published=true` and empty `allowedOrigins` become HOSTED; everything else becomes EMBEDDED
+  - Editor preview is locked to type — no more Embed/Page tab toggle. Hosted forms preview as the page; embedded forms preview as the embed
+  - Appearance → Page subsection only renders for hosted forms (page background, card wrapper, content width, vertical alignment)
+  - Font picker hides "Inherit from host page" for hosted forms (no host page to inherit from); shown for embedded forms as before
+  - Publish tab branches by type: hosted forms see only the Share Link card, embedded forms see Allowed Origins and the Embed snippet
+  - Form list cards show a "Hosted" or "Embedded" badge alongside Published/Draft
+
+### Changed
+
+- **Embed API and submit API gate on type**: `GET/POST /api/embed/[formId]` and `POST /api/submit/[formId]` reject HOSTED forms with `403 { code: "FORM_HOSTED_ONLY" }`. The embed script renders a dedicated "Form is only available at its hosted URL" message for this code, mirroring the existing `FORM_INACTIVE` flow
+- **Hosted page gates on type**: `/f/[formId]` returns the existing "Form Not Available" page (200) for EMBEDDED-type forms, matching the unpublished-form behavior
+
 ## [4.11.0] - 2026-04-21
 
 ### Added

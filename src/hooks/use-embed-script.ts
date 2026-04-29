@@ -3,19 +3,31 @@
 import { useEffect, useRef, useState } from "react";
 import type { EmbedFormInstance } from "@/lib/embed-preview";
 
+type EmbedFormConstructorOptions = {
+  formId?: string;
+  preview?: boolean;
+};
+
 type CanopyFormsGlobal = {
   init: () => void;
   CanopyForm: new (
     container: HTMLElement,
-    options: { formId?: string }
+    options: EmbedFormConstructorOptions
   ) => EmbedFormInstance;
 };
 
 /**
  * Load the embed script and create a CanopyForm instance in the given container.
  * Returns { formInstanceRef, ready } so callers can call renderFromDefinition().
+ *
+ * Pass `{ preview: true }` from admin previews — Submit is intercepted (no
+ * fetch, no submission row) and the button gets a tooltip explaining why.
  */
-export function useEmbedScript(containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useEmbedScript(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  options: EmbedFormConstructorOptions = {}
+) {
+  const { preview } = options;
   const formInstanceRef = useRef<EmbedFormInstance | null>(null);
   const [ready, setReady] = useState(false);
   const [embedUrl] = useState<string>(() => {
@@ -35,7 +47,9 @@ export function useEmbedScript(containerRef: React.RefObject<HTMLDivElement | nu
     const createInstance = () => {
       const cf = getGlobal();
       if (!cf?.CanopyForm || !containerRef.current) return;
-      formInstanceRef.current = new cf.CanopyForm(containerRef.current, {});
+      formInstanceRef.current = new cf.CanopyForm(containerRef.current, {
+        preview,
+      });
       setReady(true);
     };
 
@@ -65,7 +79,7 @@ export function useEmbedScript(containerRef: React.RefObject<HTMLDivElement | nu
       };
       document.head.appendChild(script);
     }
-  }, [embedUrl, containerRef]);
+  }, [embedUrl, containerRef, preview]);
 
   return { formInstanceRef, ready };
 }

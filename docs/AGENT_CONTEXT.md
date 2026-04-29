@@ -96,10 +96,12 @@ Embed forms use native HTML5 validation popups via `setCustomValidity()` (one er
 - Origin validation: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost always allowed.
 - Email notifications: individual emails to all addresses in `form.notifyEmails[]` (max 5).
 - **Unpublished gate**: when `form.published === false`, both GET and POST return `403` with `{ error: "This form is not currently accepting responses", code: "FORM_INACTIVE" }`. The embed script pattern-matches `code === "FORM_INACTIVE"` to render a dedicated "Form Not Available" state.
+- **Type gate**: when `form.type === "HOSTED"`, both GET and POST return `403` with `{ error, code: "FORM_HOSTED_ONLY" }`. The embed script renders a dedicated "Form is only available at its hosted URL" state for this code. Hosted forms are reachable only at `/f/[formId]`.
 
 **Submit API** (`src/app/api/submit/[formId]/route.ts`):
 - POST only. Same validation/storage as embed. For white-box HTML forms (no schema fetch).
 - Same `published` gate as the embed API: unpublished forms return the `FORM_INACTIVE` shape.
+- Same type gate as the embed API: HOSTED forms return the `FORM_HOSTED_ONLY` shape.
 
 ### Env vars in client components
 
@@ -510,13 +512,15 @@ Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
   └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?, lastLoginAt?, ...)
-  └─ Form[] (name, slug, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
+  └─ Form[] (name, slug, type:FormType, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
   │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
   │    └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification[] (formId, type:NotificationType, count, updatedAt)
 
 PasswordResetToken (userId, token, expiresAt, usedAt?)
 ```
+
+`FormType` enum: `HOSTED` | `EMBEDDED`. Locked at form creation. Drives editor branching (Appearance Page subsection, font picker "Inherit from host page", preview mode), publish surfaces (Share Link vs Allowed Origins + Embed Code), and public endpoints (embed API rejects HOSTED with `FORM_HOSTED_ONLY`; `/f/[formId]` rejects EMBEDDED with the existing Form Not Available page).
 
 Seeded Plan rows: `FREE` (maxPublishedForms=1), `HOSTING` (10), `PAID` (null=unlimited), `UNLOCKED` (null, isPublic=false, admin-granted only).
 

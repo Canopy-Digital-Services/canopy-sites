@@ -8,7 +8,7 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentUserId, getCurrentAccountId } from "@/lib/auth-utils";
-import { FieldType, Prisma } from "@prisma/client";
+import { FieldType, FormType, Prisma } from "@prisma/client";
 import { getOwnedFormMinimal } from "@/lib/data-access/forms";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import {
@@ -467,6 +467,7 @@ export async function updateFormThumbnail(formId: string, thumbnailBase64: strin
 export async function createForm(data: {
   name: string;
   slug: string;
+  type: FormType;
   notifyEmails?: string[];
   honeypotField?: string | null;
 }) {
@@ -479,6 +480,7 @@ export async function createForm(data: {
       createdByUserId: userId,
       name: data.name.trim(),
       slug: data.slug.trim(),
+      type: data.type,
       notifyEmails: data.notifyEmails || [],
       honeypotField: data.honeypotField?.trim() || null,
       allowedOrigins: [],

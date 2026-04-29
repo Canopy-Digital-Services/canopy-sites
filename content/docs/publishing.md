@@ -4,15 +4,24 @@ description: Allowed origins, the embed snippet, and platform-specific integrati
 icon: Rocket
 ---
 
-Publishing makes a form live. Once published, it accepts submissions through the embed snippet, the manual submit API, and the hosted form page. Everything you need to publish is on the **Publish** tab inside the form workspace.
+Publishing makes a form live. Once published, it accepts submissions according to the form's type. Everything you need to publish is on the **Publish** tab inside the form workspace.
+
+## What you'll see on the Publish tab
+
+The controls on the Publish tab depend on the form type you chose at creation:
+
+- **Hosted forms** see the publish status and a **Share link** card with the public `/f/{formId}` URL.
+- **Embedded forms** see the publish status, **Allowed origins**, and the **Embed snippet**.
+
+Hosted forms do not show allowed origins or the embed snippet — they aren't reachable through the embed API. Embedded forms do not show a share link — `/f/{formId}` returns "Form Not Available" for embed-type forms.
 
 ## Publishing a form
 
 1. Open your form and switch to the **Publish** tab.
-2. Click **Publish**. The status changes to Live and the hosted link starts serving the form.
-3. You can **Unpublish** at any time. While unpublished, the hosted link shows a "Form Not Available" page; the embed snippet on your own site will still load the form, so if you need to fully block submissions, remove the snippet too.
+2. Click **Publish**. The status changes to Live.
+3. You can **Unpublish** at any time. Once unpublished, hosted forms show a "Form Not Available" page; embed snippets show the same message.
 
-## Allowed origins
+## Allowed origins (embedded forms only)
 
 Allowed origins are the domains that are permitted to submit to this form. They're configured on the Publish tab and save automatically.
 
@@ -23,7 +32,7 @@ Allowed origins are the domains that are permitted to submit to this form. They'
 
 If a submission comes from a domain that isn't on the list, the API returns `403 Origin not allowed`. The hosted form page is not subject to this check, since it's served from `forms.canopyds.com` directly.
 
-## Embed snippet
+## Embed snippet (embedded forms only)
 
 On the Publish tab, copy the **Embed on Your Website** snippet. It looks like this:
 

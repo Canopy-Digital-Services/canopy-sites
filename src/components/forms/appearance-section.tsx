@@ -104,6 +104,7 @@ type AppearanceSectionProps = {
 
 export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps) {
   const { state, saveStatus, updateTheme } = useFormContext();
+  const isHosted = state.type === "HOSTED";
 
   const theme = state.defaultTheme ?? {};
 
@@ -284,6 +285,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
           <CardContent className="space-y-1">
 
         {/* ── Page ──────────────────────────────────────────────────── */}
+        {isHosted && (
         <SubSection
           title="Page"
           open={pageOpen}
@@ -291,9 +293,6 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
           chips={pageChips}
           className="border-t-0"
         >
-          <p className="text-xs text-muted-foreground">
-            Applied when the form is hosted as a standalone page.
-          </p>
           <div className="space-y-2">
             <Label htmlFor="pageBackground">Page Background Color</Label>
             <div className="flex gap-2">
@@ -362,6 +361,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
             </Select>
           </div>
         </SubSection>
+        )}
 
         {/* ── Form ──────────────────────────────────────────────────── */}
         <SubSection
@@ -369,6 +369,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
           open={formOpen}
           onOpenChange={setFormOpen}
           chips={formChips}
+          className={isHosted ? undefined : "border-t-0"}
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
@@ -497,6 +498,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 value={headingFont}
                 onChange={(v) => set("headingFont", v)}
                 variant="heading"
+                showInherit={!isHosted}
               />
             </div>
             <div className="space-y-2">
@@ -590,6 +592,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 id="bodyFont"
                 value={bodyFont}
                 onChange={(v) => set("bodyFont", v)}
+                showInherit={!isHosted}
               />
             </div>
             <div className="space-y-2">

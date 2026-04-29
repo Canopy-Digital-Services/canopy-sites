@@ -10,7 +10,12 @@ A form is the central object in Canopy Forms. Each form has its own fields, them
 
 1. From the **Forms** page, click **Create Form**.
 2. Enter a name (for example, "Contact" or "Newsletter signup").
-3. You'll land in the form workspace. The form exists in **Draft** state until you publish it.
+3. Pick a **form type**:
+   - **Hosted** — a standalone page at a shareable URL (`/f/{formId}`). Good when you don't have a website to embed into, or when the form is the destination.
+   - **Embedded** — lives inside your own website via a `<script>` snippet. Good when you want the form to sit alongside other content on a page you control.
+4. Click **Create form**. You'll land in the form workspace. The form exists in **Draft** state until you publish it.
+
+The type is locked once the form is created — it shapes which appearance and publish controls you'll see. If you change your mind, create a new form of the other type.
 
 A URL-friendly slug is generated automatically from the name and shown below it. The slug is kept even if you rename the form later, so bookmarks and share links stay stable.
 
@@ -18,8 +23,8 @@ A URL-friendly slug is generated automatically from the name and shown below it.
 
 Every form opens to a three-tab workspace:
 
-- **Edit**: the builder, with accordion sections for Header, Fields, Appearance, and Submission Settings. On desktop, a live preview sits to the right, with a toggle between **Embed** (how the form looks inside someone else's page) and **Page** (how the hosted page looks).
-- **Publish**: publish status, allowed origins, embed snippet, and the hosted form link. See [Publishing](./publishing.md).
+- **Edit**: the builder, with accordion sections for Header, Fields, Appearance, and Submission Settings. On desktop, a live preview sits to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+- **Publish**: publish status and the controls that apply to your form type — the hosted form link for hosted forms, allowed origins and embed snippet for embedded ones. See [Publishing](./publishing.md).
 - **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 
 The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each accordion section.

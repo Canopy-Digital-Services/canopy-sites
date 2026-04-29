@@ -4,13 +4,16 @@ description: Theme colors, typography, spacing, and hosted-page layout.
 icon: Palette
 ---
 
-The **Appearance** accordion on the Edit tab is where you style a form. All changes autosave and are reflected in the preview to the right; toggle the preview between **Embed** (how the form looks inside a host page) and **Page** (how the hosted page looks).
+The **Appearance** accordion on the Edit tab is where you style a form. All changes autosave and are reflected in the preview to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
 
-Appearance is organized into five subsections.
+Appearance subsections depend on the form type:
 
-## Page
+- **Hosted forms** see Page, Form, Headings, Body, Button.
+- **Embedded forms** see Form, Headings, Body, Button (no Page subsection).
 
-Applies when the form is viewed on its hosted page at `forms.canopyds.com/f/<form-id>`. These settings don't affect the embed.
+## Page (hosted forms only)
+
+Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`. This subsection is hidden for embedded forms.
 
 - **Page Background Color**: the color behind the form card.
 - **Wrap form in a card**: toggle the rounded surface around the form. Turn it off for a flat look.
@@ -20,7 +23,7 @@ Applies when the form is viewed on its hosted page at `forms.canopyds.com/f/<for
 
 ## Form
 
-Applies to the form itself in both the embed and the hosted page.
+Applies to the form itself.
 
 - **Background**: the form's inner surface color.
 - **Field Background**: the color inside inputs, textareas, and selects.
@@ -36,7 +39,7 @@ All colors accept hex input. The color swatch next to each input opens the nativ
 
 Covers the form title and all field labels.
 
-- **Font**: pick a Google Font or System Default. Curated heading fonts are surfaced first.
+- **Font**: pick a Google Font. Curated heading fonts are surfaced first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't show this option since there's no host page to inherit from.
 - **Weight**: Regular or Bold. Light is only shown when the selected font has a 300 weight.
 - **Color**: a color override for headings. Leave blank to inherit the body text color.
 - **Case**: Normal or Uppercase. Applies to field labels.
@@ -47,7 +50,7 @@ Covers the form title and all field labels.
 
 Controls the rest of the form's typography.
 
-- **Font**: the body font. Used for input text, help text, and the description.
+- **Font**: the body font. Used for input text, help text, and the description. Embedded forms also offer **Inherit from host page**.
 - **Base Font Size (px)**: 10 to 24.
 - **Text Color**: body copy and input text color. Placeholder text is rendered at reduced opacity of this color.
 
@@ -58,10 +61,10 @@ Controls the rest of the form's typography.
 
 ## Live preview
 
-The preview to the right of the editor updates as you type. Use the **Embed** / **Page** toggle at the top to switch between:
+The preview to the right of the editor updates as you type. The preview mode is locked to the form's type:
 
-- **Embed**: the form rendered inside a generic container, matching what visitors to your site will see.
-- **Page**: the hosted page at `/f/<form-id>`, including the Page-level settings (background, card, width, alignment).
+- **Hosted forms** preview as the page at `/f/<form-id>`, including the Page-level settings (background, card, width, alignment).
+- **Embedded forms** preview as the form rendered inside a generic container, matching what visitors to your site will see.
 
 On mobile or narrow windows, the preview hides and is accessible through the preview tab on the right edge.
 

@@ -67,6 +67,9 @@ export function FormCard({ form }: FormCardProps) {
           ) : (
             <Badge variant="outline" className="text-[11px] mr-2">Draft</Badge>
           )}
+          <Badge variant="secondary" className="text-[11px] mr-2">
+            {form.type === "HOSTED" ? "Hosted" : "Embedded"}
+          </Badge>
           {form._count.fields} {form._count.fields === 1 ? "field" : "fields"} &middot;{" "}
           {form._count.submissions} {form._count.submissions === 1 ? "submission" : "submissions"}
           {form.newSubmissionsCount > 0 && (
