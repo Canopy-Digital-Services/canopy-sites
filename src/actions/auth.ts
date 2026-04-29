@@ -170,6 +170,7 @@ export async function validateResetToken(token: string) {
 
   const resetToken = await prisma.passwordResetToken.findUnique({
     where: { token },
+    include: { user: { select: { email: true } } },
   });
 
   if (!resetToken) {
@@ -184,7 +185,7 @@ export async function validateResetToken(token: string) {
     return { valid: false, error: "This reset link has expired" };
   }
 
-  return { valid: true };
+  return { valid: true, email: resetToken.user.email };
 }
 
 /**

@@ -97,6 +97,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
@@ -120,6 +121,7 @@ export default function LoginPage() {
             </div>
             <PasswordInput
               id="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}

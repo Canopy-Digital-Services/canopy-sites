@@ -92,6 +92,7 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
@@ -107,6 +108,7 @@ export default function SignupPage() {
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
@@ -126,6 +128,7 @@ export default function SignupPage() {
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}

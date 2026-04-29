@@ -183,6 +183,7 @@ function PasswordSection() {
             <Label htmlFor="currentPassword">Current Password</Label>
             <PasswordInput
               id="currentPassword"
+              autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               onBlur={() =>
@@ -201,6 +202,7 @@ function PasswordSection() {
             <Label htmlFor="newPassword">New Password</Label>
             <PasswordInput
               id="newPassword"
+              autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, newPassword: true }))}
@@ -219,6 +221,7 @@ function PasswordSection() {
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() =>

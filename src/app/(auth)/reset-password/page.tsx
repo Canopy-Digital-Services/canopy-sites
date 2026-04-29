@@ -24,6 +24,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
+  const [email, setEmail] = useState("");
 
   // Derived validation errors (computed every render)
   const errors = {
@@ -55,6 +56,9 @@ export default function ResetPasswordPage() {
       
       if (result.valid) {
         setTokenValid(true);
+        if (result.email) {
+          setEmail(result.email);
+        }
       } else {
         setTokenError(result.error || "Invalid reset link");
       }
@@ -167,10 +171,22 @@ export default function ResetPasswordPage() {
             <h2 className="text-xl font-heading font-semibold">Set new password</h2>
             <p className="text-sm text-muted-foreground">Enter your new password below</p>
           </div>
+          {/* Hidden username so password managers update the existing saved entry instead of creating a new one. */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={email}
+            readOnly
+            aria-hidden="true"
+            tabIndex={-1}
+            className="absolute h-0 w-0 opacity-0 pointer-events-none"
+          />
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <PasswordInput
               id="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
@@ -190,6 +206,7 @@ export default function ResetPasswordPage() {
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
