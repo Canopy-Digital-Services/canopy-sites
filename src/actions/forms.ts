@@ -451,8 +451,8 @@ export async function updateFormThumbnail(formId: string, thumbnailBase64: strin
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  // Max ~150KB decoded image
-  if (thumbnailBase64.length > 200_000) {
+  // Max ~1.5MB decoded image
+  if (thumbnailBase64.length > 2_000_000) {
     throw new Error("Thumbnail too large");
   }
 
