@@ -267,7 +267,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   </span>
                 )}
                 {saveStatus === "saved" && (
-                  <span className="text-sm text-success flex items-center gap-2">
+                  <span className="text-sm text-success-strong flex items-center gap-2">
                     <Check className="h-4 w-4" />
                     Saved
                   </span>
@@ -300,7 +300,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 type="color"
                 value={toColorInputValue(pageBackground, "#f4f4f5")}
                 onChange={(e) => set("pageBackground", e.target.value)}
-                className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
               />
               <Input
                 id="pageBackground"
@@ -379,7 +379,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(background, "#ffffff")}
                   onChange={(e) => set("background", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="background"
@@ -397,7 +397,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(fieldBackground, "#ffffff")}
                   onChange={(e) => set("fieldBackground", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="fieldBackground"
@@ -415,7 +415,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(border, "#e4e4e7")}
                   onChange={(e) => set("border", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="border"
@@ -524,7 +524,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(titleColor, "#18181b")}
                   onChange={(e) => set("titleColor", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="titleColor"
@@ -614,7 +614,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(text, "#18181b")}
                   onChange={(e) => set("text", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="text"
@@ -652,7 +652,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(primary, "#005F6A")}
                   onChange={(e) => set("primary", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="primary"

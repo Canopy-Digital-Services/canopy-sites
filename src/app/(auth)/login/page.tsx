@@ -150,7 +150,7 @@ export default function LoginPage() {
             </Label>
           </div>
           {successMessage && (
-            <p role="status" className="text-sm text-green-600">{successMessage}</p>
+            <p role="status" className="text-sm text-success-strong">{successMessage}</p>
           )}
           {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
           <div className="mt-4 text-center text-sm">

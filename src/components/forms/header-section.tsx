@@ -38,7 +38,7 @@ export function HeaderSection({ open, onOpenChange }: HeaderSectionProps) {
                   </span>
                 )}
                 {saveStatus === "saved" && (
-                  <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                  <span className="text-sm text-success-strong flex items-center gap-2">
                     <Check className="h-4 w-4" />
                     Saved
                   </span>

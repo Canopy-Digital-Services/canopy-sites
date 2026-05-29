@@ -187,7 +187,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                         onChange={(e) => updateName(e.target.value)}
                         onBlur={() => setEditingName(false)}
                         onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
-                        className="text-2xl font-heading font-semibold tracking-tight h-auto"
+                        className="text-3xl font-heading font-semibold tracking-tight h-auto"
                         placeholder="Form name"
                       />
                       <Button
@@ -200,7 +200,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                       </Button>
                     </div>
                   ) : (
-                    <h1 className="text-2xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
+                    <h1 className="text-3xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
                       {state.name || form.name}
                       {editing && (
                         <Tooltip>
@@ -228,7 +228,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                       </span>
                     )}
                     {saveStatus === "saved" && (
-                      <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                      <span className="text-sm text-success-strong flex items-center gap-2">
                         <Check className="h-4 w-4" />
                         Saved
                       </span>

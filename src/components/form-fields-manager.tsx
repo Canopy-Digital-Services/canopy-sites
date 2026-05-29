@@ -198,7 +198,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
         />
       )}
       {isPending ? (
-        <p className="text-xs text-zinc-500">Saving changes...</p>
+        <p className="text-xs text-muted-foreground">Saving changes...</p>
       ) : null}
     </div>
   );

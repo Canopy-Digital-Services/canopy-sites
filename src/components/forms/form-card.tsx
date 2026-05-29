@@ -22,7 +22,7 @@ export function FormCard({ form }: FormCardProps) {
     <Card className="group hover:shadow-md transition-shadow overflow-hidden">
       {/* Thumbnail — decorative link, form name below is the real nav target */}
       <Link href={`/forms/${form.id}`} className="block" aria-hidden="true" tabIndex={-1}>
-        <div className="aspect-[16/10] bg-muted/40 overflow-hidden">
+        <div className="aspect-[16/10] bg-muted overflow-hidden">
           <img
             src={`/api/forms/${form.id}/thumbnail`}
             alt=""
@@ -63,17 +63,17 @@ export function FormCard({ form }: FormCardProps) {
 
         <p className="text-sm text-muted-foreground">
           {form.published ? (
-            <Badge variant="default" className="text-[11px] mr-2">Published</Badge>
+            <Badge variant="success" className="text-[11px] mr-2">Published</Badge>
           ) : (
-            <Badge variant="outline" className="text-[11px] mr-2">Draft</Badge>
+            <Badge variant="neutral" className="text-[11px] mr-2">Draft</Badge>
           )}
-          <Badge variant="secondary" className="text-[11px] mr-2">
+          <Badge variant="neutral" className="text-[11px] mr-2">
             {form.type === "HOSTED" ? "Hosted" : "Embedded"}
           </Badge>
           {form._count.fields} {form._count.fields === 1 ? "field" : "fields"} &middot;{" "}
           {form._count.submissions} {form._count.submissions === 1 ? "submission" : "submissions"}
           {form.newSubmissionsCount > 0 && (
-            <span className="text-success font-medium">
+            <span className="text-success-strong font-medium">
               {" "}({form.newSubmissionsCount} new)
             </span>
           )}

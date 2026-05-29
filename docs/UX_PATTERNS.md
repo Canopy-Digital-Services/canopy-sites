@@ -108,6 +108,23 @@ Colors are defined as CSS variables using oklch color space for better color man
 | `accent` | `bg-accent`, `text-accent` | Subtle highlights |
 | `border` | `border`, `border-border` | Standard borders |
 
+### Surfaces, Radius & Elevation
+
+Neutrals resolve to a small set of roles, each perceptually distinct:
+
+- **Surfaces** — `--card` (white, raised: cards/modals/inputs), `--background` (off-white page), `--muted` (sunken: hover wash, code blocks, recessed wells). `--secondary` and `--accent` alias `--muted`.
+- **Border** — a single `--border` (`oklch(0.88 0 0)`); `--input` matches it.
+- **Text** — `--foreground` (`oklch(0.18 0 0)`, body/headings) and `--muted-foreground` (`oklch(0.50 0 0)`, secondary/placeholder).
+- **Focus ring** — derived from `--primary` (rendered at 50% via `ring-ring/50`); there is no separate ring hue.
+
+**Radius is a two-value system**: a single **2px workhorse** (`--radius`) for every container and control — the whole `rounded-sm/md/lg/xl/2xl` ramp collapses onto it — plus the **pill** (`rounded-full`) for badges, avatars, and status dots. Corner softness is not a design lever; don't reach for a larger radius to make something "friendlier."
+
+**Elevation** uses four role-based, two-layer shadows: `shadow-1` (rest — cards), `shadow-2` (lift — hover), `shadow-3` (float — popovers/dropdowns), `shadow-4` (command — modals). The old Tailwind names (`shadow-xs/sm/md/lg/xl`) alias into this scale.
+
+### Brand Gradient
+
+The signature gradient (`var(--canopy-gradient)`) runs **highlight green (upper-left) → main teal (lower-right)**, matching the canopy mark. It lives in the logo and the decorative admin "swoops" — it is **not** used as a UI background fill.
+
 ### Component Variants
 
 Most UI components automatically use semantic colors through their variants:
@@ -138,9 +155,9 @@ Two patterns for indicating status. Choose based on context:
 **Dot + text** for standalone status where the indicator is a focal element:
 
 ```tsx
-// Active/live — pulsing green dot
-<span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
-  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+// Active/live — pulsing green dot (brand tokens, not hardcoded green-*)
+<span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-strong">
+  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
   Live
 </span>
 
@@ -151,16 +168,16 @@ Two patterns for indicating status. Choose based on context:
 </span>
 ```
 
-Only use `animate-pulse` for active/live states. Don't animate inactive states.
+Only use `animate-pulse` for active/live states. Don't animate inactive states. **Green text/icons use `text-success-strong`** (a readable dark-green ink) — never the light `--success` fill color, which fails contrast as text, and never a hardcoded `green-600`. Use `bg-success` for green fills (dots, success buttons).
 
-**Badge** for status labels in dense contexts alongside other metadata:
+**Badge** for status labels in dense contexts alongside other metadata. Badges are **tinted pills** (pale fill + saturated text, no border, fully rounded) so they read as labels, not buttons. Variants are semantic tints: `success` (green), `brand` (teal), `neutral` (gray), `amber`, `destructive` (coral). The old shadcn names (`default`, `secondary`, `outline`) still resolve as aliases onto this tinted scale.
 
 ```tsx
-<Badge variant="default">Published</Badge>
-<Badge variant="outline">Draft</Badge>
+<Badge variant="success">Published</Badge>
+<Badge variant="neutral">Draft</Badge>
 ```
 
-Don't use Badge in prominent status displays — it resembles a button and creates ambiguity about whether it's interactive.
+Don't use Badge in prominent status displays — even as a tinted pill it competes with the dot+text atom. Reserve the pill for compact metadata rows; use dot+text for focal status.
 
 ### Informational Notices
 
@@ -172,16 +189,16 @@ Use color treatment to match the severity of the message:
 | **`text-destructive`** | Validation errors, failed operations, things that are **wrong** | "Email is required" |
 | **`toast.error()`** | Transient operation failures | "Failed to save changes" |
 
-When something is merely **incomplete or needs attention**, use an amber notice — it's informative without being alarming:
+When something is merely **incomplete or needs attention**, use an amber notice — it's informative without being alarming. Notices are **borderless tinted blocks** at the 2px workhorse radius: the tinted fill carries the severity, so no outline is needed (this matches the badge tint vocabulary — a notice and a badge on the same screen read as one family).
 
 ```tsx
-<div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3.5 py-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+<div className="flex items-start gap-2.5 rounded-lg bg-amber-100 px-3.5 py-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
   <p>Guidance text here.</p>
 </div>
 ```
 
-Reserve `text-destructive` for things that are **wrong**, not things that are **not yet configured**.
+Three tones cover the spectrum: **brand** (teal — informational, no caution), **amber** (incomplete / needs attention), **destructive** (coral — something is wrong). Reserve `text-destructive` for things that are **wrong**, not things that are **not yet configured**.
 
 ### Embed Forms
 
@@ -297,12 +314,14 @@ Buttons use the `Button` component from `src/components/ui/button.tsx`.
 
 | Size | Usage |
 |------|-------|
-| `default` | Standard buttons |
-| `sm` | Compact areas, table rows |
-| `lg` | Hero actions, prominent CTAs |
-| `icon` | Icon-only buttons (square, 36px) |
-| `icon-sm` | Small icon buttons (32px) - **use for action icons in lists** |
+| `default` | Standard buttons (32px) |
+| `sm` | Compact areas, table rows (28px) |
+| `lg` | Hero actions, prominent CTAs (40px) |
+| `icon` | Icon-only buttons (square, 32px — matches `default`) |
+| `icon-sm` | Small icon buttons (28px) - **use for action icons in lists** |
 | `icon-lg` | Large icon buttons (40px) |
+
+Heights step on a tight 28 / 32 / 40 scale; the default (32px) is deliberately compact. Corners are the 2px workhorse radius; filled variants carry no shadow, `outline` carries `shadow-xs` (rest elevation). Ghost hover lands on the sunken neutral wash (`hover:bg-muted`).
 
 ### Examples
 
@@ -354,14 +373,15 @@ Always use `ghost` variant with `icon-sm` size for icon-only action buttons:
 
 ## Typography
 
-This project uses a single-typeface system for a clean, professional look. `font-heading` is an alias for Inter (the body font) — it exists so heading elements are explicitly marked even though the rendered font is the same.
+This project uses a two-family system: **Urbanist** for headings and **Inter** for body/UI, with **Geist Mono** for code. `font-heading` resolves to Urbanist — apply it to every semantic heading so titles read distinctly from body copy.
 
 ### Typeface Choices
 
 | Typeface | Usage | Tailwind Utility |
 |----------|-------|------------------|
-| **Inter** | Everything: body text, headings, UI elements, buttons | `font-sans` (default), `font-heading` (alias) |
-| **Geist Mono** | Code blocks, monospace content | `font-mono` |
+| **Urbanist** | Headings: page/card/section titles | `font-heading` |
+| **Inter** | Everything else: body, buttons, labels, inputs, tables | `font-sans` (default) |
+| **Geist Mono** | Code blocks, embed snippets, IDs | `font-mono` |
 
 ### Implementation
 
@@ -370,12 +390,12 @@ Fonts are loaded via `next/font/google` in `src/app/layout.tsx` and mapped to Ta
 ```css
 @theme inline {
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-inter);
+  --font-heading: var(--font-urbanist);
   --font-mono: var(--font-geist-mono);
 }
 ```
 
-**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. The `font-heading` class is used on headings for semantic clarity but renders the same font.
+**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. The `font-heading` class switches headings to Urbanist.
 
 ### When to Use `font-heading`
 
@@ -397,7 +417,7 @@ Apply `font-heading` to all semantic headings and titles (for semantic clarity a
 
 ```tsx
 // Page header
-<h1 className="text-2xl font-heading font-semibold tracking-tight">
+<h1 className="text-3xl font-heading font-semibold tracking-tight">
   Forms
 </h1>
 
@@ -419,35 +439,34 @@ Apply `font-heading` to all semantic headings and titles (for semantic clarity a
 
 ### Font Weights
 
-Both typefaces support variable weights. Common usage:
+All three families support variable weights. Headings use a single weight (600); hierarchy is carried by **size**, not weight. Common usage:
 
 | Weight | Class | Usage |
 |--------|-------|-------|
 | 400 (Regular) | `font-normal` | Body text (Inter default) |
 | 500 (Medium) | `font-medium` | Field labels, form inputs |
-| 600 (Semibold) | `font-semibold` | Card titles, section headings within panels (`CardTitle`, `SettingsSection`, `SubSection`) |
-| 700 (Bold) | `font-bold` | Page headings, high emphasis (`PageHeader`) |
+| 600 (Semibold) | `font-semibold` | All headings — page titles, card titles, section headings (`PageHeader`, `CardTitle`, `SettingsSection`, `SubSection`) |
 
 ### Heading Hierarchy
 
-The admin UI uses a four-level typographic hierarchy. Maintain size and weight separation between levels:
+The admin UI uses a four-level typographic hierarchy. Separation is carried by **size** (all headings are Urbanist 600); line-heights are part of the spec:
 
-| Level | Example | Classes | Size |
+| Level | Example | Classes | Size / line-height |
 |-------|---------|---------|------|
-| Page title | "Forms", "Account" | `text-2xl font-heading font-semibold tracking-tight` | 24px |
-| Card title | "Header", "Fields", "Appearance" | `text-xl font-heading font-semibold tracking-tight` | 20px |
-| Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px |
-| Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px |
+| Page title | "Forms", "Account" | `text-3xl font-heading font-semibold tracking-tight` | 30px / 1.15 |
+| Card title | "Header", "Fields", "Appearance" | `text-[1.375rem] font-heading font-semibold tracking-tight` | 22px / 1.25 |
+| Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px / 1.4 |
+| Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px / 1.4 |
 
-Card titles are separated from section headings by **size** (20px vs 16px). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels.
+Body is 14px (`text-sm`) Inter regular; meta/captions/stats step down to 12px (`text-xs`). Page and card titles are separated by **size** (30px vs 22px). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels.
 
 ### Component Patterns Using Typography
 
 These shared components already apply `font-heading` correctly:
-- `PageHeader` - page titles (`text-2xl font-heading font-semibold tracking-tight`)
-- `CardTitle` - card titles (`text-xl font-heading font-semibold tracking-tight`)
+- `PageHeader` - page titles (`text-3xl font-heading font-semibold tracking-tight`)
+- `CardTitle` - card titles (`text-[1.375rem] font-heading font-semibold tracking-tight`)
 - `SettingsSection` - section headings (`text-base font-heading font-semibold`)
-- `EmptyState` - empty state titles (`text-lg font-heading font-semibold`)
+- `EmptyState` - empty state titles (`text-[1.375rem] font-heading font-semibold`)
 - `Markdown` - h1/h2/h3 renderers
 
 When creating new title/heading components, follow this pattern.
@@ -970,13 +989,13 @@ Use a **red asterisk** for required field indicators across the application.
 ```tsx
 <span className="font-medium">
   {field.label}
-  {field.required && <span className="text-red-500 ml-0.5">*</span>}
+  {field.required && <span className="text-destructive ml-0.5">*</span>}
 </span>
 ```
 
 ### Styling Rules
 
-- **Color**: `text-red-500` (consistent red)
+- **Color**: `text-destructive` (the brand coral error token — not a hardcoded `red-500`)
 - **Spacing**: `ml-0.5` (minimal gap after label)
 - **Position**: Immediately after label text, before any metadata
 

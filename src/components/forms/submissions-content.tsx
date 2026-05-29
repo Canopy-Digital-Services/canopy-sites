@@ -155,7 +155,7 @@ export function SubmissionsContent({
 
       {submissions.length === 0 ? (
         <EmptyState
-          icon={<FileText className="h-10 w-10 text-muted-foreground" />}
+          icon={<FileText className="h-9 w-9" />}
           title={
             statusFilter === "all" ? "No submissions yet" :
             statusFilter === "NEW" ? "No new submissions" :

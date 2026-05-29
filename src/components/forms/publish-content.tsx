@@ -85,7 +85,7 @@ export function PublishContent({
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             {published ? (
-              <Globe className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Globe className="h-5 w-5 text-success-strong" />
             ) : (
               <GlobeLock className="h-5 w-5 text-muted-foreground" />
             )}
@@ -95,8 +95,8 @@ export function PublishContent({
                   {published ? "Published" : "Not published"}
                 </span>
                 {published ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-strong">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
                     Live
                   </span>
                 ) : (
@@ -208,7 +208,7 @@ export function PublishContent({
                 </span>
               )}
               {saveStatus === "saved" && (
-                <span className="text-sm text-success flex items-center gap-2">
+                <span className="text-sm text-success-strong flex items-center gap-2">
                   <Check className="h-4 w-4" />
                   Saved
                 </span>

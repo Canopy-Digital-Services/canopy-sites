@@ -60,7 +60,7 @@ export function FieldList({
                   <span className="font-medium text-sm">
                     {field.label}
                     {field.required && (
-                      <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
+                      <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground/60">

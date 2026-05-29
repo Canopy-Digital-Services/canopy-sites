@@ -44,8 +44,8 @@ const ALERT_VARIANTS: Record<
     Icon: Lightbulb,
     label: "Tip",
     classes: "border-success/40 bg-success/5",
-    iconClasses: "text-success",
-    titleClasses: "text-success",
+    iconClasses: "text-success-strong",
+    titleClasses: "text-success-strong",
   },
   important: {
     Icon: MessageSquareWarning,
@@ -205,7 +205,7 @@ const components = {
     if (isInline) {
       return (
         <code
-          className="rounded border border-border/60 bg-muted/70 px-1.5 py-0.5 text-[0.875em] font-mono text-foreground/90"
+          className="rounded-md border border-border/60 bg-muted/70 px-1.5 py-0.5 text-[0.875em] font-mono text-foreground/90"
           {...props}
         >
           {children}

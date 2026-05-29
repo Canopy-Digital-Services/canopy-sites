@@ -125,7 +125,7 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
                   </span>
                 )}
                 {saveStatus === "saved" && (
-                  <span className="text-sm text-success flex items-center gap-2">
+                  <span className="text-sm text-success-strong flex items-center gap-2">
                     <Check className="h-4 w-4" />
                     Saved
                   </span>
