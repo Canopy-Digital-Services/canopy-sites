@@ -97,6 +97,7 @@ model Form {
   allowedOrigins            String[] @default([])  // Domains allowed to embed/submit to this form
   notifyEmails              String[] @default([])
   emailNotificationsEnabled Boolean  @default(false)  // Epic 4: Email account owner on new submission
+  emailIncludeResponses     Boolean  @default(false)  // Epic 26: Include submitted values + Reply-To in notification emails
   honeypotField             String?  // Optional honeypot field name
   successMessage            String?
   redirectUrl               String?
