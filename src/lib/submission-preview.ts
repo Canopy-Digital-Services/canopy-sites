@@ -6,10 +6,7 @@
  * broken by declaration order. We skip fields whose value is empty so a
  * blank NAME doesn't win over a filled EMAIL.
  */
-import {
-  isCompositeFieldType,
-  formatCompositeValue,
-} from "@/lib/composite-format";
+import { formatFieldValue } from "@/lib/composite-format";
 
 type PreviewField = {
   name: string;
@@ -35,7 +32,7 @@ export function buildSubmissionPreview(
   if (!chosen) return "";
 
   const raw = data[chosen.name];
-  const formatted = formatValue(chosen, raw);
+  const formatted = formatFieldValue(chosen.type, raw, chosen.options);
   return truncate(formatted, MAX_PREVIEW_LENGTH);
 }
 
@@ -63,23 +60,6 @@ function hasMeaningfulValue(v: unknown): boolean {
     );
   }
   return true;
-}
-
-function formatValue(field: PreviewField, value: unknown): string {
-  if (value == null) return "";
-  if (Array.isArray(value)) return value.join(", ");
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "object") {
-    if (isCompositeFieldType(field.type)) {
-      return formatCompositeValue(
-        field.type,
-        value as Record<string, unknown>,
-        field.options
-      );
-    }
-    return "";
-  }
-  return String(value);
 }
 
 function truncate(s: string, max: number): string {

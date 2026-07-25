@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
+import { validateOrigin, getClientIP, hashIP, isValidEmail } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
 import { queueNewSubmissionNotification } from "@/lib/email-queue";
+import { buildSubmissionEmailExtras } from "@/lib/submission-email";
 import {
   upsertLimitNotification,
   upsertSubmissionNotification,
@@ -167,10 +168,7 @@ function validateFields(
         ? (field.validation as { domainRules?: { allow?: string[]; block?: string[] }; normalize?: boolean })
         : undefined;
 
-      // RFC 5322 compliant
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-      if (!emailRegex.test(emailValue)) {
+      if (!isValidEmail(emailValue)) {
         errors[field.name] = `Enter a valid email address`;
         continue;
       }
@@ -641,12 +639,19 @@ export async function handlePublicSubmit({
 
   // Send notification to all listed recipients if enabled
   if (!isSpam && form.emailNotificationsEnabled && form.notifyEmails.length > 0) {
-    queueNewSubmissionNotification(
-      form.id,
-      form.name,
-      submission.createdAt,
-      form.notifyEmails
-    );
+    const extras = form.emailIncludeResponses
+      ? buildSubmissionEmailExtras(form.fields, formData, form.honeypotField)
+      : null;
+
+    queueNewSubmissionNotification({
+      formId: form.id,
+      formName: form.name,
+      accountId: form.accountId,
+      submittedAt: submission.createdAt,
+      notifyEmails: form.notifyEmails,
+      responses: extras?.responses,
+      replyTo: extras?.replyTo,
+    });
   }
 
   // In-app bell notification (independent of email preferences)

@@ -7,6 +7,29 @@ export function isCompositeFieldType(type: string): boolean {
   return type === "NAME" || type === "ADDRESS";
 }
 
+/**
+ * Render any submitted value as human-readable text: booleans as Yes/No,
+ * multi-selects comma-joined, composites through their own formatter.
+ * Returns "" for empty values and for objects we have no formatter for, so
+ * callers can decide how to present "nothing here".
+ */
+export function formatFieldValue(
+  type: string,
+  value: unknown,
+  options?: unknown
+): string {
+  if (value == null) return "";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") {
+    if (isCompositeFieldType(type)) {
+      return formatCompositeValue(type, value as Record<string, unknown>, options);
+    }
+    return "";
+  }
+  return String(value);
+}
+
 export function formatCompositeValue(
   type: string,
   value: Record<string, unknown>,

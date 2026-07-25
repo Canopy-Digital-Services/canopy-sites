@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
 import { queueNewSubmissionNotification } from "@/lib/email-queue";
+import { buildSubmissionEmailExtras } from "@/lib/submission-email";
 
 const POST_RATE_LIMIT = { max: 10, windowMs: 60 * 1000 };
 const MAX_PAYLOAD_SIZE = 64 * 1024;
@@ -134,12 +135,21 @@ export async function POST(
 
     // Send notifications if not spam
     if (!isSpam && form.emailNotificationsEnabled && form.notifyEmails.length > 0) {
-      queueNewSubmissionNotification(
-        form.id,
-        form.name,
-        submission.createdAt,
-        form.notifyEmails
-      );
+      // Only the submitted field — the rest of the form was never sent here, so
+      // listing it would report every other question as blank.
+      const extras = form.emailIncludeResponses
+        ? buildSubmissionEmailExtras([field], formData, form.honeypotField)
+        : null;
+
+      queueNewSubmissionNotification({
+        formId: form.id,
+        formName: form.name,
+        accountId: form.accountId,
+        submittedAt: submission.createdAt,
+        notifyEmails: form.notifyEmails,
+        responses: extras?.responses,
+        replyTo: extras?.replyTo,
+      });
     }
 
     return jsonResponse(

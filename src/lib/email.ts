@@ -1,10 +1,15 @@
 import nodemailer from "nodemailer";
+import {
+  renderNotificationEmail,
+  type ResponseLine,
+} from "@/lib/submission-email";
 
 export interface EmailOptions {
   to: string | string[];
   subject: string;
   text: string;
   html?: string;
+  replyTo?: string;
 }
 
 /**
@@ -49,6 +54,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: recipients,
+      replyTo: options.replyTo,
       subject: options.subject,
       text: options.text,
       html: options.html,
@@ -63,34 +69,35 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 /**
- * Send minimal email notification to account owner for new submission
- * Does NOT include submission field values - only form name, timestamp, and link
- * Returns true on success, false on failure
+ * Send a new-submission notification to one recipient.
+ * Body shape depends on whether `responses` is supplied — see
+ * `src/lib/submission-email.ts`. Returns true on success, false on failure.
  */
-export async function sendNewSubmissionNotification(
-  formId: string,
-  formName: string,
-  submissionTimestamp: Date,
-  accountEmail: string
-): Promise<boolean> {
+export async function sendNewSubmissionNotification(options: {
+  formId: string;
+  formName: string;
+  submittedAt: Date;
+  recipient: string;
+  responses?: ResponseLine[] | null;
+  replyTo?: string | null;
+  canUseDashboard?: boolean;
+}): Promise<boolean> {
   const dashboardUrl = process.env.NEXTAUTH_URL || "http://localhost:3006";
-  const submissionsUrl = `${dashboardUrl}/forms/${formId}/submissions`;
 
-  const emailBody = `
-New form submission received.
-
-Form: ${formName}
-Date: ${submissionTimestamp.toLocaleString()}
-
-View submissions: ${submissionsUrl}
-
----
-This is an automated notification from Canopy Forms.
-  `.trim();
+  const { text, html } = renderNotificationEmail({
+    formName: options.formName,
+    submittedAt: options.submittedAt,
+    submissionsUrl: options.canUseDashboard
+      ? `${dashboardUrl}/forms/${options.formId}/submissions`
+      : null,
+    responses: options.responses,
+  });
 
   return sendEmail({
-    to: accountEmail,
-    subject: `New submission: ${formName}`,
-    text: emailBody,
+    to: options.recipient,
+    subject: `New submission: ${options.formName}`,
+    text,
+    html,
+    replyTo: options.replyTo ?? undefined,
   });
 }
