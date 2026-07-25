@@ -46,6 +46,11 @@ Quick fixes for the most common problems. If none of these match, check the brow
 - Spam submissions never trigger notifications. If you expect an email after a test, make sure the honeypot field (if you configured one) is **empty**.
 - If email never arrives for any form, the platform SMTP configuration may not be set up. Contact the platform operator.
 
+## The notification doesn't show what the visitor entered
+
+- Open **Edit → Submission Settings** and check **Include responses in the email**. Notifications leave submitted values out by default.
+- Recipients without an account on this workspace don't get the dashboard link, so this setting is what they need in order to see responses at all.
+
 ## Styling clashes with my site
 
 - The embed uses scoped CSS (`.canopy-*` classes) to avoid touching your site's styles. If something looks off, check your own stylesheet for broad selectors (for example, `input { … }`, `button { … }`) that might be overriding embed styles.

@@ -5,6 +5,27 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.0] - 2026-07-24
+
+### Added
+
+- **Full-Response Email Notifications (Epic 26)**: notification emails can now carry the submitted values, for recipients who never sign in to the dashboard
+  - New `Form.emailIncludeResponses` flag with an **Include responses in the email** checkbox under Edit → Submission Settings → Email notifications. Per form, off by default
+  - When on, the email lists every field in form order with what the visitor entered, as plain text and as an HTML table. Empty optional fields show as `(blank)`; the honeypot field is never shown
+  - When on, `Reply-To` is set to the submitter's address (first EMAIL field with a valid value), so recipients can reply to the visitor directly from the notification
+  - New `src/lib/submission-email.ts` owns notification content; `src/lib/email.ts` remains transport
+
+### Changed
+
+- **Dashboard link is now per recipient**: only recipients who are users on the form's account get the "View in dashboard" link. Other addresses in `notifyEmails[]` have no account to sign in to, so the link was a dead end for them
+- **Default notification is unchanged**: with the new flag off, the email is byte-identical to the metadata-only body from Epic 4. Existing forms keep that behavior
+- Value formatting shared between the submissions preview and the new email renderer via `formatFieldValue()` in `src/lib/composite-format.ts`; email validation shared via `isValidEmail()` in `src/lib/validation.ts`
+
+### Security
+
+- `Reply-To` candidates are re-validated instead of trusted, and CR/LF is rejected, so a submitted value can't inject additional SMTP headers. This matters for `/api/submit/[formId]/[fieldName]`, which only validates that required fields are present
+- Labels and values are HTML-escaped in the HTML part of the email
+
 ## [4.12.0] - 2026-04-29
 
 ### Added

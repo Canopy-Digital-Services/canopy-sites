@@ -108,7 +108,8 @@ Check **Email notifications** to receive an email each time the form gets a non-
 
 - When first enabled, your account email is added as the first recipient.
 - Add up to **5 recipients** total. Each recipient gets the same email.
-- The notification includes the form name, timestamp, and a link back to the submission in the dashboard. Submission field values are included so you can triage without logging in.
+- By default the notification includes the form name, timestamp, and a link back to the submission in the dashboard. It does not include what the visitor typed.
+- Check **Include responses in the email** to send the submitted values too. See [Submissions](./submissions.md#what-the-email-contains) for what changes.
 - Spam submissions (honeypot caught) never trigger a notification.
 - Email delivery depends on the platform's SMTP config. If email isn't configured, submissions still save; they just don't trigger a notification.
 

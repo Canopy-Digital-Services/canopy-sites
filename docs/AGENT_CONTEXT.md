@@ -94,7 +94,7 @@ Embed forms use native HTML5 validation popups via `setCustomValidity()` (one er
 - POST validates, spam-checks (honeypot), stores submission, queues email notifications.
 - Rate limit: GET 60/min, POST 10/min per hashed IP.
 - Origin validation: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost always allowed.
-- Email notifications: individual emails to all addresses in `form.notifyEmails[]` (max 5).
+- Email notifications: individual emails to all addresses in `form.notifyEmails[]` (max 5). Body shape depends on `form.emailIncludeResponses`: off (default) sends metadata only (Epic 4's privacy-focused email); on lists every submitted value and sets `Reply-To` to the submitter's address. Content lives in `src/lib/submission-email.ts`, not in `email.ts`. The dashboard link is per recipient — only addresses belonging to a `User` on the form's account get one, since nobody else can sign in.
 - **Unpublished gate**: when `form.published === false`, both GET and POST return `403` with `{ error: "This form is not currently accepting responses", code: "FORM_INACTIVE" }`. The embed script pattern-matches `code === "FORM_INACTIVE"` to render a dedicated "Form Not Available" state.
 - **Type gate**: when `form.type === "HOSTED"`, both GET and POST return `403` with `{ error, code: "FORM_HOSTED_ONLY" }`. The embed script renders a dedicated "Form is only available at its hosted URL" state for this code. Hosted forms are reachable only at `/f/[formId]`.
 
@@ -512,7 +512,7 @@ Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
   └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?, lastLoginAt?, ...)
-  └─ Form[] (name, slug, type:FormType, allowedOrigins[], notifyEmails[], honeypotField?, defaultTheme?, published, thumbnail?, ...)
+  └─ Form[] (name, slug, type:FormType, allowedOrigins[], notifyEmails[], emailNotificationsEnabled, emailIncludeResponses, honeypotField?, defaultTheme?, published, thumbnail?, ...)
   │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
   │    └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification[] (formId, type:NotificationType, count, updatedAt)

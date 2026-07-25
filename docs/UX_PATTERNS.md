@@ -1460,6 +1460,8 @@ import { Label } from "@/components/ui/label";
 - Pair with `<Label>` using matching `id`/`htmlFor` and `cursor-pointer` so the label is clickable
 - Use `font-normal` on the Label to distinguish it from a field label (which uses the default `font-medium`)
 
+**Dependent options:** when a checkbox only makes sense while a parent checkbox is on, render it inside the parent's conditional block rather than disabling it, and align its hint text under the label with `ml-6` (the checkbox width plus gap) so the hint reads as belonging to that option and not to the group. Reference implementation: **Include responses in the email** inside Email notifications in `src/components/forms/after-submission-section.tsx`.
+
 ### Help Text
 
 Use `<p className="text-xs text-muted-foreground">` for descriptive hints placed directly below an input or group of inputs. Use `<p className="text-sm text-muted-foreground">` for broader descriptive text at the page or section level (page headers, settings section descriptions, empty states).

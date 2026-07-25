@@ -188,6 +188,8 @@ Enforces ownership via `getCurrentAccountId()` before persisting changes.
 
 **Decision:** Exclude all submission field values from email
 
+> **Revisited in [Epic 26](epic-26-full-response-email-notifications.md) (v4.13.0).** This is still the default and still what every existing form does, but it is no longer the only option — a form can opt into including responses. Read both before changing notification content.
+
 **Rationale:**
 - Privacy-focused design
 - Reduces risk of sensitive data in email

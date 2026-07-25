@@ -85,15 +85,18 @@ Email notifications are configured per form under **Edit → Submission Settings
 - Check **Email notifications** to turn them on. Your account email is added as the first recipient automatically.
 - Add up to **5 recipients** total. Press Enter or click **Add** to add each one. Addresses are validated and de-duplicated.
 - Remove a recipient with the trash icon next to it.
+- Check **Include responses in the email** to put the submitted values in the email itself.
 
 ### What the email contains
 
-Each notification email includes:
+Every notification includes the form name and a timestamp. Recipients who can sign in to this account also get a link to the submission in the dashboard; recipients who don't have an account don't, since the link would only send them to a login screen.
 
-- The form name
-- A timestamp
-- The submitted field values so recipients can triage without logging in
-- A direct link to the submission in the dashboard
+With **Include responses in the email** checked, each notification also contains:
+
+- Every field in form order, with its label and what the visitor entered. Fields left empty show as `(blank)`, so you can tell an unanswered question from a missing one.
+- A **Reply-To** set to the visitor's address, when the form collects an email. Replying to the notification goes to the visitor, not to Canopy Forms.
+
+This is the setting to use when a recipient needs the full response without signing in. Leave it off if you'd rather keep submitted data out of inboxes, and read responses in the dashboard instead.
 
 Notifications go out asynchronously after a successful submit. They're fire-and-forget: if email delivery fails, the submission is still saved and the form submitter sees a normal success response.
 

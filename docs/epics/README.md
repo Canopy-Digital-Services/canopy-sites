@@ -23,5 +23,6 @@
 | [Epic 22: Notification Bell (MVP)](epic-22-notification-bell.md) | v4.10.0 | 2026-04-20 | ✅ Complete |
 | [Epic 23: Account Plans & Entitlements](epic-23-account-plans-and-entitlements.md) | v4.11.0 | 2026-04-21 | ✅ Complete |
 | [Epic 25: Form Type Selection (Hosted vs Embedded)](epic-25-form-type-selection.md) | v4.12.0 | 2026-04-29 | ✅ Complete |
+| [Epic 26: Full-Response Email Notifications](epic-26-full-response-email-notifications.md) | v4.13.0 | 2026-07-24 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.
