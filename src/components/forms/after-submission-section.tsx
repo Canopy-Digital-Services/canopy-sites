@@ -260,6 +260,26 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
                       )}
                     </div>
                   )}
+
+                  {/* Include responses */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="emailIncludeResponses"
+                        checked={state.emailIncludeResponses}
+                        onCheckedChange={(checked) =>
+                          updateSubmissionSettings({ emailIncludeResponses: checked === true })
+                        }
+                      />
+                      <Label htmlFor="emailIncludeResponses" className="cursor-pointer font-normal">
+                        Include responses in the email
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Recipients see every submitted value, and replies go to the
+                      submitter when the form collects an email address.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

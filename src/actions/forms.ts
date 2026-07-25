@@ -274,6 +274,7 @@ export async function updateAfterSubmission(
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    emailIncludeResponses?: boolean;
     notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;
@@ -287,6 +288,7 @@ export async function updateAfterSubmission(
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    emailIncludeResponses?: boolean;
     notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;
@@ -303,6 +305,10 @@ export async function updateAfterSubmission(
 
   if (data.emailNotificationsEnabled !== undefined) {
     updateData.emailNotificationsEnabled = data.emailNotificationsEnabled;
+  }
+
+  if (data.emailIncludeResponses !== undefined) {
+    updateData.emailIncludeResponses = data.emailIncludeResponses;
   }
 
   if (data.notifyEmails !== undefined) {

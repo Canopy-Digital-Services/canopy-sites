@@ -36,6 +36,7 @@ type WorkspaceForm = {
   allowedOrigins: string[];
   notifyEmails: string[];
   emailNotificationsEnabled: boolean;
+  emailIncludeResponses: boolean;
   honeypotField: string | null;
   successMessage: string | null;
   redirectUrl: string | null;

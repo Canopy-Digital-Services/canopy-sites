@@ -33,6 +33,7 @@ export type FormState = {
   successMessage: string | null;
   redirectUrl: string | null;
   emailNotificationsEnabled: boolean;
+  emailIncludeResponses: boolean;
   notifyEmails: string[];
   allowedOrigins: string[];
   honeypotField: string | null;
@@ -52,6 +53,7 @@ type FormContextValue = {
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    emailIncludeResponses?: boolean;
     notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;
@@ -99,6 +101,7 @@ function useAutoSave(
     successMessage: state.successMessage,
     redirectUrl: state.redirectUrl,
     emailNotificationsEnabled: state.emailNotificationsEnabled,
+    emailIncludeResponses: state.emailIncludeResponses,
     notifyEmails: state.notifyEmails,
     allowedOrigins: state.allowedOrigins,
     stopAt: state.stopAt,
@@ -130,6 +133,7 @@ function useAutoSave(
             successMessage: state.successMessage,
             redirectUrl: state.redirectUrl,
             emailNotificationsEnabled: state.emailNotificationsEnabled,
+            emailIncludeResponses: state.emailIncludeResponses,
             notifyEmails: state.notifyEmails,
             allowedOrigins: state.allowedOrigins.filter(o => o.trim() !== ""),
             stopAt: state.stopAt,
@@ -138,6 +142,7 @@ function useAutoSave(
           savedRef.current.successMessage = state.successMessage;
           savedRef.current.redirectUrl = state.redirectUrl;
           savedRef.current.emailNotificationsEnabled = state.emailNotificationsEnabled;
+          savedRef.current.emailIncludeResponses = state.emailIncludeResponses;
           savedRef.current.notifyEmails = state.notifyEmails;
           savedRef.current.allowedOrigins = state.allowedOrigins;
           savedRef.current.stopAt = state.stopAt;
@@ -203,6 +208,7 @@ function useAutoSave(
       state.successMessage !== savedRef.current.successMessage ||
       state.redirectUrl !== savedRef.current.redirectUrl ||
       state.emailNotificationsEnabled !== savedRef.current.emailNotificationsEnabled ||
+      state.emailIncludeResponses !== savedRef.current.emailIncludeResponses ||
       state.notifyEmails !== savedRef.current.notifyEmails ||
       state.allowedOrigins !== savedRef.current.allowedOrigins ||
       state.stopAt !== savedRef.current.stopAt ||
@@ -210,7 +216,7 @@ function useAutoSave(
     ) {
       scheduleSave("afterSubmission");
     }
-  }, [state.successMessage, state.redirectUrl, state.emailNotificationsEnabled, state.notifyEmails, state.allowedOrigins, state.stopAt, state.maxSubmissions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.successMessage, state.redirectUrl, state.emailNotificationsEnabled, state.emailIncludeResponses, state.notifyEmails, state.allowedOrigins, state.stopAt, state.maxSubmissions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -236,6 +242,7 @@ type FormProviderProps = {
     successMessage: string | null;
     redirectUrl: string | null;
     emailNotificationsEnabled: boolean;
+    emailIncludeResponses: boolean;
     notifyEmails: string[];
     allowedOrigins: string[];
     honeypotField: string | null;
@@ -289,6 +296,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     successMessage: initialForm.successMessage,
     redirectUrl: initialForm.redirectUrl,
     emailNotificationsEnabled: initialForm.emailNotificationsEnabled,
+    emailIncludeResponses: initialForm.emailIncludeResponses,
     notifyEmails: initialForm.notifyEmails,
     allowedOrigins: initialForm.allowedOrigins,
     honeypotField: initialForm.honeypotField,
@@ -316,6 +324,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     successMessage?: string | null;
     redirectUrl?: string | null;
     emailNotificationsEnabled?: boolean;
+    emailIncludeResponses?: boolean;
     notifyEmails?: string[];
     allowedOrigins?: string[];
     stopAt?: Date | null;

@@ -95,6 +95,7 @@ export async function getUserForms(accountId: string) {
       allowedOrigins: true,
       notifyEmails: true,
       emailNotificationsEnabled: true,
+      emailIncludeResponses: true,
       honeypotField: true,
       successMessage: true,
       redirectUrl: true,
