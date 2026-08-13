@@ -26,12 +26,15 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AfterSubmissionSectionProps = {
   ownerEmail: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
+  variant?: "accordion" | "flow";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: AfterSubmissionSectionProps) {
+export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open = false, onOpenChange }: AfterSubmissionSectionProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
+  const isFlow = variant === "flow";
 
   // UI-only state
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
@@ -107,40 +110,37 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  return (
-    <Card>
-      <Collapsible open={open} onOpenChange={onOpenChange}>
-        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => onOpenChange(!open)}>
-          <CollapsibleTrigger asChild>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle>Submission Settings</CardTitle>
-                <CardDescription>Control responses, notifications, and limits</CardDescription>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {saveStatus === "saving" && (
-                  <span className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Save className="h-4 w-4 animate-pulse" />
-                    Saving...
-                  </span>
-                )}
-                {saveStatus === "saved" && (
-                  <span className="text-sm text-success-strong flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                    Saved
-                  </span>
-                )}
-                {open ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="space-y-6">
+  const headerInner = (
+    <div className="flex items-start justify-between">
+      <div>
+        <CardTitle>Submission Settings</CardTitle>
+        <CardDescription>Control responses, notifications, and limits</CardDescription>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {saveStatus === "saving" && (
+          <span className="text-sm text-muted-foreground flex items-center gap-2">
+            <Save className="h-4 w-4 animate-pulse" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-sm text-success-strong flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Saved
+          </span>
+        )}
+        {!isFlow &&
+          (open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          ))}
+      </div>
+    </div>
+  );
+
+  const body = (
+    <CardContent className="space-y-6">
             {/* After Submission */}
             <div className="space-y-3">
               <Label>After submission</Label>
@@ -176,16 +176,13 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
                     </Label>
                   </div>
                   {afterSubmissionType === "redirect" && (
-                    <div className="ml-6 space-y-2">
+                    <div className="ml-6">
                       <Input
                         id="redirectUrl"
                         value={state.redirectUrl ?? ""}
                         onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
                         placeholder="https://example.com/thanks"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Redirect after a successful submission.
-                      </p>
                     </div>
                   )}
                 </div>
@@ -316,7 +313,24 @@ export function AfterSubmissionSection({ ownerEmail, open, onOpenChange }: After
               </div>
             </div>
           </CardContent>
-        </CollapsibleContent>
+  );
+
+  if (isFlow) {
+    return (
+      <Card>
+        <CardHeader>{headerInner}</CardHeader>
+        {body}
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <Collapsible open={open} onOpenChange={onOpenChange}>
+        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => onOpenChange?.(!open)}>
+          <CollapsibleTrigger asChild>{headerInner}</CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>{body}</CollapsibleContent>
       </Collapsible>
     </Card>
   );

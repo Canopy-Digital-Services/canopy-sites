@@ -15,10 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
-import { FieldsSection } from "@/components/forms/fields-section";
-import { HeaderSection } from "@/components/forms/header-section";
-import { AppearanceSection } from "@/components/forms/appearance-section";
-import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
+import { EditorFlow } from "@/components/forms/editor-flow";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -120,7 +117,6 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   const previewMode: "embed" | "page" = form.type === "HOSTED" ? "page" : "embed";
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [openSection, setOpenSection] = useState<"header" | "fields" | "appearance" | "settings" | null>("fields");
   const [published, setPublished] = useState(form.published);
   const [isPublishing, startPublishTransition] = useTransition();
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -273,27 +269,10 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         ) : (
           /* Editor tab: editor column + preview column */
           <div className="flex flex-1 min-h-0 justify-center">
-            {/* Editor column */}
-            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto px-4 md:px-8 py-6">
-              <div className="max-w-[640px] mx-auto space-y-4">
-                <HeaderSection
-                  open={openSection === "header"}
-                  onOpenChange={(v) => setOpenSection(v ? "header" : null)}
-                />
-                <FieldsSection
-                  formId={form.id}
-                  open={openSection === "fields"}
-                  onOpenChange={(v) => setOpenSection(v ? "fields" : null)}
-                />
-                <AppearanceSection
-                  open={openSection === "appearance"}
-                  onOpenChange={(v) => setOpenSection(v ? "appearance" : null)}
-                />
-                <AfterSubmissionSection
-                  ownerEmail={ownerEmail}
-                  open={openSection === "settings"}
-                  onOpenChange={(v) => setOpenSection(v ? "settings" : null)}
-                />
+            {/* Editor column — one section card at a time (progressive disclosure) */}
+            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
+              <div className="max-w-[640px] mx-auto">
+                <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
               </div>
             </div>
 

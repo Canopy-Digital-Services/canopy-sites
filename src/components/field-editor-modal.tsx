@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -202,12 +201,11 @@ export function FieldEditorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      {/* aria-describedby={undefined} is required when omitting DialogDescription —
+          Radix otherwise points it at an id that no longer renders. */}
+      <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Configure the field details and validation rules.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -227,8 +225,13 @@ export function FieldEditorModal({
             </Select>
           </div>
 
+          {/* Choosing a type reveals the rest of the config; the reveal grows the
+              dialog to fit instead of snapping to a taller frame. The inner
+              wrapper's overflow-hidden is what the grid animation clips against,
+              and the -mx-1/px-1 pair keeps focus rings from being clipped. */}
           {type && (
-            <>
+            <div className="editor-reveal">
+              <div className="space-y-4 overflow-hidden -mx-1 px-1">
               <div className="space-y-2">
                 <Label htmlFor="field-label">Label</Label>
                 <Input
@@ -278,7 +281,8 @@ export function FieldEditorModal({
                   rows={2}
                 />
               </div>
-            </>
+              </div>
+            </div>
           )}
         </div>
 
