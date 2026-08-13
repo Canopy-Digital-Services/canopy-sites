@@ -8,26 +8,28 @@ This document defines the UI/UX conventions for the Canopy Forms admin interface
 
 1. [Component Library Overview](#component-library-overview)
 2. [Color System](#color-system)
-3. [Never Use Browser Native Dialogs](#never-use-browser-native-dialogs)
-4. [Button Patterns](#button-patterns)
-5. [Icon Usage](#icon-usage)
-6. [Typography](#typography)
-7. [Graphics & Brand Assets](#graphics--brand-assets)
-8. [Tooltips](#tooltips)
-9. [Toast Notifications](#toast-notifications)
-10. [Confirmation Dialogs](#confirmation-dialogs)
-11. [Sortable Lists (Drag-to-Reorder)](#sortable-lists-drag-to-reorder)
-12. [Adding Items to a List](#adding-items-to-a-list)
-13. [High-Density List Pattern](#high-density-list-pattern)
-14. [Required Field Indicators](#required-field-indicators)
-15. [Layout Patterns](#layout-patterns)
-16. [Card layout and primary actions](#card-layout-and-primary-actions)
-17. [Form Inputs](#form-inputs)
-18. [Empty States](#empty-states)
-19. [Table Data Patterns](#table-data-patterns)
-20. [Action Button Hierarchy](#action-button-hierarchy)
-21. [Filter Patterns](#filter-patterns)
-22. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
+3. [Motion](#motion)
+4. [Copy: Descriptions Must Earn Their Place](#copy-descriptions-must-earn-their-place)
+5. [Never Use Browser Native Dialogs](#never-use-browser-native-dialogs)
+6. [Button Patterns](#button-patterns)
+7. [Icon Usage](#icon-usage)
+8. [Typography](#typography)
+9. [Graphics & Brand Assets](#graphics--brand-assets)
+10. [Tooltips](#tooltips)
+11. [Toast Notifications](#toast-notifications)
+12. [Confirmation Dialogs](#confirmation-dialogs)
+13. [Sortable Lists (Drag-to-Reorder)](#sortable-lists-drag-to-reorder)
+14. [Adding Items to a List](#adding-items-to-a-list)
+15. [High-Density List Pattern](#high-density-list-pattern)
+16. [Required & Optional Indicators](#required--optional-indicators)
+17. [Layout Patterns](#layout-patterns)
+18. [Card layout and primary actions](#card-layout-and-primary-actions)
+19. [Form Inputs](#form-inputs)
+20. [Empty States](#empty-states)
+21. [Table Data Patterns](#table-data-patterns)
+22. [Action Button Hierarchy](#action-button-hierarchy)
+23. [Filter Patterns](#filter-patterns)
+24. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
 
 ---
 
@@ -66,18 +68,34 @@ The application uses three brand colors with specific semantic roles:
 
 ### Semantic CSS Variables
 
-Colors are defined as CSS variables using oklch color space for better color manipulation:
+The three brand hexes are declared once as `--canopy-teal` / `--canopy-green` / `--canopy-coral`. **Semantic tokens that carry a brand color must reference the hex variable, never a hand-written oklch approximation of it:**
 
 ```css
 :root {
-  --primary: oklch(0.38 0.07 195);           /* Main Teal #005F6A */
-  --primary-foreground: oklch(0.985 0 0);    /* White text on teal */
-  --destructive: oklch(0.68 0.21 25);        /* Pop Coral #FF6B5A */
-  --success: oklch(0.75 0.15 155);           /* Highlight Green #5FD48C */
-  --success-foreground: oklch(0.145 0 0);    /* Dark text on green */
-  /* ... other semantic variables */
+  /* Brand hexes — the source of truth */
+  --canopy-teal: #005f6a;
+  --canopy-green: #5fd48c;
+  --canopy-coral: #ff6b5a;
+
+  /* Brand-carrying semantic tokens point at the hex */
+  --primary: var(--canopy-teal);
+  --secondary-foreground: var(--canopy-teal);
+  --accent-foreground: var(--canopy-teal);
+  --ring: var(--primary);
+
+  /* Non-brand neutrals and fills stay in oklch, where the lightness axis
+     is the point (see Surfaces, Radius & Elevation) */
+  --primary-foreground: oklch(0.985 0 0);
+  --foreground: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.50 0 0);
 }
 ```
+
+**Why this rule exists.** Brand tokens were originally written as hand-converted oklch values, and every one of them drifted from the hex it claimed to mirror. `--primary` was `oklch(0.38 0.07 195)`, which renders `#004e4e`: hue 195 instead of the brand's 208.5, so green and blue came out nearly equal (`4e4e`) where the brand is bluer (`5f6a`). The result was an admin UI whose "brand teal" was visibly not the brand teal, while hardcoded `#005F6A` defaults elsewhere in the app were correct. The drift is invisible in review because both values look like plausible teal.
+
+Two tokens are still oklch approximations of brand colors and remain **known-drifted**: `--success` (`oklch(0.75 0.15 155)` renders `#4ec983`, brand green is `#5fd48c`) and `--destructive` (`oklch(0.68 0.21 25)` renders `#ff5251`, brand coral is `#ff6b5a`). Both were left as-is deliberately: `--success` is a fill whose lightness was tuned by hand, and changing `--destructive` shifts contrast on every destructive control. Do not "fix" either without checking contrast and confirming the change is wanted.
+
+If you need a lighter or darker brand shade, derive it (`bg-primary/80`, `color-mix()`) rather than writing a new literal.
 
 ### Using Colors in Components
 
@@ -243,6 +261,8 @@ All rendered embed forms include a `.canopy-watermark` footer that reads "Powere
 
 The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 5 collapsible SubSection rows. Each row shows summary chips when collapsed. There is no third nesting tier — all SubSections are peers. Colors are co-located with the element they affect rather than grouped into a separate section.
 
+**SubSection titles are neutral (`--foreground`), not `text-primary`.** They were teal, which made the children look more important than the "Appearance" card title above them. Hierarchy inside a card is carried by size alone: card title at 22px, SubSection titles at 16px, same color.
+
 ```
 Appearance  (always-open Card)
 ├─ Page        [swatch]                            ← hosted-only settings
@@ -280,6 +300,91 @@ All brand color combinations meet WCAG AA accessibility standards:
 - Main Teal (`#005F6A`) + white text: ✅ AAA compliant
 - Pop Coral (`#FF6B5A`) + white text: ✅ AA compliant
 - Highlight Green (`#5FD48C`) + dark text: ✅ AA compliant
+
+---
+
+## Motion
+
+Motion in this app has one job: make it clear that content **arrived** or **left**, so a change of state doesn't read as a jump cut. It is not used for delight, emphasis, or personality.
+
+### The flow vocabulary
+
+Four tokens in `globals.css` define every deliberate enter/leave transition. Reference them; don't write new durations or curves:
+
+```css
+--ease-flow-in:     cubic-bezier(0.25, 1.12, 0.45, 1);
+--ease-flow-out:    cubic-bezier(0.45, 0, 0.7, 0.35);
+--duration-flow-in:  420ms;
+--duration-flow-out: 260ms;
+```
+
+From Tailwind: `duration-[var(--duration-flow-in)] ease-[var(--ease-flow-in)]`.
+
+**Entry** rises from below (3rem) at 0.94 scale and decelerates to rest. **Exit** accelerates away and fades, and is deliberately faster than entry, because a departing element doesn't need to be read.
+
+### Energy comes from distance, not springiness
+
+This is the governing principle, and it was settled by trying the alternative. The entry curve's `1.12` control point overshoots the target by roughly 2%, about a pixel at a 3rem rise, so the overshoot is essentially invisible and reads as a decisive stop. A genuine back-out curve (`1.5`+, overshooting ~9%) plus rotation was tested and rejected: it read as playful in a way that undercut a professional tool.
+
+So when motion feels too subtle, **increase travel distance or duration. Do not add bounce, and do not add rotation.** A card that tilts has no physical justification.
+
+### Where it applies
+
+| Surface | Behavior |
+|---------|----------|
+| Editor flow cards | Rise in; exit sideways (left = forward, right = back) |
+| Dialogs (`DialogContent`) | Rise in with `slide-in-from-bottom-12`; drop away on close |
+| Progressive-disclosure reveals | `.editor-reveal` grows the container to fit |
+
+`DialogContent` carries this globally, so every dialog inherits it. Don't override per-dialog.
+
+### Height reveals
+
+For content that appears in place and must grow its container, use `.editor-reveal`, which animates `grid-template-rows` from `0fr` to `1fr` while fading. It requires a single child with `overflow-hidden`. Two constraints:
+
+- **No overshoot on height.** A container that springs past its target reads as a glitch, not polish, which is why this animation uses a plain deceleration curve instead of `--ease-flow-in`.
+- `fr` interpolation needs Chrome 117 / Safari 17.4. Older engines snap to the final height, which is the un-animated behavior, so it degrades safely.
+
+### Reduced motion
+
+Every flow animation is listed in a `prefers-reduced-motion: reduce` block that drops its duration to `1ms`. The animations are **shortened, not removed**, because the editor flow advances on `animationend` and would deadlock if they never fired. Add new flow animations to that block.
+
+---
+
+## Copy: Descriptions Must Earn Their Place
+
+A title, a labelled button, and a visible control already say what a thing is and what it does. **A description earns its place only if it states a fact, constraint, or consequence that the title and controls don't already convey.** Otherwise it's a sentence the user has to read and discard, which is a real cost paid on every visit.
+
+**The test: delete it. If nothing is lost, it was noise.**
+
+Descriptions that failed the test and were removed:
+
+| Removed copy | Sat under | Why it was noise |
+|---|---|---|
+| "Configure the field details and validation rules." | "Add Field" dialog | Restates the dialog's purpose |
+| "Customize how your form looks" | "Appearance" card | Paraphrase of the title |
+| "Manage your account settings" | "Account" page header | Paraphrase of the title |
+| "Your current plan and usage." | "Plan" card | The card visibly shows plan and usage |
+| "Add the fields you would like in your form. Drag to reorder." | "Fields" card | The "Add Field" button and the grip handles say both |
+| "Click the button below to add your first field." | above an "Add Field" button | Narrates the button |
+| "Redirect after a successful submission." | under a redirect URL input | The radio label already said "Redirect to a URL" |
+| "Your form is ready." | "All set" card | Restates the title, and the body already says what to do next |
+
+Descriptions that passed, and why:
+
+| Kept copy | What it adds |
+|---|---|
+| "Domains allowed to embed and submit to this form. Localhost is always allowed for development." | A constraint you cannot infer |
+| "You'll be signed out of all sessions shortly after." | A consequence of the action |
+| "Control responses, notifications, and limits" | Names contents a vague title ("Submission Settings") doesn't imply |
+| "Leave empty for no limit. Spam submissions are not counted." | Non-obvious behavior of a blank value |
+| "Your email address is used for signing in and receiving notifications." | Two distinct functions of one value |
+
+**Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second is a real consequence. The second survived alone.
+
+**Zero states are the exception.** A first-run empty state (no forms yet) is the one place a sentence of orientation earns its keep, because the user has no surrounding context to infer from. That does **not** license helper text next to a labelled Add button in a populated list.
+
+**When removing a `DialogDescription`, pass `aria-describedby={undefined}` to `DialogContent`.** Radix wires `aria-describedby` to a generated id whether or not a description renders, so omitting it without this leaves a dangling reference.
 
 ---
 
@@ -721,7 +826,20 @@ When a modal configures an entity whose available controls depend on a type/cate
 Rules:
 
 - **Open the modal with only the type selector visible.** Use a placeholder like "Choose a field type…" on the Select.
-- **Hide all downstream config controls until a type is selected.** Wrap them in a `{type && (<>...</>)}` block. Don't render them disabled — hide them so the modal reads as "ask me for a type first."
+- **Hide all downstream config controls until a type is selected.** Don't render them disabled — hide them so the modal reads as "ask me for a type first."
+- **Animate the reveal.** Gate the controls behind `{type && ...}` and wrap them in `.editor-reveal` with an `overflow-hidden` inner div, so choosing a type grows the dialog to fit instead of snapping to a taller frame:
+
+  ```tsx
+  {type && (
+    <div className="editor-reveal">
+      <div className="space-y-4 overflow-hidden -mx-1 px-1">
+        {/* label, placeholder, required, per-type config, help text */}
+      </div>
+    </div>
+  )}
+  ```
+
+  The `-mx-1 px-1` pair keeps focus rings from being clipped by the `overflow-hidden` needed for the height animation. Note the reveal only animates on first selection: switching between two already-chosen types leaves the block mounted, so nothing re-animates.
 - **Keep the primary action disabled** until both the type is selected and any required downstream fields (e.g. label) are filled.
 - **Edit mode is different** — when editing an existing entity, the type is known, so render the full form immediately. The picker-gated disclosure only applies to add/create flows.
 - **Preserve compatible config across type switches.** If a user changes their mind and picks a different type, keep state that's structurally compatible (e.g. label, help text) and only clear state that doesn't apply to the new type (e.g. options when switching from `DROPDOWN` to `TEXT`).
@@ -980,7 +1098,7 @@ Always-visible actions are simpler, more reliable, and more discoverable.
 
 ---
 
-## Required Field Indicators
+## Required & Optional Indicators
 
 Use a **red asterisk** for required field indicators across the application.
 
@@ -1013,6 +1131,28 @@ Asterisks are:
 - Fast to scan
 - Consistent with form best practices
 
+### Optional Sections
+
+Fields are required-by-exception, so individual inputs are not marked optional. **A whole section that can be skipped is different** and gets an inline `(Optional)` marker after its title, at body size, normal weight, muted:
+
+```tsx
+<CardTitle className="flex items-baseline gap-2">
+  Header
+  <span className="text-sm font-normal tracking-normal text-muted-foreground">
+    (Optional)
+  </span>
+</CardTitle>
+```
+
+- **Baseline-align it**, not center-align — it's a parenthetical to the title, not a chip beside it.
+- **Don't use a `Badge`.** A tinted pill next to a 22px heading is louder than the signal warrants and reads as status rather than as grammar.
+- **Don't say it twice.** The marker replaces any description sentence that explained the same thing. `HeaderSection` used to carry a `CardDescription` reading "Optional title and description shown above the form"; once the title says `(Optional)`, that sentence only restated it and named two inputs that are already labelled below, so it was deleted rather than kept alongside.
+- **Don't put the signal on the navigation button.** A primary action whose label swaps to describe form state (e.g. "No header" when the fields are blank) stops being a verb, reads like a validation message, and mutates its accessible name as the user types. The forward button in a flow is a fixed landmark.
+
+**Placement beats copy.** If users don't believe a step is optional, check whether the flow forces them through it first. An optional step used as the opening gate will read as required no matter how it's labelled.
+
+**Reference implementation:** `HeaderSection` (`src/components/forms/header-section.tsx`).
+
 ---
 
 ## Layout Patterns
@@ -1026,23 +1166,19 @@ For form editors and configuration interfaces, constrain content width to improv
 ```tsx
 // Apply to the main content container
 const main = (
-  <div className="space-y-6 max-w-[640px] mx-auto">
-    <FieldsSection />
-    <AppearanceSection />
-    <AfterSubmissionSection />
+  <div className="max-w-[640px] mx-auto">
+    <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
   </div>
 );
 
-// Also apply to header for alignment
+// Also apply to the header for alignment
 const header = (
-  <div className="max-w-[640px] mx-auto">
-    <div className="flex items-center justify-between gap-4">
-      <Input value={formName} onChange={...} />
-      <div className="flex items-center gap-2 shrink-0">
-        <Button>Preview</Button>
-        <Button>Integrate</Button>
-      </div>
+  <div className="max-w-5xl mx-auto space-y-3">
+    <div className="flex items-center gap-3">
+      <BackArrow href="/forms" />
+      <h1>{form.name}</h1>
     </div>
+    <FormTabNav formId={form.id} activeTab={activeTab} />
   </div>
 );
 ```
@@ -1157,7 +1293,7 @@ import { FileText } from "lucide-react";
 
 ### FormWorkspace (Unified View/Edit)
 
-The `FormWorkspace` component (`src/components/forms/form-workspace.tsx`) consolidates the old separate view and edit pages into a single component with an animated CSS transition between modes:
+The `FormWorkspace` component (`src/components/forms/form-workspace.tsx`) is the single surface for one form, with three tabs instead of separate view/edit pages:
 
 ```tsx
 import { FormWorkspace } from "@/components/forms/form-workspace";
@@ -1166,21 +1302,54 @@ import { FormWorkspace } from "@/components/forms/form-workspace";
   apiUrl={apiUrl}
   ownerEmail={session.user.email}
   form={form}
-  initialMode={mode === "edit" ? "edit" : "view"}
+  submissions={submissions}
+  statusFilter={statusFilter}
+  publishDisabledReason={publishDisabledReason}
 />
 ```
 
-**Mode behavior**:
-- **View mode**: Back arrow to `/forms`, form name (read-only), Edit button, Submissions link. Preview centered with Embed/Page tabs.
-- **Edit mode**: Close (X) button + "Done" button to exit edit mode, editable form name, save status, Publish/Unpublish toggle, Integrate button. Editor panel slides in from left (300ms CSS transition on `lg+`).
-- Mode switch is client-side state toggle — no route change or DOM remount.
-- New forms are created with `?mode=edit` query param so they land directly in edit mode.
-- `/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`.
+**Tabs** — the active tab is read from the `mode` search param, not local state, so tabs are linkable and survive reload. `FormTabNav` renders them:
 
-**Layout**:
-- On `lg+`: Editor column uses `lg:w-[480px] xl:w-[640px]` with CSS `transition-all duration-300 ease-in-out`. Preview column fills remaining space with `flex-1`.
-- On `<lg` in edit mode: Editor controls are full-width, preview is hidden. A fixed side handle tab on the right edge opens preview in a `RightPanel` Sheet.
-- Embed/Page tabs are always visible above the preview in both modes.
+| `?mode=` | Tab | Content |
+|----------|-----|---------|
+| `edit` (default) | Editor | `EditorFlow` + live preview |
+| `publish` | Publish | `PublishContent` (share link or embed code, publish toggle) |
+| `submissions` | Submissions | `SubmissionsContent` |
+
+- New forms land on `?mode=edit`. `/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`.
+- Auto-save is enabled on the Editor and Publish tabs only (`autoSaveEnabled` on `FormProvider`).
+- The form name is inline-editable (pencil toggle) on the Editor tab only.
+
+**Layout** — the Editor tab is a two-column split; Publish and Submissions are single full-width columns.
+- On `lg+`: both columns are a fixed `w-[600px]`, centered as a pair. The preview column carries a symmetric side shadow so it reads as a floating panel, and is `hidden lg:flex`.
+- The editor column is `overflow-y-auto overflow-x-hidden` — the horizontal clip is what contains the flow cards' sideways exit.
+- On `<lg`: the editor is full-width and the preview is hidden behind a fixed side handle on the right edge that opens a `RightPanel` sheet.
+- Preview mode is derived from `form.type` (`HOSTED` → page, `EMBEDDED` → embed), not user-toggled. The column header is a static "Preview" label.
+
+### EditorFlow (Progressive Disclosure)
+
+`EditorFlow` (`src/components/forms/editor-flow.tsx`) shows the editor's four sections **one at a time** rather than as a stack of collapsible cards. Users were shown too much at once; a stack of four cards presents its full complexity before the first decision.
+
+```
+progress dots  ← active step stretches to a pill
+┌──────────────────────────┐
+│  one section card        │  ← always expanded, no collapse chrome
+└──────────────────────────┘
+[← Back]        [Continue →]
+```
+
+Steps are Header → Fields → Appearance → Submission Settings, then a terminal "All set" card linking to Publish.
+
+- **Each section card supports `variant="flow" | "accordion"`.** `flow` renders it always-expanded with no chevron; `accordion` is the original collapsible card. Both variants are maintained so the stacked layout remains available.
+- **Advancing is animation-driven**: `Continue` sets an exit direction, and the step index only increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, since child animations bubble.
+- **Forward exits left, back exits right**, following the reading direction.
+- Auto-save means moving between steps never needs a save action and never loses input.
+
+**Known gaps in the current implementation** (deliberate, pending further disclosure work): the flow always starts at Header even when editing an existing form, the progress dots aren't clickable, and there is no per-card disclosure yet.
+
+### Section cards carry no decorative accent
+
+Editor section cards are plain `Card`s. An earlier version gave the "important" ones a `border-l-4 border-l-primary` bar; it was removed. Its only job was ranking cards within a stack, which a one-at-a-time flow makes meaningless, and a colored left accent bar is a generic visual trope that makes the UI look templated. If a card needs identity, use information (a step count, a title) rather than a decorative stripe. See Anti-Patterns.
 
 ### FormContext (Unified State)
 
@@ -1345,7 +1514,7 @@ import { UserMenu } from "@/components/patterns/user-menu";
 **Purpose**: Compact avatar button in the top nav bar that opens an account dropdown.
 
 **Design**:
-- **Trigger**: 32px circle with user initials (`bg-muted`). No email text visible — keeps the nav bar uncluttered.
+- **Trigger**: 32px circle with user initials, `bg-primary text-primary-foreground` (fades to `bg-primary/80` on hover). No email text visible — keeps the nav bar uncluttered.
 - **Dropdown**: Opens downward (`side="bottom" align="end"`). Shows email (display only), Manage Account link, Sign Out action.
 - **Fallback**: Shows "?" for missing/invalid emails.
 
@@ -1720,8 +1889,13 @@ For more prominent empty states, use the `EmptyState` component.
 | Add item to primary list | `Button` default variant with Plus icon + text, placed below the list |
 | Add item to sub-list (inside a container with its own primary CTA) | `Button variant="ghost" size="sm"` with `text-primary` + `-ml-3`, Plus icon + text, placed below the list |
 | High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
-| Required field indicator | Red asterisk `<span className="text-red-500 ml-0.5">*</span>` |
-| Form editor max-width | `max-w-[640px] mx-auto` on content and header |
+| Required field indicator | Red asterisk `<span className="text-destructive ml-0.5">*</span>` |
+| Skippable section | Inline `(Optional)` after the card title, muted + `text-sm font-normal`, baseline-aligned |
+| Form editor max-width | `max-w-[640px] mx-auto` on the editor column content |
+| Enter/leave transition | `duration-[var(--duration-flow-in)] ease-[var(--ease-flow-in)]`; out variants for leaving |
+| Reveal content that grows its container | `.editor-reveal` wrapper + `overflow-hidden` inner div |
+| Brand color in a semantic token | `var(--canopy-teal)`, never a hand-written oklch |
+| Multi-step editor section | `variant="flow"` on the section card, driven by `EditorFlow` |
 | Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
 | Top nav (mobile drawer) | `TopNavLayout` with `logo`, `navItems`, and `userMenu` props |
 | User account menu | `UserMenu` in top nav right side (initials avatar + dropdown) |
@@ -1760,6 +1934,12 @@ For more prominent empty states, use the `EmptyState` component.
 18. **Never show redundant empty-state helper text beside a labeled Add button** - the labeled button alone communicates the action; the paragraph is noise
 19. **Never pass `position="item-aligned"` to `SelectContent`** - the shared component defaults to `position="popper"` / `align="start"` for a reason. Item-aligned mode overlays the trigger with the selected item centered on it, which causes long lists to expand upward and show scroll-up/down chevrons. The default popper behavior is correct for virtually all selects; only override if you have a specific reason and understand the trade-off.
 20. **Never preselect a default option in a picker-gated configuration modal** - see "Type-First Configuration Modals" under Confirmation Dialogs. Preselecting a generic default (e.g. a `Text` field type) creates a path-of-least-resistance trap where users accept the default when a more specific option would serve them better.
+21. **Never hand-convert a brand hex into oklch** - point the semantic token at `var(--canopy-teal)` etc. Every hand-written conversion in this codebase drifted from the hex it claimed to mirror, and the error is invisible in review because both values look like plausible teal. See Color System.
+22. **Never use a decorative colored accent bar to signal importance** (`border-l-4 border-l-primary` on a card and similar). It's a generic trope that reads as templated, and it fails the moment the element is seen alone rather than beside its peers. Convey rank with size, position, or information instead.
+23. **Never add bounce or rotation to make motion feel livelier** - increase travel distance or duration. See Motion; a springy, tilting card undercuts a professional tool.
+24. **Never write bespoke durations or easing curves for enter/leave transitions** - use the four flow tokens in `globals.css`.
+25. **Never make a navigation button's label describe form state** - e.g. a Continue button that becomes "No header" when the fields are blank. It stops being a verb, reads as a validation message, mutates its accessible name as the user types, and flickers on every keystroke. Mark the section `(Optional)` instead. See Required & Optional Indicators.
+26. **Never write a description that paraphrases its own title** - "Customize how your form looks" under "Appearance" is a sentence the user must read and discard. Delete it; if nothing is lost, it was noise. See Copy: Descriptions Must Earn Their Place.
 
 ---
 
