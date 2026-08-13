@@ -110,7 +110,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 
 If you added, renamed, or changed how an environment variable is used:
 
-1. Confirm it's documented in `docs/AGENT_CONTEXT.md` section 6.
+1. Confirm it's documented in `docs/AGENT_CONTEXT.md` section 7.
 2. Confirm `.env.example` includes it with a placeholder.
 3. If it's a `NEXT_PUBLIC_*` variable, confirm it's handled as build-time (not runtime).
 4. Check that the code has a reasonable fallback or clear error if the variable is missing.
@@ -187,18 +187,18 @@ Before committing, scan this table. If your changes match a trigger, check the l
 
 | What you changed | Doc to check | What might need updating |
 |-----------------|-------------|------------------------|
-| `prisma/schema.prisma` (model shape) | `docs/AGENT_CONTEXT.md` appendix B | Data model summary |
-| `prisma/schema.prisma` (FieldType enum) | `docs/AGENT_CONTEXT.md` appendix A | FieldType enum list |
+| `prisma/schema.prisma` (model shape) | `docs/AGENT_CONTEXT.md` appendix | Data model summary |
+| `prisma/schema.prisma` (any enum) | `docs/AGENT_CONTEXT.md` appendix | Enum lists |
 | New/changed UI component or pattern | `docs/UX_PATTERNS.md` | Component docs, anti-patterns list, quick reference table |
 | Embed theme or appearance behavior | `docs/UX_PATTERNS.md` (Embed Forms section) | Theme defaults, CSS variable list |
 | Embed validation behavior | `docs/UX_PATTERNS.md` (Embed Form Validation section) | Validation approach docs |
-| New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 3 | npm scripts table |
+| New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 4 | Commands (only if the script is non-obvious) |
 | New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
 | Dockerfile, `start.sh`, or Coolify config | `docs/PRISMA_MIGRATIONS.md` | Build/deploy docs |
-| New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 1 (Public APIs) | API documentation |
-| Auth or session logic | `docs/AGENT_CONTEXT.md` section 1 (Auth & ownership) | Auth rules |
-| New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 6 | Env variable tables |
-| Epic completion or version bump | Follow section 9 checklist | `package.json`, `CHANGELOG.md`, epic report, epic table |
+| New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 2 (Public API contracts) | Gate order, response codes |
+| Auth or session logic | `docs/AGENT_CONTEXT.md` section 2 (Auth & ownership) | Auth rules |
+| New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 7 | Env variable table |
+| Epic completion or version bump | Follow section 10 checklist | `package.json`, `CHANGELOG.md`, epic report, epic table |
 
 If none of the triggers match, no doc update is needed. If your change introduces a new doc maintenance trigger not listed here, add it to this table.
 
@@ -225,4 +225,4 @@ If there are unstaged changes (`M` files), determine whether they're needed. Coo
 | Embed change | + `npm run embed:build` + confirm `public/embed.js` updated |
 | UI change | + browser check on the affected page |
 | API change | + curl the endpoint |
-| Epic/version bump | + follow `docs/AGENT_CONTEXT.md` section 9 release checklist |
+| Epic/version bump | + follow `docs/AGENT_CONTEXT.md` section 10 release checklist |

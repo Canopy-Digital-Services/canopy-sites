@@ -1,529 +1,332 @@
-# Canopy Forms — Agent Context
+# Canopy Forms Agent Context
 
-**For coding agents. You are in the repo. This is the authoritative reference.**
+Authoritative reference for coding agents working in this repo.
 
----
+**Code wins over docs.** Verify anything here against the file before relying on it. Source-of-truth order: code > `prisma/schema.prisma` > `prisma/migrations/` > `CHANGELOG.md` > docs.
 
-## 0. Orientation
-
-Canopy Forms is a privacy-first embedded forms platform for static websites. Users create forms in a visual builder, embed them with two lines of HTML, and manage submissions via a dashboard with email notifications. Target audience: small business owners and freelancers who build static sites and need form handling without a backend.
-
-### Your role
-
-- Implement features safely and completely.
-- Preserve architectural invariants (section #1).
-- Investigate before guessing — you have shell access, so search code, run builds, and check call sites rather than assuming.
-- When requirements are ambiguous: restate the goal in one sentence, identify the affected layer, and confirm invariants before writing code.
-
-### Stack (use idioms matching these versions — not older patterns)
-
-| Tool | Version |
-|------|---------|
-| Next.js | 16 |
-| React | 19 |
-| NextAuth | v5 (beta) |
-| Prisma | 7 |
-| TypeScript | 5 |
-| Tailwind CSS | v4 |
-| Node | 20 |
-
-Version-specific documentation for each of these lives in `docs/tools/*.md`. **Read the relevant tool doc before writing code that uses that tool** — these versions have breaking changes from what may be in your training data. See `docs/tools/README.md` for the index.
-
-### Source of truth hierarchy
-
-1. **Code** — if docs disagree with code, code wins
-2. Prisma schema (`prisma/schema.prisma`)
-3. Migrations (`prisma/migrations/`)
-4. `CHANGELOG.md`
-5. Docs (these may lag)
-
-### Current status
-
-See `package.json` → `version` for the current version number. See `CHANGELOG.md` for detailed release history. See `docs/epics/README.md` for the epic completion table.
+Current version: `package.json` → `version`. Release history: `CHANGELOG.md`. Epic table: `docs/epics/README.md`.
 
 ---
 
-## 1. Architecture & invariants
+## 1. Product & stack
 
-### System layers
+Privacy-first embedded forms for static websites. Users build forms in a visual editor, embed them with two lines of HTML, and manage submissions in a dashboard with email notifications. Audience: small business owners and freelancers running static sites with no backend.
+
+Next.js 16 · React 19 · NextAuth v5 (beta) · Prisma 7 · TypeScript 5 · Tailwind v4 · Node 20
+
+**Read the matching `docs/tools/*.md` before writing code against any of these.** All are recent majors with breaking changes from older patterns: `prisma-7.md`, `nextjs-16.md`, `nextauth-v5.md`, `react-19.md`, `tailwindcss-v4.md`, `docker.md`. Index: `docs/tools/README.md`.
+
+If outdated training data led you to a wrong command, flag, or API, correct the relevant tool doc in the same session.
+
+---
+
+## 2. Architecture & invariants
+
+### Layers
+
+Identify which layer a change touches before starting.
 
 | Layer | Purpose | Location |
 |-------|---------|----------|
-| Admin UI | Form builder, submission viewer, settings | `src/app/(admin)/*` |
-| Embed script | Client-side form renderer | `embed/src/*` → `public/embed.js` |
-| Hosted Forms | Public form pages at `/f/[formId]` | `src/app/f/[formId]/page.tsx` |
-| Public Embed API | Serve form definitions, accept submissions | `src/app/api/embed/[formId]/route.ts` |
-| Public Submit API | Accept submissions (white-box HTML forms) | `src/app/api/submit/[formId]/route.ts` |
-| Operator Console | Platform admin (metadata-only) | `src/app/operator/*` |
+| Admin UI | Editor, submissions, settings | `src/app/(admin)/*` |
+| Embed script | Client-side renderer | `embed/src/*` → `public/embed.js` |
+| Hosted forms | Public pages at `/f/[formId]` | `src/app/f/[formId]/page.tsx` |
+| Embed API | Serve definitions, accept submissions | `src/app/api/embed/[formId]/route.ts` |
+| Submit API | Accept submissions (white-box HTML) | `src/app/api/submit/[formId]/route.ts` |
+| Single-field submit | One field per request | `src/app/api/submit/[formId]/[fieldName]/route.ts` |
+| Operator console | Platform admin, metadata only | `src/app/operator/*` |
 
-Always identify which layer a change touches before starting work.
+### Data model
 
-### Data model (non-negotiable)
+- **Form-first**: `Account → Form → Field / Submission`. There is no Site model.
+- Forms own `allowedOrigins[]`. Origin control is per form, not per account.
+- Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
+- Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
+- Every Account has a `Plan` (FK on `planCode`). `Plan.maxPublishedForms` is the only entitlement today, and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site.
+- `Account.requiresPlanResolution` is set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker, cleared only by a successful `resolvePlan`.
 
-- **Form-first**: `Account → Form → Field / Submission`. No Site model.
-- Forms own `allowedOrigins[]` for per-form origin control.
-- Slug uniqueness: `@@unique([accountId, slug])`.
-- Fields are **relational rows** with explicit `order` and enum `FieldType`, not JSON blobs.
-- Field uniqueness: `@@unique([formId, name])`.
-- Every Account has a `Plan` (FK on `planCode`). `Plan.maxPublishedForms` is the only entitlement today; the catalog is seeded by migration, not user-editable at runtime. Plan enforcement runs through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`) — never re-implement the comparison at call sites.
-- `Account.requiresPlanResolution` is a one-bit flag set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker; it's cleared only by a successful `resolvePlan` call.
+### Auth & ownership
 
-### Auth & ownership (non-negotiable)
+- NextAuth v5 credentials provider, self-service signup.
+- Account is internal (one per user) and never surfaced in the UI.
+- **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 
-- NextAuth v5 credentials provider with self-service signup.
-- Account model is internal (one per user), not exposed in UI.
-- **Ownership is enforced server-side** in data access helpers and server actions via direct `accountId` comparison. Never trust client-side ownership logic.
-- Server actions live in `src/actions/` and enforce ownership internally.
+### Validation
 
-### Validation (defense in depth)
+Three layers, all required:
 
-Three layers — all must be maintained:
+1. HTML `maxLength` on inputs.
+2. Client-side in the embed: `embed/src/validation.ts`.
+3. Server-side in `src/lib/public-submit.ts`, shared by the embed and submit routes. Per-type rules and length caps live here, not in the route files.
 
-1. HTML `maxLength` attributes on inputs
-2. Client-side validation in embed (`embed/src/validation.ts`)
-3. Server-side validation in API routes
+Payload cap: 64KB. Length caps are three-tier (default applies when the field sets no `maxLength`; a configured `maxLength` is clamped to the absolute):
 
-Payload limits: 64KB max per submission. Field limits: TEXT 500, EMAIL 320, TEXTAREA 10000.
+| Type | Default | Absolute |
+|------|---------|----------|
+| TEXT | 200 | 500 |
+| EMAIL | 254 | 320 |
+| TEXTAREA | 2000 | 10000 |
 
-Embed forms use native HTML5 validation popups via `setCustomValidity()` (one error at a time). Admin/auth forms use custom inline validation with touched/submitted pattern. These are deliberately different — don't cross the patterns.
+**Two validation dialects. Do not cross them.** Embed forms use native HTML5 popups via `setCustomValidity()`, one error at a time. Admin and auth forms use custom inline validation with the touched/submitted pattern and `noValidate` on the form.
 
-### Public APIs
+### Public API contracts
 
-**Embed API** (`src/app/api/embed/[formId]/route.ts`):
-- GET returns embed-safe form definition + ordered fields.
-- POST validates, spam-checks (honeypot), stores submission, queues email notifications.
-- Rate limit: GET 60/min, POST 10/min per hashed IP.
-- Origin validation: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost always allowed.
-- Email notifications: individual emails to all addresses in `form.notifyEmails[]` (max 5). Body shape depends on `form.emailIncludeResponses`: off (default) sends metadata only (Epic 4's privacy-focused email); on lists every submitted value and sets `Reply-To` to the submitter's address. Content lives in `src/lib/submission-email.ts`, not in `email.ts`. The dashboard link is per recipient — only addresses belonging to a `User` on the form's account get one, since nobody else can sign in.
-- **Unpublished gate**: when `form.published === false`, both GET and POST return `403` with `{ error: "This form is not currently accepting responses", code: "FORM_INACTIVE" }`. The embed script pattern-matches `code === "FORM_INACTIVE"` to render a dedicated "Form Not Available" state.
-- **Type gate**: when `form.type === "HOSTED"`, both GET and POST return `403` with `{ error, code: "FORM_HOSTED_ONLY" }`. The embed script renders a dedicated "Form is only available at its hosted URL" state for this code. Hosted forms are reachable only at `/f/[formId]`.
+`handlePublicSubmit` in `src/lib/public-submit.ts` is the full gate order, shared by the **embed and submit routes only**: type gate → published gate → origin → rate limit → `stopAt` → `maxSubmissions` → payload size → field validation → honeypot → store → queue email. Add a new submission-side rule here so both routes get it. The embed route's GET carries its own copies of the type and published gates.
 
-**Submit API** (`src/app/api/submit/[formId]/route.ts`):
-- POST only. Same validation/storage as embed. For white-box HTML forms (no schema fetch).
-- Same `published` gate as the embed API: unpublished forms return the `FORM_INACTIVE` shape.
-- Same type gate as the embed API: HOSTED forms return the `FORM_HOSTED_ONLY` shape.
+- **Embed API**: GET returns the embed-safe definition plus ordered fields. POST runs the full gate order. Rate limits: GET 60/min, POST 10/min per hashed IP.
+- **Submit API**: POST only, for white-box HTML forms that never fetch a schema.
+- **Single-field submit** (`/api/submit/[formId]/[fieldName]`): does **not** use the shared module. It reimplements only origin, rate limit, and honeypot, validates nothing but required-presence on the one field, and has no type, published, `stopAt`, or `maxSubmissions` gate. Treat its stored values as unvalidated: `src/lib/submission-email.ts` re-runs `isValidEmail()` before using a submitted address as `Reply-To`, which is what blocks CRLF header injection. Any new gate added to `public-submit.ts` has to be added here separately or it does not apply to this route.
+- Origin: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost is always allowed.
+- **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`; `type === "HOSTED"` returns `code: "FORM_HOSTED_ONLY"`. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
+- A filled honeypot **does not reject**. It stores the submission with `isSpam: true`, which is why `maxSubmissions` counts non-spam rows only and spam skips the notification email.
+- Submission limits return 403 and raise a `LIMIT_DEADLINE_REACHED` or `LIMIT_MAX_REACHED` notification.
+- Notification emails: one per address in `form.notifyEmails[]` (max 5). `form.emailIncludeResponses` off (default) sends metadata only; on lists every submitted value and sets `Reply-To`. Content lives in `src/lib/submission-email.ts`, not `email.ts`. The dashboard link is per recipient, included only for addresses belonging to a `User` on the form's account.
 
 ### Env vars in client components
 
-Client components cannot reliably read runtime env vars. Pattern: server component reads env → passes as props. Example: `src/app/(admin)/forms/[formId]/edit/page.tsx` passes `apiUrl` prop.
-
-`NEXT_PUBLIC_*` variables are baked into the browser bundle at **build time**. They cannot change at runtime without rebuilding.
+Client components cannot reliably read runtime env vars. Server component reads env, passes props (see the `apiUrl` prop in `src/app/(admin)/forms/[formId]/edit/page.tsx`). `NEXT_PUBLIC_*` is baked into the bundle at **build time** and cannot change without a rebuild. `validateOrigin()` uses `NEXT_PUBLIC_APP_URL` to identify the dashboard host.
 
 ---
 
-## 2. Repo map & documentation guide
+## 3. Paths with rules attached
 
-### Directory layout
+Everything else is discoverable with `ls`. These carry constraints:
 
-| Area | Location |
-|------|----------|
-| Admin routes | `src/app/(admin)/*` |
-| Auth pages | `src/app/(auth)/*` |
-| Public APIs | `src/app/api/embed/*`, `src/app/api/submit/*` |
-| Server actions | `src/actions/auth.ts`, `src/actions/forms.ts` |
-| Data access helpers | `src/lib/data-access/forms.ts` |
-| Validation utilities | `src/lib/validation.ts`, `src/lib/rate-limit.ts` |
-| Field type registry | `src/lib/field-types.ts` |
-| Embed source | `embed/src/*` (never edit `public/embed.js` directly) |
-| Embed themes/styles | `embed/src/theme.ts`, `embed/src/styles.ts` |
-| Schema | `prisma/schema.prisma` |
-| Migrations | `prisma/migrations/` |
-| UI components (shadcn) | `src/components/ui/` |
-| Layout patterns | `src/components/patterns/` |
-| Feature components | `src/components/` |
-| Field config panels | `src/components/field-config/` |
-| Brand assets | `public/brand/` |
+| Path | Rule |
+|------|------|
+| `embed/src/*` | Source of truth for the embed. **Never edit `public/embed.js` by hand.** |
+| `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
+| `src/lib/public-submit.ts` | Where server-side submission validation and gates belong. Note the single-field route's divergence in section 2. |
+| `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
+| `src/actions/*` | Server actions, each enforcing ownership internally. |
+| `src/components/ui/` | shadcn primitives. Extend, do not fork. |
+| `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
+| `prisma/migrations/` | Append only. See section 5. |
+| `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-### Key application routes
+Routes: `/` redirects to `/forms` or `/login`. Admin lives under `/forms`, `/account`, `/docs`. Operator console is `/operator/accounts`. Public form pages are `/f/[formId]`. **A "home" link for an admin or operator points to `/forms`, never `/`.**
 
-| Route | What it is |
-|-------|-----------|
-| `/` | Root — redirects authenticated users to `/forms`, unauthenticated to `/login` |
-| `/forms` | Admin dashboard landing page (forms list) |
-| `/forms/[formId]` | Form detail / preview |
-| `/forms/[formId]/edit` | Form builder (editor) |
-| `/account` | Account settings |
-| `/operator/accounts` | Operator console — accounts table |
-| `/f/[formId]` | Hosted public form page |
+### When to read which doc
 
-When adding a navigation link that should take an operator or admin back to "home", link to `/forms` — not `/`.
+| Document | Read it when |
+|----------|--------------|
+| `docs/VERIFICATION_CHECKLIST.md` | **Before committing.** Which checks to run per change type, and when to escalate to the user for manual verification. |
+| `docs/tools/*.md` | Before writing code against Prisma, Next.js, NextAuth, React, Tailwind, or Docker. |
+| `docs/UX_PATTERNS.md` | Before building or modifying any UI. |
+| `docs/ACCOUNT_OPERATIONS.md` | Touching auth flows, account lifecycle, sessions, or deletion. |
+| `docs/PRISMA_MIGRATIONS.md` | Deployment, migration failures, or Dockerfile changes. |
+| `docs/epics/README.md` | What shipped in which version. |
 
-### Documentation — when to read what
-
-| Document | Read it when... |
-|----------|----------------|
-| `docs/VERIFICATION_CHECKLIST.md` | **Before committing.** Specifies which checks to run per change type and when to escalate to the user for manual verification. |
-| `docs/tools/*.md` | Writing code that uses Prisma, Next.js, NextAuth, React, Tailwind, dnd-kit, or Docker. **These cover breaking changes from recent major versions.** |
-| `docs/UX_PATTERNS.md` | Building or modifying any UI component. Covers colors, typography, dialogs, toasts, sortable lists, layout patterns, form validation, and anti-patterns. |
-| `docs/ACCOUNT_OPERATIONS.md` | Modifying any auth flow, account lifecycle, session behavior, or deletion logic. Covers signup, login, JWT sessions, password flows, hard-delete strategy, and future billing considerations. |
-| `docs/PRISMA_MIGRATIONS.md` | Troubleshooting deployment, migration failures, or Dockerfile changes. Covers the entrypoint script, Prisma 7 config, and the full Coolify setup. |
-| `docs/epics/README.md` | Understanding version history and what shipped when. |
-| `CHANGELOG.md` | Detailed change log per version. |
-
-When you create a plan for another agent or for a later step (e.g. task lists, subagent briefs, or handoff instructions), **repeat in the plan the instruction to read this document**. For example, include a line like “Before starting, read `docs/AGENT_CONTEXT.md`.” That way the model that picks up the plan also receives this context when it begins.
-
-If you used a wrong or malformed command (e.g. wrong CLI syntax, deprecated API, or incorrect flag) because of outdated training data, **note it and update the relevant `docs/tools/*.md` file** (e.g. add a "Common mistakes" note, correct an example, or document the current syntax) so future agents don't repeat the mistake.
+When writing a plan, task list, or subagent brief, include the line "Before starting, read `docs/AGENT_CONTEXT.md`" so the agent picking it up gets this context.
 
 ---
 
-## 3. Stack, scripts & tooling
+## 4. Commands & verification
 
-### npm scripts
+Scripts are in `package.json`. The two non-obvious ones:
 
-| Script | What it does |
-|--------|-------------|
-| `npm run dev` | Start Next.js dev server (binds `0.0.0.0:3000`) |
-| `npm run build` | Production build |
-| `npm run lint` | ESLint (next core-web-vitals + typescript) |
-| `npm run embed:build` | Rebuild `public/embed.js` from `embed/src/*` via esbuild |
-| `npm run db:generate` | Regenerate Prisma client |
-| `npm run db:migrate` | `prisma migrate dev` (creates migration + applies) |
-| `npm run db:seed` | Seed database via `prisma/seed.ts` |
+- `npm run embed:build` rebuilds `public/embed.js` from `embed/src/*`. Required after any embed change.
+- `npm run db:push` exists. **Never run it.** It mutates the database without creating a migration, so the change never reaches deployed environments.
 
-`npm run db:push` exists in package.json but **never use it** — always use migrations.
+`npm run build` and `npm run lint` must both pass before committing.
 
-### Linting
+There is no automated test suite. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which checks apply to which change type.
 
-ESLint 9 flat config (`eslint.config.mjs`) with `eslint-config-next` core-web-vitals and TypeScript rules. No Prettier, no Husky, no pre-commit hooks.
-
-### Verification
-
-No automated test suite exists. **Read `docs/VERIFICATION_CHECKLIST.md` for the quality gate.** It specifies which checks to run based on what you changed (build, lint, migration verify, browser smoke test, API curl, etc.) and when to escalate to the user with specific manual verification steps.
-
-### Local database
-
-Docker Compose provides a local PostgreSQL instance:
-
-```bash
-# docker-compose.dev.yml spins up postgres:17-alpine + the app
-# App available at http://localhost:3006
-# Uses Dockerfile.dev with hot-reload via source mount
-```
-
-`DATABASE_URL` in `.env.local` should point to your database. See `.env.example` for the template.
+Local dev: `docker-compose.dev.yml` runs `postgres:17-alpine` plus the app on `http://localhost:3006`, using `Dockerfile.dev` with a source mount for hot reload. Point `DATABASE_URL` in `.env.local` at your database; copy `.env.example` for the template.
 
 ---
 
-## 4. Change protocols
+## 5. Change protocols
 
-### Before making changes
+### Before you start
 
-1. **Identify the layer**: admin UI, embed, public API, schema, or infrastructure?
-2. **Identify which `docs/tools/*.md` files are relevant** to the work you're about to do (see `docs/tools/README.md` for the index) and **read those first** before writing code.
-3. **Search first**: find existing routes, components, and actions that already handle it.
-4. **Validate against code**: if a doc says X, confirm in the file before implementing.
-5. **Don't bypass security**: ownership checks, origin validation, and rate limits are non-negotiable.
-6. **Don't introduce parallel patterns**: if a pattern is established, extend it rather than adding an alternative.
+1. Identify the layer (section 2).
+2. Read the relevant `docs/tools/*.md`.
+3. Search for the route, component, or action that already handles it.
+4. Extend the established pattern. Do not add a parallel one.
+5. Ownership checks, origin validation, and rate limits are non-negotiable.
 
-### Schema changes (high risk — understand the full pipeline)
+### Schema changes
 
-**Every `prisma/schema.prisma` change that affects the database MUST include a migration file.**
+**Every `prisma/schema.prisma` change that touches the database MUST ship with a migration file, in the same commit.**
 
-#### What happens to your migration after you commit it
+Migrations apply via `prisma migrate deploy` in `scripts/start.sh` at container start, against the deployed database, which is in a different state than yours. A migration that passes locally can still fail there, and `set -e` means a failure takes the app down. A missing migration file is worse: the deployed schema never changes while the Prisma client expects the new columns, producing `P2022: column does not exist`.
 
-Your migration file travels through a pipeline. Understanding this prevents the P2022 column-not-found errors that have broken deployments before:
-
-1. You commit the schema + migration files and push to GitHub.
-2. Coolify detects the push (watch path: `prisma/**`) and builds a new Docker image.
-3. The container starts and `scripts/start.sh` runs `prisma migrate deploy` against the **deployed database** (dev or prod — a different database than your local one).
-4. If the migration succeeds, the app starts. If it fails, `set -e` kills the container — the app is down until it's fixed.
-5. When dev merges to main, the same migration runs against the **production database**.
-
-This means: a migration that works locally can still fail in deployment if the deployed database is in a different state. And a missing migration file means the deployed database never gets the schema change, even though the Prisma client expects the new columns.
-
-#### Procedure
+Procedure:
 
 1. Edit `prisma/schema.prisma`.
-2. Run: `npx prisma migrate dev --name descriptive_name`
-3. Confirm a new directory appears under `prisma/migrations/`.
-4. **Read the generated SQL file** and verify it does what you intended — not just that it exists.
-5. Commit the schema change and all migration files as one atomic commit.
+2. Run `npm run db:migrate -- --name descriptive_name`.
+3. **Read the generated SQL** and confirm it does what you intended, not just that it exists.
+4. Commit schema and migration together.
+5. Tell the user to check the Coolify logs for `Applied migration: <name>` followed by `Migrations complete. Starting application...`.
 
-#### Rules
+Rules:
 
-- **Never** run `prisma db push` — it changes the database without creating a migration file, which means Coolify will never apply the change.
-- **Never** modify or delete existing migration files — the deployed databases have already applied them.
-- If `prisma migrate dev` fails (shadow DB, missing tables), use `prisma migrate deploy` or `prisma migrate resolve --applied <name>` as appropriate.
-- If you're making multiple related schema changes in one session, create one migration per logical change — not one giant migration at the end. Each migration should be independently safe to apply.
+- **Never** modify or delete a migration under `prisma/migrations/`. Deployed databases have already applied them. The one historical exception, the `0_baseline` squash at v4.6.0, is done and not a precedent.
+- Multiple related schema changes in one session get one migration per logical change, each independently safe to apply.
+- If `prisma migrate dev` fails on the shadow DB, fall back to `prisma migrate deploy`, or write the SQL by hand and mark it with `prisma migrate resolve --applied <name>`.
 
-#### After pushing
+### Embed changes
 
-Tell the user to check the Coolify container logs for:
-```
-[canopy-forms] Running database migrations...
-Applied migration: 20260219000000_your_migration_name
-[canopy-forms] Migrations complete. Starting application...
-```
+Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embed.js` with the source. The embed is browser-cached, so users may need a hard refresh to see a change.
 
-If the container fails to start after a schema change, the migration likely failed. See `docs/PRISMA_MIGRATIONS.md` troubleshooting section.
+### Adding a field type
 
-### Embed changes (high risk)
-
-If you modify anything in `embed/src/*`:
-
-1. Make your changes.
-2. Run `npm run embed:build`.
-3. Commit the updated `public/embed.js` along with your source changes.
-
-Never manually edit `public/embed.js`. The embed is cached in browsers — users may need a hard refresh.
-
-### Adding or modifying a field type
-
-1. Add/update the `FieldType` enum in `prisma/schema.prisma`.
-2. **Update `src/lib/field-types.ts`** — add to both `FIELD_TYPE_OPTIONS` and `FIELD_TYPE_LABEL_PLACEHOLDERS`. The build will fail if you skip this (compile-time assertion).
-3. Update embed rendering in `embed/src/form.ts`.
-4. Update embed validation in `embed/src/validation.ts` if the type has input constraints.
-5. Update server validation in `src/app/api/embed/[formId]/route.ts`.
-6. If the field has configuration options, add a config component in `src/components/field-config/`.
+1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
+2. Update `src/lib/field-types.ts`: both `FIELD_TYPE_OPTIONS` and `FIELD_TYPE_LABEL_PLACEHOLDERS`. The build fails if you skip the second.
+3. Render it in `embed/src/form.ts`.
+4. Add client validation in `embed/src/validation.ts` if it has input constraints.
+5. Add server validation and any length cap in `src/lib/public-submit.ts`.
+6. Add a config panel in `src/components/field-config/` if it has options.
 7. Run `npm run embed:build` and commit `public/embed.js`.
-
-### Changing env/URL behavior
-
-1. Make changes in a **server component** (not a client component).
-2. Pass values down as props (see the `apiUrl` pattern in `src/app/(admin)/forms/[formId]/edit/page.tsx`).
-3. Remember: `validateOrigin()` uses `NEXT_PUBLIC_APP_URL` to identify the dashboard host.
 
 ---
 
-## 5. Git & deployment
+## 6. Git & deployment
 
-### Branching
+`dev` is the integration branch: commit directly to it for routine work. `main` is production, updated only by PR merge from `dev`, never pushed to directly. Use a feature branch only for large or experimental work.
 
-- **`dev`** is the integration branch. All work happens here (or on feature branches that merge to `dev`).
-- **`main`** is production. It is only updated via PR merges from `dev` — never pushed to directly.
+### Commits
 
-Feature branches are optional. For routine work, commit directly to `dev`. Use a feature branch when the work is large, experimental, or you want to isolate it.
+**Atomic commits as you work, not one commit at the end.** A schema change plus its migration is one commit. The UI consuming it is another. An embed change plus its rebuilt `public/embed.js` is another.
 
-### Commit discipline
+Format: `feat(scope): description`, also `fix`, `docs`, `refactor`. Scope is the feature area (`embed`, `auth`, `migrations`, `epic-N`). Subject under ~72 characters, body when the "why" is not obvious.
 
-**Make atomic commits as you work, not one big commit at the end.** Each commit should be a single logical unit that could stand on its own:
+**Never rewrite pushed history.** No force push, no amending pushed commits.
 
-- A schema change + its migration = one commit.
-- The UI that consumes that schema change = a separate commit.
-- An embed update + the rebuilt `public/embed.js` = a separate commit.
+### Push
 
-Use conventional commit messages:
+Confirm `git status` is clean (committing anything outstanding as proper atomic commits first), `git push origin dev`, then report which commits went up.
 
-```
-feat(scope): description
-fix(scope): description
-docs(scope): description
-refactor(scope): description
-```
+### Release (dev → main)
 
-Scope is typically the feature area: `embed`, `auth`, `migrations`, `epic-N`, etc. Keep the subject line under ~72 characters. Add a body if the "why" isn't obvious from the subject.
+1. `git log main..dev --oneline` for the full set.
+2. Push any unpushed commits to `origin/dev`.
+3. `gh pr create --base main`.
+4. Title summarizes the release, e.g. `v4.5.0: Field validation overhaul + embed theme fixes`.
+5. Body groups key changes by category (features, fixes, docs), written as a summary for review rather than a dump of commit messages.
 
-**Once commits are pushed, never rewrite history.** No `--force`, no amending pushed commits.
+Do not merge unless explicitly asked.
 
-### Push workflow
+### After a merge to main
 
-When the user says "push to dev" (or equivalent):
-
-1. Verify all changes are committed (`git status` clean).
-2. Run `git push origin dev`.
-3. Confirm the push succeeded and note which commits were pushed.
-
-If there are uncommitted changes, commit them with proper atomic commits first — don't lump everything into one commit.
-
-### Release workflow (dev → main PR)
-
-When the user says "create a PR to main" or "I want to release" (or equivalent):
-
-1. Run `git log main..dev --oneline` to see all commits that will be included.
-2. Push any unpushed local commits to `origin/dev` first.
-3. Create a PR from `dev` → `main` using `gh pr create --base main`.
-4. The PR title should summarize the release (e.g., "v4.5.0: Field validation overhaul + embed theme fixes").
-5. The PR body should list the key changes grouped by category (features, fixes, docs), derived from the commits. This is a summary for the user to review, not a dump of commit messages.
-
-The user will review the PR and decide whether to merge. Do not merge it unless explicitly asked.
-
-### After a PR is merged to main
-
-When the user confirms the PR has been merged (or you detect it has been merged):
-
-1. Run `git fetch origin` to pull the updated remote state.
-2. Run `git merge origin/main` on `dev` — GitHub's merge commit is now on `main` but not in `dev`, so they will diverge by exactly 1 commit after every merge. This step brings `dev` back in sync.
-3. Run `git push origin dev` to update the remote.
-
-**Why this matters:** GitHub creates a merge commit on `main` when a PR is merged. Until that commit is merged back into `dev`, the two branches appear diverged (dev is "1 ahead, 1 behind"), which causes noise in the next PR and can confuse `git log main..dev` counts.
+GitHub's merge commit lands on `main` only, so the branches diverge by exactly one commit after every release. Left alone it skews the next `git log main..dev`. Resync: `git fetch origin`, `git merge origin/main` on `dev`, `git push origin dev`.
 
 ### Environments
 
-| Environment | URL | Branch | Host |
-|-------------|-----|--------|------|
-| Local | `http://localhost:3006` | working copy | dev machine |
-| Dev | `https://forms-dev.canopyds.com` | `dev` | Coolify on webber |
-| Prod | `https://forms.canopyds.com` | `main` | Coolify on webber |
+| Environment | URL | Branch |
+|-------------|-----|--------|
+| Local | `http://localhost:3006` | working copy |
+| Dev | `https://forms-dev.canopyds.com` | `dev` |
+| Prod | `https://forms.canopyds.com` | `main` |
 
-### Deployment behavior (Coolify)
+Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds an image and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`.
 
-- No deploy commands in this repo. Deployment is managed by Coolify.
-- On push to the tracked branch, Coolify builds a Docker image, runs `scripts/start.sh` as the entrypoint (which runs `prisma migrate deploy` then `node server.js`). See `docs/PRISMA_MIGRATIONS.md` for full details.
-- `NEXT_PUBLIC_APP_URL` must be set as a **build arg** in Coolify (it's baked into the bundle).
-
-**Auto-deploy watch paths** (Coolify dev):
-- `src/**`, `embed/**`, `prisma/**`
-- Changes outside these paths (e.g., `docs/**`, config files) may **not** trigger auto-deploy.
-
-### Infrastructure vs code issues
-
-If something works locally but fails on forms-dev or forms.canopyds.com, suspect infrastructure first — proxy config, `Host` header, `NEXTAUTH_URL` mismatch, or missing env vars. These are fixed in Coolify config, not in repo code.
+- `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
+- Auto-deploy watch paths are `src/**`, `embed/**`, `prisma/**`. Changes to `docs/**` or config files outside those paths do not trigger a deploy.
 
 ---
 
-## 6. Environment variables
+## 7. Environment variables
 
-### Required at runtime (server)
+| Variable | Notes |
+|----------|-------|
+| `DATABASE_URL` | Required. PostgreSQL connection string. |
+| `NEXTAUTH_SECRET` | Required. Signing and encryption key. |
+| `NEXTAUTH_URL` | Required. Public URL, used for auth callbacks and email links. |
+| `NEXT_PUBLIC_APP_URL` | Build-time. Falls back to `NEXTAUTH_URL`. Must match the deployed public URL. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Required if email is enabled. |
+| `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
+| `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the in-app feedback form. Unset means feedback submissions return a friendly error and send nothing. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
+| `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | NextAuth signing/encryption key |
-| `NEXTAUTH_URL` | Public URL of the app (used for auth callbacks, email links) |
+`.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
-### Required if email is enabled
+Verifying env inside a Coolify container: `printenv | grep` is unreliable there. Probe the names directly, or better, ask the runtime what the app actually sees:
 
-| Variable | Purpose |
-|----------|---------|
-| `SMTP_HOST` | SMTP server hostname |
-| `SMTP_PORT` | SMTP port |
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `SMTP_FROM` | Optional; defaults to `SMTP_USER` |
-
-### Build-time (browser bundle)
-
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_APP_URL` | API base URL used by admin edit page and validation helpers. Falls back to `NEXTAUTH_URL` if unset. Must match the deployed public URL. |
-
-### Optional
-
-| Variable | Purpose |
-|----------|---------|
-| `ADMIN_EMAIL` | Bootstrap-only. Used by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote the matching user to `GLOBAL_ADMIN` on `UNLOCKED`. Not consulted at auth-check time. Safe to remove once a Global Admin exists. |
-| `ADMIN_PASSWORD` | Bootstrap-only. Used by `prisma/seed.ts` to set the initial admin password. |
-| `FEEDBACK_RECIPIENT_EMAIL` | Recipient for the in-app "Give feedback" form in the help bubble. If unset, submissions return a friendly error and no email is sent. |
-
-### Local env files
-
-- `.env` / `.env.local` — developer-local, git-ignored.
-- `.env.example` — tracked, contains placeholders only. Copy to `.env.local` and fill in real values.
-
-### Verifying env in Coolify containers
-
-`printenv | grep` can be unreliable in Coolify containers. Use one of these instead:
-
-**Direct probe (no regex):**
-```sh
-printenv DATABASE_URL NEXTAUTH_URL NEXTAUTH_SECRET NEXT_PUBLIC_APP_URL SMTP_HOST SMTP_USER
-```
-
-**Node runtime probe (authoritative — tests what the app actually sees):**
 ```sh
 node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXTAUTH_SECRET:!!process.env.NEXTAUTH_SECRET,NEXT_PUBLIC_APP_URL:process.env.NEXT_PUBLIC_APP_URL,SMTP_HOST:process.env.SMTP_HOST})'
 ```
 
 ---
 
-## 7. Debugging & troubleshooting
+## 8. Debugging
 
-### Framework
+1. Reproduce, and name the layer (embed, API, admin, DB).
+2. Find the first wrong assumption, not just the thrown error.
+3. Fix at the right boundary: validation issues need the client *and* server layer; URL and env issues get fixed in a server component and passed down as props.
+4. Verify end to end: configure in admin → embed renders → submit → stored → email queued.
 
-1. **Reproduce** the failure. Identify the layer (embed, API, admin, DB).
-2. **Locate the first wrong assumption** — not just the thrown error.
-3. **Fix at the correct boundary**: validation issues → fix in client *and* server; URL/env issues → fix in server component, pass props down.
-4. **Verify end-to-end**: admin configure → embed renders → submit → stored → email queued.
+**Works locally but fails on forms-dev or forms.canopyds.com: suspect infrastructure first, and fix it in Coolify config rather than in code.** Usual causes: wrong `Host` header from the proxy, `NEXTAUTH_URL` not matching the public URL, `NEXT_PUBLIC_APP_URL` missing or wrong at build time, or env vars visible in the Coolify UI but not reaching the Node process.
 
-### Deployed-environment issues
+Migration failures and `P2022` in production: the migration did not run. Confirm the file exists under `prisma/migrations/` and that `start.sh` runs before `node server.js`. Troubleshooting details in `docs/PRISMA_MIGRATIONS.md`.
 
-Failures on forms-dev or forms.canopyds.com are often infrastructure:
-- Wrong `Host` header from the proxy
-- `NEXTAUTH_URL` not matching the public URL
-- `NEXT_PUBLIC_APP_URL` missing or wrong at build time
-- Env vars present in Coolify UI but not reaching the Node process
-
-These are fixed in Coolify config, not in code. Suggest the user check `docs/PRISMA_MIGRATIONS.md` and Coolify's environment settings.
-
-### Migration failures
-
-- `prisma migrate dev` fails on shadow DB: try `prisma migrate deploy` or `prisma migrate resolve --applied <name>`.
-- `P2022: column does not exist` in production: migration didn't run. Check that `start.sh` runs before `node server.js` and that the migration file exists under `prisma/migrations/`.
-- See `docs/PRISMA_MIGRATIONS.md` troubleshooting section for full details.
-
-### Embed issues
-
-- Changes not appearing: browser cache. Hard refresh or clear cache.
-- Did you run `npm run embed:build` and commit `public/embed.js`?
-- Origin errors (403): check `form.allowedOrigins` includes the host domain, or test from localhost.
+Embed change not appearing: browser cache, or `npm run embed:build` was never run and `public/embed.js` is stale. Embed 403s: check `form.allowedOrigins`, or test from localhost.
 
 ---
 
-## 8. UI/UX conventions
+## 9. UI/UX
 
-**Read `docs/UX_PATTERNS.md` before building or modifying any UI.** It is the canonical reference (~1200 lines) covering the full component library, color system, typography, layout patterns, validation patterns, and anti-patterns.
+**`docs/UX_PATTERNS.md` is the canonical UI reference. Read it before building or modifying any UI.** It covers the component library, color system, motion, typography, layout patterns, validation, and anti-patterns. Do not introduce alternate UI systems, icon packs, or color patterns.
 
-Key rules (quick reference):
+Hard rules:
 
-- **Colors**: Use semantic tokens (`bg-primary`, `text-destructive`, `text-success`) from `src/app/globals.css`. Brand: Teal `#005F6A`, Green `#5FD48C`, Coral `#FF6B5A`.
-- **Dialogs**: Never use `alert()`, `confirm()`, or `prompt()`. Use `toast` and `ConfirmDialog`.
-- **Reordering**: Never use Up/Down buttons. Use `SortableList` with drag-and-drop.
-- **Icon buttons**: Always wrap in `Tooltip`. Standard icons: `GripVertical` (drag), `Trash2` (delete), `Pencil` (edit).
-- **Typography**: `font-heading` (Inter alias) for all headings/titles. Body text uses Inter by default. Single-typeface system for a clean, professional look.
-- **Branding**: Use `BrandMark` component (`src/components/brand-mark.tsx`). Assets in `public/brand/`.
-- **Admin validation**: Custom inline validation with touched/submitted pattern, `noValidate` on forms. Never use native HTML5 validation in admin/auth pages.
-- **Embed validation**: Native HTML5 popups via `setCustomValidity()`. Never use custom inline validation in embed.
-
-Don't introduce alternate UI systems, icon packs, or color patterns.
+- **Colors**: semantic tokens from `src/app/globals.css` (`bg-primary`, `text-destructive`, `text-success`). Brand is `--canopy-teal` `#005f6a`, `--canopy-green` `#5fd48c`, `--canopy-coral` `#ff6b5a`. Brand-carrying tokens reference the variable (`var(--canopy-teal)`). Never hand-convert a brand hex to oklch.
+- **Motion**: the four flow tokens only (`--ease-flow-in/out`, `--duration-flow-in/out`). No bespoke durations, no bounce, no rotation.
+- **Dialogs**: never `alert()`, `confirm()`, or `prompt()`. Use `toast` and `ConfirmDialog` (`src/components/confirm-dialog.tsx`).
+- **Reordering**: `SortableList` (`src/components/ui/sortable-list.tsx`) with drag and drop. Never Up/Down buttons.
+- **Icon buttons**: always wrapped in `Tooltip`. `GripVertical` drag, `Trash2` delete, `Pencil` edit.
+- **Typography**: three families. `font-heading` is Urbanist (all semantic headings), `font-sans` is Inter (body default, buttons, labels, tables), `font-mono` is Geist Mono (code, IDs, embed snippets). Headings are a single weight (600); hierarchy comes from size.
+- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`.
+- **Validation**: admin and auth use inline touched/submitted with `noValidate`. The embed uses native popups. See section 2.
 
 ---
 
-## 9. Documentation & versioning
+## 10. Release checklist
 
-### Epic/release update checklist
+After completing an epic or cutting a release, in order:
 
-Run these steps in order after completing an epic or cutting a release.
+1. `package.json`: bump `version`.
+2. `CHANGELOG.md`: new entry at the top with date and changes.
+3. `docs/epics/epic-N-name.md`: completion report.
+4. `docs/epics/README.md`: table row with version, date, link.
+5. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
 
-1. **`package.json`** — bump `version` (e.g., `4.4.0` → `4.5.0`).
-2. **`CHANGELOG.md`** — add a new version entry at the top with date and changes.
-3. **`docs/epics/epic-N-name.md`** — create a completion report for the epic.
-4. **`docs/epics/README.md`** — add a row to the epic table with version, date, and link.
-5. **User-facing help docs** — walk `content/docs/*.md` (served at `/docs` in-app) and update any page whose content the epic invalidates: new features need a new page or a section added to an existing page, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of the affected areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip this step only if the release is purely internal (infra, refactors, no user-visible change).
-
-If any future change requires storing version-specific information in an additional file, update this checklist at the same time.
+If a future change adds another file holding version-specific information, add it to this list at the same time.
 
 ---
 
-## Appendix A. FieldType enum (current)
+## Appendix. Data model
 
-```
-TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS
-```
-
-See `prisma/schema.prisma` for the canonical definition and `src/lib/field-types.ts` for display labels.
-
----
-
-## Appendix B. Data model (Prisma schema summary)
+Canonical source: `prisma/schema.prisma`.
 
 ```
 Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
-  └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?, lastLoginAt?, ...)
-  └─ Form[] (name, slug, type:FormType, allowedOrigins[], notifyEmails[], emailNotificationsEnabled, emailIncludeResponses, honeypotField?, defaultTheme?, published, thumbnail?, ...)
-  │    └─ Field[] (name, type:FieldType, label, order, required, options?, validation?, helpText?)
-  │    └─ Submission[] (data:Json, meta:Json, isSpam, status:SubmissionStatus)
-  └─ Notification[] (formId, type:NotificationType, count, updatedAt)
+  └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?,
+  │        lastLoginAt?, failedLoginCount, lastFailedLoginAt?)
+  └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
+  │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
+  │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
+  │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId)
+  │    └─ Field (name, type:FieldType, label, placeholder?, order, required,
+  │    │         options?, validation?, helpText?)
+  │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
+  └─ Notification (formId, type:NotificationType, count, updatedAt)
 
 PasswordResetToken (userId, token, expiresAt, usedAt?)
 ```
 
-`FormType` enum: `HOSTED` | `EMBEDDED`. Locked at form creation. Drives editor branching (Appearance Page subsection, font picker "Inherit from host page", preview mode), publish surfaces (Share Link vs Allowed Origins + Embed Code), and public endpoints (embed API rejects HOSTED with `FORM_HOSTED_ONLY`; `/f/[formId]` rejects EMBEDDED with the existing Form Not Available page).
+Enums:
 
-Seeded Plan rows: `FREE` (maxPublishedForms=1), `HOSTING` (10), `PAID` (null=unlimited), `UNLOCKED` (null, isPublic=false, admin-granted only).
+- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS`. Display labels in `src/lib/field-types.ts`.
+- `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (embed API rejects HOSTED with `FORM_HOSTED_ONLY`; `/f/[formId]` rejects EMBEDDED with Form Not Available).
+- `SubmissionStatus`: `NEW | READ | ARCHIVED`.
+- `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 
-Seeded Role rows: `USER` (default), `GLOBAL_ADMIN` (isPublic=false, admin-granted only). Operator console access is gated by `GLOBAL_ADMIN`; promotion automatically moves the account to the `UNLOCKED` plan.
+Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `UNLOCKED` (null, `isPublic: false`, admin-granted only). `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
 
-Canonical source: `prisma/schema.prisma`.
+Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves the account to `UNLOCKED`.
