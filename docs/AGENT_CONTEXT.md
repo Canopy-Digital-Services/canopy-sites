@@ -6,6 +6,8 @@ Authoritative reference for coding agents working in this repo.
 
 Current version: `package.json` → `version`. Release history: `CHANGELOG.md`. Epic table: `docs/epics/README.md`.
 
+**Editing this doc.** It is written for agents, so density matters more than flow. Follow the rules in `docs/DOC_MAINTENANCE.md` before adding to it.
+
 ---
 
 ## 1. Product & stack
@@ -237,7 +239,8 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `NEXT_PUBLIC_APP_URL` | Build-time. Falls back to `NEXTAUTH_URL`. Must match the deployed public URL. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Required if email is enabled. |
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
-| `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the in-app feedback form. Unset means feedback submissions return a friendly error and send nothing. |
+| `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
+| `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
@@ -268,7 +271,7 @@ Embed change not appearing: browser cache, or `npm run embed:build` was never ru
 
 ## 9. UI/UX
 
-**`docs/UX_PATTERNS.md` is the canonical UI reference. Read it before building or modifying any UI.** It covers the component library, color system, motion, typography, layout patterns, validation, and anti-patterns. Do not introduce alternate UI systems, icon packs, or color patterns.
+**`docs/UX_PATTERNS.md` is the canonical UI reference. Read its section 1 before building or modifying any UI**: that section is the complete rule set, and the sections after it hold the detail per topic (color, motion, typography, copy, components, lists, layout, embed theming, brand assets). Do not introduce alternate UI systems, icon packs, or color patterns.
 
 Hard rules:
 

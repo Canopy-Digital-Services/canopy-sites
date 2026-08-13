@@ -1,315 +1,150 @@
-# UX Patterns & Component Guidelines
+# UX Patterns
 
-This document defines the UI/UX conventions for the Canopy Forms admin interface. **Read this before building any new UI components or modifying existing ones.**
+UI conventions for the Canopy Forms admin interface, plus the embed theming system.
 
----
+**How to use this doc.** Section 1 is the complete rule set: every prohibition and every required choice, with no rationale. Read it before any UI work. The sections after it add detail, code, and the reasoning behind a rule, and are meant to be read by section, not front to back. If a rule and a code sample ever disagree, the rule wins and the sample is stale.
 
-## Table of Contents
+**Editing this doc.** Follow `docs/DOC_MAINTENANCE.md`. In particular: a new prohibition goes in section 1 as well as its topic section, never add a summary or quick-reference table, and delete what a change supersedes rather than leaving both.
 
-1. [Component Library Overview](#component-library-overview)
-2. [Color System](#color-system)
-3. [Motion](#motion)
-4. [Copy: Descriptions Must Earn Their Place](#copy-descriptions-must-earn-their-place)
-5. [Never Use Browser Native Dialogs](#never-use-browser-native-dialogs)
-6. [Button Patterns](#button-patterns)
-7. [Icon Usage](#icon-usage)
-8. [Typography](#typography)
-9. [Graphics & Brand Assets](#graphics--brand-assets)
-10. [Tooltips](#tooltips)
-11. [Toast Notifications](#toast-notifications)
-12. [Confirmation Dialogs](#confirmation-dialogs)
-13. [Sortable Lists (Drag-to-Reorder)](#sortable-lists-drag-to-reorder)
-14. [Adding Items to a List](#adding-items-to-a-list)
-15. [High-Density List Pattern](#high-density-list-pattern)
-16. [Required & Optional Indicators](#required--optional-indicators)
-17. [Layout Patterns](#layout-patterns)
-18. [Card layout and primary actions](#card-layout-and-primary-actions)
-19. [Form Inputs](#form-inputs)
-20. [Empty States](#empty-states)
-21. [Table Data Patterns](#table-data-patterns)
-22. [Action Button Hierarchy](#action-button-hierarchy)
-23. [Filter Patterns](#filter-patterns)
-24. [Dashboard Cards & View Toggle](#dashboard-cards--view-toggle)
+Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-react` icons, `class-variance-authority` variants, `cn()` from `tailwind-merge` + `clsx`, `@dnd-kit/*` drag and drop, `sonner` toasts. Components live in `src/components/ui/` (primitives), `src/components/patterns/` (layout), `src/components/` (features).
 
 ---
 
-## Component Library Overview
+## 1. Hard rules
 
-This project uses **shadcn/ui** components built on Radix UI primitives with Tailwind CSS styling.
+**Never:**
 
-**Component locations:**
-- **Base UI components**: `src/components/ui/` (button, input, dialog, etc.)
-- **Layout patterns**: `src/components/patterns/` (top-nav-layout, page-header, etc.)
-- **Feature components**: `src/components/` (confirm-dialog, field-list, etc.)
+1. Browser native dialogs: `alert()`, `confirm()`, `prompt()`. Use `toast` and `ConfirmDialog`.
+2. Up/Down buttons for reordering. Use `SortableList`.
+3. Icon-only buttons without a `Tooltip`.
+4. Array indices as keys for sortable items. Items need stable `id`s.
+5. Wrapping `dragHandleProps` in a component. Apply them to the element directly or refs break.
+6. Omitting `stopPropagation` on `onClick` **and** `onPointerDown` for clickable elements inside a drag-anywhere row.
+7. Hover-reveal actions in a drag-and-drop list. Keep them always visible.
+8. Badge or `(required)` text for required fields. Use the red asterisk.
+9. Badge for prominent status. Use dot + text. Badge is for compact metadata rows.
+10. Badge for numeric counts in tables. Use plain muted text.
+11. Card-per-row styling for inventory lists. Use the high-density single-container layout.
+12. Native HTML5 validation in admin or auth forms, including `required`, `minLength`, `pattern`, `setCustomValidity()`, and `reportValidity()`. Those are embed-only.
+13. Custom inline validation in embed forms. Those are native-popup-only.
+14. A card's primary bottom action in `CardContent` when `CardFooter` exists.
+15. `text-destructive` for informational notices. Amber is for incomplete or needs-attention; destructive is for wrong.
+16. An "Add item" button above its list or in a header row beside the list's label. It goes below the list.
+17. Helper text next to a labelled Add button in an empty list. The button says it.
+18. A description that paraphrases its own title. Delete it.
+19. `position="item-aligned"` on `SelectContent`. The shared component defaults to `position="popper"` / `align="start"` deliberately; item-aligned overlays the trigger and makes long lists expand upward with scroll chevrons.
+20. A preselected default type in a picker-gated configuration modal.
+21. A hand-converted oklch value for a brand color. Point the token at `var(--canopy-teal)` and friends.
+22. A decorative colored accent bar to signal importance (`border-l-4 border-l-primary` and similar).
+23. Bounce or rotation in motion. Increase travel distance or duration instead.
+24. Bespoke durations or easing curves for enter/leave. Use the four flow tokens.
+25. A navigation button whose label describes form state (a Continue button that becomes "No header"). Mark the section `(Optional)` instead.
+26. A larger radius to make something friendlier. Radius is not a design lever here.
+27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
+28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
 
-**Key dependencies:**
-- `radix-ui` - Accessible UI primitives (unified package; all `src/components/ui/` components import from here)
-- `lucide-react` - Icon library
-- `class-variance-authority` - Variant management
-- `tailwind-merge` + `clsx` - Class name utilities (via `cn()` helper)
-- `@dnd-kit/*` - Drag-and-drop functionality
-- `sonner` - Toast notifications
+**Always:**
+
+29. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+30. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+31. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+32. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+33. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+34. `GripVertical` visible in a sortable row, even when the whole row drags.
+35. `PageHeader` for page titles. Never an inline `<h1>`.
+36. `PageContent` on admin pages, except the form editor.
+37. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+38. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+
+**Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
+
+**Light mode only.** Dark mode variables exist in `globals.css` but were never updated with brand colors. Don't advertise dark mode support; if you add it, re-check brand contrast and every interactive state.
 
 ---
 
-## Color System
+## 2. Color and surfaces
 
-This project uses a semantic color system built on Tailwind CSS v4 with CSS variables defined in `src/app/globals.css`.
+### Brand colors
 
-### Brand Colors
+| Token | Hex | Role |
+|-------|-----|------|
+| `--canopy-teal` | `#005f6a` | Primary actions, links, brand emphasis |
+| `--canopy-green` | `#5fd48c` | Success states, positive feedback |
+| `--canopy-coral` | `#ff6b5a` | Destructive actions, errors |
 
-The application uses three brand colors with specific semantic roles:
-
-| Color | Hex | Usage |
-|-------|-----|-------|
-| **Main Teal** | `#005F6A` | Primary actions, buttons, links, headings, brand emphasis |
-| **Highlight Green** | `#5FD48C` | Success states, positive feedback, CTAs |
-| **Pop Coral** | `#FF6B5A` | Destructive actions, error states, critical alerts |
-
-### Semantic CSS Variables
-
-The three brand hexes are declared once as `--canopy-teal` / `--canopy-green` / `--canopy-coral`. **Semantic tokens that carry a brand color must reference the hex variable, never a hand-written oklch approximation of it:**
+The three hexes are declared once in `:root`. **A semantic token carrying a brand color must reference the hex variable:**
 
 ```css
-:root {
-  /* Brand hexes — the source of truth */
-  --canopy-teal: #005f6a;
-  --canopy-green: #5fd48c;
-  --canopy-coral: #ff6b5a;
-
-  /* Brand-carrying semantic tokens point at the hex */
-  --primary: var(--canopy-teal);
-  --secondary-foreground: var(--canopy-teal);
-  --accent-foreground: var(--canopy-teal);
-  --ring: var(--primary);
-
-  /* Non-brand neutrals and fills stay in oklch, where the lightness axis
-     is the point (see Surfaces, Radius & Elevation) */
-  --primary-foreground: oklch(0.985 0 0);
-  --foreground: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.50 0 0);
-}
+--primary: var(--canopy-teal);
+--secondary-foreground: var(--canopy-teal);
+--accent-foreground: var(--canopy-teal);
+--ring: var(--primary);
 ```
 
-**Why this rule exists.** Brand tokens were originally written as hand-converted oklch values, and every one of them drifted from the hex it claimed to mirror. `--primary` was `oklch(0.38 0.07 195)`, which renders `#004e4e`: hue 195 instead of the brand's 208.5, so green and blue came out nearly equal (`4e4e`) where the brand is bluer (`5f6a`). The result was an admin UI whose "brand teal" was visibly not the brand teal, while hardcoded `#005F6A` defaults elsewhere in the app were correct. The drift is invisible in review because both values look like plausible teal.
+**Why, since this recurred.** These were originally hand-converted oklch values and every one drifted. `--primary` was `oklch(0.38 0.07 195)`, which renders `#004e4e`: hue 195 instead of the brand's 208.5, so green and blue came out nearly equal where the brand is bluer. The admin UI's "brand teal" was visibly not the brand teal while hardcoded `#005F6A` defaults elsewhere were correct. The drift survives review because both values look like plausible teal.
 
-Two tokens are still oklch approximations of brand colors and remain **known-drifted**: `--success` (`oklch(0.75 0.15 155)` renders `#4ec983`, brand green is `#5fd48c`) and `--destructive` (`oklch(0.68 0.21 25)` renders `#ff5251`, brand coral is `#ff6b5a`). Both were left as-is deliberately: `--success` is a fill whose lightness was tuned by hand, and changing `--destructive` shifts contrast on every destructive control. Do not "fix" either without checking contrast and confirming the change is wanted.
+Two tokens remain **known-drifted, deliberately**: `--success` (`oklch(0.75 0.15 155)` renders `#4ec983` vs brand `#5fd48c`) and `--destructive` (`oklch(0.68 0.21 25)` renders `#ff5251` vs brand `#ff6b5a`). `--success` is a fill whose lightness was tuned by hand; changing `--destructive` shifts contrast on every destructive control. Do not "fix" either without checking contrast and confirming it is wanted.
 
-If you need a lighter or darker brand shade, derive it (`bg-primary/80`, `color-mix()`) rather than writing a new literal.
+For a lighter or darker shade, derive it (`bg-primary/80`, `color-mix()`) rather than writing a literal.
 
-### Using Colors in Components
+Brand combinations meet WCAG AA (teal on white is AAA).
 
-**Always use semantic color utilities** rather than hardcoding colors:
+### Neutrals, radius, elevation
 
-```tsx
-// ✅ Good - uses semantic utilities
-<Button className="bg-primary text-primary-foreground">Save</Button>
-<Button variant="destructive">Delete</Button>
-<p className="text-success">Form submitted successfully</p>
+- **Surfaces**: `--card` (white, raised: cards, modals, inputs), `--background` (off-white page), `--muted` (sunken: hover wash, code blocks, wells). `--secondary` and `--accent` alias `--muted`.
+- **Border**: one `--border` (`oklch(0.88 0 0)`); `--input` matches.
+- **Text**: `--foreground` (`oklch(0.18 0 0)`) and `--muted-foreground` (`oklch(0.50 0 0)`, secondary and placeholder).
+- **Focus ring**: derived from `--primary`, rendered at 50% via `ring-ring/50`. There is no separate ring hue.
+- **Radius**: two values. A **2px workhorse** (`--radius`) for every container and control, with the whole `rounded-sm/md/lg/xl/2xl` ramp collapsed onto it, plus **pill** (`rounded-full`) for badges, avatars, status dots.
+- **Elevation**: four role-based two-layer shadows. `shadow-1` rest (cards), `shadow-2` lift (hover), `shadow-3` float (popovers, dropdowns), `shadow-4` command (modals). Old Tailwind names alias in.
 
-// ❌ Bad - hardcoded colors
-<Button className="bg-[#005F6A] text-white">Save</Button>
-<div style={{ color: '#FF6B5A' }}>Error</div>
-```
+### Brand gradient
 
-### Available Semantic Tokens
+`var(--canopy-gradient)` runs highlight green (upper-left) to main teal (lower-right), matching the canopy mark. Logo and decorative admin swoops only. It is not a UI background fill.
 
-| Token | Tailwind Class | Usage |
-|-------|----------------|-------|
-| `primary` | `bg-primary`, `text-primary` | Primary brand actions |
-| `primary-foreground` | `text-primary-foreground` | Text on primary backgrounds |
-| `destructive` | `bg-destructive`, `text-destructive` | Dangerous/delete actions |
-| `success` | `bg-success`, `text-success` | Success states, positive feedback |
-| `success-foreground` | `text-success-foreground` | Text on success backgrounds |
-| `muted` | `bg-muted`, `text-muted` | Subtle backgrounds |
-| `muted-foreground` | `text-muted-foreground` | Secondary text |
-| `accent` | `bg-accent`, `text-accent` | Subtle highlights |
-| `border` | `border`, `border-border` | Standard borders |
+### Status: dot + text vs badge
 
-### Surfaces, Radius & Elevation
-
-Neutrals resolve to a small set of roles, each perceptually distinct:
-
-- **Surfaces** — `--card` (white, raised: cards/modals/inputs), `--background` (off-white page), `--muted` (sunken: hover wash, code blocks, recessed wells). `--secondary` and `--accent` alias `--muted`.
-- **Border** — a single `--border` (`oklch(0.88 0 0)`); `--input` matches it.
-- **Text** — `--foreground` (`oklch(0.18 0 0)`, body/headings) and `--muted-foreground` (`oklch(0.50 0 0)`, secondary/placeholder).
-- **Focus ring** — derived from `--primary` (rendered at 50% via `ring-ring/50`); there is no separate ring hue.
-
-**Radius is a two-value system**: a single **2px workhorse** (`--radius`) for every container and control — the whole `rounded-sm/md/lg/xl/2xl` ramp collapses onto it — plus the **pill** (`rounded-full`) for badges, avatars, and status dots. Corner softness is not a design lever; don't reach for a larger radius to make something "friendlier."
-
-**Elevation** uses four role-based, two-layer shadows: `shadow-1` (rest — cards), `shadow-2` (lift — hover), `shadow-3` (float — popovers/dropdowns), `shadow-4` (command — modals). The old Tailwind names (`shadow-xs/sm/md/lg/xl`) alias into this scale.
-
-### Brand Gradient
-
-The signature gradient (`var(--canopy-gradient)`) runs **highlight green (upper-left) → main teal (lower-right)**, matching the canopy mark. It lives in the logo and the decorative admin "swoops" — it is **not** used as a UI background fill.
-
-### Component Variants
-
-Most UI components automatically use semantic colors through their variants:
+| Context | Pattern |
+|---------|---------|
+| Prominent, focal status (status cards, detail headers) | Dot + text |
+| Compact metadata (cards, tables, list rows) | Badge |
 
 ```tsx
-// Button variants
-<Button variant="default">Uses --primary</Button>
-<Button variant="destructive">Uses --destructive</Button>
-
-// Badge variants
-<Badge variant="default">Uses --primary</Badge>
-<Badge variant="destructive">Uses --destructive</Badge>
-
-// Alert variants
-<Alert variant="default">Standard</Alert>
-<Alert variant="destructive">Uses destructive color</Alert>
-```
-
-### Status Indicators
-
-Two patterns for indicating status. Choose based on context:
-
-| Context | Pattern | Example |
-|---------|---------|---------|
-| **Prominent display** (status cards, detail headers) | Dot + text | Publish tab status |
-| **Compact metadata** (cards, tables, list rows) | Badge | Dashboard card meta row |
-
-**Dot + text** for standalone status where the indicator is a focal element:
-
-```tsx
-// Active/live — pulsing green dot (brand tokens, not hardcoded green-*)
+// Live: pulsing green dot, dark-green ink
 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-strong">
   <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
   Live
 </span>
 
-// Inactive/draft — static muted dot
+// Draft: static muted dot
 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
   <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
   Draft
 </span>
 ```
 
-Only use `animate-pulse` for active/live states. Don't animate inactive states. **Green text/icons use `text-success-strong`** (a readable dark-green ink) — never the light `--success` fill color, which fails contrast as text, and never a hardcoded `green-600`. Use `bg-success` for green fills (dots, success buttons).
+`animate-pulse` is for live states only. Badges are **tinted pills** (pale fill, saturated text, no border, fully rounded) so they read as labels rather than buttons. Variants: `success`, `brand`, `neutral` (default), `amber`, `destructive`. The old shadcn names (`default`, `secondary`, `outline`) still resolve as aliases.
 
-**Badge** for status labels in dense contexts alongside other metadata. Badges are **tinted pills** (pale fill + saturated text, no border, fully rounded) so they read as labels, not buttons. Variants are semantic tints: `success` (green), `brand` (teal), `neutral` (gray), `amber`, `destructive` (coral). The old shadcn names (`default`, `secondary`, `outline`) still resolve as aliases onto this tinted scale.
+### Notices
 
-```tsx
-<Badge variant="success">Published</Badge>
-<Badge variant="neutral">Draft</Badge>
-```
+Three tones, matched to severity: **brand** teal (informational), **amber** (incomplete, needs attention), **destructive** coral (something is wrong). Transient operation failures go to `toast.error()` instead.
 
-Don't use Badge in prominent status displays — even as a tinted pill it competes with the dot+text atom. Reserve the pill for compact metadata rows; use dot+text for focal status.
-
-### Informational Notices
-
-Use color treatment to match the severity of the message:
-
-| Treatment | When to use | Example |
-|-----------|-------------|---------|
-| **Amber notice** | Non-critical guidance: missing config, setup hints | "Publish your form to enable live submissions" |
-| **`text-destructive`** | Validation errors, failed operations, things that are **wrong** | "Email is required" |
-| **`toast.error()`** | Transient operation failures | "Failed to save changes" |
-
-When something is merely **incomplete or needs attention**, use an amber notice — it's informative without being alarming. Notices are **borderless tinted blocks** at the 2px workhorse radius: the tinted fill carries the severity, so no outline is needed (this matches the badge tint vocabulary — a notice and a badge on the same screen read as one family).
+Notices are **borderless tinted blocks** at the workhorse radius. The tint carries the severity, so no outline, which keeps notices and badges reading as one family.
 
 ```tsx
 <div className="flex items-start gap-2.5 rounded-lg bg-amber-100 px-3.5 py-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
   <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-  <p>Guidance text here.</p>
+  <p>Publish your form to enable live submissions.</p>
 </div>
 ```
 
-Three tones cover the spectrum: **brand** (teal — informational, no caution), **amber** (incomplete / needs attention), **destructive** (coral — something is wrong). Reserve `text-destructive` for things that are **wrong**, not things that are **not yet configured**.
-
-### Embed Forms
-
-Embedded forms use a separate theming system (`embed/src/theme.ts`). The type system uses two groups:
-
-- **`ThemeDefaults`** — tokens that have a default value (e.g. `background`, `primary`, `radius`). `DEFAULT_THEME` must provide all of these. To add a new token with a default: add it to `ThemeDefaults` + add the value to `DEFAULT_THEME`.
-- **`ThemeOverrides`** — optional tokens with no default (e.g. `bodyFont`, `titleColor`, `pageBackground`). To add a new optional token: add it to `ThemeOverrides`. No other changes needed.
-- **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides` — the public type used by consumers. All fields are optional since stored themes only include tokens the user has set.
-
-Default values:
-
-```typescript
-// ThemeDefaults — DEFAULT_THEME values
-background:      "#ffffff"   // Form container background  (--canopy-bg)
-fieldBackground: "#ffffff"   // Input/textarea background  (--canopy-field-bg)
-primary:         "#005F6A"   // Button background / focus rings (--canopy-primary)
-border:          "#e4e4e7"   // Input borders               (--canopy-border)
-text:            "#18181b"   // Labels and body copy        (--canopy-text)
-// Derived automatically — not a stored key:
-// --canopy-button-text  white or #18181b, chosen via WCAG luminance of primary
-// ::placeholder         var(--canopy-text) at 0.5 opacity (CSS only)
-```
-
-**Hosted-only tokens** (in `ThemeOverrides`, read by page wrappers, ignored by embed script):
-```typescript
-pageBackground?: string                    // Page background color — falls back to bg-muted/40
-cardEnabled?: boolean                      // Wrap form in a card (default: true)
-cardShadow?: "none" | "sm" | "md" | "lg"  // Card shadow: none/light/medium/heavy (default: "md")
-contentWidth?: "sm" | "md" | "lg"         // Max width: 480/640/768px (default: "md")
-verticalAlign?: "top" | "center"          // Vertical position on page (default: "top")
-```
-
-Shared extraction via `extractPageTheme()` in `src/lib/page-theme.ts` — used by `hosted-form-page.tsx` and `form-preview.tsx` (unified preview component).
-
-Post-submission confirmation is a themed success card (`.canopy-success` in `embed/src/styles.ts`) that replaces the form: a circular checkmark icon filled with `--canopy-primary`, the configured `successMessage`, and a "Submit another response" button that re-renders the form. The inline status strip above the form is reserved for errors, which still use a fixed `#FF6B5A` since the theme has no dedicated error token.
-
-### Beta Watermark
-
-All rendered embed forms include a `.canopy-watermark` footer that reads "Powered by Canopy Forms (Beta)" followed by a `Report an issue` `mailto:` link to `feedback@canopyds.com`. The subject and body are pre-filled with the form's title/name and form ID so the recipient can trace the report. The watermark is rendered in `render()`, `renderError()`, and `renderInactive()` (skipped in the loading skeleton). It uses `--canopy-primary` for the link color and `--canopy-border` for the divider so it stays theme-aware. Since the embed is bundled by esbuild and has no runtime env access, the recipient address is a constant in `embed/src/form.ts` (`FEEDBACK_EMAIL`).
-
-### Appearance Editor Structure
-
-The Appearance section in the form editor (`appearance-section.tsx`) is an always-open Card with 5 collapsible SubSection rows. Each row shows summary chips when collapsed. There is no third nesting tier — all SubSections are peers. Colors are co-located with the element they affect rather than grouped into a separate section.
-
-**SubSection titles are neutral (`--foreground`), not `text-primary`.** They were teal, which made the children look more important than the "Appearance" card title above them. Hierarchy inside a card is carried by size alone: card title at 22px, SubSection titles at 16px, same color.
-
-```
-Appearance  (always-open Card)
-├─ Page        [swatch]                            ← hosted-only settings
-├─ Form        [swatch] [swatch] [swatch] · radius 8  ← surfaces, borders, spacing
-├─ Headings    Montserrat · Semibold · [swatch]    ← title + label shared style
-├─ Body        Lato · 14px · [swatch]              ← body font, size + text color
-└─ Button      Submit · [swatch]                   ← button text + color
-```
-
-- **Page**: Page Background Color (hosted pages only), with helper text
-- **Form**: Background, Field Background, Field Border (3 color pickers), Border Radius, Density, Button Width, Button Alignment (conditional)
-- **Headings**: Font, Weight, Color, Label Transform, Title Size — applied to both the form title and all field labels as one shared style
-- **Body**: Font (body typeface), Base Font Size (px), Text Color
-- **Button**: Button Text (custom submit label), Button Color
-
-**Heading/label style**: The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform (uppercase) is label-specific and lives in Headings. Title Size is title-specific (labels always render at body font size).
-
-**Font pickers**: Body and Headings each use the `FontPicker` component (`src/components/ui/font-picker.tsx`) with different curated lists. The **Body** font uses `variant="body"` (default), which shows `CURATED_FONTS` from `src/lib/google-fonts.ts` (sans, serif, mono options suited to body text). The **Headings** font uses `variant="heading"`, which shows `CURATED_HEADING_FONTS` (display/expressive typefaces). In both cases the user can search to filter over the full Google Fonts catalogue; the variant only changes the default scrollable list when not searching.
-
-**Font previews**: Each option in the curated list renders in its own typeface. When the picker opens, the curated list is loaded via `src/lib/load-google-fonts.ts`, which injects a single combined `fonts.googleapis.com/css2` stylesheet into `document.head` (deduplicated — each family is only requested once per session). The currently selected font is also loaded eagerly on mount so the closed trigger button renders in the correct typeface. Search results do not load fonts — users typing a specific name already know what they want.
-
-Each color control is a native color-picker swatch + hex text input; the hex input normalizes to `#rrggbb` on blur.
-
-### Dark Mode Status
-
-**Light mode only**: The current color system is optimized for light mode. Dark mode CSS variables exist in `globals.css` but have not been updated with brand colors. If dark mode support is added in the future, ensure:
-- Brand colors maintain sufficient contrast in dark mode
-- Test all interactive states (hover, focus, active)
-- Consider providing dark-mode-specific brand color variants
-
-### Color Contrast
-
-All brand color combinations meet WCAG AA accessibility standards:
-
-- Main Teal (`#005F6A`) + white text: ✅ AAA compliant
-- Pop Coral (`#FF6B5A`) + white text: ✅ AA compliant
-- Highlight Green (`#5FD48C`) + dark text: ✅ AA compliant
-
 ---
 
-## Motion
+## 3. Motion
 
-Motion in this app has one job: make it clear that content **arrived** or **left**, so a change of state doesn't read as a jump cut. It is not used for delight, emphasis, or personality.
+Motion has one job: make it clear content **arrived** or **left**, so a state change doesn't read as a jump cut. Not for delight, emphasis, or personality.
 
-### The flow vocabulary
-
-Four tokens in `globals.css` define every deliberate enter/leave transition. Reference them; don't write new durations or curves:
+Four tokens in `globals.css` define every deliberate transition:
 
 ```css
 --ease-flow-in:     cubic-bezier(0.25, 1.12, 0.45, 1);
@@ -320,1688 +155,508 @@ Four tokens in `globals.css` define every deliberate enter/leave transition. Ref
 
 From Tailwind: `duration-[var(--duration-flow-in)] ease-[var(--ease-flow-in)]`.
 
-**Entry** rises from below (3rem) at 0.94 scale and decelerates to rest. **Exit** accelerates away and fades, and is deliberately faster than entry, because a departing element doesn't need to be read.
+Entry rises from below (3rem) at 0.94 scale and decelerates. Exit accelerates away and fades, faster than entry, because a departing element doesn't need to be read.
 
-### Energy comes from distance, not springiness
-
-This is the governing principle, and it was settled by trying the alternative. The entry curve's `1.12` control point overshoots the target by roughly 2%, about a pixel at a 3rem rise, so the overshoot is essentially invisible and reads as a decisive stop. A genuine back-out curve (`1.5`+, overshooting ~9%) plus rotation was tested and rejected: it read as playful in a way that undercut a professional tool.
-
-So when motion feels too subtle, **increase travel distance or duration. Do not add bounce, and do not add rotation.** A card that tilts has no physical justification.
-
-### Where it applies
+**Energy comes from distance, not springiness**, and this was settled by trying the alternative. The entry curve's `1.12` control point overshoots ~2%, about a pixel at a 3rem rise, so it reads as a decisive stop. A real back-out curve (`1.5`+, ~9% overshoot) plus rotation was tested and rejected as playful in a way that undercut a professional tool. When motion feels too subtle, increase travel or duration.
 
 | Surface | Behavior |
 |---------|----------|
-| Editor flow cards | Rise in; exit sideways (left = forward, right = back) |
-| Dialogs (`DialogContent`) | Rise in with `slide-in-from-bottom-12`; drop away on close |
-| Progressive-disclosure reveals | `.editor-reveal` grows the container to fit |
+| Editor flow cards | Rise in; exit sideways (left forward, right back) |
+| `DialogContent` | Rise in with `slide-in-from-bottom-12`; drop away on close |
+| Progressive reveals | `.editor-reveal` grows the container to fit |
 
-`DialogContent` carries this globally, so every dialog inherits it. Don't override per-dialog.
+`DialogContent` carries this globally. Don't override per dialog.
 
-### Height reveals
+**Height reveals** use `.editor-reveal`, animating `grid-template-rows` from `0fr` to `1fr` while fading. It needs a single child with `overflow-hidden`. Two constraints: no overshoot on height (a container springing past its target reads as a glitch, so this uses a plain deceleration curve, not `--ease-flow-in`), and `fr` interpolation needs Chrome 117 / Safari 17.4 (older engines snap to the final height, degrading safely).
 
-For content that appears in place and must grow its container, use `.editor-reveal`, which animates `grid-template-rows` from `0fr` to `1fr` while fading. It requires a single child with `overflow-hidden`. Two constraints:
-
-- **No overshoot on height.** A container that springs past its target reads as a glitch, not polish, which is why this animation uses a plain deceleration curve instead of `--ease-flow-in`.
-- `fr` interpolation needs Chrome 117 / Safari 17.4. Older engines snap to the final height, which is the un-animated behavior, so it degrades safely.
-
-### Reduced motion
-
-Every flow animation is listed in a `prefers-reduced-motion: reduce` block that drops its duration to `1ms`. The animations are **shortened, not removed**, because the editor flow advances on `animationend` and would deadlock if they never fired. Add new flow animations to that block.
+**Reduced motion** shortens every flow animation to `1ms` rather than removing it, because the editor flow advances on `animationend` and would deadlock if the animations never fired.
 
 ---
 
-## Copy: Descriptions Must Earn Their Place
+## 4. Typography
 
-A title, a labelled button, and a visible control already say what a thing is and what it does. **A description earns its place only if it states a fact, constraint, or consequence that the title and controls don't already convey.** Otherwise it's a sentence the user has to read and discard, which is a real cost paid on every visit.
+Three families: **Urbanist** headings, **Inter** body and UI, **Geist Mono** code. Loaded via `next/font/google` in [layout.tsx](src/app/layout.tsx), mapped in `@theme inline`:
+
+```css
+--font-sans: var(--font-inter);      /* default on <body> */
+--font-heading: var(--font-urbanist);
+--font-mono: var(--font-geist-mono);
+```
+
+`font-heading` goes on page titles, section headings, card and modal titles, and nav titles. Not on body copy, buttons, labels, inputs, table content, or toast text.
+
+Headings are a **single weight (600)**; hierarchy is carried by size.
+
+| Level | Classes | Size / line-height |
+|-------|---------|--------------------|
+| Page title | `text-3xl font-heading font-semibold tracking-tight` | 30px / 1.15 |
+| Card title | `text-[1.375rem] font-heading font-semibold tracking-tight` | 22px / 1.25 |
+| Section heading | `text-base font-heading font-semibold` | 16px / 1.4 |
+| Field label | `text-sm font-medium` | 14px / 1.4 |
+
+Body is 14px (`text-sm`) Inter regular; meta, captions, and stats step to 12px (`text-xs`). Field labels and inputs use `font-medium` (500).
+
+`PageHeader`, `CardTitle`, `SettingsSection`, `EmptyState`, and the `Markdown` h1/h2/h3 renderers already apply this correctly. Follow them for new title components.
+
+---
+
+## 5. Copy
+
+A title, a labelled button, and a visible control already say what a thing is and does. **A description earns its place only if it states a fact, constraint, or consequence the title and controls don't convey.** Otherwise it's a sentence the user reads and discards on every visit.
 
 **The test: delete it. If nothing is lost, it was noise.**
 
-Descriptions that failed the test and were removed:
+Failed the test and were removed: "Configure the field details and validation rules" (under an "Add Field" dialog), "Customize how your form looks" (under "Appearance"), "Your current plan and usage" (on a card that visibly shows both), "Click the button below to add your first field" (narrating a button), "Your form is ready" (under an "All set" title).
 
-| Removed copy | Sat under | Why it was noise |
-|---|---|---|
-| "Configure the field details and validation rules." | "Add Field" dialog | Restates the dialog's purpose |
-| "Customize how your form looks" | "Appearance" card | Paraphrase of the title |
-| "Manage your account settings" | "Account" page header | Paraphrase of the title |
-| "Your current plan and usage." | "Plan" card | The card visibly shows plan and usage |
-| "Add the fields you would like in your form. Drag to reorder." | "Fields" card | The "Add Field" button and the grip handles say both |
-| "Click the button below to add your first field." | above an "Add Field" button | Narrates the button |
-| "Redirect after a successful submission." | under a redirect URL input | The radio label already said "Redirect to a URL" |
-| "Your form is ready." | "All set" card | Restates the title, and the body already says what to do next |
+Passed, and why: "Domains allowed to embed and submit to this form. Localhost is always allowed for development" (a constraint you can't infer), "You'll be signed out of all sessions shortly after" (a consequence), "Leave empty for no limit. Spam submissions are not counted" (non-obvious behavior of a blank value).
 
-Descriptions that passed, and why:
+**Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second survived alone.
 
-| Kept copy | What it adds |
-|---|---|
-| "Domains allowed to embed and submit to this form. Localhost is always allowed for development." | A constraint you cannot infer |
-| "You'll be signed out of all sessions shortly after." | A consequence of the action |
-| "Control responses, notifications, and limits" | Names contents a vague title ("Submission Settings") doesn't imply |
-| "Leave empty for no limit. Spam submissions are not counted." | Non-obvious behavior of a blank value |
-| "Your email address is used for signing in and receiving notifications." | Two distinct functions of one value |
+**Zero states are the exception.** A first-run empty state is the one place a sentence of orientation earns its keep, because the user has no surrounding context. That does not license helper text beside a labelled Add button in a populated list.
 
-**Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second is a real consequence. The second survived alone.
-
-**Zero states are the exception.** A first-run empty state (no forms yet) is the one place a sentence of orientation earns its keep, because the user has no surrounding context to infer from. That does **not** license helper text next to a labelled Add button in a populated list.
-
-**When removing a `DialogDescription`, pass `aria-describedby={undefined}` to `DialogContent`.** Radix wires `aria-describedby` to a generated id whether or not a description renders, so omitting it without this leaves a dangling reference.
+**Removing a `DialogDescription` requires `aria-describedby={undefined}` on `DialogContent`.** Radix wires the attribute to a generated id whether or not a description renders, so omitting it leaves a dangling reference.
 
 ---
 
-## Never Use Browser Native Dialogs
+## 6. Buttons, icons, tooltips, toasts
 
-**Critical rule: Never use browser native dialogs.** They create unstyled, inconsistent experiences.
+### Buttons
 
-| Never Use | Use Instead |
-|-----------|-------------|
-| `window.alert()` | `toast.error()` or `toast.info()` |
-| `window.confirm()` | `ConfirmDialog` component |
-| `window.prompt()` | Custom dialog with input |
+| Variant | Use |
+|---------|-----|
+| `default` | Primary actions. Also the safe choice when paired with a dangerous alternative. |
+| `destructive` | Dangerous action when it's a single confirm/cancel choice |
+| `outline` | Secondary (Cancel, Back) |
+| `ghost` | Tertiary and icon-only in toolbars |
+| `secondary` | Alternative secondary styling; also active filter state |
+| `link` | Text actions. With `text-destructive`, de-emphasizes a dangerous option beside a safer primary. |
 
----
+Sizes step on a tight scale: `sm` 28px, `default` 32px (deliberately compact), `lg` 40px, plus `icon-sm` 28px (**use for action icons in lists**), `icon` 32px, `icon-lg` 40px. Corners are the workhorse radius. Filled variants carry no shadow; `outline` carries `shadow-xs`. Ghost hover lands on `hover:bg-muted`.
 
-## Button Patterns
-
-Buttons use the `Button` component from `src/components/ui/button.tsx`.
-
-### Variants
-
-| Variant | Usage |
-|---------|-------|
-| `default` | Primary actions (Save, Submit, Create). Also the "safe" choice when paired with a destructive alternative. |
-| `destructive` | Dangerous actions when there is a single confirm/cancel choice (e.g., Delete / Cancel) |
-| `outline` | Secondary actions (Cancel, Back) |
-| `ghost` | Tertiary/icon-only actions in toolbars |
-| `secondary` | Alternative secondary styling |
-| `link` | Text-style actions. Use with `text-destructive` to de-emphasize a dangerous option next to a safer primary. |
-
-### Sizes
-
-| Size | Usage |
-|------|-------|
-| `default` | Standard buttons (32px) |
-| `sm` | Compact areas, table rows (28px) |
-| `lg` | Hero actions, prominent CTAs (40px) |
-| `icon` | Icon-only buttons (square, 32px — matches `default`) |
-| `icon-sm` | Small icon buttons (28px) - **use for action icons in lists** |
-| `icon-lg` | Large icon buttons (40px) |
-
-Heights step on a tight 28 / 32 / 40 scale; the default (32px) is deliberately compact. Corners are the 2px workhorse radius; filled variants carry no shadow, `outline` carries `shadow-xs` (rest elevation). Ghost hover lands on the sunken neutral wash (`hover:bg-muted`).
-
-### Examples
+### Tooltips
 
 ```tsx
-// Primary action
-<Button>Save Changes</Button>
-
-// Destructive action
-<Button variant="destructive">Delete</Button>
-
-// Secondary action
-<Button variant="outline">Cancel</Button>
-
-// Icon-only button in a list row
-<Button variant="ghost" size="icon-sm">
-  <Trash2 className="h-4 w-4" />
-</Button>
-```
-
----
-
-## Icon Usage
-
-Icons come from `lucide-react`. Standard icon size is `h-4 w-4` (16px).
-
-### Common Icons
-
-| Icon | Import | Usage |
-|------|--------|-------|
-| `GripVertical` | `lucide-react` | Drag handles for reorderable lists |
-| `Trash2` | `lucide-react` | Delete/remove actions |
-| `Pencil` | `lucide-react` | Edit actions |
-| `Plus` | `lucide-react` | Add/create actions |
-| `X` | `lucide-react` | Close/dismiss |
-| `Check` | `lucide-react` | Success/confirm |
-| `AlertCircle` | `lucide-react` | Warnings/errors |
-
-### Icon Button Pattern
-
-Always use `ghost` variant with `icon-sm` size for icon-only action buttons:
-
-```tsx
-<Button variant="ghost" size="icon-sm">
-  <Pencil className="h-4 w-4" />
-</Button>
-```
-
----
-
-## Typography
-
-This project uses a two-family system: **Urbanist** for headings and **Inter** for body/UI, with **Geist Mono** for code. `font-heading` resolves to Urbanist — apply it to every semantic heading so titles read distinctly from body copy.
-
-### Typeface Choices
-
-| Typeface | Usage | Tailwind Utility |
-|----------|-------|------------------|
-| **Urbanist** | Headings: page/card/section titles | `font-heading` |
-| **Inter** | Everything else: body, buttons, labels, inputs, tables | `font-sans` (default) |
-| **Geist Mono** | Code blocks, embed snippets, IDs | `font-mono` |
-
-### Implementation
-
-Fonts are loaded via `next/font/google` in `src/app/layout.tsx` and mapped to Tailwind v4 design tokens in `src/app/globals.css`:
-
-```css
-@theme inline {
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-urbanist);
-  --font-mono: var(--font-geist-mono);
-}
-```
-
-**Inter** is applied by default to `<body>`, so all UI elements inherit it automatically. The `font-heading` class switches headings to Urbanist.
-
-### When to Use `font-heading`
-
-Apply `font-heading` to all semantic headings and titles (for semantic clarity and future flexibility):
-
-**✅ Always use on:**
-- Page titles (`<h1>` in PageHeader, docs pages)
-- Section headings (`<h2>`, `<h3>` in SettingsSection, Markdown)
-- Card/component titles (EmptyState, modal headers)
-- Navigation/sidebar titles (admin console, operator console)
-
-**❌ Don't use on:**
-- Body text, paragraphs, descriptions
-- Buttons, form labels, input text
-- Table content, list items
-- Toast messages, error text
-
-### Examples
-
-```tsx
-// Page header
-<h1 className="text-3xl font-heading font-semibold tracking-tight">
-  Forms
-</h1>
-
-// Section label
-<h3 className="text-sm font-heading font-semibold">
-  Email Notifications
-</h3>
-
-// Body text uses Inter automatically (no class needed)
-<p className="text-sm text-muted-foreground">
-  Configure when to send emails
-</p>
-
-// Code blocks use Geist Mono
-<code className="font-mono text-sm">
-  npm install
-</code>
-```
-
-### Font Weights
-
-All three families support variable weights. Headings use a single weight (600); hierarchy is carried by **size**, not weight. Common usage:
-
-| Weight | Class | Usage |
-|--------|-------|-------|
-| 400 (Regular) | `font-normal` | Body text (Inter default) |
-| 500 (Medium) | `font-medium` | Field labels, form inputs |
-| 600 (Semibold) | `font-semibold` | All headings — page titles, card titles, section headings (`PageHeader`, `CardTitle`, `SettingsSection`, `SubSection`) |
-
-### Heading Hierarchy
-
-The admin UI uses a four-level typographic hierarchy. Separation is carried by **size** (all headings are Urbanist 600); line-heights are part of the spec:
-
-| Level | Example | Classes | Size / line-height |
-|-------|---------|---------|------|
-| Page title | "Forms", "Account" | `text-3xl font-heading font-semibold tracking-tight` | 30px / 1.15 |
-| Card title | "Header", "Fields", "Appearance" | `text-[1.375rem] font-heading font-semibold tracking-tight` | 22px / 1.25 |
-| Section heading | "Page", "Colors", "Email Notifications" | `text-base font-heading font-semibold` (+ `text-primary` in panels) | 16px / 1.4 |
-| Field label | "Form Background", "Redirect URL" | `text-sm font-medium` | 14px / 1.4 |
-
-Body is 14px (`text-sm`) Inter regular; meta/captions/stats step down to 12px (`text-xs`). Page and card titles are separated by **size** (30px vs 22px). Section headings use `text-primary` in collapsible panels (e.g. Appearance subsections) so they read clearly above field labels.
-
-### Component Patterns Using Typography
-
-These shared components already apply `font-heading` correctly:
-- `PageHeader` - page titles (`text-3xl font-heading font-semibold tracking-tight`)
-- `CardTitle` - card titles (`text-[1.375rem] font-heading font-semibold tracking-tight`)
-- `SettingsSection` - section headings (`text-base font-heading font-semibold`)
-- `EmptyState` - empty state titles (`text-[1.375rem] font-heading font-semibold`)
-- `Markdown` - h1/h2/h3 renderers
-
-When creating new title/heading components, follow this pattern.
-
----
-
-## Graphics & Brand Assets
-
-This project distinguishes between **icons** (UI affordances) and **brand graphics** (logos/wordmarks) or **content graphics** (docs screenshots).
-
-### Icons vs Logos
-
-- **Icons**: Always use `lucide-react` for UI icons (edit, delete, drag handles, etc.). Do not introduce new icon packs for convenience.
-- **Logos / wordmarks**: Treat as **brand assets**, not icons.
-
-### Where graphics live
-
-**Rule: Anything referenced by URL in the app must live in `public/`.**
-
-Recommended structure:
-
-- `public/brand/` — logos, wordmarks, favicons, brand-only assets
-- `public/docs-assets/` — screenshots and images used by documentation pages
-
-Avoid placing images in `content/` unless you are intentionally treating them as source content loaded via filesystem (they will not be automatically served by Next.js).
-
-### How to render brand assets
-
-- **SVG logos**: Prefer serving from `public/…` and rendering with a plain `<img src="/brand/..." />` for simplicity and consistency (no SVGR assumptions).
-- **Raster images** (png/jpg/webp): Prefer `next/image` for responsive sizing and optimization.
-
-### Asset naming (important)
-
-- **Avoid spaces in filenames referenced by URL**. Browsers will URL-encode them (`%20`), which is easy to get wrong and harder to grep.
-- If design files have spaces (e.g. exported from Inkscape), keep them for editing, but also add a **URL-safe copy** in `public/brand/` (lowercase, hyphenated).
-
-### App brand mark (use this, don’t rebuild it)
-
-To keep the logo + wordmark consistent across the app, use the shared `BrandMark` component:
-
-- **Component**: `src/components/brand-mark.tsx`
-- **Asset**: `public/brand/forms-logo-combined.svg`
-
-This is used for:
-
-- **Auth cards** (login/signup/forgot/reset): logo sits inside the card header; page-specific copy lives in the card content.
-- **Admin sidebar header**: compact logo in the nav header.
-
-### Accessibility rules (required)
-
-- **Decorative images** (purely visual; redundant with nearby text): use `alt=""`
-- **Meaningful images** (convey content not otherwise present): use a descriptive `alt="..."`
-- Never rely on color alone to communicate meaning (use text, icons, or status labels too).
-
-### Theming note
-
-If/when dark mode is enabled, brand assets must remain legible:
-
-- Prefer logos that work on both light and dark backgrounds, or provide a light/dark variant.
-- Avoid hardcoding background rectangles behind logos unless required.
-
-### Favicons / browser tab icon (Next.js App Router)
-
-Use Next.js App Router icon files (not manual `<link rel="icon">` tags in pages):
-
-- `src/app/icon.svg` — primary app icon (scales cleanly)
-- `src/app/favicon.ico` — legacy fallback for older browsers
-
----
-
-## Tooltips
-
-**Always add tooltips to icon-only buttons** for accessibility and discoverability.
-
-```tsx
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
 <Tooltip>
   <TooltipTrigger asChild>
-    <Button variant="ghost" size="icon-sm">
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <Button variant="ghost" size="icon-sm"><Trash2 className="h-4 w-4" /></Button>
   </TooltipTrigger>
   <TooltipContent>Delete item</TooltipContent>
 </Tooltip>
 ```
 
-### Important: Ref Forwarding with `asChild`
-
-When using `<TooltipTrigger asChild>` with components that need refs (like drag handles), apply props directly to the element:
+With `asChild`, put props on the element itself. A wrapper component breaks ref forwarding:
 
 ```tsx
-// ✅ Correct - props applied directly to button
-<TooltipTrigger asChild>
-  <button {...dragHandleProps}>
-    <GripVertical className="h-4 w-4" />
-  </button>
-</TooltipTrigger>
+<TooltipTrigger asChild><button {...dragHandleProps}>…</button></TooltipTrigger>  // works
+<TooltipTrigger asChild><DragHandle dragHandleProps={…} /></TooltipTrigger>      // breaks
+```
 
-// ❌ Wrong - wrapper component breaks ref forwarding
+**Disabled buttons** skip pointer events, so Radix never fires. Wrap in a focusable span:
+
+```tsx
 <TooltipTrigger asChild>
-  <DragHandle dragHandleProps={dragHandleProps} />
+  <span tabIndex={0}>
+    <Button disabled aria-disabled="true">Publish</Button>
+  </span>
 </TooltipTrigger>
 ```
+
+Only when the disabled state has a reason worth showing. Loading and in-flight states need no tooltip. Reference: [publish-content.tsx](src/components/forms/publish-content.tsx) at the `maxPublishedForms` cap.
+
+### Toasts
+
+`useToast` from [use-toast.ts](src/hooks/use-toast.ts) provides `toast.success` / `.error` / `.info` / `.warning` / `.loading` (returns an id to dismiss), plus helpers `showSaving()`, `showSaved()`, `showError()`.
 
 ---
 
-## Toast Notifications
+## 7. Dialogs
 
-Use the `useToast` hook for all user feedback notifications.
+`ConfirmDialog` ([confirm-dialog.tsx](src/components/confirm-dialog.tsx)) covers simple confirm/cancel. Props are on the component; `destructive` switches the confirm button styling.
 
-```tsx
-import { useToast } from "@/hooks/use-toast";
-
-function MyComponent() {
-  const { toast } = useToast();
-
-  const handleSave = async () => {
-    try {
-      await saveData();
-      toast.success("Changes saved");
-    } catch (error) {
-      toast.error("Failed to save changes");
-    }
-  };
-}
-```
-
-### Available Methods
-
-| Method | Usage |
-|--------|-------|
-| `toast.success(message)` | Success feedback |
-| `toast.error(message)` | Error feedback |
-| `toast.info(message)` | Informational messages |
-| `toast.warning(message)` | Warning messages |
-| `toast.loading(message)` | Loading state (returns ID for dismiss) |
-
-### Convenience Helpers
-
-```tsx
-const { showSaving, showSaved, showError } = useToast();
-
-showSaving();        // "Saving..."
-showSaved();         // "Saved"
-showError();         // "Something went wrong"
-```
-
----
-
-## Confirmation Dialogs
-
-Use `ConfirmDialog` for simple confirm/cancel actions. For dialogs where the user chooses between a safe and a dangerous option, see [Destructive Actions with Data Retention](#destructive-actions-with-data-retention) below.
-
-```tsx
-import { ConfirmDialog } from "@/components/confirm-dialog";
-
-<ConfirmDialog
-  title="Delete Form"
-  description="This will permanently delete the form and all submissions. This action cannot be undone."
-  onConfirm={handleDelete}
-  destructive={true}
-  trigger={
-    <Button variant="ghost" size="icon-sm">
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  }
-/>
-```
-
-### Props
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `title` | string | Dialog title |
-| `description` | string | Explanation text |
-| `onConfirm` | () => void | Callback when confirmed |
-| `trigger` | ReactNode | Element that opens the dialog |
-| `destructive` | boolean | Use destructive button styling |
-
-### Dialog Footer Hierarchy: Safe vs. Dangerous Choices
-
-When a dialog presents competing actions with different risk levels (not just confirm/cancel), use **visual weight and position** to guide the user toward the safer choice:
-
-1. **Safe action rightmost with primary variant** — the strongest visual weight lands in the natural endpoint of left-to-right scanning
-2. **Dangerous action as `link` variant + `text-destructive`** — present but low visual weight; the user must consciously choose it
-3. **Cancel isolated left** — `mr-auto` on the cancel button creates a two-group layout: escape (left) vs. decisions (right)
-4. **Let design do the persuading** — avoid redundant warning text ("are you sure?"); the layout and visual hierarchy should be sufficient
+### Footer hierarchy when a safe and a dangerous option compete
 
 ```
 [ Cancel ]                    Dangerous option    [ Safe option ]
-   outline,                     link variant,        default (primary)
-   mr-auto (pushed left)        text-destructive     variant, rightmost
+  outline, mr-auto            link +              default variant,
+  (isolated left)             text-destructive    rightmost
 ```
 
-> **Do not use `variant="destructive"` (filled red button) when a safer alternative is present.** The filled destructive button is for single-action confirmations (Delete / Cancel) where there is no competing safe choice. When two actions compete, de-emphasize the dangerous one with `link` + `text-destructive` instead.
+Safe action rightmost with primary weight, at the endpoint of left-to-right scanning. Dangerous action present but light, so choosing it is conscious. Cancel isolated left via `mr-auto`, splitting escape from decisions. Let the layout persuade: no "are you sure?" text.
 
-### Destructive Actions with Data Retention
+**Do not use `variant="destructive"` (filled red) when a safer alternative is present.** The filled button is for single-action confirmations with no competing choice.
 
-Apply the footer hierarchy above when a destructive action may affect persisted user data (e.g., deleting a field that has submission data). Instead of `ConfirmDialog`, build a custom dialog that:
+Apply this whenever a destructive action may affect persisted data. Instead of `ConfirmDialog`, build a controlled dialog (`open`/`onOpenChange`, no trigger) that checks for affected data on mount, falls back to simple confirmation when none exists, and otherwise shows the count with a keep-data and a purge-data option. Reference: [delete-field-dialog.tsx](src/components/delete-field-dialog.tsx).
 
-- Is controlled via `open`/`onOpenChange` (opened programmatically, no trigger)
-- Checks for affected data asynchronously on mount (shows spinner while loading)
-- If **no data exists**: falls back to simple confirmation (Cancel / Delete)
-- If **data exists**: shows the count and offers a safe option (keep data) and a dangerous option (purge data), using the footer hierarchy above
+### Blocking layout dialogs
 
-**Reference implementation:** `DeleteFieldDialog` (`src/components/delete-field-dialog.tsx`)
+When a state transition leaves the account somewhere piecemeal admin actions would be incoherent (a plan downgrade that unpublished every form), render a non-dismissible dialog at the admin layout level so every route is intercepted.
 
-### Blocking Layout Dialogs
+- Mount from the admin `layout.tsx` server component on a server-read flag. No client-side gating.
+- `Dialog open` hard-coded, no `onOpenChange`, `showCloseButton={false}`.
+- Block escape and outside click: `onEscapeKeyDown` and `onPointerDownOutside` both `preventDefault()`.
+- Exactly two exits, both resolving the state. No skip.
+- Self-contained: all data arrives as props from the layout.
 
-Some state transitions leave the account in a mode where piecemeal admin actions would be incoherent (for example, after a plan downgrade has unpublished every form and the user must pick which stay live). For these, render a **non-dismissible** dialog at the admin layout level so every admin route is intercepted until the user resolves the state.
+Reference: [plan-resolution-dialog.tsx](src/components/plan/plan-resolution-dialog.tsx), mounted when `Account.requiresPlanResolution`.
 
-Rules for this pattern:
+### Type-first configuration modals
 
-- Mount the dialog from the admin `layout.tsx` server component based on a server-read flag; do not rely on client-side gating.
-- `Dialog open` is hard-coded; no `onOpenChange`. Pass `showCloseButton={false}`.
-- Block the Escape key and outside-click dismissal: `onEscapeKeyDown={(e) => e.preventDefault()}` and `onPointerDownOutside={(e) => e.preventDefault()}`.
-- Provide exactly two exits, both of which resolve the state. There is no "skip" that preserves the blocked state.
-- Keep the dialog self-contained: all data it needs comes from the layout as props. Do not fetch more inside the client component.
+When available controls depend on a type choice, **do not preselect a type**. Preselecting creates a path-of-least-resistance trap: users accept a generic `Text` field where `Email`, `Phone`, or `Address` would give better validation and input affordances.
 
-**Reference implementation:** `PlanResolutionDialog` (`src/components/plan/plan-resolution-dialog.tsx`), mounted by `src/app/(admin)/layout.tsx` when `Account.requiresPlanResolution === true`.
-
-### Disabled Button Tooltips
-
-Radix's `Tooltip` does not fire on a button with `disabled` set because the browser skips pointer events. To keep a tooltip on a disabled action, wrap the button in a focusable `<span tabIndex={0}>` and use that as the trigger:
-
-```tsx
-<Tooltip>
-  <TooltipTrigger asChild>
-    <span tabIndex={0}>
-      <Button disabled aria-disabled="true">
-        Publish
-      </Button>
-    </span>
-  </TooltipTrigger>
-  <TooltipContent>Your Free plan allows 1 published form. Unpublish another form first.</TooltipContent>
-</Tooltip>
-```
-
-Use this only when the disabled state has a specific reason the user needs to see. For always-disabled (loading, in-flight) states, no tooltip is needed.
-
-**Reference implementation:** `PublishContent` (`src/components/forms/publish-content.tsx`) when the account is at its `maxPublishedForms` cap.
-
-### Type-First Configuration Modals
-
-When a modal configures an entity whose available controls depend on a type/category choice (e.g., adding a form field where configuration differs per type, or picking an integration type where the fields below depend on the choice), **do not preselect a default type**. Preselecting creates a path-of-least-resistance trap where users accept a generic default (e.g., a `Text` field) when a more specific option (e.g., `Email`, `Phone`, `Address`) would give them better validation, better input affordances, and a better downstream experience.
-
-Rules:
-
-- **Open the modal with only the type selector visible.** Use a placeholder like "Choose a field type…" on the Select.
-- **Hide all downstream config controls until a type is selected.** Don't render them disabled — hide them so the modal reads as "ask me for a type first."
-- **Animate the reveal.** Gate the controls behind `{type && ...}` and wrap them in `.editor-reveal` with an `overflow-hidden` inner div, so choosing a type grows the dialog to fit instead of snapping to a taller frame:
+- Open with only the type selector visible, placeholder "Choose a field type…".
+- **Hide** downstream controls until a type is chosen. Not disabled, hidden, so the modal reads as "type first".
+- Animate the reveal so the dialog grows instead of snapping:
 
   ```tsx
   {type && (
     <div className="editor-reveal">
-      <div className="space-y-4 overflow-hidden -mx-1 px-1">
-        {/* label, placeholder, required, per-type config, help text */}
-      </div>
+      <div className="space-y-4 overflow-hidden -mx-1 px-1">{/* label, config, help text */}</div>
     </div>
   )}
   ```
 
-  The `-mx-1 px-1` pair keeps focus rings from being clipped by the `overflow-hidden` needed for the height animation. Note the reveal only animates on first selection: switching between two already-chosen types leaves the block mounted, so nothing re-animates.
-- **Keep the primary action disabled** until both the type is selected and any required downstream fields (e.g. label) are filled.
-- **Edit mode is different** — when editing an existing entity, the type is known, so render the full form immediately. The picker-gated disclosure only applies to add/create flows.
-- **Preserve compatible config across type switches.** If a user changes their mind and picks a different type, keep state that's structurally compatible (e.g. label, help text) and only clear state that doesn't apply to the new type (e.g. options when switching from `DROPDOWN` to `TEXT`).
+  `-mx-1 px-1` keeps focus rings from being clipped by the `overflow-hidden` the height animation needs. The reveal only animates on first selection; switching between chosen types leaves the block mounted.
+- Primary action stays disabled until the type and any required downstream fields are filled.
+- **Edit mode renders the full form immediately.** Picker-gating is for add/create only.
+- Preserve structurally compatible state across type switches (label, help text); clear only what doesn't apply (options when leaving `DROPDOWN`).
 
-**Reference implementation:** `FieldEditorModal` (`src/components/field-editor-modal.tsx`). See `handleTypeChange` for the compatible-config-preservation logic.
-
----
-
-## Help Bubble
-
-The floating `?` bubble in the bottom-right corner of admin pages (`src/components/help-bubble.tsx`) is a dropdown, not a plain link. It offers two actions:
-
-- **Get help** routes to the most relevant `/docs/*` page for the current route, resolved via `getHelpHref` in `src/lib/docs-route-map.ts`. Fallback is `/docs`.
-- **Give feedback** opens the `FeedbackDialog` (`src/components/feedback-dialog.tsx`), which collects a message and calls the `submitFeedback` server action (`src/actions/feedback.ts`). The action auto-attaches the current pathname, query, form ID, and submission ID to the email so feedback arrives with context. Recipient is configured via `FEEDBACK_RECIPIENT_EMAIL`; throttled to one submission per user per minute.
-
-The bubble hides entirely on `/docs/*` and auth pages (login, signup, password reset) — don't reintroduce it there.
+Reference: [field-editor-modal.tsx](src/components/field-editor-modal.tsx), see `handleTypeChange`.
 
 ---
 
-## Sortable Lists (Drag-to-Reorder)
+## 8. Form inputs and validation
 
-**Never use Up/Down buttons for reordering.** Always use drag-and-drop.
+### Inputs
 
-Use the `SortableList` component from `src/components/ui/sortable-list.tsx`.
+Standard shadcn `Input`, `Label`, `Textarea`, `Select`. Spacing: `space-y-2` for a label + input pair, `space-y-4` between sections, `gap-2`/`gap-3` inline.
 
-### Standard Layout
+**Checkbox**: `onCheckedChange` receives `boolean | "indeterminate"`, so narrow with `checked === true`. Pair with a `Label` sharing `id`/`htmlFor`, plus `cursor-pointer` and `font-normal` to distinguish it from a field label.
 
-```
-[drag handle] [content] [edit] [delete]
-     ⋮⋮        Item 1      ✎      🗑
-```
+**Dependent options**: when a checkbox only makes sense while its parent is on, render it inside the parent's conditional block rather than disabling it, and align hint text under the label with `ml-6` (checkbox width plus gap) so the hint belongs to that option, not the group. Reference: "Include responses in the email" in [after-submission-section.tsx](src/components/forms/after-submission-section.tsx).
 
-- **Left**: Drag handle (`GripVertical` icon)
-- **Middle**: Item content
-- **Right**: Action buttons (edit, delete as icon buttons)
+**Help text**: `text-xs text-muted-foreground` directly below an input or group; `text-sm text-muted-foreground` for page and section level description. A hint covering a group goes below the group, not repeated under each input.
 
-### Two Interaction Patterns
+### Admin and auth validation
 
-#### Pattern 1: Drag Handle Only (Default)
-Apply `dragHandleProps` to a dedicated handle button. Best for lists with many interactive elements.
+**"Reward early, punish late"**, on every auth and admin form:
+
+- Errors appear only after a field is blurred (touched) or the form is submitted.
+- Once shown, an error clears immediately on change when the value becomes valid.
+- Never trap focus. After submit, show all field errors at once.
 
 ```tsx
-<SortableList
-  items={items}
-  onReorder={(ids) => handleReorder(ids)}
-  renderItem={({ item, dragHandleProps }) => (
-    <div className="flex items-center gap-2">
-      <button {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <span className="flex-1">{item.name}</span>
-      <Button onClick={() => edit(item.id)}>Edit</Button>
-    </div>
-  )}
-/>
+const [touched, setTouched] = useState<Record<string, boolean>>({});
+const [submitted, setSubmitted] = useState(false);
+
+// Derived every render, never stored in state
+const errors = {
+  email: !email ? "Email is required" : !/\S+@\S+\.\S+/.test(email) ? "Enter a valid email address" : "",
+};
+const showError = (f: keyof typeof errors) => (touched[f] || submitted) && errors[f];
+
+<form noValidate onSubmit={handleSubmit}>
+  <Input
+    onBlur={() => setTouched(t => ({ ...t, email: true }))}
+    aria-invalid={!!showError("email")}
+  />
+  {showError("email") && <p className="text-sm text-destructive">{errors.email}</p>}
+</form>
 ```
 
-#### Pattern 2: Drag Anywhere on Row (High Density)
-Apply `dragHandleProps` to the entire row for faster interaction. Best for simple inventory lists.
+`aria-invalid` drives the Input's built-in destructive border. Keep server errors in a separate state variable, and check client errors before the server call.
 
-```tsx
-<SortableList
-  items={items}
-  onReorder={(ids) => handleReorder(ids)}
-  renderItem={({ item, dragHandleProps }) => (
-    <div
-      {...dragHandleProps}
-      className="flex items-center gap-2 py-2 px-3 border-b cursor-grab active:cursor-grabbing"
-    >
-      <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-      <span className="flex-1">{item.label}</span>
-      <Button
-        onClick={(e) => {
-          e.stopPropagation();
-          edit(item.id);
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        Edit
-      </Button>
-    </div>
-  )}
-/>
-```
+Message style: `"Email is required"`, `"Enter a valid email address"`, `"Passwords do not match"`, and length errors that include the current count (`"Password must be at least 8 characters. (Your current entry is only 5)"`).
 
-**Important:** When using drag-anywhere, add `stopPropagation` to both `onClick` and `onPointerDown` for clickable elements to prevent drag initiation.
+For invalid **configuration** (as opposed to a form field), the same shape applies: plain `text-destructive` text on blur, placed immediately before the offending inputs, with the primary action disabled while invalid. No toast, no boxed alert. Reserve `Alert variant="destructive"` for severe or complex cases needing explanation.
 
-### Key Points
+**Keyboard shortcuts** (Enter to add an item) must be disabled while validation errors are present, so users can't compound errors.
 
-1. **Items must have stable `id` properties** - don't use array indices
-2. **Apply `dragHandleProps` directly to an element** - don't wrap in components
-3. **Use `transition: { idle: true }`** - prevents double animation on release (already configured)
-4. **Always include a `GripVertical` icon** - visual affordance even if entire row is draggable
-5. **Movement is vertical-only** - horizontal dragging is disabled
+Reference: [signup](src/app/(auth)/signup/page.tsx), [login](src/app/(auth)/login/page.tsx), [reset-password](src/app/(auth)/reset-password/page.tsx), [forgot-password](src/app/(auth)/forgot-password/page.tsx).
 
-### For Non-Persistent Items
+### The two dialects
 
-When items don't have database IDs (like select options), generate stable IDs in component state:
+| Context | Approach |
+|---------|----------|
+| Auth pages and admin UI | Custom inline validation, touched/submitted, `noValidate` |
+| Embed forms (public) | HTML5 native popups via `setCustomValidity()` |
 
-```tsx
-const optionsWithIds = useMemo(
-  () => options.map((opt, index) => ({
-    id: `option-${index}`,
-    ...opt,
-  })),
-  [options]
-);
-```
+The split is deliberate: the admin UI is an environment we fully control, and configuration errors often need several visible at once with context intact. The embed is injected into third-party sites, where native popups are lightweight, consistent, and bring their own focus handling and announcements.
+
+Embed specifics, in `embed/src/validation.ts`:
+
+- **One error at a time.** Popup on the first invalid field, focus it, user resubmits for the next. The status strip shows the total: "Please fix N field(s) to continue."
+- Validation clears on typing: `input.addEventListener("input", () => input.setCustomValidity(""))`.
+- Messages are the browser's standard ones. Custom messages were removed in v3.7.2.
+- `.canopy-error` inline text is visually hidden but kept in the DOM for assistive tech; popups are the visible channel.
+- Per type: NAME shows its popup on the first visible part input; DROPDOWN "Other" inputs clear on typing; CHECKBOXES require at least one checked when required, with the server also checking submitted values against the option list; NUMBER validates numeric input, optional integer-only, and min/max on both sides.
+- Server-side validation errors surface through the same native popups.
 
 ---
 
-## Adding Items to a List
+## 9. Lists
 
-When a list allows users to add new items (e.g. dropdown options, checkbox options, form fields), place the "add" action **below** the list, not above it or in a header row beside the list's label. Users click where the new item will appear — this reinforces the cause-and-effect mental model and matches how every modern list builder works (Notion, Linear, Typeform, Google Forms).
+### Sortable lists
 
-### Placement rule
+`SortableList` ([sortable-list.tsx](src/components/ui/sortable-list.tsx)). Layout is `[drag handle] [content] [edit] [delete]`. Movement is vertical only. `transition: { idle: true }` is already configured to prevent double animation on release.
+
+That file is the only place `@dnd-kit/*` is imported. Everything else composes `SortableList`, so drag behavior changes happen there and nowhere else.
+
+**Pattern 1, handle only** (default; best when the row has many interactive elements): put `dragHandleProps` on a dedicated handle button.
+
+```tsx
+<SortableList items={items} onReorder={handleReorder} renderItem={({ item, dragHandleProps }) => (
+  <div className="flex items-center gap-2">
+    <button {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
+      <GripVertical className="h-4 w-4" />
+    </button>
+    <span className="flex-1">{item.name}</span>
+  </div>
+)} />
+```
+
+**Pattern 2, drag anywhere** (best for simple inventory rows): put `dragHandleProps` on the row, and add `stopPropagation` to both `onClick` and `onPointerDown` of every clickable child, or clicks start drags.
+
+For items with no database id (select options), generate stable ids in state (`option-${index}` via `useMemo`), never bare indices.
+
+### High-density lists
+
+For inventory-style lists users scan quickly (fields, options): one bordered container with row separators rather than a card per row, `py-2 px-3` rows (~40-44px), label dominant with muted compact metadata, single line per row, actions always visible.
+
+```tsx
+<SortableList items={items} onReorder={onReorder} className="border rounded-md space-y-0" renderItem={…} />
+```
+
+`space-y-0` overrides the default `space-y-2`. Rows get `border-b border-border/50 last:border-b-0` and `hover:bg-muted/50`; action clusters get `shrink-0`.
+
+Actions stay visible because hover-reveal fights drag and drop: `:hover` can stick during DOM manipulation, and touch devices have no hover. Use this layout for simple items with 2-3 properties, not for rich metadata.
+
+### Adding items
+
+The Add action goes **below** the list, flush-left with the content column, because users click where the new item will appear.
 
 ```
-[drag] [Item 1            ] [trash]
-[drag] [Item 2            ] [trash]
-[drag] [Item 3            ] [trash]
+[drag] [Item 1] [trash]
+[drag] [Item 2] [trash]
 + Add item
 ```
 
-- Never render an Add button above the list or as a sibling of the list's label in a flex header row.
-- Keep the button at the bottom, flush-left with the section's content column.
+Variant depends on whether the list is the primary thing on screen:
 
-### Button style: match the parent's action hierarchy
-
-The correct variant depends on whether the list is the **primary** thing the user is building, or a **sub-list** inside a configuration panel that already has its own primary CTA.
-
-| Context | Variant | Reason |
-|---------|---------|--------|
-| **Primary list** — the main thing being built on the screen (e.g. "Add Field" on the form editor) | `Button` default variant, Plus icon + text | The add action *is* the primary call to action on that screen. |
-| **Sub-list inside a container with its own primary action** (e.g. "Add option" inside the Add Field dialog, which has "Save Field" as its CTA) | `Button variant="ghost" size="sm"` with `text-primary` (teal), Plus icon + text | Ghost + teal keeps the affordance visible without competing with the dialog's primary CTA. |
-
-### Primary list: "Add Field" pattern
+| Context | Variant |
+|---------|---------|
+| Primary list (Add Field in the editor) | `Button` default variant, Plus icon + text |
+| Sub-list inside a container with its own CTA (Add option inside the field dialog) | `Button variant="ghost" size="sm"` with `text-primary` |
 
 ```tsx
-<Button type="button" onClick={onAddField}>
-  <Plus className="h-4 w-4" />
-  Add Field
-</Button>
-```
-
-Reference implementation: `src/components/field-list.tsx`
-
-### Sub-list: "Add option" pattern
-
-```tsx
-<Button
-  type="button"
-  variant="ghost"
-  size="sm"
-  onClick={handleAddOption}
-  className="-ml-3 text-primary hover:text-primary hover:bg-primary/10"
->
+<Button type="button" variant="ghost" size="sm" onClick={handleAddOption}
+  className="-ml-3 text-primary hover:text-primary hover:bg-primary/10">
   <Plus className="h-4 w-4" />
   Add option
 </Button>
 ```
 
-- `size="sm"` — compact, doesn't compete with the parent dialog's Save button.
-- `text-primary` + `hover:bg-primary/10` — teal signals "add" while staying subtle. Override `hover:text-primary` so the ghost variant doesn't shift to foreground on hover.
-- `-ml-3` — cancels the button's internal `px-3` padding so the Plus icon aligns flush-left with the section content (same column as the section's `Label` and the drag handles). The button's clickable/hover area keeps its normal padding.
+`-ml-3` cancels the button's internal `px-3` so the icon aligns flush-left with the section's labels and drag handles, while the hover area keeps normal padding. `hover:text-primary` is overridden so ghost doesn't shift to foreground. References: [field-list.tsx](src/components/field-list.tsx), [dropdown-config.tsx](src/components/field-config/dropdown-config.tsx).
 
-Reference implementations: `src/components/field-config/dropdown-config.tsx`, `src/components/field-config/checkboxes-config.tsx`
+When the list is empty, the labelled Add button is the whole empty state.
 
-### Empty state: let the button speak for itself
+### Required and optional markers
 
-When the list is empty, the labeled Add button is enough — don't add a separate helper paragraph ("Add options to populate this field…"). The icon + label already communicate both the empty state and the action to take, and removing the paragraph eliminates a redundant element.
+Required fields get a red asterisk immediately after the label text, before any metadata:
 
 ```tsx
-<Label>Options</Label>
-{options.length > 0 && (
-  <SortableList items={options} ... />
-)}
-<Button variant="ghost" size="sm" className="-ml-3 text-primary hover:text-primary hover:bg-primary/10">
-  <Plus className="h-4 w-4" />
-  Add option
-</Button>
+{field.label}{field.required && <span className="text-destructive ml-0.5">*</span>}
 ```
 
----
-
-## High-Density List Pattern
-
-For inventory-style lists where users need to scan many items quickly (e.g., field lists, option lists), use a high-density layout:
-
-### Design Principles
-
-1. **Reduce visual weight**: Single border container with row separators, not individual cards
-2. **Tight spacing**: Target ~40-44px row height with `py-2` padding
-3. **Clear hierarchy**: Label dominates, metadata is muted and compact
-4. **Always-visible actions**: Keep edit/delete buttons visible (avoid hover-reveal with drag-and-drop)
-5. **Single-line content**: Avoid multi-line layouts when possible
-
-### Example Structure
-
-```tsx
-<SortableList
-  items={items}
-  onReorder={onReorder}
-  className="border rounded-md space-y-0"
-  renderItem={({ item, dragHandleProps }) => (
-    <div
-      {...dragHandleProps}
-      className="flex items-center gap-2 py-2 px-3 border-b border-border/50 last:border-b-0 hover:bg-muted/50 cursor-grab active:cursor-grabbing"
-    >
-      <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="font-medium text-[15px]">{item.label}</span>
-          <span className="text-xs text-muted-foreground/60">{item.type}</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-0.5 shrink-0">
-        <Button variant="ghost" size="icon-sm" onClick={(e) => {
-          e.stopPropagation();
-          onEdit(item.id);
-        }} onPointerDown={(e) => e.stopPropagation()}>
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  )}
-/>
-```
-
-### Key Styling Details
-
-- **Container**: Apply to SortableList: `className="border rounded-md space-y-0"`
-- **Remove default spacing**: `space-y-0` overrides SortableList's default `space-y-2`
-- **Row separator**: `border-b border-border/50 last:border-b-0` (faint, skip last)
-- **Row padding**: `py-2 px-3` (tight density, ~40-44px rows)
-- **Hover background**: `hover:bg-muted/50` (subtle row feedback)
-- **Actions**: Always visible, right-aligned with `shrink-0`
-
-### Why Always-Visible Actions
-
-Hover-revealed actions conflict with drag-and-drop:
-- CSS `:hover` states can persist incorrectly during DOM manipulation
-- Touch devices don't support hover
-- Adds state complexity without clear benefit
-
-Always-visible actions are simpler, more reliable, and more discoverable.
-
-### When to Use
-
-- ✅ Inventory lists (fields, options, items in a set)
-- ✅ Simple data with 2-3 properties per item
-- ✅ Lists where users need to scan quickly
-- ❌ Complex items with rich metadata
-
----
-
-## Required & Optional Indicators
-
-Use a **red asterisk** for required field indicators across the application.
-
-### In Lists and Forms
-
-```tsx
-<span className="font-medium">
-  {field.label}
-  {field.required && <span className="text-destructive ml-0.5">*</span>}
-</span>
-```
-
-### Styling Rules
-
-- **Color**: `text-destructive` (the brand coral error token — not a hardcoded `red-500`)
-- **Spacing**: `ml-0.5` (minimal gap after label)
-- **Position**: Immediately after label text, before any metadata
-
-### Don't Use
-
-- ❌ Badge component (`<Badge>Required</Badge>`) - too heavy
-- ❌ Text indicators (`(required)`) - adds visual noise
-- ❌ Icons other than asterisk - reduces scan speed
-
-### Rationale
-
-Asterisks are:
-- Universally recognized convention
-- Minimal visual weight
-- Fast to scan
-- Consistent with form best practices
-
-### Optional Sections
-
-Fields are required-by-exception, so individual inputs are not marked optional. **A whole section that can be skipped is different** and gets an inline `(Optional)` marker after its title, at body size, normal weight, muted:
+Fields are required-by-exception, so inputs are never marked optional. **A whole skippable section is different** and gets an inline `(Optional)` after its title:
 
 ```tsx
 <CardTitle className="flex items-baseline gap-2">
   Header
-  <span className="text-sm font-normal tracking-normal text-muted-foreground">
-    (Optional)
-  </span>
+  <span className="text-sm font-normal tracking-normal text-muted-foreground">(Optional)</span>
 </CardTitle>
 ```
 
-- **Baseline-align it**, not center-align — it's a parenthetical to the title, not a chip beside it.
-- **Don't use a `Badge`.** A tinted pill next to a 22px heading is louder than the signal warrants and reads as status rather than as grammar.
-- **Don't say it twice.** The marker replaces any description sentence that explained the same thing. `HeaderSection` used to carry a `CardDescription` reading "Optional title and description shown above the form"; once the title says `(Optional)`, that sentence only restated it and named two inputs that are already labelled below, so it was deleted rather than kept alongside.
-- **Don't put the signal on the navigation button.** A primary action whose label swaps to describe form state (e.g. "No header" when the fields are blank) stops being a verb, reads like a validation message, and mutates its accessible name as the user types. The forward button in a flow is a fixed landmark.
+Baseline-aligned, since it's a parenthetical to the title rather than a chip beside it. No Badge: a tinted pill next to a 22px heading is louder than the signal warrants and reads as status rather than grammar. The marker replaces any description that said the same thing.
 
-**Placement beats copy.** If users don't believe a step is optional, check whether the flow forces them through it first. An optional step used as the opening gate will read as required no matter how it's labelled.
-
-**Reference implementation:** `HeaderSection` (`src/components/forms/header-section.tsx`).
+**Placement beats copy.** If users don't believe a step is optional, check whether the flow forces them through it first. An optional step used as the opening gate reads as required no matter how it's labelled. Reference: [header-section.tsx](src/components/forms/header-section.tsx).
 
 ---
 
-## Layout Patterns
+## 10. Layout
 
-### Editor Layout Max-Width
+### Page shell
 
-For form editors and configuration interfaces, constrain content width to improve ergonomics and reduce horizontal scanning.
+`PageContent` ([page-content.tsx](src/components/patterns/page-content.tsx)) gives `p-4 md:p-6` and a centered max-width: `default` is `max-w-5xl` (account, forms list, submission detail), `wide` is `max-w-7xl` for wide tables like the operator Accounts view. **Don't wrap the form editor in it**: `FormWorkspace` fills its parent with `h-full`, and its header slot mirrors `PageContent`'s padding so headers align across pages.
 
-**Standard max-width: 640px**
+`PageHeader` ([page-header.tsx](src/components/patterns/page-header.tsx)) takes `title`, `description`, `actions`, and `backHref`. Prefer `backHref` (an ArrowLeft before the title) over a "Back to X" action button.
 
-```tsx
-// Apply to the main content container
-const main = (
-  <div className="max-w-[640px] mx-auto">
-    <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
-  </div>
-);
+`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts.
 
-// Also apply to the header for alignment
-const header = (
-  <div className="max-w-5xl mx-auto space-y-3">
-    <div className="flex items-center gap-3">
-      <BackArrow href="/forms" />
-      <h1>{form.name}</h1>
-    </div>
-    <FormTabNav formId={form.id} activeTab={activeTab} />
-  </div>
-);
-```
+`UserMenu` ([user-menu.tsx](src/components/patterns/user-menu.tsx)) is a 32px initials circle (`bg-primary text-primary-foreground`, `bg-primary/80` on hover) with no visible email, opening downward to email, Manage Account, and Sign Out. Initials are the first two alphanumerics of the email local part, uppercased, falling back to "?".
 
-**Benefits:**
-- Reduces eye travel distance
-- Improves focus and readability
-- Creates consistent visual rhythm
-- Easier to scan vertically
+### Form editor
 
-**When to use:**
-- ✅ Form builders and editors
-- ✅ Settings pages with vertical sections
-- ✅ Configuration interfaces
-- ❌ Data tables (need horizontal space)
-- ❌ Dashboards with multiple columns
-
-### Page Header
-
-**All admin pages must use `PageHeader`** — never use inline `<h1>` elements for page titles. This ensures consistent typography (Urbanist `text-2xl`) and spacing across the application.
-
-```tsx
-import { PageHeader } from "@/components/patterns/page-header";
-
-<PageHeader
-  title="Forms"
-  description="Manage your forms"
-  actions={<Button>Create Form</Button>}
-/>
-```
-
-Optional `backHref` prop renders an ArrowLeft icon link before the title for back-navigation. **Prefer `backHref` over a "Back to X" action button** — it's more compact and consistent:
-
-```tsx
-<PageHeader
-  title={form.name}
-  description="Submissions"
-  backHref={`/forms/${formId}`}
-/>
-```
-
-### Table Data Patterns
-
-**Numeric counts** in table cells should use plain text, not Badge components. Badges are for status/category labels, not raw numbers:
-
-```tsx
-// ✅ Good - plain text for counts
-<span className="text-sm text-muted-foreground">{form._count.fields}</span>
-
-// ❌ Bad - badges for numeric counts
-<Badge variant="secondary">{form._count.fields}</Badge>
-```
-
-**Table action columns** should avoid redundant navigation. If the row name is already a clickable link to the detail page, don't also include a "View" icon button:
-
-```tsx
-// ✅ Row has clickable name link → only show non-obvious actions (submissions, delete)
-// ❌ Row has clickable name link → don't also add an Eye "View" icon button
-```
-
-### Action Button Hierarchy
-
-When presenting multiple action buttons (e.g., on a submission detail page), use variant hierarchy to guide the user toward the most likely next action:
-
-```tsx
-// "Mark as Read" is primary (default variant) when status is NEW
-<Button variant={submission.status === "NEW" ? "default" : "outline"}>
-  Mark as Read
-</Button>
-// Other actions stay outline
-<Button variant="outline">Archive</Button>
-```
-
-### Filter Patterns
-
-Filters should use **consistent label casing** (title case for display, uppercase for enum values sent as params):
-
-```tsx
-// ✅ Good - title case labels, consistent active state
-{[
-  { value: "all", label: "All" },
-  { value: "NEW", label: "New" },
-  { value: "READ", label: "Read" },
-  { value: "ARCHIVED", label: "Archived" },
-].map((option) => (
-  <Button variant={active === option.value ? "secondary" : "outline"} size="sm">
-    {option.label}
-  </Button>
-))}
-
-// ❌ Bad - raw enum values as labels, filled primary for active state
-{["all", "NEW", "READ", "ARCHIVED"].map((status) => (
-  <Button variant={active === status ? "default" : "outline"}>{status}</Button>
-))}
-```
-
-Active filter buttons use `variant="secondary"` (soft highlight) rather than `variant="default"` (filled primary), since filters are selection state indicators, not primary actions.
-
-### Empty State
-
-```tsx
-import { EmptyState } from "@/components/patterns/empty-state";
-import { FileText } from "lucide-react";
-
-<EmptyState
-  icon={<FileText className="h-12 w-12 text-muted-foreground" />}
-  title="No forms yet"
-  description="Create your first form to get started."
-  action={<Button>Create Form</Button>}
-/>
-```
-
-### FormWorkspace (Unified View/Edit)
-
-The `FormWorkspace` component (`src/components/forms/form-workspace.tsx`) is the single surface for one form, with three tabs instead of separate view/edit pages:
-
-```tsx
-import { FormWorkspace } from "@/components/forms/form-workspace";
-
-<FormWorkspace
-  apiUrl={apiUrl}
-  ownerEmail={session.user.email}
-  form={form}
-  submissions={submissions}
-  statusFilter={statusFilter}
-  publishDisabledReason={publishDisabledReason}
-/>
-```
-
-**Tabs** — the active tab is read from the `mode` search param, not local state, so tabs are linkable and survive reload. `FormTabNav` renders them:
+`FormWorkspace` ([form-workspace.tsx](src/components/forms/form-workspace.tsx)) is the single surface for one form. Three tabs, with the active one read from the `mode` search param (not local state) so tabs are linkable and survive reload:
 
 | `?mode=` | Tab | Content |
 |----------|-----|---------|
 | `edit` (default) | Editor | `EditorFlow` + live preview |
-| `publish` | Publish | `PublishContent` (share link or embed code, publish toggle) |
+| `publish` | Publish | `PublishContent` |
 | `submissions` | Submissions | `SubmissionsContent` |
 
-- New forms land on `?mode=edit`. `/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`.
-- Auto-save is enabled on the Editor and Publish tabs only (`autoSaveEnabled` on `FormProvider`).
-- The form name is inline-editable (pencil toggle) on the Editor tab only.
+`/forms/[formId]/edit` redirects to `/forms/[formId]?mode=edit`. Auto-save runs on the Editor and Publish tabs only. The form name is inline-editable (pencil) on the Editor tab only.
 
-**Layout** — the Editor tab is a two-column split; Publish and Submissions are single full-width columns.
-- On `lg+`: both columns are a fixed `w-[600px]`, centered as a pair. The preview column carries a symmetric side shadow so it reads as a floating panel, and is `hidden lg:flex`.
-- The editor column is `overflow-y-auto overflow-x-hidden` — the horizontal clip is what contains the flow cards' sideways exit.
-- On `<lg`: the editor is full-width and the preview is hidden behind a fixed side handle on the right edge that opens a `RightPanel` sheet.
-- Preview mode is derived from `form.type` (`HOSTED` → page, `EMBEDDED` → embed), not user-toggled. The column header is a static "Preview" label.
+Layout: the Editor tab is a two-column split, Publish and Submissions are single full-width columns. On `lg+` both columns are a fixed `w-[600px]`, centered as a pair, with the editor column's content constrained to `max-w-[640px]` inside it; the preview column carries a symmetric side shadow and is `hidden lg:flex`. The editor column is `overflow-y-auto overflow-x-hidden`, and that horizontal clip is what contains the flow cards' sideways exit. Below `lg` the editor is full-width and the preview hides behind a fixed right-edge handle opening a `RightPanel` sheet. Preview mode is derived from `form.type` (`HOSTED` page, `EMBEDDED` embed), never user-toggled.
 
-### EditorFlow (Progressive Disclosure)
+`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Appearance, Submission Settings, then a terminal "All set" card linking to Publish. A stack of four cards presented its full complexity before the first decision.
 
-`EditorFlow` (`src/components/forms/editor-flow.tsx`) shows the editor's four sections **one at a time** rather than as a stack of collapsible cards. Users were shown too much at once; a stack of four cards presents its full complexity before the first decision.
+- Section cards take `variant="flow" | "accordion"`. `flow` is always-expanded with no chevron; `accordion` is the original collapsible card. Both are maintained.
+- **Advancing is animation-driven**: Continue sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
+- Forward exits left, back exits right.
+- Section cards are plain `Card`s with no accent bar (see rule 22).
 
-```
-progress dots  ← active step stretches to a pill
-┌──────────────────────────┐
-│  one section card        │  ← always expanded, no collapse chrome
-└──────────────────────────┘
-[← Back]        [Continue →]
-```
+Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 
-Steps are Header → Fields → Appearance → Submission Settings, then a terminal "All set" card linking to Publish.
+`FormProvider` / `useFormContext` ([form-context.tsx](src/components/forms/form-context.tsx)) holds editor state with granular updaters. Changes auto-save on a 1s debounce per group when `autoSaveEnabled`:
 
-- **Each section card supports `variant="flow" | "accordion"`.** `flow` renders it always-expanded with no chevron; `accordion` is the original collapsible card. Both variants are maintained so the stacked layout remains available.
-- **Advancing is animation-driven**: `Continue` sets an exit direction, and the step index only increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, since child animations bubble.
-- **Forward exits left, back exits right**, following the reading direction.
-- Auto-save means moving between steps never needs a save action and never loses input.
-
-**Known gaps in the current implementation** (deliberate, pending further disclosure work): the flow always starts at Header even when editing an existing form, the progress dots aren't clickable, and there is no per-card disclosure yet.
-
-### Section cards carry no decorative accent
-
-Editor section cards are plain `Card`s. An earlier version gave the "important" ones a `border-l-4 border-l-primary` bar; it was removed. Its only job was ranking cards within a stack, which a one-at-a-time flow makes meaningless, and a colored left accent bar is a generic visual trope that makes the UI look templated. If a card needs identity, use information (a step count, a title) rather than a decorative stripe. See Anti-Patterns.
-
-### FormContext (Unified State)
-
-The form editor uses a `FormProvider` context that holds all form state and provides granular updaters with auto-save:
-
-```tsx
-import { FormProvider, useFormContext } from "@/components/forms/form-context";
-
-// Wrap editor in provider — autoSaveEnabled controls whether changes are persisted
-<FormProvider initialForm={form} autoSaveEnabled={editing}>
-  <WorkspaceInner />
-</FormProvider>
-
-// In any child component
-const { state, saveStatus, updateHeader, updateTheme } = useFormContext();
-```
-
-**Save groups** — changes auto-save after 1s debounce per group (when `autoSaveEnabled` is true):
-| Group | Fields | Server action |
-|-------|--------|---------------|
+| Group | Fields | Action |
+|-------|--------|--------|
 | basics | `name` | `updateFormBasics` |
 | header | `title`, `description` | `updateFormHeader` |
 | theme | `defaultTheme` | `updateFormAppearance` |
-| afterSubmission | success/redirect/email/origins/stop/max | `updateAfterSubmission` |
+| afterSubmission | success, redirect, email, origins, stop, max | `updateAfterSubmission` |
 
-Field operations (create/update/delete/reorder) call server actions **immediately**, not through auto-save.
+Field create/update/delete/reorder call server actions **immediately**, not through auto-save.
 
-### FormPreview (Unified Preview)
+`FormPreview` ([form-preview.tsx](src/components/forms/form-preview.tsx)) handles both static and live rendering: `mode="embed"` is a centered `max-w-lg` container, `mode="page"` applies full page theming via `extractPageTheme()`, and `live` reads from `useFormContext()` with a 150ms debounce.
 
-Single preview component that handles both static and live rendering in embed or page mode:
+### Cards
 
-```tsx
-import { FormPreview } from "@/components/forms/form-preview";
+Use `CardFooter` for a card's primary bottom action: auth forms, settings cards with one primary action, and cards that are mainly an action toolbar. Footer has default top padding, so don't add `pt-*` at call sites.
 
-// Static preview (view mode)
-<FormPreview form={form} mode="embed" />
-
-// Live preview (edit mode — reads from FormContext, debounces 150ms)
-<FormPreview live mode="page" />
-```
-
-- `mode="embed"`: Simple centered container (`max-w-lg mx-auto`)
-- `mode="page"`: Full page-theme styling (background color, content width, card wrapper) via `extractPageTheme()`
-- `live` prop: When true, reads state from `useFormContext()` and debounces re-renders at 150ms
-
-### Settings Section
-
-```tsx
-import { SettingsSection } from "@/components/patterns/settings-section";
-
-<SettingsSection
-  title="Email Notifications"
-  description="Configure when to send emails"
->
-  {/* Form controls */}
-</SettingsSection>
-```
-
-### Top Nav Layout
-
-```tsx
-import { TopNavLayout } from "@/components/patterns/top-nav-layout";
-import { UserMenu } from "@/components/patterns/user-menu";
-
-<TopNavLayout
-  logo={<Link href="/forms"><BrandMark size="sm" /></Link>}
-  navItems={<>
-    <Link href="/forms"><Button variant="ghost" size="sm">Forms</Button></Link>
-    <Link href="/docs"><Button variant="ghost" size="sm">Help</Button></Link>
-  </>}
-  userMenu={<UserMenu email={session.user?.email} />}
->
-  {children}
-</TopNavLayout>
-```
-
-**Purpose**: Provides a responsive top navigation bar with logo, nav links, and user menu. Replaces the old sidebar layout.
-
-**Props**:
-- `logo` (required): Brand mark or title, shown left in the nav bar
-- `navItems` (required): Nav links, shown beside the logo on desktop; in drawer on mobile
-- `userMenu` (required): User account trigger (avatar dropdown), shown right on desktop; bottom of drawer on mobile
-- `children` (required): Main page content
-
-**Behavior**:
-- **Desktop (md+)**: Horizontal nav bar (h-14, border-b, bg-muted/40). Logo left, nav items beside it, user menu right.
-- **Mobile (<md)**: Logo left, hamburger button right. Hamburger opens a left-sliding Sheet drawer containing logo, nav items, and user menu.
-- **Main content**: `flex-1 min-h-0 flex flex-col overflow-auto`. Each page adds its own spacing via `PageContent` or `EditorLayout`.
-- **`logo` renders in both places**: The `logo` slot is rendered in the desktop header *and* the mobile drawer. Anything you put in `logo` (links, icon buttons, etc.) automatically appears in both — no need to handle mobile separately.
-
-**Accessibility**:
-- Hamburger button includes `aria-label="Open navigation menu"` and a tooltip
-- Drawer includes escape key support and a visually hidden title
-
-**Used in**: Admin console layout (`src/app/(admin)/layout.tsx`) and Operator console layout (`src/app/operator/layout.tsx`)
-
-### PageContent
-
-Standard padding + max-width wrapper for admin pages that are **not** full-bleed editors.
-
-```tsx
-import { PageContent } from "@/components/patterns/page-content";
-
-export default function SomePage() {
-  return (
-    <PageContent>
-      <PageHeader title="Forms" ... />
-      <DataTable ... />
-    </PageContent>
-  );
-}
-```
-
-Provides `p-4 md:p-6` padding and a centered max-width container. Use this on every admin page **except** the form editor, which uses the `FormWorkspace` layout directly.
-
-**Width variants** (via the `width` prop):
-- `"default"` (omit or pass `width="default"`): `max-w-5xl` (1024px). Use for standard pages: account settings, forms list, submission detail.
-- `"wide"`: `max-w-7xl` (1280px). Use for pages with wide data tables that would otherwise overflow (e.g. the operator Accounts table, which has 8 columns).
-
-**Do not** wrap the form editor (`/forms/[formId]`) in `PageContent` — `FormWorkspace` fills its parent with `h-full`. Its header slot mirrors `PageContent`'s padding and centering so headers align consistently across pages.
-
-### View Page with Preview
-
-Detail/view pages that show a preview of an entity (e.g. form) with layout toggle. Pattern:
-
-```tsx
-<PageContent>
-  <PageHeader
-    title={entity.name}
-    description="metadata summary"
-    backHref="/forms"
-    actions={<>action buttons (Edit, Submissions, etc.)</>}
-  />
-  <Tabs value={mode} onValueChange={setMode}>
-    <TabsList>
-      <TabsTrigger value="embed"><Monitor /> Embed</TabsTrigger>
-      <TabsTrigger value="page"><AppWindow /> Page</TabsTrigger>
-    </TabsList>
-    <TabsContent value="embed">
-      <div className="border rounded-lg bg-background p-6 min-h-[400px]">
-        <FormPreview form={form} mode="embed" />
-      </div>
-    </TabsContent>
-    <TabsContent value="page">...</TabsContent>
-  </Tabs>
-</PageContent>
-```
-
-- **Route**: `/forms/[formId]` — primary entry point from list (Eye icon)
-- **Edit** is a secondary action (outline button) linking to `/forms/[formId]/edit`
-- Preview modes control width: embed (`max-w-lg`) vs page (`max-w-2xl`)
-- Uses `FormPreview` component which loads the embed script via `useEmbedScript` hook
-
-### User Menu
-
-```tsx
-import { UserMenu } from "@/components/patterns/user-menu";
-
-<UserMenu email={session.user?.email} />
-```
-
-**Purpose**: Compact avatar button in the top nav bar that opens an account dropdown.
-
-**Design**:
-- **Trigger**: 32px circle with user initials, `bg-primary text-primary-foreground` (fades to `bg-primary/80` on hover). No email text visible — keeps the nav bar uncluttered.
-- **Dropdown**: Opens downward (`side="bottom" align="end"`). Shows email (display only), Manage Account link, Sign Out action.
-- **Fallback**: Shows "?" for missing/invalid emails.
-
-**Implementation details**:
-- Client component (`"use client"`) for dropdown interactivity
-- Initials derived from first 2 alphanumeric chars of email local part, uppercased
-- Menu items: Manage Account → `/account`; Sign Out → `signOutAction()` server action
-
-**Usage**: Pass as `userMenu` prop to `TopNavLayout`.
-
----
-
-## Card layout and primary actions
-
-Use the `Card` component from `src/components/ui/card.tsx` for content in discrete sections (auth flows, settings blocks, submission detail). When a card has a **primary action at the bottom** (submit, save, delete, or action toolbar), put that action in **CardFooter** so spacing and structure stay consistent across the app.
-
-### When to use CardFooter
-
-- Auth forms (login, signup, forgot password, reset password): submit button in footer
-- Settings/account cards with a primary action (e.g. Change Password, Delete Account)
-- Cards that are mainly an action toolbar (e.g. submission Actions: Mark as Read, Archive, etc.)
-
-### Structure
-
-- **Card** → **CardHeader** (optional), **CardContent** (body), **CardFooter** (optional, for bottom actions).
-- When using CardFooter, keep the primary button(s) there, not in CardContent.
-- CardFooter has default top padding for separation from content; do not add `pt-*` at call sites unless you need to override.
-
-### Forms that submit from the footer
-
-For auth or settings, the submit button must stay inside the form. Wrap both CardContent and CardFooter in the same `<form>` so the button in the footer is the form submit:
+For forms submitting from the footer, wrap **both** `CardContent` and `CardFooter` in the same `<form>` so the footer button is the submit:
 
 ```tsx
 <Card>
-  <CardHeader>
-    <CardTitle>Password</CardTitle>
-    <CardDescription>Change your password.</CardDescription>
-  </CardHeader>
+  <CardHeader><CardTitle>Password</CardTitle></CardHeader>
   <form onSubmit={handleSubmit} noValidate>
-    <CardContent className="space-y-4">
-      {/* fields, server error */}
-    </CardContent>
-    <CardFooter>
-      <Button type="submit" disabled={isLoading}>
-        Change Password
-      </Button>
-    </CardFooter>
+    <CardContent className="space-y-4">{/* fields, server error */}</CardContent>
+    <CardFooter><Button type="submit" disabled={isLoading}>Change Password</Button></CardFooter>
   </form>
 </Card>
 ```
 
-For auth flows where the user can abandon the task (e.g. forgot password), put the **cancel** action in the footer **below** the primary CTA so the primary action comes first. Use a secondary-style control (e.g. `<Button variant="outline" asChild><Link href="...">Cancel</Link></Button>`) and label it "Cancel" so it's clear the user is abandoning the flow, not following a post-success step.
+Where the user can abandon the task (forgot password), put Cancel in the footer **below** the primary CTA, as `variant="outline"`, labelled "Cancel" so it reads as abandoning rather than as a next step. References: Password card in [account-dashboard.tsx](src/components/account/account-dashboard.tsx), [forgot-password](src/app/(auth)/forgot-password/page.tsx).
 
-Reference implementation: Account Password card in `src/components/account/account-dashboard.tsx`; forgot-password cancel pattern in `src/app/(auth)/forgot-password/page.tsx`.
+### Tables, filters, empty states
+
+Numeric counts in cells are plain `text-sm text-muted-foreground`, not badges. If the row name already links to the detail page, don't add a redundant View icon; show only non-obvious actions.
+
+Action hierarchy responds to state: the likely next action takes `default` while the rest stay `outline` (Mark as Read is primary while status is `NEW`).
+
+Filters use title-case labels with uppercase enum values as params, and the active button uses `variant="secondary"` (soft highlight) rather than filled `default`, since a filter is selection state, not a primary action.
+
+Empty states: a plain `text-sm text-muted-foreground` line suffices inline; use `EmptyState` ([empty-state.tsx](src/components/patterns/empty-state.tsx)) with `icon`, `title`, `description`, `action` for prominent ones. This is the one place an orienting sentence is welcome (section 5).
+
+### Type chooser
+
+For a creation flow that needs a commitment to one of two mutually exclusive modes shaping everything downstream (form type at `/forms/new`). Two side-by-side cards as a radio group, each with a subdued icon, one-line title, one-line description. Not for binary toggles inside an existing object; use a Switch or Tabs there.
+
+Cards render as `<button type="button" role="radio" aria-checked>` so they're keyboard and screen-reader accessible with no visible radio circle. Selected gets `border-primary`, a faint `ring-1 ring-primary`, the icon shifting `text-muted-foreground/60` to `text-primary`, and a small primary check chip top-right. Submit stays disabled until the chooser and any sibling required inputs have values; the disabled button is the affordance, with no inline error. Reference: [new-form-form.tsx](src/app/(admin)/forms/new/new-form-form.tsx).
+
+### Dashboard cards and view toggle
+
+The forms landing page defaults to a card grid with a toggle to a compact list.
+
+**View toggle** ([view-toggle.tsx](src/components/forms/view-toggle.tsx)): two `Link`s (server component, no JS) in a pill-shaped `bg-muted` container, active getting `bg-background shadow-sm`. State lives in `?view=grid|list`, defaulting to grid. Icons `LayoutGrid` and `List`.
+
+**Cards** ([form-card.tsx](src/components/forms/form-card.tsx)), top to bottom: a 16:10 thumbnail linked to the editor with no border below it, a name row (bold, linked, truncated) with hover-revealed submissions and delete icons, and a meta row putting the published/draft Badge inline with field count, submission count, and new-submission count (`text-success`). Cards use `group` with `opacity-0 group-hover:opacity-100 transition-opacity` icons, a single content div at `px-4 py-3`, and `hover:shadow-md transition-shadow overflow-hidden`. Thumbnails are auto-captured (JPEG, half-res) from the preview panel after each save via `useThumbnailCapture`, stored as `Bytes`, served from `GET /api/forms/[formId]/thumbnail`, falling back to `bg-muted/40` with the `<img>` hiding itself on 404. Grid is `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
+
+Above the grid, a single `text-sm text-muted-foreground` summary strip shows aggregate totals ("5 forms · 20 submissions · 3 new", with "new" in `text-success font-medium`), hidden in the empty state.
+
+Cards suit dashboards under ~50 items where visual scanning and at-a-glance status matter; the list view suits many items or column sorting.
+
+### Help bubble
+
+The floating `?` in the bottom-right of admin pages ([help-bubble.tsx](src/components/help-bubble.tsx)) is a dropdown with four actions in two groups, self-serve docs above the separator and reach-a-human below. **Help with this page** routes to the most relevant `/docs/*` page for the current route via `getHelpHref` in `src/lib/docs-route-map.ts`; **Browse documentation** always routes to the `/docs` index, and when `getHelpHref` falls back to `/docs` the contextual item is hidden so two entries don't point at the same place. Label the docs items for where they actually land: "Get help" implied a human and "Browse" implied an index, but the deep link delivers one specific page.
+
+**Contact support** and **Give feedback** both open `ContactDialog` ([contact-dialog.tsx](src/components/contact-dialog.tsx)), driven by a `kind` prop (`"support" | "feedback"`) that selects title, description, placeholder, and button copy; `null` closes it. Support additionally shows a **Reply to** email input, prefilled from the session (`accountEmail` flows layout → `HelpBubble` → dialog, since the app has no `SessionProvider`) and editable, so a user can route the reply somewhere other than their login address. Feedback has no such field and replies to the account email silently. Both call the `submitContactMessage` server action ([contact.ts](src/actions/contact.ts)), which attaches the current pathname, query, form id, and submission id so messages arrive with context, and sets `replyTo` so replies reach the user rather than the SMTP identity.
+
+The reply address is user-supplied and lands in an SMTP header, so the action re-validates it with `isValidEmail` ([validation.ts](src/lib/validation.ts)) rather than trusting the dialog's shape check; that helper rejects CR/LF, which is what blocks header injection (same reasoning as `submission-email.ts`). When the entered address differs from the authenticated account email, the body carries both as `From:` and `Reply to:` so the reader can see the divergence. Recipients are `SUPPORT_RECIPIENT_EMAIL` (falling back to `FEEDBACK_RECIPIENT_EMAIL`) and `FEEDBACK_RECIPIENT_EMAIL`. Throttled to one submission per user per minute per kind, so feedback doesn't block an urgent support request, and `kind` is re-validated server-side since it crosses the client boundary. The bubble hides on `/docs/*` and auth pages; don't reintroduce it there.
 
 ---
 
-## Type Chooser (Two-Card Selector)
+## 11. Embed theming
 
-Used when a creation flow needs the user to commit to one of two mutually exclusive modes that shape the rest of the experience. The chooser is a radio group rendered as two side-by-side cards, each with a subdued icon, a one-line title, and a one-line description.
+Embedded forms use their own theming system in `embed/src/theme.ts`, unrelated to the admin tokens. Three types:
 
-**When to use:** at the top of a creation flow where the choice changes which downstream controls are shown (e.g. form type at `/forms/new` — Hosted vs Embedded). Don't use for binary toggles inside an existing object (use a Switch or Tabs).
+- **`ThemeDefaults`**: tokens with a default. `DEFAULT_THEME` must provide all of them. Adding one means editing both.
+- **`ThemeOverrides`**: optional tokens with no default (`bodyFont`, `titleColor`, `pageBackground`). Adding one needs nothing else.
+- **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides`, the public type. All fields optional, since a stored theme only holds what the user set.
 
-**Behavior:**
-- Cards render via `<button type="button" role="radio" aria-checked>` so they're keyboard-accessible and screen-reader-friendly without a visible radio circle.
-- Selected card: `border-primary` plus a faint `ring-1 ring-primary`, the icon shifts from `text-muted-foreground/60` to `text-primary`, and a small primary check chip appears in the top-right corner.
-- The submit button stays disabled until both the chooser and any sibling required inputs have a value. The disabled button is the affordance — no inline error.
-- Type immutability: once chosen and saved, the type doesn't change. Mention this in the surrounding copy if relevant.
-
-**Reference implementation:** `src/app/(admin)/forms/new/new-form-form.tsx` — name input + chooser + disabled-until-both-filled Create button.
-
----
-
-## Form Inputs
-
-Use standard shadcn/ui form components:
-
-```tsx
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-<div className="space-y-2">
-  <Label htmlFor="name">Name</Label>
-  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-</div>
+```typescript
+// ThemeDefaults / DEFAULT_THEME
+background:      "#ffffff"   // form container      (--canopy-bg)
+fieldBackground: "#ffffff"   // inputs              (--canopy-field-bg)
+primary:         "#005F6A"   // button bg, focus    (--canopy-primary)
+border:          "#e4e4e7"   // input borders       (--canopy-border)
+text:            "#18181b"   // labels and body     (--canopy-text)
+// Derived, not stored: --canopy-button-text (white or #18181b by WCAG luminance of primary),
+// ::placeholder (--canopy-text at 0.5 opacity, CSS only)
 ```
 
-### Checkbox
+**Hosted-only tokens** live in `ThemeOverrides`, are read by page wrappers, and are ignored by the embed script:
 
-Use the `Checkbox` component for boolean toggles within forms.
-
-```tsx
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-
-<div className="flex items-center gap-2">
-  <Checkbox
-    id="myOption"
-    checked={value}
-    onCheckedChange={(checked) => setValue(checked === true)}
-  />
-  <Label htmlFor="myOption" className="text-sm font-normal cursor-pointer">
-    Option label
-  </Label>
-</div>
+```typescript
+pageBackground?: string                   // falls back to bg-muted/40
+cardEnabled?: boolean                     // default true
+cardShadow?: "none" | "sm" | "md" | "lg"  // default "md"
+contentWidth?: "sm" | "md" | "lg"         // 480/640/768px, default "md"
+verticalAlign?: "top" | "center"          // default "top"
 ```
 
-**Notes:**
-- `onCheckedChange` receives `boolean | "indeterminate"` — use `checked === true` to safely narrow to `boolean`
-- Pair with `<Label>` using matching `id`/`htmlFor` and `cursor-pointer` so the label is clickable
-- Use `font-normal` on the Label to distinguish it from a field label (which uses the default `font-medium`)
+Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, used by `hosted-form-page.tsx` and `form-preview.tsx`.
 
-**Dependent options:** when a checkbox only makes sense while a parent checkbox is on, render it inside the parent's conditional block rather than disabling it, and align its hint text under the label with `ml-6` (the checkbox width plus gap) so the hint reads as belonging to that option and not to the group. Reference implementation: **Include responses in the email** inside Email notifications in `src/components/forms/after-submission-section.tsx`.
+**Post-submission** is a themed success card (`.canopy-success` in `embed/src/styles.ts`) replacing the form: circular checkmark filled with `--canopy-primary`, the configured `successMessage`, and a "Submit another response" button that re-renders the form. The inline status strip above the form is reserved for errors, which use a fixed `#FF6B5A` because the theme has no error token.
 
-### Help Text
+**Watermark**: every rendered embed carries a `.canopy-watermark` footer reading "Powered by Canopy Forms (Beta)" plus a `Report an issue` mailto link, with subject and body pre-filled with the form's title and id. Rendered in `render()`, `renderError()`, and `renderInactive()`, skipped in the loading skeleton. Uses `--canopy-primary` and `--canopy-border` to stay theme-aware. The address is a constant (`FEEDBACK_EMAIL` in `embed/src/form.ts`) because the esbuild bundle has no runtime env access.
 
-Use `<p className="text-xs text-muted-foreground">` for descriptive hints placed directly below an input or group of inputs. Use `<p className="text-sm text-muted-foreground">` for broader descriptive text at the page or section level (page headers, settings section descriptions, empty states).
+### Appearance editor
 
-```tsx
-<div className="space-y-2">
-  <Label htmlFor="param-name">Parameter Name</Label>
-  <Input id="param-name" ... />
-  <p className="text-xs text-muted-foreground">
-    The name of the URL parameter to read (without the ? or &).
-  </p>
-</div>
+[appearance-section.tsx](src/components/forms/appearance-section.tsx) is an always-open Card with five collapsible SubSection peers, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
+
+```
+Appearance  (always-open Card)
+├─ Page        [swatch]                              ← hosted-only
+├─ Form        [swatch] [swatch] [swatch] · radius 8 ← surfaces, borders, spacing
+├─ Headings    Montserrat · Semibold · [swatch]      ← title + label shared style
+├─ Body        Lato · 14px · [swatch]
+└─ Button      Submit · [swatch]
 ```
 
-When a hint applies to a group of inputs (e.g. a grid of two related fields), place it below the group rather than repeating it under each input.
+- **Page**: page background (hosted only). **Form**: background, field background, field border, radius, density, button width and alignment. **Headings**: font, weight, color, label transform, title size. **Body**: font, base size, text color. **Button**: text and color.
+- **SubSection titles are neutral `--foreground`, not `text-primary`.** As teal they made children look more important than the "Appearance" card title above them. Hierarchy inside a card comes from size alone: 22px card title, 16px SubSection titles, same color.
+- The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform is label-specific; title size is title-specific, since labels always render at body size.
+- Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
 
-### Spacing Convention
-
-- Use `space-y-2` for label + input pairs
-- Use `space-y-4` between form sections
-- Use `gap-2` or `gap-3` for inline elements
-
-### Inline Validation Messages (Admin UI Only)
-
-**Note:** This pattern is for the admin interface only. Public embed forms use HTML5 native validation (see "Embed Form Validation" section).
-
-When a configuration is invalid (but the UI can still render), prefer **inline validation** plus disabling the primary action.
-
-**Prefer simple text errors** (no toast, no boxed alerts) that appear **on blur** to avoid interrupting the typing flow:
-
-- Use `text-destructive` class for error text
-- Keep the message close to the offending controls (immediately before the inputs)
-- Gate validation display behind `onBlur` of relevant inputs (set a "touched" flag)
-- Disable the primary save action while invalid
-
-Example:
-
-```tsx
-const [showValidation, setShowValidation] = useState(false);
-
-// In your input:
-<Input
-  onBlur={() => setShowValidation(true)}
-  // ...
-/>
-
-// Before the input list:
-{showValidation && hasError && (
-  <p className="text-sm text-destructive">
-    Options must be unique. Choose a different name.
-  </p>
-)}
-```
-
-For **severe** or **complex** validation issues requiring explanation, use `Alert` with `variant="destructive"` (but prefer simple text for common cases).
-
-### Auth/Admin Form Validation
-
-**All auth and admin forms use custom inline validation** with the "reward early, punish late" pattern. This provides better UX than native browser validation popups.
-
-#### Strategy: "Reward Early, Punish Late"
-
-This approach, based on Baymard Institute and Nielsen Norman Group research, provides optimal UX:
-
-- **Punish late**: Errors only appear after a field is blurred ("touched") or the form is submitted
-- **Reward early**: Once an error is shown, it clears immediately on change when the input becomes valid
-- **Never trap focus**: User can always navigate freely between fields
-- **Show all errors after submit**: Display all field errors simultaneously (not one at a time)
-
-#### Implementation Pattern
-
-```tsx
-// State
-const [touched, setTouched] = useState<Record<string, boolean>>({});
-const [submitted, setSubmitted] = useState(false);
-
-// Derived errors (computed every render, not stored in state)
-const errors = {
-  email: !email ? "Email is required" : !/\S+@\S+\.\S+/.test(email) ? "Enter a valid email address" : "",
-  password: !password ? "Password is required" : password.length < 8
-    ? `Password must be at least 8 characters. (Your current entry is only ${password.length})`
-    : "",
-};
-
-// Helper: show error if field is touched or form has been submitted
-const showError = (field: keyof typeof errors) =>
-  (touched[field] || submitted) && errors[field];
-
-// In JSX:
-<form noValidate onSubmit={handleSubmit}>
-  <Input
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    onBlur={() => setTouched(t => ({ ...t, password: true }))}
-    aria-invalid={!!showError("password")}
-  />
-  {showError("password") && (
-    <p className="text-sm text-destructive">{errors.password}</p>
-  )}
-</form>
-```
-
-#### Key Rules
-
-1. **Always add `noValidate` to forms** - disables all native browser validation
-2. **Remove native validation attributes** - no `required`, `minLength`, `pattern`, etc.
-3. **Never use `setCustomValidity()` or `reportValidity()`** - these are for embed forms only
-4. **Compute errors as derived values** - don't store in state; recalculate each render
-5. **Use `aria-invalid` attribute** - Input component has built-in destructive border styling
-6. **Show inline errors with `text-destructive`** - below the field, not in popups
-7. **Track touched state per field** - on blur, mark field as touched
-8. **Set submitted flag on submit** - show all errors when user attempts submission
-9. **Check for errors before server call** - return early if validation fails
-10. **Keep server errors separate** - use different state variable for API errors
-
-#### Example Messages
-
-- **Required**: `"Email is required"`, `"Password is required"`
-- **Format**: `"Enter a valid email address"`
-- **Length with context**: `"Password must be at least 8 characters. (Your current entry is only X)"`
-- **Mismatch**: `"Passwords do not match"`
-
-#### Admin UI vs Embed Forms
-
-| Context | Validation Approach |
-|---------|-------------------|
-| **Auth pages** (login, signup, reset) | Custom inline validation with touched/submitted pattern |
-| **Admin UI** (form builder, settings) | Custom inline validation with touched/submitted pattern |
-| **Embed forms** (public-facing) | HTML5 native validation popups via `setCustomValidity()` |
-
-The split exists because:
-- **Admin UI**: We control the entire environment, so custom validation provides better UX
-- **Embed forms**: Injected into third-party sites, so native popups are lightweight and consistent
-
-All auth pages (login, signup, forgot-password, reset-password) follow this pattern. See these files for reference:
-- `src/app/(auth)/signup/page.tsx`
-- `src/app/(auth)/reset-password/page.tsx`
-- `src/app/(auth)/login/page.tsx`
-- `src/app/(auth)/forgot-password/page.tsx`
-
-### Keyboard Shortcuts with Validation
-
-When adding keyboard shortcuts (like Enter to add new items), **disable them when validation errors are present**:
-
-```tsx
-<Input
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      // Only allow action if no validation errors
-      if (!hasValidationErrors) {
-        handleAddItem();
-      }
-    }
-  }}
-/>
-```
-
-This prevents users from compounding errors by adding more items before fixing existing issues.
+**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Body uses `variant="body"` (default) showing `CURATED_FONTS`; Headings uses `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-google-fonts.ts`, which injects one combined `css2` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
 
 ---
 
-## Embed Form Validation
+## 12. Graphics and brand assets
 
-The embed script (for public-facing forms) uses a different validation approach than the admin UI:
+Icons are UI affordances and always come from `lucide-react`. Logos and wordmarks are brand assets, not icons.
 
-### HTML5 Native Validation
+**Anything referenced by URL must live in `public/`**: `public/brand/` for logos, wordmarks, and favicons, `public/docs-assets/` for documentation screenshots. Images in `content/` are not served by Next.js unless you load them from the filesystem deliberately.
 
-**The embed script uses native browser validation popups via the HTML5 Constraint Validation API.**
+Render SVG logos from `public/` with a plain `<img src="/brand/…" />` (no SVGR assumptions); use `next/image` for raster formats.
 
-- Custom validation logic runs in JavaScript (`embed/src/validation.ts`)
-- Error messages are set using `setCustomValidity()` on input elements
-- Native browser popups display via `reportValidity()`
-- Visual consistency across all validation types (required, email format, custom rules)
+**Avoid spaces in filenames referenced by URL.** Browsers encode them as `%20`, which is easy to get wrong and hard to grep. Keep the spaced original for editing if a design tool produced it, and add a lowercase hyphenated copy in `public/brand/`.
 
-### Key Implementation Details
+For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components/brand-mark.tsx)) with `public/brand/forms-logo-combined.svg`, rather than rebuilding it. It appears in auth card headers and the admin nav header.
 
-**One error at a time:**
-- Shows native popup on the first invalid field
-- Focuses that field automatically
-- User fixes it and resubmits to see next error
-- Status message shows total count: "Please fix N field(s) to continue."
+Accessibility: decorative images get `alt=""`, meaningful ones get a descriptive `alt`, and color is never the only carrier of meaning.
 
-**Auto-clearing validation:**
-- Validation state clears when user starts typing in any field
-- Uses `input` event listener: `input.addEventListener("input", () => input.setCustomValidity(""))`
+Favicons use App Router icon files, not manual `<link rel="icon">` tags. `src/app/icon.svg` is the only one present; add `src/app/favicon.ico` beside it if legacy-browser fallback is ever needed.
 
-**Error messages in native popups:**
-- Default error messages appear in browser's native popup
-- Example: "Please enter a valid email address" (not "must be a valid email address")
-- Consistent with HTML5 validation UX patterns
-- Note: As of v3.7.2, custom validation messages were removed in favor of standardized messages
-
-**Special handling:**
-- NAME fields (composite) show popup on first visible part input
-- DROPDOWN "Other" inputs clear validation when typing starts
-- CHECKBOXES (multi-select) validate that at least one checkbox is checked when required; server-side also validates submitted values against the field's option list
-- NUMBER fields validate numeric input, optional integer-only check, and min/max bounds (both client and server)
-- Server-side validation errors also use native popups
-
-### Error Display Styling
-
-Inline error text (`.canopy-error`) is **hidden visually** but kept in DOM:
-- Uses screen-reader-only CSS (positioned absolutely, 1px size, clipped)
-- Maintains accessibility for assistive technologies
-- Native popups are the primary error display
-
-### Why This Approach?
-
-1. **Visual consistency** - No mix of native popups and custom inline errors
-2. **Platform conventions** - Users expect browser validation behavior
-3. **No layout shift** - Popups don't push content around
-4. **Built-in accessibility** - Browser handles focus, announcements, keyboard nav
-5. **Simpler maintenance** - Less custom CSS, cross-browser handling
-
-### Admin UI vs Embed Validation
-
-| Context | Validation Approach |
-|---------|-------------------|
-| **Admin UI** (form builder) | Inline text errors with `text-destructive` class |
-| **Embed forms** (public) | HTML5 native validation popups via `setCustomValidity()` |
-
-The admin UI uses inline validation for configuration errors because:
-- Multiple errors often need to be visible simultaneously
-- Users are configuring, not filling a form
-- Context remains visible while fixing issues
-
----
-
-## Empty States
-
-Always provide helpful empty states when lists are empty:
-
-```tsx
-{items.length === 0 ? (
-  <p className="text-sm text-muted-foreground">
-    No items yet. Add your first item to get started.
-  </p>
-) : (
-  <SortableList items={items} ... />
-)}
-```
-
-For more prominent empty states, use the `EmptyState` component.
-
----
-
-## Quick Reference: What to Use Where
-
-| Scenario | Component/Pattern |
-|----------|-------------------|
-| User feedback (success/error) | `toast.success()` / `toast.error()` |
-| Confirm destructive action (single choice) | `ConfirmDialog` with `destructive={true}` |
-| Destructive action with safe/dangerous options | Custom dialog with footer hierarchy (see Confirmation Dialogs) |
-| Reorderable list | `SortableList` with drag handle |
-| Add item to primary list | `Button` default variant with Plus icon + text, placed below the list |
-| Add item to sub-list (inside a container with its own primary CTA) | `Button variant="ghost" size="sm"` with `text-primary` + `-ml-3`, Plus icon + text, placed below the list |
-| High-density inventory list | `space-y-0` on SortableList, `py-2` rows (~40-44px), always-visible actions |
-| Required field indicator | Red asterisk `<span className="text-destructive ml-0.5">*</span>` |
-| Skippable section | Inline `(Optional)` after the card title, muted + `text-sm font-normal`, baseline-aligned |
-| Form editor max-width | `max-w-[640px] mx-auto` on the editor column content |
-| Enter/leave transition | `duration-[var(--duration-flow-in)] ease-[var(--ease-flow-in)]`; out variants for leaving |
-| Reveal content that grows its container | `.editor-reveal` wrapper + `overflow-hidden` inner div |
-| Brand color in a semantic token | `var(--canopy-teal)`, never a hand-written oklch |
-| Multi-step editor section | `variant="flow"` on the section card, driven by `EditorFlow` |
-| Card with primary action at bottom | Use `CardFooter` for the action(s); keep form/content in `CardContent` |
-| Top nav (mobile drawer) | `TopNavLayout` with `logo`, `navItems`, and `userMenu` props |
-| User account menu | `UserMenu` in top nav right side (initials avatar + dropdown) |
-| Drag anywhere on row | Apply `dragHandleProps` to row, `stopPropagation` on buttons |
-| Icon-only action button | `Button variant="ghost" size="icon-sm"` |
-| Icon-only button accessibility | Wrap in `Tooltip` |
-| Empty list state | Text message or `EmptyState` component |
-| Delete action icon | `Trash2` from lucide-react |
-| Edit action icon | `Pencil` from lucide-react |
-| Drag handle icon | `GripVertical` from lucide-react |
-| Page/section headings | Add `font-heading` class (Inter alias, for semantic clarity) |
-| Body text | No class needed (Inter is default via `font-sans`) |
-| Code/monospace | Add `font-mono` class (Geist Mono) |
-
----
-
-## Anti-Patterns to Avoid
-
-1. **Never use browser dialogs** (`alert()`, `confirm()`, `prompt()`)
-2. **Never use Up/Down buttons** for reordering - use drag-and-drop
-3. **Never use icon buttons without tooltips** - accessibility issue
-4. **Never wrap draggable refs in component wrappers** - breaks ref forwarding
-5. **Never use array indices as React keys** for sortable items
-6. **Never use Badge or text for required indicators** - use red asterisk `*`
-7. **Never use card-per-row styling for inventory lists** - reduces scan speed
-8. **Never let editor layouts span full screen width** - use 640px max-width
-9. **Never forget `stopPropagation`** when applying dragHandleProps to entire row
-10. **Never use hover-reveal with drag-and-drop lists** - CSS hover states conflict with drag operations
-11. **Never forget `font-heading` on headings/titles** - maintain semantic clarity and future flexibility
-12. **Never use native HTML5 validation in admin/auth forms** - use custom inline validation with touched/submitted pattern instead
-13. **Never use `setCustomValidity()` or `reportValidity()` in admin UI** - these are reserved for embed forms only
-14. **Never put a card's primary bottom action in CardContent when CardFooter is available** - use CardFooter for consistent spacing
-15. **Never use `text-destructive` for informational notices** - use the amber notice pattern for missing config or setup guidance; reserve destructive for actual errors
-16. **Never use Badge for prominent status displays** - use dot + text; Badge is for compact metadata in lists/tables
-17. **Never place an "Add item" button above its list** - place it below, where the new item will appear. Don't put it in a header row beside the list's label either.
-18. **Never show redundant empty-state helper text beside a labeled Add button** - the labeled button alone communicates the action; the paragraph is noise
-19. **Never pass `position="item-aligned"` to `SelectContent`** - the shared component defaults to `position="popper"` / `align="start"` for a reason. Item-aligned mode overlays the trigger with the selected item centered on it, which causes long lists to expand upward and show scroll-up/down chevrons. The default popper behavior is correct for virtually all selects; only override if you have a specific reason and understand the trade-off.
-20. **Never preselect a default option in a picker-gated configuration modal** - see "Type-First Configuration Modals" under Confirmation Dialogs. Preselecting a generic default (e.g. a `Text` field type) creates a path-of-least-resistance trap where users accept the default when a more specific option would serve them better.
-21. **Never hand-convert a brand hex into oklch** - point the semantic token at `var(--canopy-teal)` etc. Every hand-written conversion in this codebase drifted from the hex it claimed to mirror, and the error is invisible in review because both values look like plausible teal. See Color System.
-22. **Never use a decorative colored accent bar to signal importance** (`border-l-4 border-l-primary` on a card and similar). It's a generic trope that reads as templated, and it fails the moment the element is seen alone rather than beside its peers. Convey rank with size, position, or information instead.
-23. **Never add bounce or rotation to make motion feel livelier** - increase travel distance or duration. See Motion; a springy, tilting card undercuts a professional tool.
-24. **Never write bespoke durations or easing curves for enter/leave transitions** - use the four flow tokens in `globals.css`.
-25. **Never make a navigation button's label describe form state** - e.g. a Continue button that becomes "No header" when the fields are blank. It stops being a verb, reads as a validation message, mutates its accessible name as the user types, and flickers on every keystroke. Mark the section `(Optional)` instead. See Required & Optional Indicators.
-26. **Never write a description that paraphrases its own title** - "Customize how your form looks" under "Appearance" is a sentence the user must read and discard. Delete it; if nothing is lost, it was noise. See Copy: Descriptions Must Earn Their Place.
-
----
-
-## Dashboard Cards & View Toggle
-
-The forms landing page (`/forms`) uses a card-based grid layout by default, with a toggle to switch to a compact list view.
-
-### View toggle
-
-- Implemented as two `Link` components (server component, no JS required) inside a pill-shaped `bg-muted` container.
-- Active view gets `bg-background shadow-sm`; inactive is `text-muted-foreground`.
-- Persisted via URL search param `?view=grid` or `?view=list`. Default is `grid` when param is absent.
-- Icons: `LayoutGrid` (grid) and `List` (list) from lucide-react.
-- Component: `src/components/forms/view-toggle.tsx`.
-
-### Dashboard cards
-
-Card layout (top to bottom):
-1. **Thumbnail** — 16:10 aspect-ratio preview image, linked to the form editor. No border between thumbnail and content (seamless flow).
-2. **Name row** — form name (bold, linked, truncated) with hover-reveal action icons (submissions, delete) on the right.
-3. **Meta row** — published/draft `Badge` inline with field count, submission count, and new submission count (in `text-success`), all on one line.
-
-Design details:
-- Cards use `group` class; action icons are `opacity-0 group-hover:opacity-100 transition-opacity` (hidden at rest, revealed on hover).
-- Cards use a single `div` for content (no CardHeader/CardContent split) — compact `px-4 py-3` padding.
-- `hover:shadow-md transition-shadow overflow-hidden` for hover feedback and border-radius clipping.
-- Thumbnails are auto-captured (JPEG, half-res) from the preview panel after each save via `useThumbnailCapture` hook. Stored as `Bytes` in DB, served via `GET /api/forms/[formId]/thumbnail`.
-- Fallback: `bg-muted/40` background shown when no thumbnail exists (new forms, capture not yet triggered). The `<img>` hides itself on 404 via `onError`.
-- Grid layout: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
-- Component: `src/components/forms/form-card.tsx`.
-
-### Summary strip
-
-- A single line of `text-sm text-muted-foreground` above the grid/list showing aggregate totals: "5 forms · 20 submissions · 3 new".
-- "new" count rendered in `text-success font-medium`.
-- Only shown when forms exist (hidden in empty state).
-
-### When to use cards vs tables
-
-- **Cards (grid)**: Default for dashboard/landing pages where visual scanning and at-a-glance status matter. Good for < 50 items.
-- **Tables (list)**: Better for power users with many items, or when sorting/filtering by columns is needed. Offered as a toggle alternative.
-
----
-
-## File References
-
-| Component | Location |
-|-----------|----------|
-| Card | `src/components/ui/card.tsx` |
-| Button | `src/components/ui/button.tsx` |
-| Checkbox | `src/components/ui/checkbox.tsx` |
-| Tooltip | `src/components/ui/tooltip.tsx` |
-| SortableList | `src/components/ui/sortable-list.tsx` |
-| ConfirmDialog | `src/components/confirm-dialog.tsx` |
-| useToast | `src/hooks/use-toast.ts` |
-| EmptyState | `src/components/patterns/empty-state.tsx` |
-| PageHeader | `src/components/patterns/page-header.tsx` |
-| PageContent | `src/components/patterns/page-content.tsx` |
-| EditorLayout | `src/components/patterns/editor-layout.tsx` |
-| TopNavLayout | `src/components/patterns/top-nav-layout.tsx` |
-| UserMenu | `src/components/patterns/user-menu.tsx` |
-| AccountDashboard | `src/components/account/account-dashboard.tsx` |
-| FormCard | `src/components/forms/form-card.tsx` |
-| ViewToggle | `src/components/forms/view-toggle.tsx` |
-| FontPicker | `src/components/ui/font-picker.tsx` (curated lists: `src/lib/google-fonts.ts`, font loader: `src/lib/load-google-fonts.ts`) |
+If dark mode is ever enabled, brand assets must stay legible: prefer logos that work on both grounds or ship variants, and avoid hardcoded background rectangles behind them.

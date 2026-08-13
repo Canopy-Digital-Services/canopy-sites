@@ -27,8 +27,9 @@ If you used a wrong or malformed command, API, or pattern because of outdated tr
 | **NextAuth** | [`nextauth-v5.md`](./nextauth-v5.md) | Authentication, sessions, auth helpers |
 | **React** | [`react-19.md`](./react-19.md) | Components, hooks, forms, state management |
 | **Tailwind CSS** | [`tailwindcss-v4.md`](./tailwindcss-v4.md) | Styling, theme configuration, custom utilities |
-| **dnd-kit** | [`dnd-kit.md`](./dnd-kit.md) | Drag-and-drop, sortable lists, reordering |
 | **Docker** | [`docker.md`](./docker.md) | Container builds, compose commands, deployment |
+
+Drag-and-drop has no tool doc on purpose: `@dnd-kit/*` is imported by exactly one file, `src/components/ui/sortable-list.tsx`, and everything else uses that component. For reordering work, read the Lists section of [`../UX_PATTERNS.md`](../UX_PATTERNS.md). Only open `sortable-list.tsx` if you need to change drag behavior itself.
 
 ## Purpose
 
@@ -50,9 +51,6 @@ These documents provide the latest information on tools, frameworks, and librari
 ### Authentication & Styling
 - **[NextAuth v5](./nextauth-v5.md)** - Auth.js rewrite, universal auth() function, App Router-first
 - **[Tailwind CSS v4](./tailwindcss-v4.md)** - CSS-first configuration, @theme directive, performance improvements
-
-### UI Components & Interactions
-- **[dnd-kit](./dnd-kit.md)** - Modern drag-and-drop library, sortable lists, accessibility-first, keyboard support
 
 ### Deployment & Infrastructure
 - **[Docker & Docker Compose](./docker.md)** - Container builds, Compose v2 CLI plugin, multi-stage builds, Next.js standalone mode
@@ -81,7 +79,7 @@ If you're asked to:
   → Read: [`../UX_PATTERNS.md`](../UX_PATTERNS.md) (component patterns, conventions)
   
 - "Add a reorderable list"
-  → Read: [`../UX_PATTERNS.md`](../UX_PATTERNS.md) (SortableList), dnd-kit (implementation details)
+  → Read: [`../UX_PATTERNS.md`](../UX_PATTERNS.md) (Lists section: SortableList, its two interaction patterns, the stopPropagation requirement)
   
 - "Fix styling issues with dark mode"
   → Read: Tailwind CSS v4 (theme configuration, custom variants)

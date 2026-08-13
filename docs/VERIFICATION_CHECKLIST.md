@@ -189,9 +189,9 @@ Before committing, scan this table. If your changes match a trigger, check the l
 |-----------------|-------------|------------------------|
 | `prisma/schema.prisma` (model shape) | `docs/AGENT_CONTEXT.md` appendix | Data model summary |
 | `prisma/schema.prisma` (any enum) | `docs/AGENT_CONTEXT.md` appendix | Enum lists |
-| New/changed UI component or pattern | `docs/UX_PATTERNS.md` | Component docs, anti-patterns list, quick reference table |
-| Embed theme or appearance behavior | `docs/UX_PATTERNS.md` (Embed Forms section) | Theme defaults, CSS variable list |
-| Embed validation behavior | `docs/UX_PATTERNS.md` (Embed Form Validation section) | Validation approach docs |
+| New/changed UI component or pattern | `docs/UX_PATTERNS.md` | The section 1 rule set, plus the relevant detail section |
+| Embed theme or appearance behavior | `docs/UX_PATTERNS.md` section 11 | Theme defaults, hosted-only tokens, appearance editor |
+| Embed validation behavior | `docs/UX_PATTERNS.md` section 8 | The two dialects, embed specifics |
 | New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 4 | Commands (only if the script is non-obvious) |
 | New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
 | Dockerfile, `start.sh`, or Coolify config | `docs/PRISMA_MIGRATIONS.md` | Build/deploy docs |
