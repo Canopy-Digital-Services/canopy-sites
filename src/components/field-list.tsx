@@ -40,11 +40,9 @@ export function FieldList({
 }: FieldListProps) {
   return (
     <div className="space-y-4">
-      {fields.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Click the button below to add your first field.
-        </p>
-      ) : (
+      {/* No empty-state copy: the labeled "Add Field" button below is the whole
+          message. See the empty-state anti-pattern in docs/UX_PATTERNS.md. */}
+      {fields.length === 0 ? null : (
         <SortableList
           items={fields}
           onReorder={onReorder}

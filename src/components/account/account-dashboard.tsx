@@ -36,10 +36,7 @@ export function AccountDashboard({
 }: AccountDashboardProps) {
   return (
     <div className="max-w-[640px] mx-auto space-y-6">
-      <PageHeader
-        title="Account"
-        description="Manage your account settings"
-      />
+      <PageHeader title="Account" />
       <EmailSection email={email} />
       <PlanSection
         planDisplayName={planDisplayName}
@@ -86,9 +83,6 @@ function PlanSection({
     <Card>
       <CardHeader>
         <CardTitle>Plan</CardTitle>
-        <CardDescription>
-          Your current plan and usage.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm">
@@ -173,8 +167,7 @@ function PasswordSection() {
       <CardHeader>
         <CardTitle>Password</CardTitle>
         <CardDescription>
-          Change your password. You&apos;ll be signed out of all sessions
-          shortly after.
+          You&apos;ll be signed out of all sessions shortly after.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} noValidate>
