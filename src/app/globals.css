@@ -182,3 +182,107 @@
   padding-left: calc(0.25rem - 2px);
 }
 
+
+/* ─── Flow motion vocabulary ──────────────────────────────────────────────
+ * Shared timing for content that enters/leaves as a deliberate step: the
+ * editor flow cards, dialogs, and progressive-disclosure reveals. Entry rises
+ * and settles with a slight overshoot; exit accelerates away. Reference these
+ * from Tailwind via ease-[var(--ease-flow-in)] / duration-[var(--duration-flow-in)].
+ * TODO: promote to docs/UX_PATTERNS.md as the canonical motion spec. */
+:root {
+  /* Deliberately just shy of a visible overshoot: the 1.12 control point peaks
+   * ~2% past target, which at a 3rem rise is about a pixel. Reads as a decisive
+   * stop rather than a bounce. A stronger back-out (1.5+) was tried and felt
+   * too playful for a professional tool. */
+  --ease-flow-in: cubic-bezier(0.25, 1.12, 0.45, 1);
+  --ease-flow-out: cubic-bezier(0.45, 0, 0.7, 0.35);
+  --duration-flow-in: 420ms;
+  --duration-flow-out: 260ms;
+}
+
+/* Editor flow (experimental progressive disclosure): one section card at a
+ * time. Cards swoop in from below and swoop out sideways on completion.
+ * Used by src/components/forms/editor-flow.tsx. */
+@keyframes editor-swoop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 3rem, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes editor-swoop-out-left {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(-55%, 0, 0) scale(0.9);
+  }
+}
+
+@keyframes editor-swoop-out-right {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(55%, 0, 0) scale(0.9);
+  }
+}
+
+/* No rotation, and only a slight overshoot (the 1.12 control point) so the
+ * card settles rather than bounces. Exits accelerate away without flinging. */
+.editor-swoop-in {
+  animation: editor-swoop-in var(--duration-flow-in) var(--ease-flow-in);
+  will-change: transform, opacity;
+}
+
+.editor-swoop-out-left {
+  animation: editor-swoop-out-left var(--duration-flow-out) var(--ease-flow-out) forwards;
+  will-change: transform, opacity;
+}
+
+.editor-swoop-out-right {
+  animation: editor-swoop-out-right var(--duration-flow-out) var(--ease-flow-out) forwards;
+  will-change: transform, opacity;
+}
+
+/* Progressive-disclosure reveal: a block that appears in place and grows its
+ * container to fit (e.g. the field editor's config once a type is chosen).
+ * grid-template-rows 0fr→1fr is the height-animation mechanism; browsers that
+ * can't interpolate fr units simply snap, which is an acceptable fallback.
+ * Requires a single child with overflow-hidden. */
+@keyframes editor-reveal {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+.editor-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* No overshoot here: a height that springs past its target reads as a glitch. */
+  animation: editor-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Keep the animations (the flow advances on animationend) but make them
+ * effectively instant for users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .editor-swoop-in,
+  .editor-swoop-out-left,
+  .editor-swoop-out-right,
+  .editor-reveal {
+    animation-duration: 1ms;
+  }
+}
