@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HelpCircle, BookOpen, MessageSquare } from "lucide-react";
+import { HelpCircle, BookOpen, Library, Mail, MessageSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getHelpHref } from "@/lib/docs-route-map";
-import { FeedbackDialog } from "@/components/feedback-dialog";
+import { ContactDialog } from "@/components/contact-dialog";
+import type { ContactKind } from "@/actions/contact";
+
+const DOCS_INDEX = "/docs";
 
 function extractIds(pathname: string) {
   const formMatch = pathname.match(/^\/forms\/([^/]+)(?:\/.*)?$/);
@@ -22,17 +25,26 @@ function extractIds(pathname: string) {
   return { formId, submissionId };
 }
 
-export function HelpBubble() {
+type HelpBubbleProps = {
+  /** Passed from the admin layout's session; prefills the support reply address. */
+  accountEmail: string;
+};
+
+export function HelpBubble({ accountEmail }: HelpBubbleProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const router = useRouter();
   const search = searchParams?.toString();
   const href = getHelpHref(pathname, search);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [contactKind, setContactKind] = useState<ContactKind | null>(null);
 
   const { formId, submissionId } = useMemo(() => extractIds(pathname), [pathname]);
 
   if (!href) return null;
+
+  // On routes with no specific doc page, `getHelpHref` falls back to the index —
+  // which is where "Browse documentation" already goes. Drop the duplicate.
+  const showContextualHelp = href !== DOCS_INDEX;
 
   return (
     <>
@@ -47,22 +59,33 @@ export function HelpBubble() {
               <HelpCircle className="h-5 w-5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="w-48">
-            <DropdownMenuItem onSelect={() => router.push(href)}>
-              <BookOpen className="h-4 w-4" />
-              Get help
+          <DropdownMenuContent side="top" align="end" className="w-56">
+            {showContextualHelp && (
+              <DropdownMenuItem onSelect={() => router.push(href)}>
+                <BookOpen className="h-4 w-4" />
+                Help with this page
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onSelect={() => router.push(DOCS_INDEX)}>
+              <Library className="h-4 w-4" />
+              Browse documentation
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setFeedbackOpen(true)}>
+            <DropdownMenuItem onSelect={() => setContactKind("support")}>
+              <Mail className="h-4 w-4" />
+              Contact support
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setContactKind("feedback")}>
               <MessageSquare className="h-4 w-4" />
               Give feedback
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <FeedbackDialog
-        open={feedbackOpen}
-        onOpenChange={setFeedbackOpen}
+      <ContactDialog
+        kind={contactKind}
+        onClose={() => setContactKind(null)}
+        accountEmail={accountEmail}
         context={{ pathname, search, formId, submissionId }}
       />
     </>

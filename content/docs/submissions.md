@@ -104,7 +104,7 @@ Notifications go out asynchronously after a successful submit. They're fire-and-
 
 - The submission is marked as spam.
 - Email isn't enabled in the form's settings.
-- The platform SMTP configuration is missing (contact the platform operator if you expect emails and aren't getting them).
+- The platform SMTP configuration is missing (use **Contact support** in the **?** menu if you expect emails and aren't getting them).
 
 ## Privacy and metadata
 

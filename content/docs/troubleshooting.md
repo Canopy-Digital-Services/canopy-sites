@@ -44,7 +44,7 @@ Quick fixes for the most common problems. If none of these match, check the brow
 - Check that your address is in the recipients list (your account email is added automatically on first enable).
 - Check your spam/junk folder. First-time deliveries from a new sender often land there.
 - Spam submissions never trigger notifications. If you expect an email after a test, make sure the honeypot field (if you configured one) is **empty**.
-- If email never arrives for any form, the platform SMTP configuration may not be set up. Contact the platform operator.
+- If email never arrives for any form, the platform SMTP configuration may not be set up. Use **Contact support** in the **?** menu to report it.
 
 ## The notification doesn't show what the visitor entered
 
@@ -74,3 +74,12 @@ Quick fixes for the most common problems. If none of these match, check the brow
 ## I changed my password and got signed out
 
 That's expected. A password change signs you out of all sessions for security. Sign back in with the new password.
+
+## Still stuck
+
+The **?** button in the bottom-right corner of any page has four options:
+
+- **Help with this page** opens the documentation for whatever screen you're on.
+- **Browse documentation** opens the full guide index.
+- **Contact support** sends us a message. Replies go to your account email address.
+- **Give feedback** is for feature requests and anything that felt rough to use.

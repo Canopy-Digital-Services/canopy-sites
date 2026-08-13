@@ -61,7 +61,7 @@ export default async function AdminLayout({
         {children}
       </TopNavLayout>
       <Suspense fallback={null}>
-        <HelpBubble />
+        <HelpBubble accountEmail={session.user?.email ?? ""} />
       </Suspense>
       {entitlements.requiresPlanResolution && (
         <PlanResolutionDialog
