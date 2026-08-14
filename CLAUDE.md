@@ -50,6 +50,16 @@ docker.exe compose -f docker-compose.dev.yml exec canopy-forms <command>
 
 See `docs/AGENT_CONTEXT.md` section 6 for full git workflow details.
 
+## Deployment Environment
+
+Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both the dev and prod apps build from this repo. URLs, branches, Coolify app UUIDs, auto-deploy watch paths, and how to verify what a running container actually sees are in `docs/AGENT_CONTEXT.md` section 6.
+
+**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the Nextcloud MCP (`nextcloud_read_file` with these paths):
+
+- `/.Collectives/Engineering/Platforms/Coolify.md` — API shape and quirks, token locations and scopes, deploy and container behavior
+- `/.Collectives/Engineering/Runbooks/SSH Access.md` — access model, tunnel and key setup
+- `/.Collectives/Engineering/Servers/Webber.md` — host inventory and what else runs there
+
 ## Documentation Maintenance
 
 After completing substantive work, check whether your changes affect documentation. **`docs/DOC_MAINTENANCE.md` defines how to write these docs** (no duplicated facts, no summary tables, delete what a change supersedes). Read it before editing `AGENT_CONTEXT.md` or `UX_PATTERNS.md`.

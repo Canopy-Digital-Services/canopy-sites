@@ -216,16 +216,17 @@ GitHub's merge commit lands on `main` only, so the branches diverge by exactly o
 
 ### Environments
 
-| Environment | URL | Branch |
-|-------------|-----|--------|
-| Local | `http://localhost:3006` | working copy |
-| Dev | `https://forms-dev.canopyds.com` | `dev` |
-| Prod | `https://forms.canopyds.com` | `main` |
+| Environment | URL | Branch | Coolify app UUID |
+|-------------|-----|--------|------------------|
+| Local | `http://localhost:3006` | working copy | — |
+| Dev | `https://forms-dev.canopyds.com` | `dev` | `wogw0skcsgck80cs4gscs0c0` |
+| Prod | `https://forms.canopyds.com` | `main` | `j80s80ow8ss4444kk40cscsc` |
 
-Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds an image and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`.
+Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds an image and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
 - Auto-deploy watch paths are `src/**`, `embed/**`, `prisma/**`. Changes to `docs/**` or config files outside those paths do not trigger a deploy.
+- **An env var change is inert until the container is recreated.** Coolify injects env at container creation, so a var added through the UI or API does nothing to the running app until it is redeployed. Confirm with the runtime probe in section 7 rather than the Coolify UI, which shows the stored value, not what the Node process holds.
 
 ---
 
