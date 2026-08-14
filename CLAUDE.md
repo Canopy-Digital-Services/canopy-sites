@@ -20,22 +20,9 @@ No automated test suite — see `docs/VERIFICATION_CHECKLIST.md` for the quality
 
 The stack uses recent major versions (Next.js 16, React 19, Prisma 7, Tailwind v4, NextAuth v5) with breaking changes from older patterns. **Read the relevant `docs/tools/*.md` file before writing code that uses that tool.** See `docs/tools/README.md` for the index.
 
-## WSL2 Environment Override
+## WSL2 Environment Note
 
-This repo is developed in **WSL2 on Windows** with Docker Desktop. All `docker compose` commands in AGENT_CONTEXT.md must be prefixed with `docker.exe`:
-
-```bash
-# AGENT_CONTEXT.md shows:
-docker compose -f docker-compose.dev.yml up -d
-
-# In this environment, use:
-docker.exe compose -f docker-compose.dev.yml up -d
-```
-
-This applies to every `docker compose` command, including container exec:
-```bash
-docker.exe compose -f docker-compose.dev.yml exec canopy-forms <command>
-```
+This repo is developed in **WSL2 on Windows** with Docker Desktop. Plain `docker` / `docker compose` works here (verified 2026-08-14) and either form is fine for every command in AGENT_CONTEXT.md. The Windows binary `docker.exe` drives the same daemon and is the fallback when WSL integration breaks (the symptom is plain `docker` vanishing from PATH after a Docker Desktop restart; full path `/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe`).
 
 ## Branching & PR Strategy
 
@@ -54,7 +41,7 @@ See `docs/AGENT_CONTEXT.md` section 6 for full git workflow details.
 
 Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both the dev and prod apps build from this repo. URLs, branches, Coolify app UUIDs, auto-deploy watch paths, and how to verify what a running container actually sees are in `docs/AGENT_CONTEXT.md` section 6.
 
-**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the Nextcloud MCP (`nextcloud_read_file` with these paths):
+**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the **Canopy MCP** `nextcloud_read_file` tool (the working connector is named "Canopy MCP"; ignore the separate unauthenticated server literally named "nextcloud") with these paths:
 
 - `/.Collectives/Engineering/Platforms/Coolify.md` — API shape and quirks, token locations and scopes, deploy and container behavior
 - `/.Collectives/Engineering/Runbooks/SSH Access.md` — access model, tunnel and key setup
@@ -71,5 +58,6 @@ After completing substantive work, check whether your changes affect documentati
 - **Coolify/Docker/infra changes** → update `docs/PRISMA_MIGRATIONS.md`.
 - **User-visible feature or flow changes** → review `content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `content/docs/meta.ts` if the feature has no existing home.
 - **Epic completion or version bump** → follow the release checklist in `docs/AGENT_CONTEXT.md` section 10.
+- **Any doc claim the live system contradicts** → fix that doc in the same session you observed it. State claims (versions, counts, "X exists / isn't possible yet") follow `docs/DOC_MAINTENANCE.md` section on staleness.
 
 Before committing, run the applicable checks in `docs/VERIFICATION_CHECKLIST.md`.

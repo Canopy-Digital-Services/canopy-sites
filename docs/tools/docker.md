@@ -1,6 +1,6 @@
 # Docker & Docker Compose Documentation
 
-**Last Updated:** January 2025  
+**Last Updated:** August 2026  
 **Current Version:** Docker Compose v2 (CLI Plugin)  
 **Official Docs:** https://docs.docker.com/compose/
 
@@ -123,7 +123,7 @@ docker compose -f docker-compose.dev.yml ps
 
 **How Dev Mode Works:**
 - Uses `Dockerfile.dev` which runs `npm run dev` (Next.js dev server)
-- Volume mounts source code: `.:/app` (excludes `node_modules` and `.next`)
+- Volume mounts source code: `.:/app` (a named volume preserves `node_modules`; `.next` is NOT excluded and rides the bind mount)
 - Hot reload enabled - code changes appear immediately in browser
 - No rebuilds needed for code changes (saves ~2 minutes per change)
 
@@ -291,18 +291,16 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 ### Development Mode Configuration
 
-**Dev Mode Volume Mounts** (`docker-compose.dev.yml`):
+**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-08-14):
 ```yaml
 volumes:
   - .:/app                    # Mount source code for hot reload
-  - /app/node_modules         # Preserve container's node_modules (anonymous volume)
-  - /app/.next                # Preserve Next.js build cache (anonymous volume)
+  - node_modules:/app/node_modules   # Named volume preserves container-installed deps
 ```
 
-**Why Anonymous Volumes?**
-- When mounting `.:/app`, the host directory overwrites container contents
-- Anonymous volumes (`/app/node_modules`, `/app/.next`) preserve container-installed dependencies
-- This allows hot reload while keeping dependencies in sync with container environment
+**Consequences of this layout:**
+- The named `node_modules` volume keeps container-installed dependencies from being overwritten by the host mount
+- There is **no `.next` volume**: the container writes `.next` onto the bind mount **as root**. Never run `next build` on the host while the container shares this directory: the host build hits EACCES on the root-owned files, and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-forms rm -rf .next && docker restart canopy-forms`
 
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:

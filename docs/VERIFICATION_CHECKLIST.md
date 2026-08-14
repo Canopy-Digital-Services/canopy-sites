@@ -30,13 +30,12 @@ Not every change needs every check. Match the checks to what you changed:
 ### 1. Build
 
 ```bash
-# Inside dev container, NODE_ENV must be production:
-docker.exe exec -e NODE_ENV=production canopy-forms npm run build
+docker exec canopy-forms npm run build
 ```
 
 Must exit 0. Catches TypeScript errors, missing imports, broken server components, and compile-time assertions (like the `field-types.ts` coverage check).
 
-**Important:** The dev container has `NODE_ENV=development`, which causes Next.js 16 to fail prerendering `/_global-error` and `/_not-found` with a `useContext` null error. This is a known Next.js 16 issue — always set `NODE_ENV=production` when running build in the dev container. The Dockerfile build handles this automatically.
+**Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-forms env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache.
 
 ### 2. Lint
 
@@ -70,7 +69,7 @@ For changes to API routes or server actions, verify the endpoint responds correc
 # Form definition endpoint (GET)
 curl -s http://localhost:3006/api/embed/<formId> | head -c 200
 
-# Submission endpoint (POST) — use a test form ID
+# Submission endpoint (POST): use a test form ID
 curl -s -X POST http://localhost:3006/api/embed/<formId> \
   -H "Content-Type: application/json" \
   -d '{"fields": {"email": "test@example.com"}}' | head -c 200
@@ -80,7 +79,7 @@ Check that responses have the expected shape (JSON with correct fields, appropri
 
 ### 6. Browser verification
 
-Use the browser tools to verify UI changes. The checks below are scoped by what you changed — don't run all of them for every change.
+Use the browser tools to verify UI changes. The checks below are scoped by what you changed; don't run all of them for every change.
 
 **Auth flow** (changes to auth pages or session logic):
 1. Navigate to `http://localhost:3006/login`.
@@ -140,19 +139,19 @@ Some things the agent can't verify reliably. When these apply, tell the user **e
 **Escalation template**:
 > I've verified the build passes and the component renders without errors. Please review the visual result:
 > 1. [Specific page/URL to check]
-> 2. [What to look at — e.g., "the new field config panel in the form editor"]
-> 3. [What changed visually — e.g., "spacing between sections reduced from 24px to 16px"]
+> 2. [What to look at, e.g., "the new field config panel in the form editor"]
+> 3. [What changed visually, e.g., "spacing between sections reduced from 24px to 16px"]
 
 ### Deployed environment verification
 
 **When**: Schema migrations, env variable changes, or anything that could behave differently in Coolify vs. local.
 
-**Why the agent can't verify**: The agent doesn't have access to the Coolify container or the dev/prod environments.
+**The agent verifies this itself when it has SSH access to `webber`** (the normal case in this environment). Read the Coolify runbook first (paths in `CLAUDE.md`), then check directly: container logs for the migration lines, and runtime env via `ssh webber "docker exec <container> node -e 'console.log(process.env.VAR)'"`. Escalate only when running somewhere without that access.
 
-**Escalation template**:
+**Escalation template** (no-access case only):
 > This change includes [a migration / an env variable change / etc.]. After it deploys to forms-dev:
 > 1. Check the container logs for migration success: `[canopy-forms] Migrations complete.`
-> 2. [Specific thing to verify — e.g., "confirm the new column appears in a submission response"]
+> 2. [Specific thing to verify, e.g., "confirm the new column appears in a submission response"]
 > 3. If it fails, check [specific env var / Coolify setting].
 
 ### Email notification changes
@@ -177,7 +176,7 @@ Some things the agent can't verify reliably. When these apply, tell the user **e
 > This embed change may render differently across browsers. Consider testing the embedded form on:
 > 1. Chrome, Firefox, Safari (desktop)
 > 2. Mobile viewport (or actual mobile device)
-> 3. [Specific concern — e.g., "the new date picker may not be supported in older Safari"]
+> 3. [Specific concern, e.g., "the new date picker may not be supported in older Safari"]
 
 ---
 
@@ -212,7 +211,7 @@ Before pushing, always check for unstaged modifications that might be needed for
 git status
 ```
 
-If there are unstaged changes (`M` files), determine whether they're needed. Coolify builds from the **remote ref**, not your working tree — so anything uncommitted locally will be missing on deploy. A build that passes locally (because your working tree has the fix) can fail on Coolify (because the committed version doesn't).
+If there are unstaged changes (`M` files), determine whether they're needed. Coolify builds from the **remote ref**, not your working tree, so anything uncommitted locally will be missing on deploy. A build that passes locally (because your working tree has the fix) can fail on Coolify (because the committed version doesn't).
 
 ---
 

@@ -18,7 +18,7 @@ Next.js 16 · React 19 · NextAuth v5 (beta) · Prisma 7 · TypeScript 5 · Tail
 
 **Read the matching `docs/tools/*.md` before writing code against any of these.** All are recent majors with breaking changes from older patterns: `prisma-7.md`, `nextjs-16.md`, `nextauth-v5.md`, `react-19.md`, `tailwindcss-v4.md`, `docker.md`. Index: `docs/tools/README.md`.
 
-If outdated training data led you to a wrong command, flag, or API, correct the relevant tool doc in the same session.
+If outdated training data led you to a wrong command, flag, or API, correct the relevant tool doc in the same session. The same rule covers live systems: when direct observation contradicts a claim in any doc (this one included), fix that doc in the same session per `docs/DOC_MAINTENANCE.md`.
 
 ---
 
@@ -134,7 +134,7 @@ Scripts are in `package.json`. The two non-obvious ones:
 
 There is no automated test suite. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which checks apply to which change type.
 
-Local dev: `docker-compose.dev.yml` runs `postgres:17-alpine` plus the app on `http://localhost:3006`, using `Dockerfile.dev` with a source mount for hot reload. Point `DATABASE_URL` in `.env.local` at your database; copy `.env.example` for the template.
+Local dev: `docker-compose.dev.yml` runs `postgres:17-alpine` plus the app on `http://localhost:3006`, using `Dockerfile.dev` with a source mount for hot reload. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`.
 
 ---
 
@@ -247,7 +247,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
-Verifying env inside a Coolify container: `printenv | grep` is unreliable there. Probe the names directly, or better, ask the runtime what the app actually sees:
+Verifying env inside a Coolify container: ask the runtime what the app actually sees (plain `printenv | grep` also works; verified 2026-08-14):
 
 ```sh
 node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXTAUTH_SECRET:!!process.env.NEXTAUTH_SECRET,NEXT_PUBLIC_APP_URL:process.env.NEXT_PUBLIC_APP_URL,SMTP_HOST:process.env.SMTP_HOST})'

@@ -1,6 +1,6 @@
 # Doc Maintenance
 
-Rules for editing `docs/AGENT_CONTEXT.md`, `docs/UX_PATTERNS.md`, and `docs/VERIFICATION_CHECKLIST.md`.
+Rules for editing `docs/AGENT_CONTEXT.md`, `docs/UX_PATTERNS.md`, `docs/VERIFICATION_CHECKLIST.md`, `CLAUDE.md`, and `docs/tools/*.md`.
 
 These docs are read by coding agents, not people browsing. Their value is density and accuracy, not completeness or flow. Each rule below exists because the opposite happened and cost something real.
 
@@ -34,6 +34,14 @@ These docs are read by coding agents, not people browsing. Their value is densit
 ## Concurrency
 
 16. **Another session may be editing the same file.** Before a large write, run `git status` and re-read the section you are changing. Prefer targeted edits over rewriting a whole file, and never rewrite a file wholesale on the strength of a copy you read earlier in the session.
+
+## Staleness
+
+17. **A state claim carries its date or points at the source of truth.** Versions, counts, "X exists", "X is not yet possible": either write "(as of 2026-08)" so a reader can judge trust, or replace the fact with a pointer to where it lives (the API, the file, the schema). An undated status claim is how "no lockfile yet" survived six weeks after the lockfile was committed.
+
+18. **A status section names the event that retires it.** A block describing a temporary state ("not yet buildable", "webhook currently dark") ends with "delete this section when X", so the agent that causes X knows the deletion is part of its change.
+
+19. **Verified means you ran it.** Write "verified <date>" only for something executed against the live system in that session, not something inferred or copied from another doc.
 
 ## Related
 
