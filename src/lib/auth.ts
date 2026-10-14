@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import * as bcrypt from "bcrypt";
+import { normalizeEmail } from "@/lib/validation";
 import type { JWT } from "next-auth/jwt";
 
 // Session timeout constants (in seconds)
@@ -28,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email: normalizeEmail(credentials.email as string) },
         });
 
         if (!user) {

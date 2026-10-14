@@ -109,6 +109,14 @@ export function isValidEmail(value: string): boolean {
 }
 
 /**
+ * Canonical form for account emails. Stored emails are lowercase, so every
+ * lookup and insert goes through this to keep matching case-insensitive.
+ */
+export function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
  * Hash an IP address using SHA-256
  * Never store raw IPs for privacy
  */

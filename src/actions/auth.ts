@@ -4,13 +4,14 @@ import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
 import { auth, signIn, signOut } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { normalizeEmail } from "@/lib/validation";
 
 /**
  * Sign up a new user with email and password
  * Creates an account automatically and signs the user in
  */
 export async function signUp(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = normalizeEmail((formData.get("email") as string | null) ?? "");
   const password = formData.get("password") as string;
 
   // Validate inputs
@@ -69,7 +70,7 @@ export async function signUp(formData: FormData) {
  * Always returns success to prevent email enumeration
  */
 export async function requestPasswordReset(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = normalizeEmail((formData.get("email") as string | null) ?? "");
 
   if (!email) {
     return { error: "Email is required" };
