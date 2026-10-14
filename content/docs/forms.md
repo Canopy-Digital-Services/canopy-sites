@@ -23,15 +23,15 @@ A URL-friendly slug is generated automatically from the name and shown below it.
 
 Every form opens to a three-tab workspace:
 
-- **Edit**: the builder, with accordion sections for Header, Fields, Appearance, and Submission Settings. On desktop, a live preview sits to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+- **Edit**: the builder, which walks through Header, Fields, Appearance, and Submission Settings one section at a time. Use **Continue** and **Back** to move between them; the dots above the card show where you are. On desktop, a live preview sits to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
 - **Publish**: publish status and the controls that apply to your form type — the hosted form link for hosted forms, allowed origins and embed snippet for embedded ones. See [Publishing](./publishing.md).
 - **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 
-The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each accordion section.
+The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each section, so you can move between sections without a save step.
 
 ## Header
 
-The **Header** section is the first accordion in the Edit tab. Both fields are optional.
+The **Header** section is the first step in the Edit tab. Both fields are optional.
 
 - **Title**: shown above the form (max 120 characters). Leave blank if the surrounding page already provides one.
 - **Description**: a short paragraph shown under the title (max 400 characters).
@@ -40,7 +40,7 @@ Both are rendered on the hosted page and by the embed. If your container already
 
 ## Fields
 
-Open the **Fields** accordion to add and arrange inputs. Use **Add field**, then pick a type in the modal.
+The **Fields** section is where you add and arrange inputs. Use **Add field**, then pick a type in the modal.
 
 ### Field types
 
@@ -91,7 +91,7 @@ Each field row has Up and Down buttons. The order here is the order fields rende
 
 ## Submission Settings
 
-Open the **Submission Settings** accordion to control what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves.
+The **Submission Settings** section is the last step. It controls what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves. Continue past it and **Go to Publish** takes you to the Publish tab.
 
 ### After submission
 

@@ -4,7 +4,7 @@ description: Theme colors, typography, spacing, and hosted-page layout.
 icon: Palette
 ---
 
-The **Appearance** accordion on the Edit tab is where you style a form. All changes autosave and are reflected in the preview to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+The **Appearance** section of the Edit tab is where you style a form. All changes autosave and are reflected in the preview to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
 
 Appearance subsections depend on the form type:
 
