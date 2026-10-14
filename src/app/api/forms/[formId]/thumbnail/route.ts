@@ -1,9 +1,10 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   const { formId } = await params;
@@ -24,10 +25,16 @@ export async function GET(
 
   if (!form?.thumbnail) return new NextResponse(null, { status: 404 });
 
+  // Revalidate on every load: the editor recaptures thumbnails at the same
+  // URL, and a max-age kept showing the old image after returning to the list.
+  const etag = `"${createHash("sha1").update(form.thumbnail).digest("hex")}"`;
+  const headers = { ETag: etag, "Cache-Control": "private, no-cache" };
+
+  if (request.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, { status: 304, headers });
+  }
+
   return new NextResponse(form.thumbnail, {
-    headers: {
-      "Content-Type": "image/jpeg",
-      "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
-    },
+    headers: { ...headers, "Content-Type": "image/jpeg" },
   });
 }

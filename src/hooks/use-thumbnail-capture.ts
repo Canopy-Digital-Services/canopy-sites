@@ -19,16 +19,16 @@ export function useThumbnailCapture({
   const lastCaptureRef = useRef(0);
   const inFlightRef = useRef(false);
 
-  const capture = useCallback(async () => {
+  const capture = useCallback(async ({ throttle = true } = {}) => {
     const el = previewRef.current;
     if (!el || inFlightRef.current) return;
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
 
     const now = Date.now();
-    if (now - lastCaptureRef.current < 10_000) return;
+    if (throttle && now - lastCaptureRef.current < 10_000) return;
 
     inFlightRef.current = true;
-    lastCaptureRef.current = now;
+    if (throttle) lastCaptureRef.current = now;
 
     try {
       const dataUrl = await toJpeg(el, {
@@ -45,6 +45,16 @@ export function useThumbnailCapture({
       inFlightRef.current = false;
     }
   }, [formId, previewRef]);
+
+  // Stored thumbnails only refresh on save, so one captured under older
+  // settings or styles would otherwise stay stale until the form is edited.
+  // Recapture once per editor visit, after the embed preview has rendered.
+  // Unthrottled so an edit made right after opening still captures.
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = setTimeout(() => void capture({ throttle: false }), 1500);
+    return () => clearTimeout(timer);
+  }, [enabled, capture]);
 
   useEffect(() => {
     if (!enabled || saveStatus !== "saved") return;
