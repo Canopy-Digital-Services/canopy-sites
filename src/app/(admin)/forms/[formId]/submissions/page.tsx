@@ -5,14 +5,13 @@ export default async function SubmissionsRedirect({
   searchParams,
 }: {
   params: Promise<{ formId: string }>;
-  searchParams: Promise<{ status?: string; spam?: string }>;
+  searchParams: Promise<{ status?: string }>;
 }) {
   const { formId } = await params;
-  const { status, spam } = await searchParams;
+  const { status } = await searchParams;
 
   const qs = new URLSearchParams({ mode: "submissions" });
   if (status) qs.set("status", status);
-  if (spam) qs.set("spam", spam);
 
   redirect(`/forms/${formId}?${qs.toString()}`);
 }

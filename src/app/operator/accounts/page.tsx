@@ -145,7 +145,7 @@ export default async function AccountsPage() {
 
         {accounts.length === 0 ? (
           <EmptyState
-            icon={<Users className="h-10 w-10 text-muted-foreground" />}
+            icon={<Users className="h-9 w-9" />}
             title="No accounts"
             description="No active accounts found"
           />

@@ -49,7 +49,7 @@ export default async function FormsPage({
 
         {forms.length === 0 ? (
           <EmptyState
-            icon={<FileText className="h-10 w-10 text-muted-foreground" />}
+            icon={<FileText className="h-9 w-9" />}
             title="No forms yet"
             description="Create your first form to start collecting submissions"
             action={<CreateFormButton />}
@@ -60,7 +60,7 @@ export default async function FormsPage({
               {forms.length} {forms.length === 1 ? "form" : "forms"} &middot;{" "}
               {totalSubmissions} {totalSubmissions === 1 ? "submission" : "submissions"}
               {totalNew > 0 && (
-                <span className="text-success font-medium">
+                <span className="text-success-strong font-medium">
                   {" "}&middot; {totalNew} new
                 </span>
               )}
@@ -128,7 +128,7 @@ function FormsListView({ forms }: { forms: FormRow[] }) {
         <span className="text-sm text-muted-foreground">
           {form._count.submissions}
           {form.newSubmissionsCount > 0 && (
-            <span className="text-success font-medium">
+            <span className="text-success-strong font-medium">
               {" "}({form.newSubmissionsCount} new)
             </span>
           )}

@@ -21,6 +21,7 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-strong: var(--success-strong);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -33,37 +34,67 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+
+  /* Radius — two-value system: a single 2px workhorse for every container
+     and control, plus the pill (rounded-full). Corner softness is not a
+     design lever, so the whole Tailwind ramp collapses onto --radius. */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+
+  /* Elevation — four role-based, two-layer shadows (key + ambient).
+     Old size-based names alias into the new scale. */
+  --shadow-1: 0 1px 1px 0 rgb(0 0 0 / 0.04), 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-2: 0 2px 3px -1px rgb(0 0 0 / 0.06), 0 4px 10px -2px rgb(0 0 0 / 0.06);
+  --shadow-3: 0 4px 8px -2px rgb(0 0 0 / 0.08), 0 12px 28px -6px rgb(0 0 0 / 0.12);
+  --shadow-4: 0 8px 16px -4px rgb(0 0 0 / 0.10), 0 24px 48px -12px rgb(0 0 0 / 0.18);
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+  --shadow-xl: var(--shadow-4);
 }
 
 :root {
-  --radius: 0.25rem;
-  --background: oklch(0.975 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Brand colors (hex source of truth — mirrored as oklch tokens below) */
+  --canopy-teal: #005f6a;   /* Main Teal — primary, dominant brand color */
+  --canopy-green: #5fd48c;  /* Highlight Green — brand accent / success */
+  --canopy-coral: #ff6b5a;  /* Pop Coral — brand accent / destructive */
+  /* Signature gradient — green upper-left → teal lower-right (the canopy mark) */
+  --canopy-gradient: linear-gradient(135deg, #5fd48c 10%, #005f6a 75%);
+
+  /* Radius — single 2px workhorse (see @theme inline for the ramp + pill) */
+  --radius: 2px;
+  /* Surfaces: page (off-white) · card (white) · sunken (recessed) */
+  --background: oklch(0.97 0 0);
+  --foreground: oklch(0.18 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.18 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.38 0.07 195);
+  --popover-foreground: oklch(0.18 0 0);
+  --primary: var(--canopy-teal);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.38 0.07 195);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.38 0.07 195);
+  --secondary: oklch(0.93 0 0);
+  --secondary-foreground: var(--canopy-teal);
+  --muted: oklch(0.93 0 0);
+  --muted-foreground: oklch(0.50 0 0);
+  --accent: oklch(0.93 0 0);
+  --accent-foreground: var(--canopy-teal);
   --destructive: oklch(0.68 0.21 25);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.45 0.08 195);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.88 0 0);
+  /* Focus ring derives from the brand — rendered at 50% via ring-ring/50 */
+  --ring: var(--primary);
   --success: oklch(0.75 0.15 155);
-  --success-foreground: oklch(0.145 0 0);
+  --success-foreground: oklch(0.18 0 0);
+  /* Readable green "ink" for text/icons on light surfaces — the bright
+     --success (0.75 L) is a fill color and is too light to read as text.
+     Used for "Saved"/"Live" status text, success badges, and the "N new" stat. */
+  --success-strong: oklch(0.44 0.12 155);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -151,3 +182,107 @@
   padding-left: calc(0.25rem - 2px);
 }
 
+
+/* ─── Flow motion vocabulary ──────────────────────────────────────────────
+ * Shared timing for content that enters/leaves as a deliberate step: the
+ * editor flow cards, dialogs, and progressive-disclosure reveals. Entry rises
+ * and settles with a slight overshoot; exit accelerates away. Reference these
+ * from Tailwind via ease-[var(--ease-flow-in)] / duration-[var(--duration-flow-in)].
+ * TODO: promote to docs/UX_PATTERNS.md as the canonical motion spec. */
+:root {
+  /* Deliberately just shy of a visible overshoot: the 1.12 control point peaks
+   * ~2% past target, which at a 3rem rise is about a pixel. Reads as a decisive
+   * stop rather than a bounce. A stronger back-out (1.5+) was tried and felt
+   * too playful for a professional tool. */
+  --ease-flow-in: cubic-bezier(0.25, 1.12, 0.45, 1);
+  --ease-flow-out: cubic-bezier(0.45, 0, 0.7, 0.35);
+  --duration-flow-in: 420ms;
+  --duration-flow-out: 260ms;
+}
+
+/* Editor flow (experimental progressive disclosure): one section card at a
+ * time. Cards swoop in from below and swoop out sideways on completion.
+ * Used by src/components/forms/editor-flow.tsx. */
+@keyframes editor-swoop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 3rem, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes editor-swoop-out-left {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(-55%, 0, 0) scale(0.9);
+  }
+}
+
+@keyframes editor-swoop-out-right {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(55%, 0, 0) scale(0.9);
+  }
+}
+
+/* No rotation, and only a slight overshoot (the 1.12 control point) so the
+ * card settles rather than bounces. Exits accelerate away without flinging. */
+.editor-swoop-in {
+  animation: editor-swoop-in var(--duration-flow-in) var(--ease-flow-in);
+  will-change: transform, opacity;
+}
+
+.editor-swoop-out-left {
+  animation: editor-swoop-out-left var(--duration-flow-out) var(--ease-flow-out) forwards;
+  will-change: transform, opacity;
+}
+
+.editor-swoop-out-right {
+  animation: editor-swoop-out-right var(--duration-flow-out) var(--ease-flow-out) forwards;
+  will-change: transform, opacity;
+}
+
+/* Progressive-disclosure reveal: a block that appears in place and grows its
+ * container to fit (e.g. the field editor's config once a type is chosen).
+ * grid-template-rows 0fr→1fr is the height-animation mechanism; browsers that
+ * can't interpolate fr units simply snap, which is an acceptable fallback.
+ * Requires a single child with overflow-hidden. */
+@keyframes editor-reveal {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+.editor-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* No overshoot here: a height that springs past its target reads as a glitch. */
+  animation: editor-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Keep the animations (the flow advances on animationend) but make them
+ * effectively instant for users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .editor-swoop-in,
+  .editor-swoop-out-left,
+  .editor-swoop-out-right,
+  .editor-reveal {
+    animation-duration: 1ms;
+  }
+}

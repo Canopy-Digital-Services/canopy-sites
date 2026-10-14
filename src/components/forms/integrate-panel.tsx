@@ -79,15 +79,15 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     <RightPanel open={open} onOpenChange={(isOpen) => !isOpen && onClose()} title="Integrate">
       <div className="space-y-4">
         {published ? (
-          <Card className="border-green-300 dark:border-green-800">
+          <Card className="border-success/40">
             <CardHeader>
-              <CardTitle className="text-base text-green-700 dark:text-green-400">
+              <CardTitle className="text-base text-success-strong">
                 Hosted Form URL
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex items-center gap-2">
-                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                <code className="text-xs bg-muted px-2 py-1 rounded-md flex-1 break-all">
                   {apiUrl}/f/{form.id}
                 </code>
                 <CopyButton text={`${apiUrl}/f/${form.id}`} />
@@ -127,7 +127,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 </div>
               </CardHeader>
               <CardContent>
-                <pre className="text-xs bg-muted p-4 rounded overflow-x-auto">
+                <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
                   <code>{embedCode}</code>
                 </pre>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -142,7 +142,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 mr-2">
+                  <code className="text-xs bg-muted px-2 py-1 rounded-md flex-1 mr-2">
                     {endpoint}
                   </code>
                   <CopyButton text={endpoint} />
@@ -163,7 +163,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 </div>
               </CardHeader>
               <CardContent>
-                <pre className="text-xs bg-muted p-4 rounded overflow-x-auto">
+                <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
                   <code>{htmlExample}</code>
                 </pre>
               </CardContent>
@@ -198,7 +198,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                             <CardTitle className="text-sm font-medium">
                               {field.label}
                             </CardTitle>
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                               {getFieldTypeLabel(field.type)}
                             </span>
                             {field.required && (
@@ -209,13 +209,13 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                          <code className="text-xs bg-muted px-2 py-1 rounded-md flex-1 break-all">
                             {fieldEndpoint}
                           </code>
                           <CopyButton text={fieldEndpoint} />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Field name: <code className="bg-muted px-1 py-0.5 rounded">{field.name}</code>
+                          Field name: <code className="bg-muted px-1 py-0.5 rounded-md">{field.name}</code>
                         </p>
                       </CardContent>
                     </Card>
@@ -224,9 +224,9 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
               </div>
             )}
 
-            <Card className="border-blue-200 dark:border-blue-900">
+            <Card className="border-primary/30">
               <CardHeader>
-                <CardTitle className="text-base text-blue-600 dark:text-blue-400">
+                <CardTitle className="text-base text-primary">
                   Usage
                 </CardTitle>
               </CardHeader>
@@ -234,10 +234,10 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
                 <p className="font-medium text-foreground">Payload Format:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    JSON: <code className="bg-muted px-1 py-0.5 rounded text-xs">{'{ "value": "..." }'}</code>
+                    JSON: <code className="bg-muted px-1 py-0.5 rounded-md text-xs">{'{ "value": "..." }'}</code>
                   </li>
                   <li>
-                    Plain text: <code className="bg-muted px-1 py-0.5 rounded text-xs">your value here</code>
+                    Plain text: <code className="bg-muted px-1 py-0.5 rounded-md text-xs">your value here</code>
                   </li>
                 </ul>
                 <p className="text-xs pt-2">
@@ -250,16 +250,16 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
         </Tabs>
 
         {form.honeypotField && (
-          <Card className="border-blue-200 dark:border-blue-900">
+          <Card className="border-primary/30">
             <CardHeader>
-              <CardTitle className="text-base text-blue-600 dark:text-blue-400">
+              <CardTitle className="text-base text-primary">
                 Honeypot Field
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <p>
                 This form uses a honeypot field named{" "}
-                <code className="bg-muted px-2 py-1 rounded">{form.honeypotField}</code>
+                <code className="bg-muted px-2 py-1 rounded-md">{form.honeypotField}</code>
                 {" "}for spam protection.
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
@@ -280,7 +280,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
               {form.allowedOrigins.length > 0 ? (
                 <li>
                   Allowed origins: {form.allowedOrigins.map((origin, i) => (
-                    <code key={i} className="bg-muted px-1 py-0.5 rounded mx-1">{origin}</code>
+                    <code key={i} className="bg-muted px-1 py-0.5 rounded-md mx-1">{origin}</code>
                   ))}
                 </li>
               ) : (

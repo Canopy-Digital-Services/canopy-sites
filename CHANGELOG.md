@@ -5,6 +5,81 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.14.0] - 2026-10-14
+
+### Added
+
+- **Step-by-step editor**: the Edit tab shows one section at a time (Header, Fields, Appearance, Submission Settings) with progress dots and Back/Continue, ending on a card that links to Publish. Autosave means moving between steps needs no save action
+- **Help menu split into docs, support, and feedback**: "Help with this page", "Browse documentation", "Contact support", and "Give feedback". Support messages carry an editable Reply-To prefilled from the session
+  - New optional `SUPPORT_RECIPIENT_EMAIL`, falling back to `FEEDBACK_RECIPIENT_EMAIL`
+  - Rate limiting is keyed per message kind, so feedback can't lock out a support request
+- **Submission filters**: status and spam filters merged into one row, plus a **Mark all as read** bulk action
+- **Embed watermark**: "Powered by Canopy Forms" footer with a prefilled "Report an issue" link
+- **ZIP validation** on Address fields (5 digits or ZIP+4)
+- Dropdowns accept a new options shape (`{ options, allowOther }`) alongside the legacy array; membership is not enforced when `allowOther` is set
+
+### Changed
+
+- **Design system unification**: one 2px radius token, consolidated neutrals, a 4-level shadow scale, tinted-pill badges, and a single type scale (page titles 30, card and dialog titles 22). Hardcoded palette colors replaced with semantic tokens
+- **Brand teal corrected**: `--primary` and related tokens now reference the `#005F6A` hex directly. The previous oklch approximation rendered as `#004e4e`
+- **Motion**: shared flow-motion tokens drive dialog and editor transitions; dialogs now rise from below instead of zooming. Shortened rather than removed under `prefers-reduced-motion`
+- Form card thumbnails are captured at higher resolution
+- Removed descriptions that only restated their titles
+
+### Accessibility
+
+- Auth forms link errors to inputs with `aria-describedby`, announce errors and success via `role=alert`/`role=status`, and set `autocomplete` so password managers update saved credentials
+- Embed: errors announced immediately, `aria-required` on required inputs, Name and Address grouped with `role=group`, decorative asterisks hidden from screen readers
+- Admin: labelled icon-only buttons, linked field-type label, no nested link/button elements
+
+### Removed
+
+- Unused `noFuture`, `noPast`, `normalize`, and `message` validation keys from public submit and the embed runtime
+
+### Security
+
+- Support Reply-To addresses are re-validated server-side and CR/LF is rejected, preventing SMTP header injection
+
+## [4.13.0] - 2026-07-24
+
+### Added
+
+- **Full-Response Email Notifications (Epic 26)**: notification emails can now carry the submitted values, for recipients who never sign in to the dashboard
+  - New `Form.emailIncludeResponses` flag with an **Include responses in the email** checkbox under Edit → Submission Settings → Email notifications. Per form, off by default
+  - When on, the email lists every field in form order with what the visitor entered, as plain text and as an HTML table. Empty optional fields show as `(blank)`; the honeypot field is never shown
+  - When on, `Reply-To` is set to the submitter's address (first EMAIL field with a valid value), so recipients can reply to the visitor directly from the notification
+  - New `src/lib/submission-email.ts` owns notification content; `src/lib/email.ts` remains transport
+
+### Changed
+
+- **Dashboard link is now per recipient**: only recipients who are users on the form's account get the "View in dashboard" link. Other addresses in `notifyEmails[]` have no account to sign in to, so the link was a dead end for them
+- **Default notification is unchanged**: with the new flag off, the email is byte-identical to the metadata-only body from Epic 4. Existing forms keep that behavior
+- Value formatting shared between the submissions preview and the new email renderer via `formatFieldValue()` in `src/lib/composite-format.ts`; email validation shared via `isValidEmail()` in `src/lib/validation.ts`
+
+### Security
+
+- `Reply-To` candidates are re-validated instead of trusted, and CR/LF is rejected, so a submitted value can't inject additional SMTP headers. This matters for `/api/submit/[formId]/[fieldName]`, which only validates that required fields are present
+- Labels and values are HTML-escaped in the HTML part of the email
+
+## [4.12.0] - 2026-04-29
+
+### Added
+
+- **Form Type Selection (Epic 25)**: Forms now declare their delivery surface up front and the editor tailors itself to the choice
+  - New `FormType` enum (`HOSTED` | `EMBEDDED`) on the `Form` model. Locked at form creation; not user-editable after
+  - `/forms/new` adds a two-card type chooser between the name input and Create button. Create is disabled until both name and type are set. Globe icon for hosted, AppWindow for embedded
+  - Migration backfill: existing forms with `published=true` and empty `allowedOrigins` become HOSTED; everything else becomes EMBEDDED
+  - Editor preview is locked to type — no more Embed/Page tab toggle. Hosted forms preview as the page; embedded forms preview as the embed
+  - Appearance → Page subsection only renders for hosted forms (page background, card wrapper, content width, vertical alignment)
+  - Font picker hides "Inherit from host page" for hosted forms (no host page to inherit from); shown for embedded forms as before
+  - Publish tab branches by type: hosted forms see only the Share Link card, embedded forms see Allowed Origins and the Embed snippet
+  - Form list cards show a "Hosted" or "Embedded" badge alongside Published/Draft
+
+### Changed
+
+- **Embed API and submit API gate on type**: `GET/POST /api/embed/[formId]` and `POST /api/submit/[formId]` reject HOSTED forms with `403 { code: "FORM_HOSTED_ONLY" }`. The embed script renders a dedicated "Form is only available at its hosted URL" message for this code, mirroring the existing `FORM_INACTIVE` flow
+- **Hosted page gates on type**: `/f/[formId]` returns the existing "Form Not Available" page (200) for EMBEDDED-type forms, matching the unpublished-form behavior
+
 ## [4.11.0] - 2026-04-21
 
 ### Added

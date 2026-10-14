@@ -5,42 +5,60 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { FormFieldsManager } from "@/components/form-fields-manager";
 
 type FieldsSectionProps = {
   formId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
+  variant?: "accordion" | "flow";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function FieldsSection({ formId, open, onOpenChange }: FieldsSectionProps) {
+export function FieldsSection({ formId, variant = "accordion", open = false, onOpenChange }: FieldsSectionProps) {
+  const isFlow = variant === "flow";
+
+  const headerInner = (
+    <div className="flex items-center justify-between gap-4">
+      {/* No description: "Add Field" states the action and the grip handles
+          state the reordering. Both were narrating the design. */}
+      <CardTitle>Fields</CardTitle>
+      {!isFlow && (
+        <div className="shrink-0">
+          {open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const body = (
+    <CardContent>
+      <FormFieldsManager formId={formId} />
+    </CardContent>
+  );
+
+  if (isFlow) {
+    return (
+      <Card>
+        <CardHeader>{headerInner}</CardHeader>
+        {body}
+      </Card>
+    );
+  }
+
   return (
-    <Card className="border-l-4 border-l-primary">
+    <Card>
       <Collapsible open={open} onOpenChange={onOpenChange}>
-        <CardHeader className="cursor-pointer" onClick={() => onOpenChange(!open)}>
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <CardTitle>Fields</CardTitle>
-                <CardDescription>Add the fields you would like in your form. Drag to reorder.</CardDescription>
-              </div>
-              <div className="shrink-0">
-                {open ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-            </div>
-          </CollapsibleTrigger>
+        <CardHeader className="cursor-pointer" onClick={() => onOpenChange?.(!open)}>
+          <CollapsibleTrigger asChild>{headerInner}</CollapsibleTrigger>
         </CardHeader>
-        <CollapsibleContent>
-          <CardContent>
-            <FormFieldsManager formId={formId} />
-          </CardContent>
-        </CollapsibleContent>
+        <CollapsibleContent>{body}</CollapsibleContent>
       </Collapsible>
     </Card>
   );

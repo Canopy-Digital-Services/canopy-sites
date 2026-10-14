@@ -53,6 +53,7 @@ export function PublishContent({
   publishDisabledReason,
 }: PublishContentProps) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
+  const isHosted = state.type === "HOSTED";
   const hostedUrl = `${apiUrl}/f/${form.id}`;
 
   const embedCode = `<div
@@ -84,7 +85,7 @@ export function PublishContent({
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             {published ? (
-              <Globe className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Globe className="h-5 w-5 text-success-strong" />
             ) : (
               <GlobeLock className="h-5 w-5 text-muted-foreground" />
             )}
@@ -94,8 +95,8 @@ export function PublishContent({
                   {published ? "Published" : "Not published"}
                 </span>
                 {published ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-strong">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
                     Live
                   </span>
                 ) : (
@@ -151,8 +152,8 @@ export function PublishContent({
         </CardContent>
       </Card>
 
-      {/* ── Share link (published only) ────────────────── */}
-      {published && (
+      {/* ── Share link (hosted, published only) ────────── */}
+      {isHosted && published && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -185,7 +186,8 @@ export function PublishContent({
         </Card>
       )}
 
-      {/* ── Allowed Origins ────────────────────────────── */}
+      {/* ── Allowed Origins (embedded only) ────────────── */}
+      {!isHosted && (
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
@@ -206,7 +208,7 @@ export function PublishContent({
                 </span>
               )}
               {saveStatus === "saved" && (
-                <span className="text-sm text-success flex items-center gap-2">
+                <span className="text-sm text-success-strong flex items-center gap-2">
                   <Check className="h-4 w-4" />
                   Saved
                 </span>
@@ -256,8 +258,10 @@ export function PublishContent({
           </Button>
         </CardContent>
       </Card>
+      )}
 
-      {/* ── Embed code ─────────────────────────────────── */}
+      {/* ── Embed code (embedded only) ─────────────────── */}
+      {!isHosted && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -277,6 +281,7 @@ export function PublishContent({
           </p>
         </CardContent>
       </Card>
+      )}
 
       {/* ── Configuration notes ────────────────────────── */}
       {form.honeypotField && (

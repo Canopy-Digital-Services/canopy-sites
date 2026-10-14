@@ -21,6 +21,55 @@ export const baseStyles = `
   justify-content: var(--canopy-button-align, left);
 }
 
+/* Admin preview only: instant tooltip pinned above the Submit button.
+   Class + data-attribute are added by the embed when options.preview is true,
+   so this never reaches production embeds. */
+.canopy-root .canopy-submit-preview {
+  position: relative;
+}
+
+.canopy-root .canopy-submit-preview::after {
+  content: attr(data-preview-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #18181b;
+  color: #fafafa;
+  font-family: var(--canopy-font, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  z-index: 1;
+}
+
+.canopy-root .canopy-submit-preview::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #18181b;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  z-index: 1;
+}
+
+.canopy-root .canopy-submit-preview:hover::after,
+.canopy-root .canopy-submit-preview:focus-visible::after,
+.canopy-root .canopy-submit-preview:hover::before,
+.canopy-root .canopy-submit-preview:focus-visible::before {
+  opacity: 1;
+}
+
 .canopy-density-compact .canopy-form {
   gap: 8px;
 }
@@ -351,5 +400,41 @@ export const baseStyles = `
   opacity: 0.75;
   margin: 0;
   line-height: 1.5;
+}
+
+.canopy-watermark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--canopy-border, #e4e4e7);
+  font-family: var(--canopy-font, inherit);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--canopy-text, #18181b);
+  opacity: 0.55;
+}
+
+.canopy-watermark-sep {
+  opacity: 0.6;
+}
+
+.canopy-root .canopy-watermark-link {
+  color: var(--canopy-primary, #005F6A);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.canopy-root .canopy-watermark-link:hover {
+  opacity: 0.8;
+}
+
+.canopy-root .canopy-watermark-link:focus-visible {
+  outline: 2px solid var(--canopy-primary, #005F6A);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 `;

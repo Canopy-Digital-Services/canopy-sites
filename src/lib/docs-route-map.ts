@@ -3,6 +3,10 @@
  * HelpBubble — click behaviour depends on where you are in the app.
  *
  * Return an empty string to hide the bubble on the current route.
+ *
+ * The `/docs` fallback is load-bearing: `help-bubble.tsx` treats it as "no
+ * specific page for this route" and hides its contextual item so it doesn't
+ * duplicate the separate "Browse documentation" entry. Keep both in step.
  */
 export function getHelpHref(pathname: string, search?: string): string {
   if (!pathname) return "/docs";
@@ -21,9 +25,9 @@ export function getHelpHref(pathname: string, search?: string): string {
     if (pathname.endsWith("/submissions") || pathname.includes("/submissions/")) {
       return "/docs/submissions";
     }
-    const tab = searchParams.get("tab");
-    if (tab === "publish" || tab === "integrate") return "/docs/publishing";
-    if (tab === "submissions") return "/docs/submissions";
+    const mode = searchParams.get("mode");
+    if (mode === "publish") return "/docs/publishing";
+    if (mode === "submissions") return "/docs/submissions";
     return "/docs/forms";
   }
 

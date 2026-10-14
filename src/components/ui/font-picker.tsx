@@ -17,17 +17,26 @@ type FontPickerProps = {
   id?: string;
   /** "body" shows body-optimized fonts; "heading" shows heading/display fonts. */
   variant?: "body" | "heading";
+  /**
+   * Whether the "Inherit from host page" sentinel is offered. Embedded forms
+   * inherit from the host page's CSS, so they get this option. Hosted forms
+   * have no host page to inherit from — pass false to hide it.
+   */
+  showInherit?: boolean;
 };
 
-export function FontPicker({ value, onChange, id, variant = "body" }: FontPickerProps) {
+export function FontPicker({ value, onChange, id, variant = "body", showInherit = true }: FontPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const displayLabel = value === INHERIT_VALUE || !value
+  const isInherit = value === INHERIT_VALUE || !value;
+  const displayLabel = isInherit && showInherit
     ? INHERIT_LABEL
-    : value;
+    : isInherit
+      ? "Default"
+      : value;
 
   const isSearching = search.trim().length > 0;
   const query = search.trim().toLowerCase();
@@ -150,8 +159,8 @@ export function FontPicker({ value, onChange, id, variant = "body" }: FontPicker
             role="listbox"
             className="max-h-60 overflow-y-auto p-1"
           >
-            {/* Inherit option — always shown, pinned at top when not searching */}
-            {!isSearching && (
+            {/* Inherit option — pinned at top when not searching, embedded forms only */}
+            {!isSearching && showInherit && (
               <FontOption
                 font={INHERIT_VALUE}
                 label={INHERIT_LABEL}
@@ -161,7 +170,7 @@ export function FontPicker({ value, onChange, id, variant = "body" }: FontPicker
             )}
 
             {/* Separator between inherit and curated list */}
-            {!isSearching && (
+            {!isSearching && showInherit && (
               <div className="mx-2 my-1 border-t" />
             )}
 

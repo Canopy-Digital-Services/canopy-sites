@@ -97,6 +97,7 @@ model Form {
   allowedOrigins            String[] @default([])  // Domains allowed to embed/submit to this form
   notifyEmails              String[] @default([])
   emailNotificationsEnabled Boolean  @default(false)  // Epic 4: Email account owner on new submission
+  emailIncludeResponses     Boolean  @default(false)  // Epic 26: Include submitted values + Reply-To in notification emails
   honeypotField             String?  // Optional honeypot field name
   successMessage            String?
   redirectUrl               String?
@@ -105,6 +106,7 @@ model Form {
   maxSubmissions            Int?      // Maximum number of submissions allowed
   published                 Boolean  @default(false)  // Whether the form is accessible via hosted URL (/f/[formId])
   thumbnail                 Bytes?   // JPEG thumbnail captured client-side from preview
+  type                      FormType // Whether the form is delivered via hosted page or embed snippet (locked at creation)
   createdAt                 DateTime @default(now())
   
   account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -175,6 +177,11 @@ enum FieldType {
   NAME
   NUMBER
   ADDRESS
+}
+
+enum FormType {
+  HOSTED
+  EMBEDDED
 }
 
 // In-app notifications (bell). Dismiss-on-interaction — no retention.

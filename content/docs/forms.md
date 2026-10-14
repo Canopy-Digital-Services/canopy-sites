@@ -10,7 +10,12 @@ A form is the central object in Canopy Forms. Each form has its own fields, them
 
 1. From the **Forms** page, click **Create Form**.
 2. Enter a name (for example, "Contact" or "Newsletter signup").
-3. You'll land in the form workspace. The form exists in **Draft** state until you publish it.
+3. Pick a **form type**:
+   - **Hosted** — a standalone page at a shareable URL (`/f/{formId}`). Good when you don't have a website to embed into, or when the form is the destination.
+   - **Embedded** — lives inside your own website via a `<script>` snippet. Good when you want the form to sit alongside other content on a page you control.
+4. Click **Create form**. You'll land in the form workspace. The form exists in **Draft** state until you publish it.
+
+The type is locked once the form is created — it shapes which appearance and publish controls you'll see. If you change your mind, create a new form of the other type.
 
 A URL-friendly slug is generated automatically from the name and shown below it. The slug is kept even if you rename the form later, so bookmarks and share links stay stable.
 
@@ -18,15 +23,15 @@ A URL-friendly slug is generated automatically from the name and shown below it.
 
 Every form opens to a three-tab workspace:
 
-- **Edit**: the builder, with accordion sections for Header, Fields, Appearance, and Submission Settings. On desktop, a live preview sits to the right, with a toggle between **Embed** (how the form looks inside someone else's page) and **Page** (how the hosted page looks).
-- **Publish**: publish status, allowed origins, embed snippet, and the hosted form link. See [Publishing](./publishing.md).
+- **Edit**: the builder, which walks through Header, Fields, Appearance, and Submission Settings one section at a time. Use **Continue** and **Back** to move between them; the dots above the card show where you are. On desktop, a live preview sits to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+- **Publish**: publish status and the controls that apply to your form type — the hosted form link for hosted forms, allowed origins and embed snippet for embedded ones. See [Publishing](./publishing.md).
 - **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 
-The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each accordion section.
+The form name in the header is editable by clicking the pencil icon. Everything you change in the Edit tab autosaves; watch for the "Saved" badge on each section, so you can move between sections without a save step.
 
 ## Header
 
-The **Header** section is the first accordion in the Edit tab. Both fields are optional.
+The **Header** section is the first step in the Edit tab. Both fields are optional.
 
 - **Title**: shown above the form (max 120 characters). Leave blank if the surrounding page already provides one.
 - **Description**: a short paragraph shown under the title (max 400 characters).
@@ -35,7 +40,7 @@ Both are rendered on the hosted page and by the embed. If your container already
 
 ## Fields
 
-Open the **Fields** accordion to add and arrange inputs. Use **Add field**, then pick a type in the modal.
+The **Fields** section is where you add and arrange inputs. Use **Add field**, then pick a type in the modal.
 
 ### Field types
 
@@ -86,7 +91,7 @@ Each field row has Up and Down buttons. The order here is the order fields rende
 
 ## Submission Settings
 
-Open the **Submission Settings** accordion to control what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves.
+The **Submission Settings** section is the last step. It controls what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves. Continue past it and **Go to Publish** takes you to the Publish tab.
 
 ### After submission
 
@@ -103,7 +108,8 @@ Check **Email notifications** to receive an email each time the form gets a non-
 
 - When first enabled, your account email is added as the first recipient.
 - Add up to **5 recipients** total. Each recipient gets the same email.
-- The notification includes the form name, timestamp, and a link back to the submission in the dashboard. Submission field values are included so you can triage without logging in.
+- By default the notification includes the form name, timestamp, and a link back to the submission in the dashboard. It does not include what the visitor typed.
+- Check **Include responses in the email** to send the submitted values too. See [Submissions](./submissions.md#what-the-email-contains) for what changes.
 - Spam submissions (honeypot caught) never trigger a notification.
 - Email delivery depends on the platform's SMTP config. If email isn't configured, submissions still save; they just don't trigger a notification.
 

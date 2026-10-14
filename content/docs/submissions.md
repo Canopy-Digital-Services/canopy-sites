@@ -9,20 +9,22 @@ Every filled-in form entry lands on the **Submissions** tab of the form workspac
 ## Viewing submissions
 
 1. Open the form and click the **Submissions** tab.
-2. Each row shows the date, status badge, a spam badge if applicable, and a preview of the first couple of fields.
+2. Each row shows the date, status badge, and a preview of the first couple of fields.
 3. Click **View** to open a submission's full detail page.
 
 The detail page shows every submitted field (with the field's label), plus the metadata collected at submit time: timestamp, origin, referrer, user agent, and a hashed IP address.
 
 ## Filters
 
-Two filter groups sit at the top of the list and compose:
+A single filter row sits at the top of the list:
 
-**Status:** All, New, Read, Archived.
+- **All**: every active submission for the form.
+- **New**: submissions you haven't reviewed yet.
+- **Read**: submissions you've already looked at.
+- **Archived**: older entries moved out of the active view.
+- **Spam**: submissions flagged as spam.
 
-**Spam:** All, Not Spam, Spam.
-
-Filters are URL-addressable, so you can bookmark or share a filtered view.
+The first four filters hide spam; **Spam** shows only spam. **All** also hides archived. Use the **Archived** filter when you want to see them. Filters are URL-addressable, so you can bookmark or share a filtered view.
 
 ## Status
 
@@ -33,6 +35,8 @@ Every submission has one of three statuses. Status is independent of the spam fl
 - **ARCHIVED**: older entries you want out of the default view.
 
 Change the status from the submission's detail page. Submissions move between statuses with a single click and the change is immediate.
+
+When any NEW submissions are visible, a **Mark all as read** button appears next to Export. It flips every NEW submission on the form to READ in one click.
 
 ## Spam
 
@@ -81,15 +85,18 @@ Email notifications are configured per form under **Edit → Submission Settings
 - Check **Email notifications** to turn them on. Your account email is added as the first recipient automatically.
 - Add up to **5 recipients** total. Press Enter or click **Add** to add each one. Addresses are validated and de-duplicated.
 - Remove a recipient with the trash icon next to it.
+- Check **Include responses in the email** to put the submitted values in the email itself.
 
 ### What the email contains
 
-Each notification email includes:
+Every notification includes the form name and a timestamp. Recipients who can sign in to this account also get a link to the submission in the dashboard; recipients who don't have an account don't, since the link would only send them to a login screen.
 
-- The form name
-- A timestamp
-- The submitted field values so recipients can triage without logging in
-- A direct link to the submission in the dashboard
+With **Include responses in the email** checked, each notification also contains:
+
+- Every field in form order, with its label and what the visitor entered. Fields left empty show as `(blank)`, so you can tell an unanswered question from a missing one.
+- A **Reply-To** set to the visitor's address, when the form collects an email. Replying to the notification goes to the visitor, not to Canopy Forms.
+
+This is the setting to use when a recipient needs the full response without signing in. Leave it off if you'd rather keep submitted data out of inboxes, and read responses in the dashboard instead.
 
 Notifications go out asynchronously after a successful submit. They're fire-and-forget: if email delivery fails, the submission is still saved and the form submitter sees a normal success response.
 
@@ -97,7 +104,7 @@ Notifications go out asynchronously after a successful submit. They're fire-and-
 
 - The submission is marked as spam.
 - Email isn't enabled in the form's settings.
-- The platform SMTP configuration is missing (contact the platform operator if you expect emails and aren't getting them).
+- The platform SMTP configuration is missing (use **Contact support** in the **?** menu if you expect emails and aren't getting them).
 
 ## Privacy and metadata
 

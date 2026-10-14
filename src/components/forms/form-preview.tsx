@@ -17,7 +17,7 @@ type FormPreviewProps = {
 
 export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { formInstanceRef, ready } = useEmbedScript(containerRef);
+  const { formInstanceRef, ready } = useEmbedScript(containerRef, { preview: true });
 
   // Always call the hook (Rules of Hooks) — returns null outside a FormProvider
   const ctx = useOptionalFormContext();

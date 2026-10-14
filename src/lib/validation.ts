@@ -93,6 +93,21 @@ export function validateOrigin(
   }
 }
 
+/** RFC 5322 compliant address shape. */
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/**
+ * Validate an email address.
+ * Rejects CR/LF outright — these values reach SMTP headers (Reply-To), where a
+ * newline would let a submitter inject additional headers.
+ */
+export function isValidEmail(value: string): boolean {
+  if (value.length > 320) return false;
+  if (/[\r\n]/.test(value)) return false;
+  return EMAIL_REGEX.test(value);
+}
+
 /**
  * Hash an IP address using SHA-256
  * Never store raw IPs for privacy

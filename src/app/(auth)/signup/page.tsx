@@ -92,30 +92,34 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               aria-invalid={!!showError("email")}
+              aria-describedby="email-error"
               disabled={isLoading}
             />
             {showError("email") && (
-              <p className="text-sm text-destructive">{errors.email}</p>
+              <p id="email-error" className="text-sm text-destructive">{errors.email}</p>
             )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               aria-invalid={!!showError("password")}
+              aria-describedby="password-error"
               disabled={isLoading}
             />
             {showError("password") ? (
-              <p className="text-sm text-destructive">{errors.password}</p>
+              <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p id="password-error" className="text-xs text-muted-foreground">
                 Must be at least 8 characters
               </p>
             )}
@@ -124,17 +128,19 @@ export default function SignupPage() {
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
               aria-invalid={!!showError("confirmPassword")}
+              aria-describedby="confirmPassword-error"
               disabled={isLoading}
             />
             {showError("confirmPassword") && (
-              <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+              <p id="confirmPassword-error" className="text-sm text-destructive">{errors.confirmPassword}</p>
             )}
           </div>
-          {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+          {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link href="/login" className="text-primary hover:underline">

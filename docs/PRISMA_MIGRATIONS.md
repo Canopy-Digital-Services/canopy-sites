@@ -15,7 +15,7 @@ Coolify offers pre/post-deployment hooks, but neither is suitable for migrations
 | **Pre-deployment** | Old (existing) container | Old container has old migration files — new migrations are invisible |
 | **Post-deployment** | New container | If the command fails, the container **keeps running anyway** (no rollback) |
 
-The correct approach is a **container entrypoint script** that runs `prisma migrate deploy` before `node server.js`. If migrations fail, the container fails to start — Coolify sees a failed health check and does not route traffic to it.
+The correct approach is a **container entrypoint script** that runs `prisma migrate deploy` before `node server.js`. If migrations fail, the container exits and the app is down until the migration is fixed: health checks are not enabled on the canopy-forms apps, so there is no routing gate to catch it. A failed **build**, by contrast, is safe; Coolify only swaps containers after a successful build, so the old container keeps serving.
 
 ---
 
@@ -29,6 +29,9 @@ set -e
 
 echo "[canopy-forms] Running database migrations..."
 node ./node_modules/prisma/build/index.js migrate deploy
+
+echo "[canopy-forms] Running post-migration backfills..."
+node ./scripts/backfill-global-admin.mjs
 
 echo "[canopy-forms] Migrations complete. Starting application..."
 exec node server.js
@@ -144,6 +147,7 @@ N migrations found in prisma/migrations
 
 No pending migrations to apply.      ← (or) Applied migration: 20260219000000_add_password_changed_at
 
+[canopy-forms] Running post-migration backfills...
 [canopy-forms] Migrations complete. Starting application...
 ```
 

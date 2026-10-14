@@ -24,6 +24,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
+  const [email, setEmail] = useState("");
 
   // Derived validation errors (computed every render)
   const errors = {
@@ -55,6 +56,9 @@ export default function ResetPasswordPage() {
       
       if (result.valid) {
         setTokenValid(true);
+        if (result.email) {
+          setEmail(result.email);
+        }
       } else {
         setTokenError(result.error || "Invalid reset link");
       }
@@ -142,12 +146,12 @@ export default function ResetPasswordPage() {
         </CardContent>
         <CardFooter>
           <div className="flex justify-center gap-2">
-            <Link href="/forgot-password">
-              <Button variant="default">Request new link</Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="outline">Back to login</Button>
-            </Link>
+            <Button variant="default" asChild>
+              <Link href="/forgot-password">Request new link</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/login">Back to login</Link>
+            </Button>
           </div>
         </CardFooter>
       </Card>
@@ -167,20 +171,33 @@ export default function ResetPasswordPage() {
             <h2 className="text-xl font-heading font-semibold">Set new password</h2>
             <p className="text-sm text-muted-foreground">Enter your new password below</p>
           </div>
+          {/* Hidden username so password managers update the existing saved entry instead of creating a new one. */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={email}
+            readOnly
+            aria-hidden="true"
+            tabIndex={-1}
+            className="absolute h-0 w-0 opacity-0 pointer-events-none"
+          />
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
             <PasswordInput
               id="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               aria-invalid={!!showError("password")}
+              aria-describedby="password-error"
               disabled={isLoading}
             />
             {showError("password") ? (
-              <p className="text-sm text-destructive">{errors.password}</p>
+              <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p id="password-error" className="text-xs text-muted-foreground">
                 Must be at least 8 characters
               </p>
             )}
@@ -189,17 +206,19 @@ export default function ResetPasswordPage() {
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
               aria-invalid={!!showError("confirmPassword")}
+              aria-describedby="confirmPassword-error"
               disabled={isLoading}
             />
             {showError("confirmPassword") && (
-              <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+              <p id="confirmPassword-error" className="text-sm text-destructive">{errors.confirmPassword}</p>
             )}
           </div>
-          {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+          {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
           <div className="mt-4 text-center text-sm">
             <Link href="/login" className="text-primary hover:underline">
               Back to login

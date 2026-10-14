@@ -14,13 +14,13 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center">
-      {icon ? <div className="mx-auto mb-3 w-fit">{icon}</div> : null}
-      <h3 className="text-lg font-semibold">{title}</h3>
+    <div className="rounded-lg bg-muted px-6 py-12 text-center">
+      {icon ? <div className="mx-auto mb-4 w-fit text-primary">{icon}</div> : null}
+      <h3 className="text-[1.375rem] font-heading font-semibold leading-tight">{title}</h3>
       {description ? (
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       ) : null}
-      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
+      {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </div>
   );
 }

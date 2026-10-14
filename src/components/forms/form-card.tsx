@@ -20,9 +20,9 @@ type FormCardProps = {
 export function FormCard({ form }: FormCardProps) {
   return (
     <Card className="group hover:shadow-md transition-shadow overflow-hidden">
-      {/* Thumbnail */}
-      <Link href={`/forms/${form.id}`} className="block">
-        <div className="aspect-[16/10] bg-muted/40 overflow-hidden">
+      {/* Thumbnail — decorative link, form name below is the real nav target */}
+      <Link href={`/forms/${form.id}`} className="block" aria-hidden="true" tabIndex={-1}>
+        <div className="aspect-[16/10] bg-muted overflow-hidden">
           <img
             src={`/api/forms/${form.id}/thumbnail`}
             alt=""
@@ -44,15 +44,16 @@ export function FormCard({ form }: FormCardProps) {
           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href={`/forms/${form.id}?mode=submissions`}>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="View submissions"
-                  >
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="View submissions"
+                  asChild
+                >
+                  <Link href={`/forms/${form.id}?mode=submissions`}>
                     <ClipboardList className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </TooltipTrigger>
               <TooltipContent>View submissions</TooltipContent>
             </Tooltip>
@@ -62,14 +63,17 @@ export function FormCard({ form }: FormCardProps) {
 
         <p className="text-sm text-muted-foreground">
           {form.published ? (
-            <Badge variant="default" className="text-[11px] mr-2">Published</Badge>
+            <Badge variant="success" className="text-[11px] mr-2">Published</Badge>
           ) : (
-            <Badge variant="outline" className="text-[11px] mr-2">Draft</Badge>
+            <Badge variant="neutral" className="text-[11px] mr-2">Draft</Badge>
           )}
+          <Badge variant="neutral" className="text-[11px] mr-2">
+            {form.type === "HOSTED" ? "Hosted" : "Embedded"}
+          </Badge>
           {form._count.fields} {form._count.fields === 1 ? "field" : "fields"} &middot;{" "}
           {form._count.submissions} {form._count.submissions === 1 ? "submission" : "submissions"}
           {form.newSubmissionsCount > 0 && (
-            <span className="text-success font-medium">
+            <span className="text-success-strong font-medium">
               {" "}({form.newSubmissionsCount} new)
             </span>
           )}

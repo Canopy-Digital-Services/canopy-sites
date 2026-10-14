@@ -163,7 +163,7 @@ export default async function SubmissionDetailPage({
           <div className="space-y-3 text-sm">
             <div>
               <div className="font-medium text-muted-foreground">IP Hash</div>
-              <code className="text-xs bg-muted px-2 py-1 rounded">
+              <code className="text-xs bg-muted px-2 py-1 rounded-md">
                 {meta.ipHash}
               </code>
             </div>

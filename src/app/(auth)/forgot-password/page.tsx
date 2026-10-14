@@ -98,17 +98,19 @@ export default function ForgotPasswordPage() {
                 id="email"
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setTouched(true)}
                 aria-invalid={!!showError}
+                aria-describedby="email-error"
                 disabled={isLoading}
               />
               {showError && (
-                <p className="text-sm text-destructive">{emailError}</p>
+                <p id="email-error" className="text-sm text-destructive">{emailError}</p>
               )}
             </div>
-            {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+            {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={isLoading}>

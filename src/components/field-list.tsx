@@ -40,11 +40,9 @@ export function FieldList({
 }: FieldListProps) {
   return (
     <div className="space-y-4">
-      {fields.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Click the button below to add your first field.
-        </p>
-      ) : (
+      {/* No empty-state copy: the labeled "Add Field" button below is the whole
+          message. See the empty-state anti-pattern in docs/UX_PATTERNS.md. */}
+      {fields.length === 0 ? null : (
         <SortableList
           items={fields}
           onReorder={onReorder}
@@ -60,7 +58,7 @@ export function FieldList({
                   <span className="font-medium text-sm">
                     {field.label}
                     {field.required && (
-                      <span className="text-red-500 ml-0.5">*</span>
+                      <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground/60">
@@ -75,6 +73,7 @@ export function FieldList({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={`Edit ${field.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onEditField(field.id);
@@ -92,6 +91,7 @@ export function FieldList({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={`Delete ${field.label}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteField(field.id);

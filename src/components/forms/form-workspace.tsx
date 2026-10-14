@@ -9,18 +9,13 @@ import {
   Check,
   Pencil,
   Eye,
-  Monitor,
-  AppWindow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
-import { FieldsSection } from "@/components/forms/fields-section";
-import { HeaderSection } from "@/components/forms/header-section";
-import { AppearanceSection } from "@/components/forms/appearance-section";
-import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
+import { EditorFlow } from "@/components/forms/editor-flow";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -34,9 +29,11 @@ type WorkspaceForm = {
   id: string;
   name: string;
   slug: string;
+  type: "HOSTED" | "EMBEDDED";
   allowedOrigins: string[];
   notifyEmails: string[];
   emailNotificationsEnabled: boolean;
+  emailIncludeResponses: boolean;
   honeypotField: string | null;
   successMessage: string | null;
   redirectUrl: string | null;
@@ -64,7 +61,6 @@ type Submission = {
   id: string;
   createdAt: string;
   status: string;
-  isSpam: boolean;
   preview: string;
 };
 
@@ -74,11 +70,10 @@ type FormWorkspaceProps = {
   form: WorkspaceForm;
   submissions?: Submission[];
   statusFilter?: string;
-  spamFilter?: string;
   publishDisabledReason?: string;
 };
 
-export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", spamFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
+export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], statusFilter = "all", publishDisabledReason }: FormWorkspaceProps) {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const activeTab =
@@ -95,7 +90,6 @@ export function FormWorkspace({ apiUrl, ownerEmail, form, submissions = [], stat
         activeTab={activeTab}
         submissions={submissions}
         statusFilter={statusFilter}
-        spamFilter={spamFilter}
         publishDisabledReason={publishDisabledReason}
       />
     </FormProvider>
@@ -109,11 +103,10 @@ type WorkspaceInnerProps = {
   activeTab: string;
   submissions: Submission[];
   statusFilter: string;
-  spamFilter: string;
   publishDisabledReason?: string;
 };
 
-function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, spamFilter, publishDisabledReason }: WorkspaceInnerProps) {
+function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
   const { state, saveStatus, updateName } = useFormContext();
 
@@ -121,10 +114,9 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
     const mode = tab === "editor" ? "edit" : tab;
     router.push(`/forms/${form.id}?mode=${mode}`);
   };
-  const [previewMode, setPreviewMode] = useState<"embed" | "page">("embed");
+  const previewMode: "embed" | "page" = form.type === "HOSTED" ? "page" : "embed";
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [openSection, setOpenSection] = useState<"header" | "fields" | "appearance" | "settings" | null>("fields");
   const [published, setPublished] = useState(form.published);
   const [isPublishing, startPublishTransition] = useTransition();
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -192,7 +184,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                         onChange={(e) => updateName(e.target.value)}
                         onBlur={() => setEditingName(false)}
                         onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
-                        className="text-2xl font-heading font-semibold tracking-tight h-auto"
+                        className="text-3xl font-heading font-semibold tracking-tight h-auto"
                         placeholder="Form name"
                       />
                       <Button
@@ -205,7 +197,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                       </Button>
                     </div>
                   ) : (
-                    <h1 className="text-2xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
+                    <h1 className="text-3xl font-heading font-semibold tracking-tight flex items-center gap-2 truncate">
                       {state.name || form.name}
                       {editing && (
                         <Tooltip>
@@ -233,7 +225,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                       </span>
                     )}
                     {saveStatus === "saved" && (
-                      <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                      <span className="text-sm text-success-strong flex items-center gap-2">
                         <Check className="h-4 w-4" />
                         Saved
                       </span>
@@ -259,7 +251,6 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
               formId={form.id}
               submissions={submissions}
               statusFilter={statusFilter}
-              spamFilter={spamFilter}
             />
           </div>
         ) : activeTab === "publish" ? (
@@ -278,55 +269,19 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         ) : (
           /* Editor tab: editor column + preview column */
           <div className="flex flex-1 min-h-0 justify-center">
-            {/* Editor column */}
-            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto px-4 md:px-8 py-6">
-              <div className="max-w-[640px] mx-auto space-y-4">
-                <HeaderSection
-                  open={openSection === "header"}
-                  onOpenChange={(v) => setOpenSection(v ? "header" : null)}
-                />
-                <FieldsSection
-                  formId={form.id}
-                  open={openSection === "fields"}
-                  onOpenChange={(v) => setOpenSection(v ? "fields" : null)}
-                />
-                <AppearanceSection
-                  open={openSection === "appearance"}
-                  onOpenChange={(v) => setOpenSection(v ? "appearance" : null)}
-                />
-                <AfterSubmissionSection
-                  ownerEmail={ownerEmail}
-                  open={openSection === "settings"}
-                  onOpenChange={(v) => setOpenSection(v ? "settings" : null)}
-                />
+            {/* Editor column — one section card at a time (progressive disclosure) */}
+            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
+              <div className="max-w-[640px] mx-auto">
+                <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
               </div>
             </div>
 
             {/* Preview column — fixed width, floating shadow on both sides */}
             <div className="w-[600px] shrink-0 hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
-              {/* Embed / Page toggle */}
-              <div className="shrink-0 px-4 pt-3 pb-1">
-                <div className="flex gap-1">
-                  <Button
-                    variant={previewMode === "embed" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setPreviewMode("embed")}
-                  >
-                    <Monitor className="h-4 w-4" />
-                    Embed
-                  </Button>
-                  <Button
-                    variant={previewMode === "page" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setPreviewMode("page")}
-                  >
-                    <AppWindow className="h-4 w-4" />
-                    Page
-                  </Button>
-                </div>
+              <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
+                <Eye className="h-3.5 w-3.5" aria-hidden />
+                Preview
               </div>
-
-              {/* Preview area */}
               <div ref={previewContainerRef} className="flex-1 overflow-y-auto flex flex-col">
                 <FormPreview live mode={previewMode} />
               </div>
@@ -355,7 +310,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         onOpenChange={setPreviewOpen}
         title="Preview"
       >
-        <FormPreview live mode="page" />
+        <FormPreview live mode={previewMode} />
       </RightPanel>
     </>
   );

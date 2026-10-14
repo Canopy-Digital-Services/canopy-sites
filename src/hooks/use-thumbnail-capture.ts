@@ -32,8 +32,8 @@ export function useThumbnailCapture({
 
     try {
       const dataUrl = await toJpeg(el, {
-        quality: 0.7,
-        pixelRatio: 0.5,
+        quality: 0.9,
+        pixelRatio: 2,
         cacheBust: true,
         skipFonts: true,
       });

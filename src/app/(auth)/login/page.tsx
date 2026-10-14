@@ -97,14 +97,16 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="you@example.com"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, email: true }))}
               aria-invalid={!!showError("email")}
+              aria-describedby="email-error"
               disabled={isLoading}
             />
             {showError("email") && (
-              <p className="text-sm text-destructive">{errors.email}</p>
+              <p id="email-error" className="text-sm text-destructive">{errors.email}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -119,14 +121,16 @@ export default function LoginPage() {
             </div>
             <PasswordInput
               id="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, password: true }))}
               aria-invalid={!!showError("password")}
+              aria-describedby="password-error"
               disabled={isLoading}
             />
             {showError("password") && (
-              <p className="text-sm text-destructive">{errors.password}</p>
+              <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -146,9 +150,9 @@ export default function LoginPage() {
             </Label>
           </div>
           {successMessage && (
-            <p className="text-sm text-green-600">{successMessage}</p>
+            <p role="status" className="text-sm text-success-strong">{successMessage}</p>
           )}
-          {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+          {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline">

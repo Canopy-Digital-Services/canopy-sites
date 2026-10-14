@@ -53,6 +53,15 @@ export async function GET(
       return jsonError("Form not found", 404, origin);
     }
 
+    if (form.type === "HOSTED") {
+      return jsonError(
+        "This form is only available at its hosted URL.",
+        403,
+        origin,
+        "FORM_HOSTED_ONLY"
+      );
+    }
+
     if (!validateOrigin(origin, form.allowedOrigins, referer)) {
       return jsonError("Origin not allowed", 403, origin);
     }
@@ -92,6 +101,7 @@ export async function GET(
           options: field.options,
           validation: field.validation,
         })),
+        name: form.name,
         title: form.title || undefined,
         description: form.description || undefined,
         successMessage: form.successMessage || undefined,

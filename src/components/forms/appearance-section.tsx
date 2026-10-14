@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -77,7 +77,7 @@ function SubSection({
           type="button"
           className={`flex w-full items-center justify-between py-2 text-left border-t ${className ?? ""}`}
         >
-          <span className="text-base font-heading font-semibold text-primary">{title}</span>
+          <span className="text-base font-heading font-semibold">{title}</span>
           <div className="flex items-center gap-1.5">
             {!open && chips}
             {open ? (
@@ -98,12 +98,16 @@ function SubSection({
 // ─── Main component ──────────────────────────────────────────────────────────
 
 type AppearanceSectionProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
+  variant?: "accordion" | "flow";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps) {
+export function AppearanceSection({ variant = "accordion", open = false, onOpenChange }: AppearanceSectionProps) {
   const { state, saveStatus, updateTheme } = useFormContext();
+  const isFlow = variant === "flow";
+  const isHosted = state.type === "HOSTED";
 
   const theme = state.defaultTheme ?? {};
 
@@ -248,42 +252,37 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  return (
-    <Card>
-      <Collapsible open={open} onOpenChange={onOpenChange}>
-        <CardHeader className="cursor-pointer" onClick={() => onOpenChange(!open)}>
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Appearance</CardTitle>
-                <CardDescription>Customize how your form looks</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                {saveStatus === "saving" && (
-                  <span className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Save className="h-4 w-4 animate-pulse" />
-                    Saving...
-                  </span>
-                )}
-                {saveStatus === "saved" && (
-                  <span className="text-sm text-success flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                    Saved
-                  </span>
-                )}
-                {open ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="space-y-1">
+  const headerInner = (
+    <div className="flex items-center justify-between">
+      <CardTitle>Appearance</CardTitle>
+      <div className="flex items-center gap-2">
+        {saveStatus === "saving" && (
+          <span className="text-sm text-muted-foreground flex items-center gap-2">
+            <Save className="h-4 w-4 animate-pulse" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-sm text-success-strong flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Saved
+          </span>
+        )}
+        {!isFlow &&
+          (open ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          ))}
+      </div>
+    </div>
+  );
+
+  const body = (
+    <CardContent className="space-y-1">
 
         {/* ── Page ──────────────────────────────────────────────────── */}
+        {isHosted && (
         <SubSection
           title="Page"
           open={pageOpen}
@@ -291,9 +290,6 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
           chips={pageChips}
           className="border-t-0"
         >
-          <p className="text-xs text-muted-foreground">
-            Applied when the form is hosted as a standalone page.
-          </p>
           <div className="space-y-2">
             <Label htmlFor="pageBackground">Page Background Color</Label>
             <div className="flex gap-2">
@@ -301,7 +297,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 type="color"
                 value={toColorInputValue(pageBackground, "#f4f4f5")}
                 onChange={(e) => set("pageBackground", e.target.value)}
-                className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
               />
               <Input
                 id="pageBackground"
@@ -362,6 +358,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
             </Select>
           </div>
         </SubSection>
+        )}
 
         {/* ── Form ──────────────────────────────────────────────────── */}
         <SubSection
@@ -369,6 +366,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
           open={formOpen}
           onOpenChange={setFormOpen}
           chips={formChips}
+          className={isHosted ? undefined : "border-t-0"}
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
@@ -378,7 +376,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(background, "#ffffff")}
                   onChange={(e) => set("background", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="background"
@@ -396,7 +394,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(fieldBackground, "#ffffff")}
                   onChange={(e) => set("fieldBackground", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="fieldBackground"
@@ -414,7 +412,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(border, "#e4e4e7")}
                   onChange={(e) => set("border", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="border"
@@ -497,6 +495,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 value={headingFont}
                 onChange={(v) => set("headingFont", v)}
                 variant="heading"
+                showInherit={!isHosted}
               />
             </div>
             <div className="space-y-2">
@@ -522,7 +521,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(titleColor, "#18181b")}
                   onChange={(e) => set("titleColor", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="titleColor"
@@ -590,6 +589,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                 id="bodyFont"
                 value={bodyFont}
                 onChange={(v) => set("bodyFont", v)}
+                showInherit={!isHosted}
               />
             </div>
             <div className="space-y-2">
@@ -611,7 +611,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(text, "#18181b")}
                   onChange={(e) => set("text", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="text"
@@ -649,7 +649,7 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
                   type="color"
                   value={toColorInputValue(primary, "#005F6A")}
                   onChange={(e) => set("primary", e.target.value)}
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded border border-input bg-transparent p-0.5"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
                 />
                 <Input
                   id="primary"
@@ -664,7 +664,24 @@ export function AppearanceSection({ open, onOpenChange }: AppearanceSectionProps
         </SubSection>
 
       </CardContent>
-        </CollapsibleContent>
+  );
+
+  if (isFlow) {
+    return (
+      <Card>
+        <CardHeader>{headerInner}</CardHeader>
+        {body}
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <Collapsible open={open} onOpenChange={onOpenChange}>
+        <CardHeader className="cursor-pointer" onClick={() => onOpenChange?.(!open)}>
+          <CollapsibleTrigger asChild>{headerInner}</CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>{body}</CollapsibleContent>
       </Collapsible>
     </Card>
   );
