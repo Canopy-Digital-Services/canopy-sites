@@ -5,6 +5,41 @@ All notable changes to Canopy Forms will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.14.0] - 2026-10-14
+
+### Added
+
+- **Step-by-step editor**: the Edit tab shows one section at a time (Header, Fields, Appearance, Submission Settings) with progress dots and Back/Continue, ending on a card that links to Publish. Autosave means moving between steps needs no save action
+- **Help menu split into docs, support, and feedback**: "Help with this page", "Browse documentation", "Contact support", and "Give feedback". Support messages carry an editable Reply-To prefilled from the session
+  - New optional `SUPPORT_RECIPIENT_EMAIL`, falling back to `FEEDBACK_RECIPIENT_EMAIL`
+  - Rate limiting is keyed per message kind, so feedback can't lock out a support request
+- **Submission filters**: status and spam filters merged into one row, plus a **Mark all as read** bulk action
+- **Embed watermark**: "Powered by Canopy Forms" footer with a prefilled "Report an issue" link
+- **ZIP validation** on Address fields (5 digits or ZIP+4)
+- Dropdowns accept a new options shape (`{ options, allowOther }`) alongside the legacy array; membership is not enforced when `allowOther` is set
+
+### Changed
+
+- **Design system unification**: one 2px radius token, consolidated neutrals, a 4-level shadow scale, tinted-pill badges, and a single type scale (page titles 30, card and dialog titles 22). Hardcoded palette colors replaced with semantic tokens
+- **Brand teal corrected**: `--primary` and related tokens now reference the `#005F6A` hex directly. The previous oklch approximation rendered as `#004e4e`
+- **Motion**: shared flow-motion tokens drive dialog and editor transitions; dialogs now rise from below instead of zooming. Shortened rather than removed under `prefers-reduced-motion`
+- Form card thumbnails are captured at higher resolution
+- Removed descriptions that only restated their titles
+
+### Accessibility
+
+- Auth forms link errors to inputs with `aria-describedby`, announce errors and success via `role=alert`/`role=status`, and set `autocomplete` so password managers update saved credentials
+- Embed: errors announced immediately, `aria-required` on required inputs, Name and Address grouped with `role=group`, decorative asterisks hidden from screen readers
+- Admin: labelled icon-only buttons, linked field-type label, no nested link/button elements
+
+### Removed
+
+- Unused `noFuture`, `noPast`, `normalize`, and `message` validation keys from public submit and the embed runtime
+
+### Security
+
+- Support Reply-To addresses are re-validated server-side and CR/LF is rejected, preventing SMTP header injection
+
 ## [4.13.0] - 2026-07-24
 
 ### Added
