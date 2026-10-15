@@ -1,10 +1,12 @@
-# Canopy Forms Agent Context
+# Canopy Portal Agent Context
 
 Authoritative reference for coding agents working in this repo.
 
+**Layout.** npm workspaces. The Next.js app that serves Canopy Forms and the Canopy Sites portal is `apps/portal/`; `apps/builder/` and `packages/site-contract/` stay empty until Epic 30 and C1. **Code paths in this doc are relative to `apps/portal/`.** Paths under `docs/`, plus `package.json`, `package-lock.json`, `CHANGELOG.md`, and the compose files, are at the repo root. Canopy Sites is specified in `docs/canopy-sites/PRD.md` and sequenced in `docs/canopy-sites/ROADMAP.md`.
+
 **Code wins over docs.** Verify anything here against the file before relying on it. Source-of-truth order: code > `prisma/schema.prisma` > `prisma/migrations/` > `CHANGELOG.md` > docs.
 
-Current version: `package.json` → `version`. Release history: `CHANGELOG.md`. Epic table: `docs/epics/README.md`.
+Current version: root `package.json` → `version`. Release history: `CHANGELOG.md`. Epic table: `docs/epics/README.md`.
 
 **Editing this doc.** It is written for agents, so density matters more than flow. Follow the rules in `docs/DOC_MAINTENANCE.md` before adding to it.
 
@@ -13,6 +15,8 @@ Current version: `package.json` → `version`. Release history: `CHANGELOG.md`. 
 ## 1. Product & stack
 
 Privacy-first embedded forms for static websites. Users build forms in a visual editor, embed them with two lines of HTML, and manage submissions in a dashboard with email notifications. Audience: small business owners and freelancers running static sites with no backend.
+
+The same app is the portal for Canopy Sites clients (hand-built sites maintained for a monthly rate), who get an Editor and Stats alongside Forms. See "Products and chrome" in section 2.
 
 Next.js 16 · React 19 · NextAuth v5 (beta) · Prisma 7 · TypeScript 5 · Tailwind v4 · Node 20
 
@@ -52,6 +56,14 @@ Identify which layer a change touches before starting.
 - NextAuth v5 credentials provider, self-service signup.
 - Account is internal (one per user) and never surfaced in the UI.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
+- Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
+- `NEXTAUTH_URL` is the Forms URL on every host, and NextAuth rewrites auth requests to that origin. **Never let NextAuth pick a post-auth destination**: call `signOut`/`signIn` with `redirect: false` and navigate to a relative path yourself (`signOutAction` in `src/actions/auth.ts`, account deletion in `src/components/account/account-dashboard.tsx`). Otherwise a Sites-host user lands on the Forms host.
+
+### Products and chrome
+
+- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) on any host; every other account gets the Forms chrome. Until Epic 29 adds `Plan.sitesEnabled`, `sitesEnabled` is derived from `planCode === "UNLOCKED"` inside `entitlements.ts`; never compare plan codes elsewhere.
+- Sites-only routes (`/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
+- The hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
 
 ### Validation
 
@@ -106,7 +118,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to `/forms` or `/login`. Admin lives under `/forms`, `/account`, `/docs`. Operator console is `/operator/accounts`. Public form pages are `/f/[formId]`. **A "home" link for an admin or operator points to `/forms`, never `/`.**
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/editor` and `/stats` for Sites accounts. Operator console is `/operator/accounts`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/editor` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -125,7 +137,7 @@ When writing a plan, task list, or subagent brief, include the line "Before star
 
 ## 4. Commands & verification
 
-Scripts are in `package.json`. The two non-obvious ones:
+Root `package.json` scripts delegate to the portal workspace (`npm run build`, `lint`, `embed:build`, `db:generate`, `db:migrate -- --name x`, `db:seed`); the portal's own scripts are in `apps/portal/package.json`. Dependencies are added to the workspace that uses them (`npm install <pkg> -w @canopy/portal`); npm `overrides` only work in the root `package.json`. The two non-obvious scripts:
 
 - `npm run embed:build` rebuilds `public/embed.js` from `embed/src/*`. Required after any embed change.
 - `npm run db:push` exists. **Never run it.** It mutates the database without creating a migration, so the change never reaches deployed environments.
@@ -134,7 +146,7 @@ Scripts are in `package.json`. The two non-obvious ones:
 
 There is no automated test suite. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which checks apply to which change type.
 
-Local dev: `docker-compose.dev.yml` runs `postgres:17-alpine` plus the app on `http://localhost:3006`, using `Dockerfile.dev` with a source mount for hot reload. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`.
+Local dev: the root `docker-compose.dev.yml` (project `canopy-sites`) runs `postgres:17-alpine` (container `canopy-portal-db`) plus the portal (container `canopy-portal`) on `http://localhost:3006`, using `apps/portal/Dockerfile.dev` with the repo root mounted for hot reload and `apps/portal` as the working directory, so `docker exec canopy-portal <cmd>` runs in the app. `http://sites.localhost:3006` resolves to the same app with the Sites host branding. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`.
 
 ---
 
@@ -222,10 +234,11 @@ GitHub's merge commit lands on `main` only, so the branches diverge by exactly o
 | Dev | `https://forms-dev.canopyds.com` | `dev` | `wogw0skcsgck80cs4gscs0c0` |
 | Prod | `https://forms.canopyds.com` | `main` | `j80s80ow8ss4444kk40cscsc` |
 
-Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds an image and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
+Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds `apps/portal/Dockerfile` with the repo root as context and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
-- Auto-deploy watch paths are `src/**`, `embed/**`, `prisma/**`. Changes to `docs/**` or config files outside those paths do not trigger a deploy.
+- Auto-deploy watch paths should be `apps/portal/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or files outside those paths do not trigger a deploy.
+- **Pending (as of 2026-10-15):** both Coolify apps still build `/Dockerfile` with watch paths `src/**`, `embed/**`, `prisma/**`, which match nothing after Epic 27 moved the app. Until Epic 27's deploy step updates them (and adds `sites.canopyds.com` / `sites-dev.canopyds.com`), do not merge the move into `dev` or `main`. Delete this bullet when the apps are updated.
 - **An env var change is inert until the container is recreated.** Coolify injects env at container creation, so a var added through the UI or API does nothing to the running app until it is redeployed. Confirm with the runtime probe in section 7 rather than the Coolify UI, which shows the stored value, not what the Node process holds.
 
 ---
@@ -282,7 +295,7 @@ Hard rules:
 - **Reordering**: `SortableList` (`src/components/ui/sortable-list.tsx`) with drag and drop. Never Up/Down buttons.
 - **Icon buttons**: always wrapped in `Tooltip`. `GripVertical` drag, `Trash2` delete, `Pencil` edit.
 - **Typography**: three families. `font-heading` is Urbanist (all semantic headings), `font-sans` is Inter (body default, buttons, labels, tables), `font-mono` is Geist Mono (code, IDs, embed snippets). Headings are a single weight (600); hierarchy comes from size.
-- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`.
+- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`. `product="sites"` renders a placeholder text wordmark until Canopy Sites brand assets exist. Auth card headers use `AuthBrandMark`, which brands by host.
 - **Validation**: admin and auth use inline touched/submitted with `noValidate`. The embed uses native popups. See section 2.
 
 ---
@@ -291,7 +304,7 @@ Hard rules:
 
 After completing an epic or cutting a release, in order:
 
-1. `package.json`: bump `version`.
+1. Root `package.json`: bump `version`.
 2. `CHANGELOG.md`: new entry at the top with date and changes.
 3. `docs/epics/epic-N-name.md`: completion report.
 4. `docs/epics/README.md`: table row with version, date, link.

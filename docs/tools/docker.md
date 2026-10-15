@@ -67,7 +67,7 @@ docker compose version
 docker compose up -d
 
 # Build a specific service
-docker compose build canopy-forms
+docker compose build portal
 
 # Start services (without rebuilding)
 docker compose start
@@ -79,23 +79,23 @@ docker compose stop
 docker compose down
 
 # View logs
-docker compose logs -f canopy-forms
+docker compose logs -f portal
 
 # Execute command in running container
-docker compose exec canopy-forms sh
+docker compose exec portal sh
 ```
 
 ### Build Commands
 
 ```bash
 # Build without cache
-docker compose build --no-cache canopy-forms
+docker compose build --no-cache portal
 
 # Build with build arguments
 docker compose build --build-arg NEXT_PUBLIC_APP_URL=https://example.com
 
 # Rebuild and restart
-docker compose up -d --build canopy-forms
+docker compose up -d --build portal
 ```
 
 ### Development Workflow (with Hot Reload)
@@ -112,10 +112,10 @@ docker compose -f docker-compose.dev.yml up -d
 # Next.js Fast Refresh updates the UI immediately
 
 # View real-time logs
-docker compose -f docker-compose.dev.yml logs -f canopy-forms
+docker compose -f docker-compose.dev.yml logs -f portal
 
 # Restart if needed (e.g., after schema changes)
-docker compose -f docker-compose.dev.yml restart canopy-forms
+docker compose -f docker-compose.dev.yml restart portal
 
 # Check service status
 docker compose -f docker-compose.dev.yml ps
@@ -133,8 +133,8 @@ docker compose -f docker-compose.dev.yml ps
 
 ```bash
 # Only use for testing production builds
-docker compose build canopy-forms
-docker compose up -d canopy-forms
+docker compose build portal
+docker compose up -d portal
 
 # Requires full rebuild (~2 minutes) for every code change
 # No hot reload - changes require container rebuild
@@ -167,8 +167,8 @@ Container names should use hyphens (`-`) instead of underscores (`_`) for proper
 
 ```yaml
 services:
-  canopy-forms:  # ✅ Good
-    container_name: canopy-forms  # ✅ Good
+  portal:  # ✅ Good
+    container_name: canopy-portal  # ✅ Good
   
   # Avoid:
   can_o_forms:  # ❌ Not recommended
@@ -202,11 +202,11 @@ Pass build-time arguments in the `build.args` section:
 
 ```yaml
 services:
-  canopy-forms:
+  portal:
     build:
       context: .
       args:
-        NEXT_PUBLIC_APP_URL: "https://canopy-forms.canopyds.com"
+        NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
 ```
 
 ## Dockerfile Best Practices
@@ -268,39 +268,40 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 ## Project-Specific Configuration
 
-### Canopy Forms Docker Setup
+### Portal Docker Setup
 
-**Dockerfiles:**
-- `/Dockerfile`: Production build (standalone Next.js output)
-- `/Dockerfile.dev`: Development mode (runs `npm run dev` with hot reload)
+**Dockerfiles** (build context is always the repo root, because npm workspaces need the root manifest and lockfile):
+- `apps/portal/Dockerfile`: Production build (standalone Next.js output, `server.js` under `apps/portal/`)
+- `apps/portal/Dockerfile.dev`: Development mode (runs `npm run dev` with hot reload)
 
-**Compose Files:**
+**Compose Files** (repo root, project name `canopy-sites`):
 - `/docker-compose.yml`: Production mode (requires rebuilds for changes)
 - `/docker-compose.dev.yml`: **Development mode (use this for active development)**
 
 **Services:**
-- `canopy-forms`: Next.js application (port 3000, mapped to 127.0.0.1:3006)
-- `postgres`: PostgreSQL database (port 5432)
+- `portal` (container `canopy-portal`): Next.js application (port 3000, mapped to 127.0.0.1:3006)
+- `postgres` (container `canopy-portal-db`): PostgreSQL database (port 5432)
 
 **Networks:**
-- `canopy-forms-network`: Internal bridge network
+- `canopy-sites-network`: Internal bridge network
 - `proxy`: External network (for reverse proxy integration)
 
 **Volumes:**
-- `postgres_data`: Persistent database storage
+- `pgdata`: Persistent database storage. Never rename it back to `postgres_data`: under the `canopy-sites` project name that resolves to the abandoned July 2026 volume, which holds an unrelated schema.
 
 ### Development Mode Configuration
 
-**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-08-14):
+**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-10-15):
 ```yaml
+working_dir: /app/apps/portal
 volumes:
-  - .:/app                    # Mount source code for hot reload
-  - node_modules:/app/node_modules   # Named volume preserves container-installed deps
+  - .:/app                    # Mount the repo root for hot reload
+  - node_modules:/app/node_modules   # Named volume preserves container-installed (hoisted) deps
 ```
 
 **Consequences of this layout:**
 - The named `node_modules` volume keeps container-installed dependencies from being overwritten by the host mount
-- There is **no `.next` volume**: the container writes `.next` onto the bind mount **as root**. Never run `next build` on the host while the container shares this directory: the host build hits EACCES on the root-owned files, and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-forms rm -rf .next && docker restart canopy-forms`
+- There is **no `.next` volume**: the container writes `apps/portal/.next` onto the bind mount **as root**. Never run `next build` on the host while the container shares this directory: the host build hits EACCES on the root-owned files, and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-portal rm -rf .next && docker restart canopy-portal`
 
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:
@@ -363,29 +364,29 @@ docker compose -f docker-compose.dev.yml up -d
 # No rebuild needed for code changes
 
 # 3. If you changed Prisma schema, apply migration SQL:
-cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-forms-db psql -U user -d canopy-forms
+cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-portal-db psql -U user -d canopy-forms
 
 # 4. Restart container (if needed):
-docker compose -f docker-compose.dev.yml restart canopy-forms
+docker compose -f docker-compose.dev.yml restart portal
 
 # 5. View logs
-docker compose -f docker-compose.dev.yml logs -f canopy-forms
+docker compose -f docker-compose.dev.yml logs -f portal
 ```
 
 **Production Mode (for deployment testing only):**
 ```bash
 # 1. Make code changes
 # 2. If you changed Prisma schema, apply migration SQL to database first:
-cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-forms-db psql -U user -d canopy-forms
+cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-portal-db psql -U user -d canopy-forms
 
 # 3. Rebuild the image (runs prisma generate automatically)
-docker compose build canopy-forms
+docker compose build portal
 
 # 4. Restart the service
-docker compose up -d canopy-forms
+docker compose up -d portal
 
 # 5. Verify logs
-docker compose logs -f canopy-forms
+docker compose logs -f portal
 ```
 
 **Important:** 
@@ -425,7 +426,7 @@ environment:
   SMTP_FROM: "${SMTP_FROM:-}"
 ```
 
-**Issue: Permission denied when running `docker exec canopy-forms npx prisma generate`**
+**Issue: Permission denied when running `docker exec canopy-portal npx prisma generate`**
 
 **Root Cause:** The production container runs as non-root user (`nextjs` UID 1001) and doesn't have write permissions to `node_modules/.prisma`. The Prisma client is generated during the Docker build process (Dockerfile line 24), not at runtime.
 
@@ -434,7 +435,7 @@ environment:
 **For Development Mode:**
 ```bash
 # ✅ Correct: Restart dev container (entrypoint script handles Prisma generation)
-docker compose -f docker-compose.dev.yml restart canopy-forms
+docker compose -f docker-compose.dev.yml restart portal
 ```
 
 **For Production Mode:**
@@ -457,11 +458,11 @@ docker compose build && docker compose up -d
 
 ```bash
 # Rebuild dev container to ensure entrypoint script is current
-docker compose -f docker-compose.dev.yml build canopy-forms
-docker compose -f docker-compose.dev.yml up -d canopy-forms
+docker compose -f docker-compose.dev.yml build portal
+docker compose -f docker-compose.dev.yml up -d portal
 
 # Check logs to see if dependencies are being installed
-docker compose -f docker-compose.dev.yml logs -f canopy-forms
+docker compose -f docker-compose.dev.yml logs -f portal
 ```
 
 The anonymous volume `/app/node_modules` in `docker-compose.dev.yml` should preserve dependencies, but the entrypoint script provides a fallback.
@@ -471,7 +472,7 @@ The anonymous volume `/app/node_modules` in `docker-compose.dev.yml` should pres
 **Solution:**
 ```bash
 # Check logs for errors
-docker compose logs canopy-forms
+docker compose logs portal
 
 # Verify environment variables are set
 docker compose config
@@ -506,16 +507,16 @@ RUN npx prisma generate
 **For Development Mode:**
 ```bash
 # Inspect running container
-docker compose -f docker-compose.dev.yml exec canopy-forms sh
+docker compose -f docker-compose.dev.yml exec portal sh
 
 # Check environment variables
-docker compose -f docker-compose.dev.yml exec canopy-forms env
+docker compose -f docker-compose.dev.yml exec portal env
 
 # View container resource usage
-docker stats canopy-forms
+docker stats canopy-portal
 
 # Inspect network configuration
-docker network inspect canopy-forms_canopy-forms-network
+docker network inspect canopy-sites_canopy-sites-network
 
 # Validate compose file
 docker compose -f docker-compose.dev.yml config
@@ -524,10 +525,10 @@ docker compose -f docker-compose.dev.yml config
 **For Production Mode:**
 ```bash
 # Inspect running container
-docker compose exec canopy-forms sh
+docker compose exec portal sh
 
 # Check environment variables
-docker compose exec canopy-forms env
+docker compose exec portal env
 
 # Validate compose file
 docker compose config

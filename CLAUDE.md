@@ -4,14 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Start with [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md)** — the authoritative guide for architecture, development workflow, schema changes, and all commands.
 
+This repo is the unified Canopy portal (npm workspaces): the Next.js app serving Canopy Forms and the Canopy Sites portal is `apps/portal/`. For Canopy Sites work, also read [`docs/canopy-sites/PRD.md`](docs/canopy-sites/PRD.md) (what and why) and [`docs/canopy-sites/ROADMAP.md`](docs/canopy-sites/ROADMAP.md) (order and epic briefs).
+
 ## Common Commands
+
+Run from the repo root; they delegate to the portal workspace.
 
 ```bash
 npm run build          # Production build (must pass before committing)
 npm run lint           # ESLint (must pass before committing)
 npm run embed:build    # Rebuild public/embed.js from embed/src/* (required after embed changes)
 npm run db:generate    # Regenerate Prisma client
-npm run db:migrate     # prisma migrate dev (creates + applies migration)
+npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration)
 ```
 
 No automated test suite — see `docs/VERIFICATION_CHECKLIST.md` for the quality gate.
@@ -56,7 +60,7 @@ After completing substantive work, check whether your changes affect documentati
 - **Embed theme/behavior changes** → update `docs/UX_PATTERNS.md` section 11 (embed theming) or section 8 (embed validation).
 - **New npm scripts or dependencies** → update `docs/AGENT_CONTEXT.md` section 4 (only if the script is non-obvious; the table is not a mirror of `package.json`).
 - **Coolify/Docker/infra changes** → update `docs/PRISMA_MIGRATIONS.md`.
-- **User-visible feature or flow changes** → review `content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `content/docs/meta.ts` if the feature has no existing home.
+- **User-visible feature or flow changes** → review `apps/portal/content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `apps/portal/content/docs/meta.ts` if the feature has no existing home.
 - **Epic completion or version bump** → follow the release checklist in `docs/AGENT_CONTEXT.md` section 10.
 - **Any doc claim the live system contradicts** → fix that doc in the same session you observed it. State claims (versions, counts, "X exists / isn't possible yet") follow `docs/DOC_MAINTENANCE.md` section on staleness.
 

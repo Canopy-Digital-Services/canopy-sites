@@ -1,3 +1,11 @@
+## In Progress
+
+| Epic | Started | Status |
+|------|---------|--------|
+| [Epic 27: Restructure In Place; Product-Based Chrome](epic-27-restructure-product-chrome.md) | 2026-10-15 | Code complete on `epic-27`; deploy pending |
+
+Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
+
 ## Completed Epics
 
 | Epic | Version | Date | Status |
