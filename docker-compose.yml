@@ -1,19 +1,20 @@
-name: canopy-forms
+name: canopy-sites
 
 services:
-  canopy-forms:
+  portal:
     build:
       context: .
+      dockerfile: apps/portal/Dockerfile
       args:
         NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
-    container_name: canopy-forms
+    container_name: canopy-portal
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "127.0.0.1:3006:3000"
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
       - proxy
     environment:
       # Database - update with your PostgreSQL credentials
@@ -40,22 +41,23 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: canopy-forms-db
+    container_name: canopy-portal-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: canoforms
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
 
 volumes:
-  postgres_data:
+  # Not "postgres_data": see docker-compose.dev.yml.
+  pgdata:
 
 networks:
-  canopy-forms-network:
+  canopy-sites-network:
     driver: bridge
   proxy:
     external: true

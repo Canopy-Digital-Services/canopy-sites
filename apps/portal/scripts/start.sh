@@ -1,11 +1,12 @@
 #!/bin/sh
 set -e
 
-echo "[canopy-forms] Running database migrations..."
-node ./node_modules/prisma/build/index.js migrate deploy
+# Runs from apps/portal; workspace dependencies are hoisted to the repo root.
+echo "[portal] Running database migrations..."
+node ../../node_modules/prisma/build/index.js migrate deploy
 
-echo "[canopy-forms] Running post-migration backfills..."
+echo "[portal] Running post-migration backfills..."
 node ./scripts/backfill-global-admin.mjs
 
-echo "[canopy-forms] Migrations complete. Starting application..."
+echo "[portal] Migrations complete. Starting application..."
 exec node server.js

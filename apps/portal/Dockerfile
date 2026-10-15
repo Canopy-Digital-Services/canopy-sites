@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1
+# Build context is the repo root (npm workspaces):
+#   docker build -f apps/portal/Dockerfile .
 
 FROM node:20-alpine AS base
 
@@ -7,8 +9,11 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
+# Workspace manifests only, so the install layer caches until a manifest changes
+COPY package.json package-lock.json ./
+COPY apps/portal/package.json ./apps/portal/
+COPY apps/builder/package.json ./apps/builder/
+COPY packages/site-contract/package.json ./packages/site-contract/
 RUN npm ci
 
 # Rebuild the source code only when needed
@@ -16,8 +21,9 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+WORKDIR /app/apps/portal
 
-# Build embed script first (uses parent's node_modules)
+# Build embed script first (uses the workspace's node_modules)
 RUN npm run embed:build
 
 # Generate Prisma Client
@@ -39,20 +45,22 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+# Standalone output mirrors the workspace layout: server.js lands in apps/portal/
+COPY --from=builder /app/apps/portal/.next/standalone ./
+COPY --from=builder /app/apps/portal/.next/static ./apps/portal/.next/static
+COPY --from=builder /app/apps/portal/public ./apps/portal/public
+COPY --from=builder /app/apps/portal/prisma ./apps/portal/prisma
+COPY --from=builder /app/apps/portal/prisma.config.ts ./apps/portal/prisma.config.ts
 
 # Copy FULL node_modules
 COPY --from=deps /app/node_modules ./node_modules
 
 # Entrypoint + post-migration backfills
-COPY scripts ./scripts
-RUN chmod +x ./scripts/start.sh
+COPY apps/portal/scripts ./apps/portal/scripts
+RUN chmod +x ./apps/portal/scripts/start.sh
 
 USER nextjs
+WORKDIR /app/apps/portal
 
 EXPOSE 3000
 

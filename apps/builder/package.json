@@ -1,0 +1,5 @@
+{
+  "name": "@canopy/builder",
+  "private": true,
+  "description": "Site build worker: applies ChangeSets, runs astro build, flips preview/current symlinks. Empty until E30."
+}

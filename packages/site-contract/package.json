@@ -1,0 +1,5 @@
+{
+  "name": "@canopy/site-contract",
+  "private": true,
+  "description": "Versioned Zod schemas for client site content. Empty until C1; packaging is PRD open question Q1."
+}

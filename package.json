@@ -1,0 +1,23 @@
+{
+  "name": "canopy-sites",
+  "version": "4.14.1",
+  "private": true,
+  "description": "Canopy Sites and Canopy Forms: unified portal, site builder, and content contract",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @canopy/portal",
+    "build": "npm run build -w @canopy/portal",
+    "lint": "npm run lint -w @canopy/portal",
+    "embed:build": "npm run embed:build -w @canopy/portal",
+    "db:generate": "npm run db:generate -w @canopy/portal",
+    "db:migrate": "npm run db:migrate -w @canopy/portal --",
+    "db:seed": "npm run db:seed -w @canopy/portal"
+  },
+  "overrides": {
+    "lodash": "^4.17.22",
+    "@auth/core": "^0.41.1"
+  }
+}

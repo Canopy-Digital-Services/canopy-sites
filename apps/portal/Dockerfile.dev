@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1
+# Build context is the repo root (npm workspaces). docker-compose.dev.yml
+# bind-mounts the repo over /app, so the COPY below only seeds the image.
 
 FROM node:20-alpine
 
@@ -6,14 +8,18 @@ FROM node:20-alpine
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Workspace manifests (node_modules is preserved by a named volume in docker-compose)
+COPY package.json package-lock.json ./
+COPY apps/portal/package.json ./apps/portal/
+COPY apps/builder/package.json ./apps/builder/
+COPY packages/site-contract/package.json ./packages/site-contract/
 
-# Install dependencies (will be preserved by anonymous volume in docker-compose)
 RUN npm ci
 
 # Copy source code (will be overridden by volume mount in dev mode)
 COPY . .
+
+WORKDIR /app/apps/portal
 
 # Generate Prisma Client (will be regenerated if needed)
 RUN npx prisma generate || true
@@ -32,7 +38,7 @@ EXPOSE 3000
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
     echo 'if [ ! -d "/app/node_modules" ] || [ ! -f "/app/node_modules/.bin/next" ]; then' >> /entrypoint.sh && \
     echo '  echo "Installing dependencies..."' >> /entrypoint.sh && \
-    echo '  npm ci' >> /entrypoint.sh && \
+    echo '  (cd /app && npm ci)' >> /entrypoint.sh && \
     echo '  npx prisma generate' >> /entrypoint.sh && \
     echo '  npm run embed:build' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
