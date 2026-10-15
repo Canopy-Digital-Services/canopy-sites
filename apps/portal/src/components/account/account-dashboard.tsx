@@ -251,7 +251,10 @@ function DeleteAccountSection() {
     startTransition(async () => {
       try {
         await deleteSelfAccount();
-        await signOut({ callbackUrl: "/login?deleted=1" });
+        // NextAuth resolves its redirect against NEXTAUTH_URL (the Forms host);
+        // navigate ourselves so the user stays on the host they started on.
+        await signOut({ redirect: false });
+        window.location.assign("/login?deleted=1");
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to delete account"
