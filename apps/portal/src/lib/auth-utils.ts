@@ -2,6 +2,7 @@ import * as bcrypt from "bcrypt";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
+import { getHomePath } from "@/lib/product";
 
 /**
  * Hash a password using bcrypt
@@ -69,14 +70,14 @@ export async function getCurrentAccountId(): Promise<string> {
 
 /**
  * Get the current session and verify the user holds the GLOBAL_ADMIN role.
- * Redirects to /forms if not. The role claim is read from the session JWT;
+ * Redirects home if not. The role claim is read from the session JWT;
  * a role change takes effect on the affected user's next login.
  */
 export async function requireGlobalAdmin() {
   const session = await requireAuth();
 
   if (session.user.role !== "GLOBAL_ADMIN") {
-    redirect("/forms");
+    redirect(await getHomePath(await getCurrentAccountId()));
   }
 
   return session;

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { AuthBrandMark } from "@/components/auth-brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -67,7 +68,7 @@ export default function LoginPage() {
       if (result?.error) {
         setServerError("Invalid email or password");
       } else {
-        router.push("/forms");
+        router.push("/");
         router.refresh();
       }
     } catch {
@@ -81,12 +82,7 @@ export default function LoginPage() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-center py-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/forms-logo-full.svg"
-            alt=""
-            className="h-16 w-auto"
-          />
+          <AuthBrandMark full />
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit} noValidate>

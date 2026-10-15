@@ -8,6 +8,8 @@ export type AccountEntitlements = {
   totalFormsCount: number;
   canPublishAnother: boolean;
   requiresPlanResolution: boolean;
+  /** The account has Canopy Sites: Sites chrome and the /editor and /stats routes. */
+  sitesEnabled: boolean;
 };
 
 /**
@@ -54,5 +56,8 @@ export async function getAccountEntitlements(
     totalFormsCount: account._count.forms,
     canPublishAnother,
     requiresPlanResolution: account.requiresPlanResolution,
+    // Stand-in until Epic 29 adds Plan.sitesEnabled, whose seed enables
+    // UNLOCKED and no other existing plan. Swap this for the column then.
+    sitesEnabled: account.planCode === "UNLOCKED",
   };
 }

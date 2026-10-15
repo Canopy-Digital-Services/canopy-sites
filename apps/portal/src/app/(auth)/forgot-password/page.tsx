@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BrandMark } from "@/components/brand-mark";
+import { AuthBrandMark } from "@/components/auth-brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +63,7 @@ export default function ForgotPasswordPage() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-center py-2">
-          <BrandMark size="md" />
+          <AuthBrandMark />
         </div>
       </CardHeader>
       {formSubmitted ? (

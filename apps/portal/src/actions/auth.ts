@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
 import { auth, signIn, signOut } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 
@@ -244,10 +245,14 @@ export async function resetPassword(formData: FormData) {
 }
 
 /**
- * Sign out the current user (callable from client components)
+ * Sign out the current user (callable from client components).
+ * NextAuth resolves its own redirect against NEXTAUTH_URL (the Forms host),
+ * which would move a user signing out on the Sites host to the Forms host.
+ * Redirecting ourselves keeps the relative path on the current host.
  */
 export async function signOutAction() {
-  await signOut({ redirectTo: "/login" });
+  await signOut({ redirect: false });
+  redirect("/login");
 }
 
 /**

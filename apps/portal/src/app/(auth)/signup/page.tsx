@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BrandMark } from "@/components/brand-mark";
+import { AuthBrandMark } from "@/components/auth-brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -66,8 +66,8 @@ export default function SignupPage() {
       if (result.error) {
         setServerError(result.error);
       } else {
-        // Success - redirect to forms page
-        router.push("/forms");
+        // Success: "/" resolves the account's home
+        router.push("/");
         router.refresh();
       }
     } catch {
@@ -81,7 +81,7 @@ export default function SignupPage() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-center py-2">
-          <BrandMark size="md" />
+          <AuthBrandMark />
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit} noValidate>

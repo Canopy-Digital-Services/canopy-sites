@@ -10,6 +10,8 @@ import { HelpBubble } from "@/components/help-bubble";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { prisma } from "@/lib/db";
 import { PlanResolutionDialog } from "@/components/plan/plan-resolution-dialog";
+import { SitesNav } from "@/components/sites/sites-nav";
+import { homePathFor } from "@/lib/product";
 
 export default async function AdminLayout({
   children,
@@ -19,6 +21,8 @@ export default async function AdminLayout({
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const entitlements = await getAccountEntitlements(accountId);
+  // The account's products pick the chrome; the hostname plays no part.
+  const product = entitlements.sitesEnabled ? "sites" : "forms";
 
   // When a downgrade has unpublished all of the account's forms, block every
   // admin route with the resolution dialog. The user picks which forms stay
@@ -44,10 +48,11 @@ export default async function AdminLayout({
     >
       <TopNavLayout
         logo={
-          <Link href="/forms">
-            <BrandMark size="sm" className="gap-2" />
+          <Link href={homePathFor(entitlements)}>
+            <BrandMark size="sm" product={product} className="gap-2" />
           </Link>
         }
+        navItems={product === "sites" ? <SitesNav /> : undefined}
         userMenu={
           <div className="flex items-center gap-3">
             <NotificationBell />

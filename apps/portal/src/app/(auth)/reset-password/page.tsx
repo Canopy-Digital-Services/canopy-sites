@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BrandMark } from "@/components/brand-mark";
+import { AuthBrandMark } from "@/components/auth-brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-center py-2">
-            <BrandMark size="md" />
+            <AuthBrandMark />
           </div>
         </CardHeader>
         <CardContent>
@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex justify-center py-2">
-            <BrandMark size="md" />
+            <AuthBrandMark />
           </div>
         </CardHeader>
         <CardContent>
@@ -162,7 +162,7 @@ export default function ResetPasswordPage() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-center py-2">
-          <BrandMark size="md" />
+          <AuthBrandMark />
         </div>
       </CardHeader>
       <form onSubmit={handleSubmit} noValidate>
