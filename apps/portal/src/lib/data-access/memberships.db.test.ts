@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
-import { createAccount, createForm, createMember, resetDatabase } from "../../../test/db";
+import { createAccount, createForm, createMember, createSite, resetDatabase } from "../../../test/db";
 import {
+  AccountHasSiteError,
   deleteAccountAndSoleMembers,
   getSoleMembership,
   listAccountMemberEmails,
@@ -41,6 +42,18 @@ describe("listAccountMemberEmails", () => {
 });
 
 describe("deleteAccountAndSoleMembers", () => {
+  it("refuses an account that owns a site and deletes nothing", async () => {
+    const { account, user } = await createAccount({ planCode: "SITES" });
+    await createForm(account.id, user.id);
+    await createSite(account.id);
+
+    await expect(deleteAccountAndSoleMembers(account.id)).rejects.toBeInstanceOf(AccountHasSiteError);
+    expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
+    expect(await prisma.user.count({ where: { id: user.id } })).toBe(1);
+    expect(await prisma.form.count({ where: { accountId: account.id } })).toBe(1);
+    expect(await prisma.site.count({ where: { accountId: account.id } })).toBe(1);
+  });
+
   it("removes the account, its forms, and users who belonged only to it", async () => {
     const { account, user } = await createAccount();
     await createForm(account.id, user.id, { published: true });

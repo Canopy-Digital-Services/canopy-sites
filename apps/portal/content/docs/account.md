@@ -74,6 +74,8 @@ What gets deleted:
 
 There is no recovery. If you want to come back later, sign up again with the same email.
 
+If your account includes a website we host, the Delete Account card has no button. Contact support to close the account.
+
 ## Security features
 
 A few things worth knowing about how accounts are protected:

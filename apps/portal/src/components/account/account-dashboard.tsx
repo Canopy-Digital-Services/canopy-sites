@@ -25,6 +25,8 @@ type AccountDashboardProps = {
   publishedFormsCount: number;
   maxPublishedForms: number | null;
   totalFormsCount: number;
+  /** The account owns a site, so it closes through support rather than self-serve deletion. */
+  hasSite: boolean;
 };
 
 export function AccountDashboard({
@@ -33,6 +35,7 @@ export function AccountDashboard({
   publishedFormsCount,
   maxPublishedForms,
   totalFormsCount,
+  hasSite,
 }: AccountDashboardProps) {
   return (
     <div className="max-w-[640px] mx-auto space-y-6">
@@ -45,7 +48,7 @@ export function AccountDashboard({
         totalFormsCount={totalFormsCount}
       />
       <PasswordSection />
-      <DeleteAccountSection />
+      <DeleteAccountSection hasSite={hasSite} />
     </div>
   );
 }
@@ -249,14 +252,18 @@ function PasswordSection() {
   );
 }
 
-function DeleteAccountSection() {
+function DeleteAccountSection({ hasSite }: { hasSite: boolean }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
     startTransition(async () => {
       try {
-        await deleteSelfAccount();
+        const result = await deleteSelfAccount();
+        if ("error" in result) {
+          toast.error(result.error);
+          return;
+        }
         window.location.assign("/login?deleted=1");
       } catch (error) {
         toast.error(
@@ -264,6 +271,17 @@ function DeleteAccountSection() {
         );
       }
     });
+  }
+
+  if (hasSite) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Delete Account</CardTitle>
+          <CardDescription>Your account includes a website. Contact support to close it.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   return (
