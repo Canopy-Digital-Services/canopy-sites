@@ -81,14 +81,15 @@ export async function sendNewSubmissionNotification(options: {
   responses?: ResponseLine[] | null;
   replyTo?: string | null;
   canUseDashboard?: boolean;
+  /** Base URL for the dashboard link, from `appUrlFor` on the form's account. */
+  appUrl: string;
 }): Promise<boolean> {
-  const dashboardUrl = process.env.NEXTAUTH_URL || "http://localhost:3006";
 
   const { text, html } = renderNotificationEmail({
     formName: options.formName,
     submittedAt: options.submittedAt,
     submissionsUrl: options.canUseDashboard
-      ? `${dashboardUrl}/forms/${options.formId}/submissions`
+      ? `${options.appUrl}/forms/${options.formId}/submissions`
       : null,
     responses: options.responses,
   });

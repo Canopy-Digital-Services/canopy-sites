@@ -58,6 +58,7 @@ Identify which layer a change touches before starting.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
 - `NEXTAUTH_URL` is the Forms URL on every host, and NextAuth rewrites auth requests to that origin. **Never let NextAuth pick a post-auth destination**: call `signOut`/`signIn` with `redirect: false` and navigate to a relative path yourself (`signOutAction` in `src/actions/auth.ts`, account deletion in `src/components/account/account-dashboard.tsx`). Otherwise a Sites-host user lands on the Forms host.
+- **Links emailed to an account come from `appUrlFor(entitlements)`** (`src/lib/product.ts`): `SITES_URL` for Sites accounts, `NEXTAUTH_URL` otherwise, with `productNameFor` for the product name in the copy. Never build an emailed link from request headers: a reset link built from `Host` would hand a victim's token to whatever domain the requester sent.
 
 ### Products and chrome
 
@@ -251,6 +252,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `NEXTAUTH_SECRET` | Required. Signing and encryption key. |
 | `NEXTAUTH_URL` | Required. Public URL, used for auth callbacks and email links. |
 | `NEXT_PUBLIC_APP_URL` | Build-time. Falls back to `NEXTAUTH_URL`. Must match the deployed public URL. |
+| `SITES_URL` | Optional. Public URL of this environment's Sites host (`https://sites.canopyds.com`, `https://sites-dev.canopyds.com`, local `http://sites.localhost:3006`). Base for password-reset and notification links sent to Sites accounts. Unset means those links use `NEXTAUTH_URL`. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Required if email is enabled. |
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |

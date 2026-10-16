@@ -29,6 +29,7 @@ services:
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
       NEXTAUTH_URL: "http://localhost:3006"
       NEXT_PUBLIC_APP_URL: "http://localhost:3006"
+      SITES_URL: "http://sites.localhost:3006"
       AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)

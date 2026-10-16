@@ -1,6 +1,8 @@
 import { prisma } from "./db";
 import { sendNewSubmissionNotification } from "./email";
 import type { ResponseLine } from "./submission-email";
+import { getAccountEntitlements } from "./data-access/entitlements";
+import { appUrlFor } from "./product";
 
 /**
  * Queue notifications to all listed recipients.
@@ -33,6 +35,7 @@ export function queueNewSubmissionNotification(options: {
   // Fire and forget - don't await
   (async () => {
     const dashboardEmails = await getDashboardEmails(accountId);
+    const appUrl = await getAppUrl(accountId);
 
     for (const email of notifyEmails) {
       try {
@@ -46,6 +49,7 @@ export function queueNewSubmissionNotification(options: {
           // Recipients can be any address the owner typed in. Only the ones
           // that actually belong to this account get the dashboard link.
           canUseDashboard: dashboardEmails.has(email.trim().toLowerCase()),
+          appUrl,
         });
 
         if (success) {
@@ -56,6 +60,20 @@ export function queueNewSubmissionNotification(options: {
       }
     }
   })();
+}
+
+/**
+ * Dashboard host for this account's links: the Sites host for Sites accounts,
+ * so the link reuses the session they normally sign in with. Falls back to the
+ * Forms host if the lookup fails.
+ */
+async function getAppUrl(accountId: string): Promise<string> {
+  try {
+    return appUrlFor(await getAccountEntitlements(accountId));
+  } catch (error) {
+    console.error(`Entitlement lookup failed for account ${accountId}:`, error);
+    return appUrlFor({ sitesEnabled: false });
+  }
 }
 
 /**

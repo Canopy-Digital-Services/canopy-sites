@@ -37,7 +37,6 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 | Not here | Goes to |
 |---|---|
 | `Plan.sitesEnabled` column (E27 derives it, no schema change) | E29 |
-| Host-aware links in password-reset and support emails | E28 (added to its brief) |
 | Auth library decision, test runner | PRD Q7 and Q8, decided at the start of E28 |
 | Real Editor and Stats content | E29+, E35 |
 | Canopy Sites logo files | Done 2026-10-15: Michael supplied the icon; `sites-logo-combined.svg` and `sites-logo-full.svg` were built to the Forms layouts (same Urbanist wordmark metrics, rule, and tagline) |
@@ -74,7 +73,7 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 | `login/page.tsx`, `signup/page.tsx` | `router.push("/forms")` | Push `/`; the server resolves home |
 | `signOutAction` | `next-auth/lib/env.js` rewrites auth requests to `NEXTAUTH_URL`'s origin, so `signOut({ redirectTo: "/login" })` sent Sites users to the Forms host | `redirect: false`, then `redirect("/login")` |
 | Account deletion (`account-dashboard.tsx`) | Client `signOut({ callbackUrl })` got `{"url":"http://localhost:3007/login?deleted=1"}` from `sites.localhost:3007` (reproduced) | `redirect: false`, then `window.location.assign` |
-| Reset and support emails | Links built from `NEXTAUTH_URL` land on Forms-branded pages | E28 |
+| Password-reset and notification emails | Links built from `NEXTAUTH_URL` sent Sites clients to the Forms host (Forms branding, and a second sign-in because sessions are per host); reset copy said "Canopy Forms" | Per account: `appUrlFor` / `productNameFor` with new `SITES_URL`, never request headers. Found by Michael on sites-dev. The support message's internal "Page:" URL still uses `NEXTAUTH_URL` |
 | `validateOrigin`, editor `apiUrl` | None in practice (D10) | Unchanged |
 
 Also fixed while here: `/` and the auth layout treated an expired token, which keeps an empty `session.user` object, as signed in. They now check `session.user.id`. Other `session?.user` checks are for E28's audit.

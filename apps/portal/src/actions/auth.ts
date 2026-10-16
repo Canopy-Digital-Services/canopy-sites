@@ -6,6 +6,8 @@ import { auth, signIn, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
+import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { appUrlFor, productNameFor } from "@/lib/product";
 
 /**
  * Sign up a new user with email and password
@@ -104,14 +106,17 @@ export async function requestPasswordReset(formData: FormData) {
       },
     });
 
-    // Send password reset email
-    const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3006"}/reset-password?token=${token}`;
+    // Send password reset email. The account, not the request host, picks
+    // the link host and product name (see appUrlFor).
+    const entitlements = await getAccountEntitlements(user.accountId);
+    const productName = productNameFor(entitlements);
+    const resetUrl = `${appUrlFor(entitlements)}/reset-password?token=${token}`;
     
     await sendEmail({
       to: email,
-      subject: "Password Reset Request - Canopy Forms",
+      subject: `Password Reset Request - ${productName}`,
       text: `
-You requested a password reset for your Canopy Forms account.
+You requested a password reset for your ${productName} account.
 
 Click the link below to reset your password:
 ${resetUrl}
@@ -121,14 +126,14 @@ This link will expire in 1 hour.
 If you didn't request this, you can safely ignore this email.
 
 ---
-Canopy Forms
+${productName}
       `.trim(),
       html: `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
   <h2>Password Reset Request</h2>
-  <p>You requested a password reset for your Canopy Forms account.</p>
+  <p>You requested a password reset for your ${productName} account.</p>
   <p>Click the button below to reset your password:</p>
   <p style="margin: 20px 0;">
     <a href="${resetUrl}" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
@@ -142,7 +147,7 @@ Canopy Forms
     If you didn't request this, you can safely ignore this email.
   </p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">Canopy Forms</p>
+  <p style="color: #999; font-size: 12px;">${productName}</p>
 </body>
 </html>
       `.trim(),

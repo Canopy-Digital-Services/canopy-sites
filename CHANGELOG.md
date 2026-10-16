@@ -24,6 +24,7 @@ One codebase now serves Canopy Forms and the Canopy Sites client portal (Epic 27
 
 ### Fixed
 
+- **Emails to Canopy Sites accounts**: password-reset links open on the Sites host and the email says Canopy Sites; submission notification "View in dashboard" links open on the Sites host, where the client is already signed in. New optional `SITES_URL` setting
 - **Email matching**: login, signup, and password reset now trim and lowercase the email, so a capitalized or autofilled address no longer fails login or silently skips the reset email
 - Signing out or deleting an account from a non-Forms hostname no longer lands on the Forms host's login page
 - An expired session no longer counts as signed in on `/` and the auth pages
