@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AuthBrandMark } from "@/components/auth-brand-mark";
+import { AuthBrandMark, useHostProduct } from "@/components/auth-brand-mark";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -15,11 +15,14 @@ import { signInAction } from "@/actions/auth";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hostProduct = useHostProduct();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
+  // Set when the account lives on the other product's host (PRD D22).
+  const [homeUrl, setHomeUrl] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +51,7 @@ export default function LoginPage() {
     e.preventDefault();
     setSubmitted(true);
     setServerError("");
+    setHomeUrl("");
     setSuccessMessage("");
 
     // Check for client-side validation errors
@@ -61,7 +65,8 @@ export default function LoginPage() {
       const result = await signInAction({ email, password, rememberMe });
 
       if ("error" in result) {
-        setServerError(result.error);
+        if (result.homeUrl) setHomeUrl(result.homeUrl);
+        else setServerError(result.error);
       } else {
         router.push("/");
         router.refresh();
@@ -144,12 +149,23 @@ export default function LoginPage() {
             <p role="status" className="text-sm text-success-strong">{successMessage}</p>
           )}
           {serverError && <p role="alert" className="text-sm text-destructive">{serverError}</p>}
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Create account
-            </Link>
-          </div>
+          {homeUrl && (
+            <p role="status" className="text-sm">
+              This account signs in at{" "}
+              <a href={`${homeUrl}/login`} className="text-primary hover:underline">
+                {new URL(homeUrl).host}
+              </a>
+              .
+            </p>
+          )}
+          {hostProduct === "forms" && (
+            <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-primary hover:underline">
+                Create account
+              </Link>
+            </div>
+          )}
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>

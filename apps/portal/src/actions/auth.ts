@@ -17,7 +17,7 @@ import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getSoleMembership } from "@/lib/data-access/memberships";
-import { appUrlFor, productNameFor } from "@/lib/product";
+import { appUrlFor, productNameFor, signInElsewhere, signupElsewhere } from "@/lib/product";
 import {
   clearPasswordChangeThrottle,
   clearSignInThrottle,
@@ -35,6 +35,12 @@ import {
 export async function signUp(formData: FormData) {
   const email = normalizeEmail((formData.get("email") as string | null) ?? "");
   const password = formData.get("password") as string;
+
+  // Signup makes a Forms account, which lives on the Forms host (PRD D22).
+  const formsSignup = await signupElsewhere();
+  if (formsSignup) {
+    return { error: `Create an account at ${new URL(formsSignup).host}.` };
+  }
 
   // Validate inputs
   if (!email || !password) {
@@ -102,7 +108,7 @@ export async function signInAction(input: {
   email: string;
   password: string;
   rememberMe: boolean;
-}): Promise<{ error: string } | { success: true }> {
+}): Promise<{ error: string; homeUrl?: string } | { success: true }> {
   const email = normalizeEmail(input.email ?? "");
   const password = input.password ?? "";
 
@@ -130,6 +136,15 @@ export async function signInAction(input: {
       });
     }
     return { error: INVALID_CREDENTIALS };
+  }
+
+  // The password is right, but the account lives on its other product's
+  // host (PRD D22): say where, without a session here. Sessions are per host.
+  const membership = await getSoleMembership(user.id);
+  const homeUrl = membership && (await signInElsewhere(await getAccountEntitlements(membership.accountId)));
+  if (homeUrl) {
+    clearSignInThrottle(email);
+    return { error: `This account signs in at ${new URL(homeUrl).host}.`, homeUrl };
   }
 
   await prisma.user.update({

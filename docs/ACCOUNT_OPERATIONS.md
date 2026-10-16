@@ -92,7 +92,7 @@ Flow:
 
 A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
-Sign-in and sign-out are our own server actions with relative redirects, so they never leave the current host. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
+Sign-in and sign-out are our own server actions with relative redirects. Sign-in on the host that is not the account's home (PRD D22; `docs/AGENT_CONTEXT.md` section 2) creates no session and returns `homeUrl`, which the login page links to. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
 
 ---
 

@@ -71,7 +71,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | # | Decision | Src |
 |---|---|---|
 | D1 | Editor edits **structured content**, never Astro source. The LLM proposes changes to schema'd collections; the site rebuilds | M |
-| D2 | Forms is a sub-portal of the same codebase. One login, one Account, same data on both hosts, no redirects. **The account's products decide the chrome**, not the hostname: an account with `sitesEnabled` gets Editor · Forms · Stats on either host; every other account gets today's Forms UI exactly. The hostname only brands logged-out pages (login, signup, password reset; `/docs` requires sign-in, so it follows the account). Reason: Forms notification emails link to `forms.canopyds.com`, and NextAuth routes auth through one `NEXTAUTH_URL`, so a host-carried meaning strands users | M/R |
+| D2 | Forms is a sub-portal of the same codebase. One login, one Account. **The account's products decide the chrome**: an account with `sitesEnabled` gets Editor · Forms · Stats; every other account gets today's Forms UI exactly. Which host an account uses is D22 | M/R |
 | D3 | Client has **publishing authority**, gated by a preview they can see first | M |
 | D4 | Per-site Git repos on the GitHub org. Clients get repo access to back the portability claim | M |
 | D5 | Content lives in the repo. Media lives in the repo (`src/assets`), optimized by Astro at build. No external object storage; stays off cloud storage | M/R |
@@ -91,6 +91,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D19 | **One site per account**, enforced by a unique `Site.accountId`. The ICP is a small business or local organization with one website. An account that owns a site cannot be deleted, and a site lives only on an account whose plan has `sitesEnabled` (E29) | M |
 | D20 | **`SITES` is the only Sites plan.** `UNLOCKED` means "no Forms limits" (Global Admins, VIP Forms users, accounts E23 grandfathered), so it does not imply Sites (E29) | M/R |
 | D21 | **A column lands with its first reader when its values would otherwise be guesses.** `Build` and `ChangeSet` arrive in E30; `analyticsTier` is not in v1; the token budget becomes `Plan.monthlyAiBudgetCents` in E32 (estimated model spend in US cents per calendar month, UTC, per account; `null` = no ceiling), because models and cache reads price tokens differently; `Site.status` arrives in E36 (E29) | M/R |
+| D22 | **Each account has a home host**, the one its emails already use: Sites accounts on `sites.canopyds.com`, every other account on `forms.canopyds.com`, so Forms stays a standalone product at its own address. A signed-in page on the other host redirects home (sessions are per host, so that is one more sign-in); sign-in on the other host says where the account signs in; signup is on the Forms host. Supersedes D2's "either host, no redirects", whose reasons (Forms-host email links, NextAuth's single URL) E27 and E28 removed. Shared cross-subdomain cookies rejected: previews live under `*.sites.canopyds.com` (E29) | M/R |
 
 ---
 
@@ -217,7 +218,7 @@ Nav: **Editor · Forms · Stats** (+ Account). Branding patterned on Canopy Form
 | Forms | Existing Forms UI under Sites chrome |
 | Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, overlay editor, locked fields, API keys), build log, token usage, "edit as client" |
 
-Forms-only accounts see today's Forms UI on either hostname. Sites accounts see the Sites chrome on either hostname.
+Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts see the Sites chrome at sites.canopyds.com (D22).
 
 ---
 

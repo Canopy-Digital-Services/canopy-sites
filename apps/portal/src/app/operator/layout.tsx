@@ -1,5 +1,6 @@
 import { requireGlobalAdmin, getCurrentAccountId } from "@/lib/auth-utils";
-import { getHomePath } from "@/lib/product";
+import { homePathFor, requireHomeHost } from "@/lib/product";
+import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,7 +14,9 @@ export default async function OperatorLayout({
   children: React.ReactNode;
 }) {
   const session = await requireGlobalAdmin();
-  const homePath = await getHomePath(await getCurrentAccountId());
+  const entitlements = await getAccountEntitlements(await getCurrentAccountId());
+  await requireHomeHost(entitlements);
+  const homePath = homePathFor(entitlements);
   const homeLabel = homePath === "/editor" ? "Back to editor" : "Back to forms";
 
   const logo = (

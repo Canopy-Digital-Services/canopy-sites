@@ -70,7 +70,7 @@ Goal: the portal knows what a Site is and which accounts have the product.
 - Add `Site` per PRD §5, one per account (PRD D19). `Build` and `ChangeSet` are deferred to E30 (PRD D21)
 - Operator: `/operator/sites` list and detail (create site, assign to account, repo URL, hostnames, contract version, locked fields, runbook overlay textarea). Creating a site does **not** create a repo or DNS; those are manual in v1
 - Sites home for a client with one site: placeholder Editor page showing the site name and "nothing to edit yet"
-- Acceptance: operator can create Client 2 as a Site on Michael's account; client login on either host lands on it
+- Acceptance: operator can create Client 2 as a Site on Michael's account; client login lands on it at the Sites host, and the Forms host points there (PRD D22)
 
 ---
 

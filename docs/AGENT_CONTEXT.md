@@ -57,14 +57,15 @@ Identify which layer a change touches before starting.
 - Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
-- **Redirects after sign-in, sign-out, and account deletion are relative paths** (`/`, `/login`), so a user stays on the host they started on. Never build a redirect or a post-auth destination from `NEXTAUTH_URL` or the request's `Host`.
+- **Each account has a home host**, the one its emails use (`appUrlFor`): Sites accounts on `SITES_URL`, every other account on `NEXTAUTH_URL` (PRD D22). `requireHomeHost` (`src/lib/product.ts`) in the admin and operator layouts sends a signed-in account on the other configured host home, so a new signed-in layout outside `(admin)` calls it too; `signInAction` on the other host checks the password and returns `homeUrl` instead of a session; signup lives on the Forms host. With `SITES_URL` unset or equal to `NEXTAUTH_URL` nothing routes.
+- **Every other redirect after sign-in, sign-out, and account deletion is a relative path** (`/`, `/login`). The home-host redirect is the only absolute one, and its destination comes from configuration. Never build a redirect or a post-auth destination from the request's `Host`.
 - **Links emailed to an account come from `appUrlFor(entitlements)`** (`src/lib/product.ts`): `SITES_URL` for Sites accounts, `NEXTAUTH_URL` otherwise, with `productNameFor` for the product name in the copy. Never build an emailed link from request headers: a reset link built from `Host` would hand a victim's token to whatever domain the requester sent.
 
 ### Products and chrome
 
-- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) on any host; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`: `UNLOCKED` means no Forms limits, not Sites.
+- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) ; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`: `UNLOCKED` means no Forms limits, not Sites.
 - Sites-only routes (`/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
-- The hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
+- Apart from routing an account to its home host, the hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
 
 ### Validation
 

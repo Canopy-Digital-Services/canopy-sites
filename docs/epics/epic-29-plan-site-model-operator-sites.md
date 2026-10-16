@@ -74,6 +74,12 @@ The brief set `UNLOCKED.sitesEnabled = true`, keeping the E27 stand-in. But `UNL
 
 Open fact: whether production has `UNLOCKED` accounts other than Michael's. They switch back to the Forms chrome when this deploys, which is the intended fix.
 
+### Q5. Found on forms-dev: a Forms-only account under the Sites hostname
+
+Michael, signed in on sites-dev with an account that had just lost Sites (D6), saw the Forms UI under `sites-dev.canopyds.com`: "If I'm only a Forms user, why am I seeing sites in the domain? Forms should still live as a standalone at forms.canopyds.com." PRD D2 made the hostname meaningless after sign-in because Forms emails linked to the Forms host and NextAuth routed auth through one URL. Both reasons are gone: emailed links are per account since E27 (`appUrlFor`), and NextAuth since E28. Share links and embed code already use the Forms host from either host.
+
+**Decided:** an account's home host is the one its emails use, `appUrlFor(entitlements)`: Sites accounts on `SITES_URL`, every other account on `NEXTAUTH_URL`. A signed-in page on the other configured host redirects to the home host (sessions are per host, so the user signs in there once). Sign-in on the other host checks the password and then, instead of a session, says where the account signs in. Signup on the Sites host goes to the Forms host's signup. With `SITES_URL` unset or equal to `NEXTAUTH_URL` the environment has one host and nothing routes. Sharing the session cookie across subdomains was rejected: client previews will live under `*.sites.canopyds.com`. A one-time handoff token would save the second sign-in but is new auth surface for a rare path. Recorded as PRD D22, which supersedes the hostname half of D2.
+
 ## 4. Requirements
 
 ### Schema (two migrations, each read before commit)
@@ -113,6 +119,7 @@ model Site {
 - Guards in `setAccountPlan`, `setUserRole`, `deleteAccount`, `deleteSelfAccount` (Q3, Q4).
 - Operator nav gains Sites; list and detail pages per `docs/UX_PATTERNS.md`.
 - Editor page shows the site name when the account has a site.
+- Home host (D7): `homeHostRedirect`, `requireHomeHost`, and `signupHostRedirect` in `src/lib/product.ts`; the admin and operator layouts call `requireHomeHost`; `signInAction` returns `homeUrl` on the other host; signup redirects (and the action refuses) on the Sites host; the Sites login page drops "Create account".
 
 ### Tests
 
@@ -121,7 +128,8 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 ## 5. Acceptance
 
 - [x] Section 3 decided with Michael
-- [ ] Operator creates Client 2 as a Site on Michael's account; signing in on either host lands on the Editor showing it (Michael, on forms-dev; the same flow passed locally with a throwaway account, section 8)
+- [ ] Operator creates Client 2 as a Site on Michael's account; signing in lands on the Editor showing it on the Sites host, and sign-in on the Forms host points there (D7; Michael, on forms-dev)
+- [ ] A Forms-only account never stays on the Sites host: sign-in there points to the Forms host, and a session there redirects (D7)
 - [x] A Forms-only account's experience is unchanged on both hosts (local)
 - [x] One account can never read another's site (`sites.db.test.ts`, and the client pages carry none of the operator fields)
 - [x] Both migrations read and verified per `docs/AGENT_CONTEXT.md` section 5 (locally; forms-dev and production when deployed)
@@ -137,6 +145,7 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 - **D4. An account that owns a site cannot be deleted**, by the operator or self-serve (Q3).
 - **D5. Sites only on Sites accounts**, checked when a site is created or reassigned and when a plan change would drop Sites (Q3).
 - **D6. `UNLOCKED` is not a Sites plan** (Q4). `SITES` is the only one; promotion to Global Admin moves only capped plans to `UNLOCKED`.
+- **D7. Each account has a home host** (Q5), built in E29.
 
 ### Agent calls inside scope
 
