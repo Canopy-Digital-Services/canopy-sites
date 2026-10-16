@@ -1,5 +1,11 @@
 Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
 
+## In Progress
+
+| Epic | Started | Status |
+|------|---------|--------|
+| [Epic 29: Plan Extension, Site Model, Operator Sites](epic-29-plan-site-model-operator-sites.md) | 2026-10-16 | 🔨 In progress |
+
 ## Completed Epics
 
 | Epic | Version | Date | Status |
