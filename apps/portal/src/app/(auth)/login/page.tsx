@@ -76,7 +76,7 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex justify-center py-2">
+        <div className="flex justify-start py-2">
           <AuthBrandMark full />
         </div>
       </CardHeader>
