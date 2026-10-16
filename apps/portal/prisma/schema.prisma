@@ -32,14 +32,17 @@ model Account {
 }
 
 // Plan catalog. Rows are seeded via migration; not user-editable at runtime.
-// Account.planCode references Plan.code. Entitlements (only maxPublishedForms
-// today) live as typed columns so each future entitlement is an explicit
-// migration, not a hidden JSON shape change.
+// Account.planCode references Plan.code. Entitlements live as typed columns
+// so each future entitlement is an explicit migration, not a hidden JSON
+// shape change. Read them through getAccountEntitlements.
 model Plan {
   code              String  @id
   displayName       String
   description       String?
   maxPublishedForms Int?
+  // Canopy Sites: Sites chrome, /editor and /stats, and owning a Site.
+  // Only SITES has it; UNLOCKED means no Forms limits, not Sites.
+  sitesEnabled      Boolean @default(false)
   isPublic          Boolean @default(true)
   sortOrder         Int     @default(0)
 
