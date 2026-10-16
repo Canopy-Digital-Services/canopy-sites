@@ -54,7 +54,7 @@ Identify which layer a change touches before starting.
 ### Auth & ownership
 
 - NextAuth v5 credentials provider, self-service signup.
-- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users. `User.accountId` is a dead column until the `drop_user_account_id` migration removes it; never read or write it.
+- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
 - `NEXTAUTH_URL` is the Forms URL on every host, and NextAuth rewrites auth requests to that origin. **Never let NextAuth pick a post-auth destination**: call `signOut`/`signIn` with `redirect: false` and navigate to a relative path yourself (`signOutAction` in `src/actions/auth.ts`, account deletion in `src/components/account/account-dashboard.tsx`). Otherwise a Sites-host user lands on the Forms host.

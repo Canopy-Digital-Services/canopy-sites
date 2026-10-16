@@ -20,9 +20,6 @@ model Account {
 
   plan          Plan           @relation(fields: [planCode], references: [code])
   memberships   Membership[]
-  // Epic 28 transition only: the old 1:1 link. Never read; dropped by the
-  // drop_user_account_id migration.
-  legacyUser    User?          @relation("LegacyUserAccount")
   forms         Form[]
   notifications Notification[]
 
@@ -69,11 +66,6 @@ model User {
   password            String    // bcrypt hashed
   createdAt           DateTime  @default(now())
   roleCode            String    @default("USER")
-
-  // Epic 28 transition only: superseded by Membership. Never read or
-  // written; dropped by the drop_user_account_id migration.
-  accountId           String?   @unique
-  legacyAccount       Account?  @relation("LegacyUserAccount", fields: [accountId], references: [id], onDelete: Cascade)
 
   memberships         Membership[]
 
