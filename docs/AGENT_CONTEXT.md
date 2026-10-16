@@ -44,7 +44,7 @@ Identify which layer a change touches before starting.
 
 ### Data model
 
-- **Form-first**: `Account → Form → Field / Submission`. There is no Site model.
+- **Form-first**: `Account → Form → Field / Submission`. A Sites account also has at most one `Site` (unique `accountId`, PRD D19), allowed only on a plan with `sitesEnabled`; an account that owns a site cannot be deleted (`onDelete: Restrict`), so reassign the site first.
 - Forms own `allowedOrigins[]`. Origin control is per form, not per account.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
@@ -339,6 +339,9 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │    │         options?, validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
+  └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
+           contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
+           maxBuildsRetained), one per account, onDelete Restrict
 
 User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)

@@ -26,6 +26,7 @@ model Account {
   memberships   Membership[]
   forms         Form[]
   notifications Notification[]
+  site          Site?
 
   @@index([planCode])
   @@map("accounts")
@@ -119,6 +120,33 @@ enum AccountStatus {
   ACTIVE
   PAST_DUE
   CANCELLED
+}
+
+// A Canopy Sites website: one per account (PRD D19), only on a plan with
+// sitesEnabled. Holds what the operator records about the site; the repo,
+// DNS, and Umami website are made by hand. Clients see only id, name, and
+// slug (getAccountSite); everything else is operator configuration.
+// An account that owns a site cannot be deleted (Restrict): the row will
+// drive the client's live hosting from E30 on.
+model Site {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and preview-<slug>.sites.canopyds.com
+  name                String
+  repoUrl             String?
+  defaultBranch       String   @default("main")
+  productionHostnames String[] @default([]) // Lowercase; no hostname belongs to two sites (checked in the action)
+  contractVersion     String?  // site-contract version the repo implements (MAJOR.MINOR.PATCH)
+  umamiWebsiteId      String?
+  runbookOverlay      String   @default("") // Client part of the quick-edit system prompt (E32)
+  lockedFields        String[] @default([]) // Dotted contract paths edits may not change (E31), e.g. site.contact.phone
+  maxBuildsRetained   Int      @default(5)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@map("sites")
 }
 
 // Form configuration
