@@ -1,0 +1,20 @@
+[
+  {
+    "id": "haircuts",
+    "name": "Haircuts",
+    "fromPriceLabel": "From $48",
+    "description": null,
+    "services": [
+      { "id": "haircut", "name": "Haircut", "priceLabel": "$85", "duration": null, "description": "Precision cut with blowout finish" },
+      { "name": "Clipper Cut", "priceLabel": "$48", "duration": null }
+    ]
+  },
+  {
+    "id": "waxing",
+    "name": "Waxing",
+    "description": null,
+    "sections": [
+      { "name": "Face", "services": [{ "id": "full-face-wax", "name": "Full Face Wax", "priceLabel": "$45", "duration": null }] }
+    ]
+  }
+]

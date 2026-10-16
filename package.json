@@ -11,11 +11,12 @@
     "dev": "npm run dev -w @canopy/portal",
     "build": "npm run build -w @canopy/portal",
     "lint": "npm run lint -w @canopy/portal",
-    "test": "npm run test -w @canopy/portal",
+    "test": "npm run test -w @canopy/portal && npm run test -w @canopy/site-contract",
     "embed:build": "npm run embed:build -w @canopy/portal",
     "db:generate": "npm run db:generate -w @canopy/portal",
     "db:migrate": "npm run db:migrate -w @canopy/portal --",
-    "db:seed": "npm run db:seed -w @canopy/portal"
+    "db:seed": "npm run db:seed -w @canopy/portal",
+    "contract:build": "npm run build -w @canopy/site-contract"
   },
   "overrides": {
     "lodash": "^4.17.22"
