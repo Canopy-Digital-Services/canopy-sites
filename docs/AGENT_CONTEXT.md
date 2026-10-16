@@ -326,7 +326,8 @@ Canonical source: `prisma/schema.prisma`.
 Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
-Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
+Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
+         status:AccountStatus, billingRef?)
   └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
@@ -349,6 +350,7 @@ Enums:
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
+- `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
 Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `UNLOCKED` (null, `isPublic: false`, admin-granted only). `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
 

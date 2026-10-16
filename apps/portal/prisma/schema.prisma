@@ -17,6 +17,10 @@ model Account {
   createdAt              DateTime @default(now())
   planCode               String   @default("FREE")
   requiresPlanResolution Boolean  @default(false)
+  // Billing state, set by an operator (PRD D12). Billing itself happens
+  // outside the portal; billingRef points there. Status gates nothing yet.
+  status                 AccountStatus @default(ACTIVE)
+  billingRef             String?
 
   plan          Plan           @relation(fields: [planCode], references: [code])
   memberships   Membership[]
@@ -105,6 +109,12 @@ model Membership {
 enum MembershipRole {
   OWNER
   MEMBER
+}
+
+enum AccountStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 // Form configuration
