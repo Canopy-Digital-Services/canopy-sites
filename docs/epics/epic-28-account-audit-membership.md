@@ -42,7 +42,7 @@ Pull the inherited Forms account and auth code forward with the improvements the
 
 Facts checked 2026-10-15 (npm registry, GitHub advisory API, library source in `node_modules`, and a spike against the dev stack):
 
-- **NextAuth.** v5 never left beta. `5.0.0-beta.31` (2026-04-14) and `beta.32` (2026-07-20) were security releases; we run `beta.30`, which is inside the range of GHSA-8fpg-xm3f-6cx3 / CVE-2026-73421 (config errors make existence-based auth checks fail open; GitHub rates it critical, fixed in `beta.32`). Our checks read `session.user.id`, not existence, but the bump is due regardless. The Better Auth team maintains it for security fixes only (announcement 2025-09-22; Better Auth joined Vercel 2026-07); no end-of-support date. Peer range covers Next 16.
+- **NextAuth.** v5 never left beta. `5.0.0-beta.31` (2026-04-14) and `beta.32` (2026-07-20) were security releases; we run `beta.30`, which is inside the range of GHSA-8fpg-xm3f-6cx3 / CVE-2026-73421 (config errors make existence-based auth checks fail open; GitHub rates it critical, fixed in `beta.32`). Our checks read `session.user.id`, not existence, but the bump was due regardless: done in `1c65921`. The Better Auth team maintains it for security fixes only (announcement 2025-09-22; Better Auth joined Vercel 2026-07); no end-of-support date. Peer range covers Next 16.
 - **What NextAuth does for us.** Credentials `authorize`, JWT encryption, cookies, sign-in CSRF, `auth()`. Signup, reset, change password, failed-login tracking, timeouts, and DB validation are already ours. The `PrismaAdapter` is configured and never called.
 - **Better Auth** (`1.7.10`, 2026-10-15; peers Next 14 to 16, Prisma 5 to 7) would give database sessions and maintained email/password flows, but against our requirements:
   - **Organization plugin** wants to own the tenant: `organization.name` and a unique `slug` are NOT NULL, the `invitation` table is always created, roles are lowercase strings, `allowUserToCreateOrganization` defaults to true, and `activeOrganizationId` goes on the session. Our `Account` carries plan, resolution state, status, billing, forms, and soon sites. E28 needs one join table and a resolver.
@@ -54,14 +54,14 @@ Facts checked 2026-10-15 (npm registry, GitHub advisory API, library source in `
 
 **Recommendation.** Stay on NextAuth v5, bumped to `beta.32`. Build Membership by hand; it does not depend on the library. Keep `next-auth` imports confined to `src/lib/auth.ts`, `src/lib/auth-utils.ts`, the `(auth)` pages, `src/actions/auth.ts`, and the account deletion client call, so a later swap touches only those. **Revisit at E34**, where Better Auth's `@better-auth/oauth-provider` and `@better-auth/mcp` would cover the PRD's "OAuth later" for the MCP endpoint, or sooner if: an advisory hits the credentials or JWT path and goes unpatched for 30 days, or a Next.js major we need falls outside `next-auth`'s peer range.
 
-### Q8. Test runner: Vitest (decided in the brief)
+### Q8. Test runner: Vitest (done, `2cbc4d7`)
 
 Vitest in `apps/portal`, run inside the dev container like the build. Two kinds of test:
 
 - **Unit** (`*.test.ts` beside the code): pure decisions with no I/O. The session-token evaluation is extracted from the `jwt` callback for this.
 - **Database** (`*.db.test.ts`): against a separate `canopy_test` database on the dev Postgres, migrated with `prisma migrate deploy` before the run and truncated between files. Prisma is never mocked: the bugs worth catching here live in queries and cascades.
 
-`npm test` joins `build` and `lint` as a must-pass check. The cross-project policy (what must have tests, how CI runs them) lives on the Engineering collective's QA page, not here.
+`npm test` joins `build` and `lint` as a must-pass check. Vitest is on 4.1.x because the containers run Node 20 and 5.x needs 22.12+. The cross-project rules (what must have tests, real dependencies over mocks, CI) live on the Engineering collective's Quality Assurance page, created 2026-10-15; the portal has no CI yet, which that page lists as an open gap.
 
 ## 4. Audit findings (2026-10-15)
 
@@ -77,7 +77,7 @@ Evidence is from the dev stack on `localhost:3006` with a throwaway `FREE` accou
 | F6 | **Rate-limit keys trust the client.** `getClientIP` takes the first `X-Forwarded-For` entry, which the client writes; Cloudflare appends. Rotating a fake header bypasses every existing limit. | `src/lib/validation.ts` `getClientIP`. | Prefer `CF-Connecting-IP`. Verify the header reaches the container on dev before relying on it. |
 | F7 | **Reset tokens are stored in plaintext**, earlier tokens stay valid when a new one is issued, and validate-then-consume is not atomic. A database read yields working reset links for an hour. | `PasswordResetToken.token`; `resetPassword`. | Store a SHA-256 of the token, invalidate a user's open tokens on issue, consume with a conditional update. |
 | F8 | **bcrypt cost 10 and silent 72-byte truncation.** Cost 10 is the OWASP floor (about 60ms here; 12 is about 250ms). Two passwords sharing a 72-byte prefix both verify. No maximum length anywhere. | Run in the container with the app's `bcrypt` 6.0.0. | Cost 12 for new hashes, rehash on successful sign-in; reject passwords over 72 bytes. |
-| F9 | **Dormant `PrismaAdapter`.** Never called with credentials and JWT. | `docs/ACCOUNT_OPERATIONS.md` already says so. | Remove it and `@auth/prisma-adapter`. |
+| F9 | **Dormant `PrismaAdapter`.** Never called with credentials and JWT. | `docs/ACCOUNT_OPERATIONS.md` already says so. | Done (`1c65921`), which also left a single `@auth/core`. |
 | F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | Static imports. |
 | F11 | **Deleting a user deletes the forms they created.** `Form.createdByUser` is `onDelete: Cascade`. Harmless while user equals account; data loss once a member can be removed. | `prisma/schema.prisma` | `createdByUserId` nullable, `onDelete: SetNull`. |
 | F12 | **Account deletion relies on the `User.accountId` cascade.** After the contract migration, `prisma.account.delete()` would leave the owner's `User` row: a login with no account. | Schema. | Delete the account and every user whose only membership it was, in one transaction. |
@@ -143,3 +143,4 @@ model Membership {
 ## 8. Progress log
 
 - 2026-10-15: Brief read; audit run against the dev stack (section 4); Q7 researched and recommendation written; Michael reported the login-page cookie problem, traced to F1 plus F2.
+- 2026-10-15: Vitest in place (Q8). `next-auth` bumped to `beta.32` and the adapter removed. Engineering collective QA page created. Waiting on Michael for Q7 before the session and sign-in fixes.
