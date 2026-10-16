@@ -21,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FieldConfigRenderer } from "@/components/field-config";
+import {
+  FieldPreview,
+  FIELD_PREVIEW_TYPES,
+  useLiveFieldWidth,
+} from "@/components/forms/field-preview";
+import { cn } from "@/lib/utils";
 import { FIELD_TYPE_OPTIONS, getLabelPlaceholder } from "@/lib/field-types";
 
 export type FieldOption = {
@@ -117,6 +123,25 @@ export function FieldEditorModal({
   const hasConfig = type !== "CHECKBOX";
   const showPlaceholder = type !== "CHECKBOX" && type !== "CHECKBOXES" && type !== "NAME" && type !== "DATE" && type !== "ADDRESS";
   const title = field ? "Edit Field" : "Add Field";
+  const showPreview = FIELD_PREVIEW_TYPES.has(type);
+  const previewWidth = useLiveFieldWidth();
+
+  // Config is split across options/validation by type, same as handleSave.
+  const isOptionsType =
+    type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS";
+  const previewField = useMemo(
+    () => ({
+      name: field?.name ?? "preview",
+      type,
+      label: label.trim(),
+      required,
+      placeholder: placeholder.trim() || null,
+      helpText: helpText.trim() || null,
+      options: isOptionsType ? config : undefined,
+      validation: isOptionsType ? undefined : config,
+    }),
+    [field?.name, type, label, required, placeholder, helpText, config, isOptionsType]
+  );
 
   const canSave = useMemo(() => {
     if (!type) {
@@ -203,13 +228,35 @@ export function FieldEditorModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* aria-describedby={undefined} is required when omitting DialogDescription —
           Radix otherwise points it at an id that no longer renders. */}
-      <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
+      {/* With a preview, the dialog widens on lg+ to fit the settings column
+          plus the field at its live-form width (capped to the viewport). */}
+      <DialogContent
+        className={cn(
+          "max-h-[85vh] overflow-y-auto transition-[max-width]",
+          showPreview && "lg:max-w-(--field-dialog-width)"
+        )}
+        style={
+          showPreview
+            ? ({
+                "--field-dialog-width": `min(${previewWidth + 600}px, calc(100% - 2rem))`,
+              } as React.CSSProperties)
+            : undefined
+        }
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
+        {/* With a preview: mobile stacks type, preview, settings; lg+ puts the
+            preview in a sticky right column beside type + settings. */}
+        <div
+          className={cn(
+            "grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4",
+            showPreview && "lg:grid-cols-[29rem_minmax(0,1fr)] lg:gap-x-8"
+          )}
+        >
+          <div className="space-y-2 lg:col-start-1 lg:row-start-1">
             <Label htmlFor="field-type-select">Field Type</Label>
             <Select value={type} onValueChange={handleTypeChange}>
               <SelectTrigger id="field-type-select">
@@ -229,8 +276,17 @@ export function FieldEditorModal({
               dialog to fit instead of snapping to a taller frame. The inner
               wrapper's overflow-hidden is what the grid animation clips against,
               and the -mx-1/px-1 pair keeps focus rings from being clipped. */}
+          {showPreview && (
+            <div className="space-y-3 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-0 lg:self-start">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Preview
+              </h3>
+              <FieldPreview field={previewField} />
+            </div>
+          )}
+
           {type && (
-            <div className="editor-reveal">
+            <div className="editor-reveal lg:col-start-1 lg:row-start-2">
               <div className="space-y-4 overflow-hidden -mx-1 px-1">
               <div className="space-y-2">
                 <Label htmlFor="field-label">Label</Label>

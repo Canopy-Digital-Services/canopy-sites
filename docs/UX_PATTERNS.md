@@ -319,6 +319,7 @@ When available controls depend on a type choice, **do not preselect a type**. Pr
 - Primary action stays disabled until the type and any required downstream fields are filled.
 - **Edit mode renders the full form immediately.** Picker-gating is for add/create only.
 - Preserve structurally compatible state across type switches (label, help text); clear only what doesn't apply (options when leaving `DROPDOWN`).
+- Types in `FIELD_PREVIEW_TYPES` ([field-preview.tsx](src/components/forms/field-preview.tsx)), currently only `NAME`, get an always-on live preview of the field being edited. On `lg+` the dialog widens and the preview is a sticky right column; below `lg` it stacks under the type selector. The field renders through the embed with `fieldsOnly` (no header, Submit, or watermark), with the form's live theme, at the width it gets on the live form, because the auto-fit name-part grid wraps by width.
 
 Reference: [field-editor-modal.tsx](src/components/field-editor-modal.tsx), see `handleTypeChange`.
 
