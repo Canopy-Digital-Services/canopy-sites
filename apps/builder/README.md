@@ -15,7 +15,8 @@ One job at a time per site, two sites at most. Every route but `/healthz` needs 
 | Variable | Notes |
 |---|---|
 | `BUILDER_TOKEN` | Required, at least 32 characters; the portal sends the same value |
-| `DEPLOY_KEY_<SLUG>` | Per site, the write deploy key for its repo (PEM, or base64 of it); slug uppercased, hyphens as underscores |
+| `GIT_TOKEN_<SLUG>` | Per site, a fine-grained GitHub token limited to its repo with Contents read and write; slug uppercased, hyphens as underscores. Used because the org disables deploy keys |
+| `DEPLOY_KEY_<SLUG>` | Per site, alternatively, a write deploy key for its repo (PEM, or base64 of it) |
 | `SITES_ROOT` | Default `/srv/sites`, a persistent volume |
 | `BUILDS_RETAINED` | Default 5; `current` and `preview` targets are always kept |
 | `BUILDER_ALLOW_LOCAL_REPOS` | `1` only in development, to build from a local bare repo path |

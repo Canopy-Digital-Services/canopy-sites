@@ -6,11 +6,13 @@ const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/;
 
 export interface RepoRef {
-  /** What git clones from: an SSH remote, or a local path in development. */
+  /** What git clones from: a GitHub remote, or a local path in development. */
   remote: string;
   branch: string;
-  /** Present for GitHub remotes: the deploy key file for this site. */
+  /** A deploy key file for this site (SSH remote). */
   keyFile?: string;
+  /** A repo-scoped GitHub token for this site (HTTPS remote). */
+  token?: string;
 }
 
 /**
@@ -22,9 +24,14 @@ export async function resolveRepo(slug: string, repoUrl: string, branch: string,
   if (!BRANCH.test(branch) || branch.includes("..")) throw new StepError(`"${branch}" is not a branch name the builder accepts`);
   const gh = GITHUB_REPO.exec(repoUrl);
   if (gh) {
-    const envName = `DEPLOY_KEY_${slug.toUpperCase().replace(/-/g, "_")}`;
+    const suffix = slug.toUpperCase().replace(/-/g, "_");
+    // A fine-grained token limited to this repo (Contents: read and write),
+    // used where the org disables deploy keys.
+    const token = process.env[`GIT_TOKEN_${suffix}`];
+    if (token) return { remote: `https://github.com/${gh[1]}/${gh[2]}.git`, branch, token };
+    const envName = `DEPLOY_KEY_${suffix}`;
     const key = process.env[envName];
-    if (!key) throw new StepError(`No deploy key for this site (${envName} is not set on the builder)`);
+    if (!key) throw new StepError(`No credentials for this site's repo (set GIT_TOKEN_${suffix} or ${envName} on the builder)`);
     await mkdir(keysDir, { recursive: true, mode: 0o700 });
     const keyFile = path.join(keysDir, slug);
     const pem = key.includes("BEGIN") ? key : Buffer.from(key, "base64").toString("utf8");
@@ -46,6 +53,13 @@ export function gitEnv(ref: RepoRef, knownHosts: string): Record<string, string>
   };
   if (ref.keyFile) {
     env.GIT_SSH_COMMAND = `ssh -i ${ref.keyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=${knownHosts}`;
+  }
+  if (ref.token) {
+    // Config through the environment: the token never appears in argv, in
+    // the remote URL, in .git/config, or in a log line.
+    env.GIT_CONFIG_COUNT = "1";
+    env.GIT_CONFIG_KEY_0 = "http.https://github.com/.extraheader";
+    env.GIT_CONFIG_VALUE_0 = `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${ref.token}`).toString("base64")}`;
   }
   return env;
 }
