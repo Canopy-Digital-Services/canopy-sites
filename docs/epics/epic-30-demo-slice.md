@@ -55,7 +55,29 @@ Recommended 2026-10-16 before any code. Michael's answers are section 6's D1 to 
 
 ## 4. Requirements
 
-Filled in as each part lands (section 9 has the commits).
+### Schema (two migrations, both additive, SQL read before commit)
+
+1. `add_site_is_demo`: `sites."isDemo" BOOLEAN NOT NULL DEFAULT false`.
+2. `add_change_sets_builds_conversations`: `change_sets`, `builds`, `conversations`, and the enums `ChangeSetSource`, `ChangeSetStatus`, `BuildStatus`. `Build.changeSetId` is the one FK direction between builds and change sets (E29's open point). Builds, change sets, and conversations cascade with their site; their user links set null.
+
+### Contract (`packages/site-contract`, v0.1.0, released as `site-contract-v0.1.0`)
+
+Six collections, one JSON document each at `src/content/<collection>.json`; plain text only (markup rejected); `validateContent` (schemas, then references such as featured `serviceIds`), `validateSite(dir)` (plus image files), `applyChanges` (the ChangeSet op: JSON Patch per collection, shared by portal and builder), `lockedFieldViolations`, `jsonSchemaFor`. 12 tests.
+
+### Builder (`apps/builder`)
+
+Internal HTTP service on Node 24 (type stripping, no build step): content read, preview build (HEAD plus ops, validated, `astro build`, `preview` flips only on success), publish (re-apply the same ops to the same base commit, commit, push, point `current` at the previewed build), reset to the `demo-baseline` tag, file serving. One job per site, two sites at once, argument arrays only, no builder secrets in site builds, repo access by a repo-scoped token in git's environment config.
+
+### Portal
+
+- `src/lib/site-tools`: `getContentView`, `proposeChange`, `refreshChange`, `publishChange`, `discardChange`, `getEditorChanges`, `canPreviewSite`.
+- `src/lib/quick-edit`: the Claude loop with `get_content` and `propose_change`; base runbook in `runbook.ts`.
+- `/editor` (quick edit, pending change, pages, recently published), `/stats` (sample source for demo sites), `/demo` (served from the builder, sandboxed, member preview).
+- Operator: Add member (accounts), Build and publish, Reset demo, Mark as demo site (site detail).
+
+### Tests
+
+Tool layer 14, members 5, operator site builds 3, stats 20, contract 12; every ownership, membership, and guardrail guard checked to fail with the guard removed (section 9).
 
 ## 5. Acceptance
 
@@ -78,16 +100,37 @@ Filled in as each part lands (section 9 has the commits).
 - **D4. Stats shows made-up data for now**, with a small "Sample data" label.
 - **D5. The PRD and ROADMAP take the planning fixes first** (D23 to D27).
 - **D6. Approved for tonight without asking again:** GitHub (the demo repo, its deploy key, the contract release), Coolify (the builder app, portal env vars, deploys by API), and the production release with the demo setup.
+- **D7. The builder reaches the demo repo with a fine-grained token** limited to that repo (Contents read and write), since the org disables deploy keys.
+- **D8. The demo login is `demo@canopyds.com`; Michael adds the partner himself** with the operator's Add member.
 
 ### Agent calls inside scope
 
 - **C1. Client 2's live site and repo are untouched**, and its Astro 7 and Dockerfile move stays H1, after the call.
 - **C2. The dev environment gets no builder tonight.** The portal changes deploy to forms-dev as usual; builder verification runs locally and on production.
+- **C3. Site content is plain JSON parsed with the contract at build time**, not Astro content collections (PRD 4.4 revised): it fails the build the same way and avoids tying the contract's Zod to Astro's.
+- **C4. One pending change per site; proposals stack.** A new proposal is the pending change's ops plus the new ones, checked from the published content, and supersedes it, so "also change X" keeps building on one preview. A pending change whose base commit moved is failed, not rebased.
+- **C5. Publish is the E36 mechanism, pulled forward for the demo**: the same ops on the same base commit, pushed, then `current` points at the previewed build. No rebuild, so what was approved is what goes live.
+- **C6. The demo is served by the portal, not Caddy**, with member preview at the same URL (no preview hostname, no DNS), sandboxed by CSP because it is editable content on the portal's origin.
+- **C7. Quick edit runs `claude-opus-5-5` at medium effort** (`QUICK_EDIT_MODEL` overrides), records tokens and estimated cost per conversation, and can't publish. Measured locally: about $0.007 to $0.035 per turn.
+- **C8. Operator Build and publish, Reset demo, and Mark as demo** were needed for the site's first build and between calls; Global Admin only, tested.
+- **C9. `Build` has no `kind` column**: every build is a preview, and publishing points `current` at one (D21's rule).
 
 ## 7. Completion report
 
 ## 8. Follow-ups (recorded, not built)
 
+- **Contract friction from the demo site** (E31/C1 v0.2): a booking CTA kind so the booking URL isn't repeated; more than one hero CTA; business type and staff for JSON-LD; alt text for template photos; section nav labels; inline links in copy; one business name versus two spellings; a time zone for announcement dates, which take effect only on a rebuild; uppercase image extensions; reference checks skipped when a collection fails its schema.
+- **Builder on forms-dev**, and per-environment demo branches so dev and prod never push to one branch.
+- **Server-side refusal fallbacks** for quick edit (`fallbacks: "default"`), left out because they couldn't be tested before the call.
+- **`monthlyAiBudgetCents`** enforcement and an operator view of quick-edit spend (cost is recorded per conversation now).
+- **Help pages for Canopy Sites** (Editor, quick edit, Stats); `/docs` has no product gating yet, so a Sites page would show to Forms users.
+- **Operator build log UI**; build logs are stored on `builds.log`.
+- **Pin GitHub's SSH host keys** if deploy keys are ever used (the builder trusts on first use).
+- **The real Client 2**: H1 to H3 and its account, unchanged by this epic.
+
 ## 9. Progress log
 
 - 2026-10-16: Planning recommendation written and decided (sections 3 and 6). PRD D23 to D27 and the ROADMAP updated.
+- 2026-10-16: Built: `cc4b368` contract, `cb5f705` builder, `b92c491` migrations, `03044d7` tool layer, `f875967` /demo, `1ff66cf` quick edit, `bfe5555` Editor, `b415ea4` members, Stats (`02c1b0a`, `fa557b3`, by a subagent), `399eff1` operator builds, fixes `68eb34a`, `2b6ff6a`, `3d01e9e`, `0c099d6`. Demo site repo `canopy-demo-site` (private) seeded from Client 2 7bbc608 by a subagent: Astro 7.4, base `/demo`, content in `src/content`, announcements banner, no analytics, `noindex`; `client2` untouched. Guards checked to fail with the guard removed: locked fields, contract, ownership, publish status, publish build, rate limit, preview membership, no-op, member admin gate, one membership per user, owner-only deletion, demo-only reset.
+- 2026-10-16: Verified locally end to end against a bare copy of the demo repo: first build and publish (16 s cold, about 1.5 s warm); quick edit "We're closed Saturday the 24th for a wedding" proposed an announcement, previewed in 8 s from send, published as a commit by the demo user; `/demo` showed it; a pending price change showed $90 only to a signed-in member with preview on, $85 to everyone else, and the preview cookie alone did nothing. The model asked instead of guessing on "Monday the 20th" (a Tuesday) and on a Monday closure (Client 2 is closed Mondays), so the suggested prompts were changed. Found and fixed: `/demo` was served without its sandbox CSP (`next.config` replaced it) and its preview redirect used the container's own address.
+- 2026-10-16: Contract released (`site-contract-v0.1.0`); `canopy-demo-site` pushed with tag `demo-baseline`. The org disables deploy keys, so the builder takes a repo-scoped token (D7). Coolify: builder app `p7tvlgubddrucz9mnppbhabt` (prod, alias `canopy-builder`, volume `/srv/sites`), `BUILDER_URL`/`BUILDER_TOKEN` on the prod portal, contract added to both portal apps' watch paths. forms-dev deployed `0c099d6` with both migrations.
