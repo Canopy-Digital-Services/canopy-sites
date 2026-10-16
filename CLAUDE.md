@@ -45,7 +45,7 @@ See `docs/AGENT_CONTEXT.md` section 6 for full git workflow details.
 
 Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both the dev and prod apps build from this repo. URLs, branches, Coolify app UUIDs, auto-deploy watch paths, and how to verify what a running container actually sees are in `docs/AGENT_CONTEXT.md` section 6.
 
-**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the **Canopy MCP** `nextcloud_read_file` tool (the working connector is named "Canopy MCP"; ignore the separate unauthenticated server literally named "nextcloud") with these paths:
+**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the canopy-mcp server's `nextcloud_read_file` tool (`mcp.canopyds.com`; named "Canopy MCP" on claude.ai and `nextcloud` in Claude Code, verified 2026-10-15; if one is unauthenticated, use whichever answers `nextcloud_collectives_list`) with these paths:
 
 - `/.Collectives/Engineering/Platforms/Coolify.md` — API shape and quirks, token locations and scopes, deploy and container behavior
 - `/.Collectives/Engineering/Runbooks/SSH Access.md` — access model, tunnel and key setup
