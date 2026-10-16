@@ -40,8 +40,29 @@ services:
       # Admin seed (optional, for initial setup)
       ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@canopyds.com}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-changeme123}"
+
+      # Site builder (apps/builder). The token is a local-only value.
+      BUILDER_URL: "http://builder:4100"
+      BUILDER_TOKEN: "local-dev-builder-token-not-a-secret-000"
     depends_on:
       - postgres
+
+  # The site builder, building from local bare repos under
+  # ~/repos/.canopy-local-remotes (a Site's repoUrl is then /remotes/<name>.git).
+  builder:
+    build:
+      context: .
+      dockerfile: apps/builder/Dockerfile
+    container_name: canopy-builder
+    restart: unless-stopped
+    environment:
+      BUILDER_TOKEN: "local-dev-builder-token-not-a-secret-000"
+      BUILDER_ALLOW_LOCAL_REPOS: "1"
+    volumes:
+      - builder_sites:/srv/sites
+      - ${HOME}/repos/.canopy-local-remotes:/remotes
+    networks:
+      - canopy-sites-network
 
   postgres:
     image: postgres:17-alpine
@@ -59,6 +80,7 @@ services:
 volumes:
   node_modules:
   pgdata:
+  builder_sites:
 
 networks:
   canopy-sites-network:

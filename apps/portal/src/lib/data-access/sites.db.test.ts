@@ -9,7 +9,7 @@ describe("getAccountSite", () => {
     const { account } = await createAccount({ planCode: "SITES" });
     const site = await createSite(account.id);
 
-    expect(await getAccountSite(account.id)).toEqual({ id: site.id, name: site.name, slug: site.slug });
+    expect(await getAccountSite(account.id)).toEqual({ id: site.id, name: site.name, slug: site.slug, isDemo: false });
   });
 
   it("never returns another account's site", async () => {
