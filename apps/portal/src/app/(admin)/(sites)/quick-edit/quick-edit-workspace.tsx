@@ -2,7 +2,6 @@
 
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import { useEffect, useRef, useState, useTransition } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, publishPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 
-export type EditorPage = { id: string; path: string; title: string };
 type Pending = { id: string; summary: string; status: string; error: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
@@ -19,25 +17,23 @@ type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
 const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
 
 export function QuickEditWorkspace({
-  pages,
+  pagesCard,
   liveUrl,
   pending,
   recent,
 }: {
-  pages: EditorPage[];
+  /** Streamed by the server: listing pages waits on the site's content. */
+  pagesCard: React.ReactNode;
   liveUrl: string | null;
   pending: Pending | null;
   recent: Recent[];
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[9rem_minmax(0,1fr)_22rem]">
-      <div className="hidden items-end justify-center lg:flex">
-        <Image src="/illustrations/canopy-boy.svg" alt="" width={409} height={656} unoptimized className="h-auto w-full max-w-[9rem]" priority />
-      </div>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <QuickEdit />
       <div className="space-y-6">
         {pending ? <PendingChange key={pending.id} pending={pending} liveUrl={liveUrl} /> : null}
-        <PagesList pages={pages} liveUrl={liveUrl} />
+        {pagesCard}
         <RecentChanges recent={recent} />
       </div>
     </div>
@@ -238,35 +234,6 @@ function PendingChange({ pending, liveUrl }: { pending: Pending; liveUrl: string
           Discard
         </Button>
       </CardFooter>
-    </Card>
-  );
-}
-
-function PagesList({ pages, liveUrl }: { pages: EditorPage[]; liveUrl: string | null }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-heading">Pages</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="divide-y">
-          {pages.map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-              <span>{p.title}</span>
-              {liveUrl ? (
-                <a
-                  href={`${liveUrl}${p.path === "/" ? "" : p.path}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  View
-                </a>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
     </Card>
   );
 }

@@ -3,50 +3,34 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 // A static concept: nothing on this page is interactive or saves anything.
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Lock, Monitor, Smartphone } from "lucide-react";
+import { Monitor, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-export type ConceptData = {
-  pages: string[];
-  selected: { category: string; service: string; price: string } | null;
-  locked: string[];
-  style: { colors: { name: string; hex: string }[]; fonts: { role: string; family: string }[] };
-};
 
 const SITE_WIDTH = 1280;
 const CANVAS_HEIGHT = 720;
 
-export function VisualEditorConcept({ data }: { data: ConceptData }) {
+/**
+ * The concept's frame: toolbar, the framed site, and the inspector column.
+ * The page tabs and inspector arrive as slots, streamed by the server while
+ * the site itself starts loading in the frame.
+ */
+export function VisualEditorConcept({ pageTabs, inspector }: { pageTabs: React.ReactNode; inspector: React.ReactNode }) {
   return (
     <div className="space-y-4">
-      <Toolbar pages={data.pages} />
+      <Toolbar pageTabs={pageTabs} />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Canvas />
-        <Inspector data={data} />
+        <div className="space-y-4">{inspector}</div>
       </div>
     </div>
   );
 }
 
-function Toolbar({ pages }: { pages: string[] }) {
+function Toolbar({ pageTabs }: { pageTabs: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2">
       <div className="flex items-center gap-1" aria-label="Pages">
-        {pages.map((p, i) => (
-          <span
-            key={p}
-            className={
-              i === 0
-                ? "rounded-md bg-secondary px-3 py-1.5 text-sm font-medium"
-                : "rounded-md px-3 py-1.5 text-sm text-muted-foreground"
-            }
-          >
-            {p}
-          </span>
-        ))}
+        {pageTabs}
       </div>
       <div className="flex items-center gap-1 text-muted-foreground" aria-hidden="true">
         <span className="rounded-md bg-secondary p-1.5 text-foreground">
@@ -106,79 +90,6 @@ function Canvas() {
           style={{ width: SITE_WIDTH, height: CANVAS_HEIGHT / scale, transform: `scale(${scale})` }}
         />
       </div>
-    </div>
-  );
-}
-
-function Inspector({ data }: { data: ConceptData }) {
-  return (
-    <div className="space-y-4">
-      {data.selected ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Price</CardTitle>
-            <CardDescription className="flex flex-wrap items-center gap-1">
-              Services menu <ChevronRight className="h-3 w-3" /> {data.selected.category} <ChevronRight className="h-3 w-3" />{" "}
-              {data.selected.service}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="concept-price">Price</Label>
-              <Input id="concept-price" value={data.selected.price} readOnly tabIndex={-1} />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Also shown in Featured services on the home page. One change updates both.
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {data.locked.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Locked by Canopy</CardTitle>
-            <CardDescription>Contact details change through us, so a slip can never break how customers reach you.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              {data.locked.map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {data.style.colors.length || data.style.fonts.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Site style</CardTitle>
-            <CardDescription>Colors and fonts apply across every page.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.style.colors.length ? (
-              <div className="grid grid-cols-2 gap-2">
-                {data.style.colors.map((c) => (
-                  <div key={c.name} className="flex items-center gap-2 text-sm">
-                    <span className="h-6 w-6 shrink-0 rounded-md border" style={{ backgroundColor: c.hex }} />
-                    <span className="truncate capitalize">{c.name}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {data.style.fonts.map((f) => (
-              <div key={f.role} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{f.role}</span>
-                <span>{f.family}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }
