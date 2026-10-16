@@ -107,11 +107,11 @@ Evidence is from the dev stack on `localhost:3006` with a throwaway `FREE` accou
 | F7 | **Reset tokens are stored in plaintext**, earlier tokens stay valid when a new one is issued, and validate-then-consume is not atomic. A database read yields working reset links for an hour. | `PasswordResetToken.token`; `resetPassword`. | Done: `hash_password_reset_tokens` migration and `resetPassword`; a concurrent double-submit test fails without the conditional update. |
 | F8 | **bcrypt cost 10 and silent 72-byte truncation.** Cost 10 is the OWASP floor (about 60ms here; 12 is about 250ms). Two passwords sharing a 72-byte prefix both verify. No maximum length anywhere. | Run in the container with the app's `bcrypt` 6.0.0. | Done: scrypt instead (N=2^15, r=8, p=3, no truncation), bcrypt still verifies and is re-hashed on sign-in; 8 to 128 characters. Minimum stays 8 (Michael, 2026-10-15; section 3, security posture). |
 | F9 | **Dormant `PrismaAdapter`.** Never called with credentials and JWT. | `docs/ACCOUNT_OPERATIONS.md` already says so. | Done (`1c65921`), which also left a single `@auth/core`. |
-| F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | `getCurrentAccountId`'s is gone (`2dc35b2`); the four pages go with the session work. |
+| F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | Done (`2dc35b2`, `da1f103`). |
 | F11 | **Deleting a user deletes the forms they created.** `Form.createdByUser` is `onDelete: Cascade`. Harmless while user equals account; data loss once a member can be removed. | `prisma/schema.prisma` | Done (`4de566e`): `createdByUserId` nullable, `onDelete: SetNull`. |
 | F12 | **Account deletion relies on the `User.accountId` cascade.** After the contract migration, `prisma.account.delete()` would leave the owner's `User` row: a login with no account. | Schema. | Done (`2dc35b2`): `deleteAccountAndSoleMembers`. |
 | F13 | **`User.accountId` readers outside the helper.** The thumbnail route resolves the account itself; `email-queue`, `deleteAccount`, `setUserRole`, `setAccountPlan`, `listAccountsMetadata`, the seed, and `backfill-global-admin.mjs` read `User.accountId` or `Account.user`. | `grep -rn accountId` | Done (`2dc35b2`): all go through `src/lib/data-access/memberships.ts`. |
-| F14 | **`deleteAccount` finds the operator by email**, and `listAccountsMetadata` runs one `form.findMany` per account. | `src/actions/accounts.ts`, `src/lib/data-access/accounts.ts`. | Session user id; one grouped query. |
+| F14 | **`deleteAccount` finds the operator by email**, and `listAccountsMetadata` runs one `form.findMany` per account. | `src/actions/accounts.ts`, `src/lib/data-access/accounts.ts`. | Done: the self-guard uses the session user's membership (`2dc35b2`); the listing runs three queries regardless of account count, with a test for its counts. |
 
 Confirmed acceptable: password-change invalidation (per-request `passwordChangedAt` check), enumeration-safe reset request copy, the hard-delete model, the ownership helpers in `data-access/forms.ts`. Signup says "Email already registered", so sign-in timing (bcrypt only runs for known emails) leaks nothing signup does not.
 
@@ -172,7 +172,7 @@ Both may ship in one release (D5).
 ## 7. Acceptance
 
 - [x] Q7 decided with Michael; Q8 in place and `npm test` passing in the container
-- [ ] F1 to F14 resolved or explicitly deferred here
+- [x] F1 to F14 resolved
 - [ ] Signup, login, reset, change password, delete account, operator account list, role and plan changes work unchanged on both hosts
 - [x] Every account lookup goes through `src/lib/data-access/memberships.ts`; `User.accountId` is dropped
 - [x] Both migrations read and verified per `docs/AGENT_CONTEXT.md` §5

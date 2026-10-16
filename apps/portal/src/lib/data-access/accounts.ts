@@ -83,34 +83,17 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
     publishedCounts.map((pc) => [pc.accountId, pc._count])
   );
 
-  // Get submission counts for all accounts in one query
-  const submissionCounts = await prisma.submission.groupBy({
-    by: ["formId"],
-    _count: true,
-    where: {
-      form: {
-        accountId: {
-          in: accounts.map((a) => a.id),
-        },
-      },
-    },
+  // Submission totals per account: one query, summing each form's count.
+  const formSubmissionCounts = await prisma.form.findMany({
+    where: { accountId: { in: accounts.map((a) => a.id) } },
+    select: { accountId: true, _count: { select: { submissions: true } } },
   });
-
-  // Build a map of accountId -> submission count
   const accountSubmissionCounts = new Map<string, number>();
-  
-  for (const account of accounts) {
-    const forms = await prisma.form.findMany({
-      where: { accountId: account.id },
-      select: { id: true },
-    });
-    
-    const formIds = forms.map((f) => f.id);
-    const count = submissionCounts
-      .filter((sc) => formIds.includes(sc.formId))
-      .reduce((sum, sc) => sum + sc._count, 0);
-    
-    accountSubmissionCounts.set(account.id, count);
+  for (const form of formSubmissionCounts) {
+    accountSubmissionCounts.set(
+      form.accountId,
+      (accountSubmissionCounts.get(form.accountId) ?? 0) + form._count.submissions
+    );
   }
 
   // Map to metadata format
