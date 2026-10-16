@@ -14,8 +14,7 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 6. [Password Reset](#password-reset)
 7. [Account Deletion](#account-deletion)
 8. [Operator Account Management](#operator-account-management)
-9. [PrismaAdapter Note](#prismaadapter-note)
-10. [Future: Billing Integration](#future-billing-integration)
+9. [Future: Billing Integration](#future-billing-integration)
 
 ---
 
@@ -58,7 +57,7 @@ Flow:
 4. Create Account with nested User in a single Prisma operation
 5. Auto sign-in via `signIn("credentials", ...)`
 
-The signup does NOT use the PrismaAdapter. It calls `prisma.account.create()` directly.
+Signup calls `prisma.account.create()` directly. There is no Auth.js adapter: with credentials and JWT sessions it would never be called, and Auth.js's own `Account` model would collide with the tenant `Account`.
 
 ---
 
@@ -76,7 +75,7 @@ Flow:
 5. JWT callback encodes `id`, `email`, `rememberMe`, timeout claims into token
 6. Session callback maps token claims to `session.user`
 
-The `authorize()` callback in `src/lib/auth.ts` is the only authentication entry point. It bypasses the PrismaAdapter entirely.
+The `authorize()` callback in `src/lib/auth.ts` is the only authentication entry point.
 
 ### Important: no account-level login guard
 
@@ -259,17 +258,6 @@ places:
 Once at least one Global Admin exists in the database, `ADMIN_EMAIL` can be
 removed from the deployment env with no functional impact. It stays
 documented as optional.
-
----
-
-## PrismaAdapter Note
-
-`src/lib/auth.ts` configures `PrismaAdapter(prisma)`. **This adapter is dormant.** With credentials-only auth and JWT sessions, none of the adapter's methods are ever called:
-- No OAuth → no `linkAccount()`, `getUserByAccount()`
-- No database sessions → no `createSession()`, `deleteSession()`
-- Signup is custom → no `createUser()`
-
-The adapter is present but inert. If OAuth providers are added in the future, the adapter would need the standard Auth.js Account model (with `provider`, `providerAccountId`, etc.), which is a different model from the app's internal Account. This would require schema redesign.
 
 ---
 

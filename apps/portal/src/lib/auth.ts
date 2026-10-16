@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import * as bcrypt from "bcrypt";
 import { normalizeEmail } from "@/lib/validation";
@@ -14,7 +13,6 @@ const ABSOLUTE_TIMEOUT_REMEMBER = 30 * 24 * 60 * 60; // 30 days
 const VALIDATION_INTERVAL = 0; // Validate every request — eliminates stale sessions after deploys
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
       name: "credentials",

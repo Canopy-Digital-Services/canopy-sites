@@ -1,14 +1,14 @@
 # NextAuth v5 (Auth.js) Documentation
 
-**Last Updated:** January 2025  
-**Current Version:** 5.0.0-beta.30 (beta)  
+**Last Updated:** October 2026  
+**Installed version:** `apps/portal/package.json` (5.0.0-beta.32 as of 2026-10-15)  
 **Official Docs:** https://authjs.dev
 
 ## Overview
 
-NextAuth v5 is a complete rewrite of NextAuth.js, now part of the **Auth.js** project. It represents a fundamental architectural change with improved TypeScript support, App Router-first design, and a unified authentication API. The project is currently in beta (5.0.0-beta.30 as of January 2025).
+NextAuth v5 is a complete rewrite of NextAuth.js, now part of the **Auth.js** project. It represents a fundamental architectural change with improved TypeScript support, App Router-first design, and a unified authentication API. v5 has never left beta.
 
-**Note:** Auth.js has joined Better Auth, but NextAuth v5 remains the recommended path for Next.js applications.
+**Maintenance status (checked 2026-10-15):** the Better Auth team has maintained Auth.js since 2025-09-22 for security fixes only and recommends Better Auth for new projects. v5 betas still receive security releases (`beta.31` 2026-04, `beta.32` 2026-07, which fixed CVE-2026-73421). Whether this repo stays on it is PRD Q7, decided in `docs/epics/epic-28-account-audit-membership.md`.
 
 ## Critical Changes from NextAuth v4
 
@@ -542,8 +542,9 @@ Requires database adapter and session table.
 ## Project-Specific Notes
 
 This project (Canopy Forms) currently:
-- ✅ Using NextAuth v5 beta.30
-- ✅ Using `@auth/prisma-adapter` (correct package)
+- Credentials provider only, JWT strategy, no adapter
+- `auth()` in a server component cannot write cookies, so it discards the refreshed session cookie; only route handlers, server actions, and a `proxy.ts` can write it (Epic 28 F1)
+- Returning `null` from the `jwt` callback makes `auth()` return `null` and clears the cookie where cookies can be written; a stripped token instead yields a non-null session with an empty user (Epic 28 F2)
 - ✅ Configuration in `src/lib/auth.ts` (correct pattern)
 - ✅ API route correctly re-exports handlers
 - ✅ Using `auth()` function correctly
