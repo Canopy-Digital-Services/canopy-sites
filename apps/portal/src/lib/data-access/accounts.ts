@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { AccountStatus } from "@prisma/client";
 
 /**
  * Account metadata with counts (for operator console)
@@ -15,6 +16,8 @@ export type AccountMetadata = {
   planCode: string;
   planDisplayName: string;
   requiresPlanResolution: boolean;
+  status: AccountStatus;
+  billingRef: string | null;
   roleCode: string;
   roleDisplayName: string;
 };
@@ -32,6 +35,8 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
       createdAt: true,
       planCode: true,
       requiresPlanResolution: true,
+      status: true,
+      billingRef: true,
       plan: {
         select: {
           displayName: true,
@@ -123,6 +128,8 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
       planCode: account.planCode,
       planDisplayName: account.plan.displayName,
       requiresPlanResolution: account.requiresPlanResolution,
+      status: account.status,
+      billingRef: account.billingRef,
       roleCode: owner?.roleCode ?? "USER",
       roleDisplayName: owner?.role.displayName ?? "User",
     };

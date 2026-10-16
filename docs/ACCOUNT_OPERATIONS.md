@@ -14,7 +14,7 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 6. [Password Reset](#password-reset)
 7. [Account Deletion](#account-deletion)
 8. [Operator Account Management](#operator-account-management)
-9. [Future: Billing Integration](#future-billing-integration)
+9. [Billing](#billing)
 
 ---
 
@@ -217,10 +217,10 @@ The operator cannot delete their own account (guard in server action).
 **Guard:** `requireGlobalAdmin()` checks `session.user.role === "GLOBAL_ADMIN"`
 
 The operator console shows metadata only:
-- Email, created date, last login, form count, submission count, plan, role
+- Owner email, created date, last login, form count, submission count, plan, billing status and reference, role
 - No form content, submission data, or field definitions are ever exposed
 
-Non-admins are silently redirected to `/forms`.
+Non-admins are silently redirected to their home (`/forms` or `/editor`).
 
 ### Role system
 
@@ -259,11 +259,8 @@ documented as optional.
 
 ---
 
-## Future: Billing Integration
+## Billing
 
-When billing is added (e.g., Stripe):
+Billing happens outside the portal, by hand (PRD D12). The account stores `status` (`ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`) and a free-text `billingRef` pointing at the billing system. An operator sets both with **Billing** on `/operator/accounts` (`setAccountBilling` in `src/actions/admin/billing.ts`, validated by `parseBillingInput` in `src/lib/billing.ts` and logged as a `setAccountBilling` JSON event). Status gates nothing yet.
 
-- **Stripe is the billing audit trail.** Customer objects, subscriptions, invoices, and payment history live in Stripe's systems. The app doesn't need to preserve deleted account records for billing purposes.
-- **App-side integration** would likely add a `stripeCustomerId` field to Account and/or a `subscriptions` table.
-- **On account deletion:** cancel the Stripe subscription, then hard-delete locally. Stripe retains the billing history on their side.
-- **If in-app billing records are needed later:** adding soft-delete at that point is a simple migration (add `deletedAt` column, change `delete` to `update`, add auth flow guards). This is easier to add with full billing context than to pre-build without it.
+Hard delete stays compatible: the billing system is the audit trail, so deleting an account loses no billing history. If in-app billing records are ever needed, soft delete is a migration away (a `deletedAt` column plus guards in the auth flows).
