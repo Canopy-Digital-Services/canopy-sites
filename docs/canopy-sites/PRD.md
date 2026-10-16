@@ -88,6 +88,9 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D16 | **No auth library.** Sessions are the portal's own database rows (`src/lib/session.ts`, E28), replacing NextAuth after its maintenance went security-fix-only; Better Auth's organization and API-key plugins did not fit (they want to own the tenant table; keys belong to users or orgs, not sites). Membership and E34's keys are built by hand. Revisit an auth library only for E34's "OAuth later" (Better Auth's OAuth-provider and MCP plugins). Security assessment in `docs/epics/epic-28-account-audit-membership.md` (was Q7) | M/R |
 | D17 | **Vitest**, with database tests against a real migrated `*_test` Postgres; never mock Prisma. Required for every E31 guardrail. Cross-project rules on the Engineering collective's Quality Assurance page (was Q8) | M/R |
 | D18 | **Two products: Forms (standalone) and Sites.** Gallery, Calendar (the `events` and `schedule` collections), and later editors are Sites features: routes in `apps/portal` editing contract collections through the ChangeSet pipeline, not products or repos. So `Plan.sitesEnabled` stays one boolean rather than a product-entitlement model | M |
+| D19 | **One site per account**, enforced by a unique `Site.accountId`. The ICP is a small business or local organization with one website. An account that owns a site cannot be deleted, and a site lives only on an account whose plan has `sitesEnabled` (E29) | M |
+| D20 | **`SITES` is the only Sites plan.** `UNLOCKED` means "no Forms limits" (Global Admins, VIP Forms users, accounts E23 grandfathered), so it does not imply Sites (E29) | M/R |
+| D21 | **A column lands with its first reader when its values would otherwise be guesses.** `Build` and `ChangeSet` arrive in E30; `analyticsTier` is not in v1; the token budget becomes `Plan.monthlyAiBudgetCents` in E32 (estimated model spend in US cents per calendar month, UTC, per account; `null` = no ceiling), because models and cache reads price tokens differently; `Site.status` arrives in E36 (E29) | M/R |
 
 ---
 
@@ -189,10 +192,10 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | Model | Fields (abridged) | Notes |
 |---|---|---|
 | `Membership` | userId, accountId, role (`OWNER` \| `MEMBER`), createdAt | Replaces `User.accountId` 1:1. `@@unique([userId, accountId])` |
-| `Plan` (extend) | + `sitesEnabled Boolean`, + `analyticsTier` enum, + `monthlyTokenBudget Int?` | Typed columns per existing pattern; seed `SITES` plan code |
+| `Plan` (extend) | + `sitesEnabled Boolean` (E29); + `monthlyAiBudgetCents Int?` (E32) | Typed columns per existing pattern; seed `SITES` plan code. No `analyticsTier` in v1 (D21) |
 | `Account` (extend) | + `status` (`ACTIVE` \| `PAST_DUE` \| `CANCELLED`), + `billingRef String?` | |
-| `Site` | accountId, slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, status, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained | One account may own several sites |
-| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | |
+| `Site` | accountId (unique), slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained; + status (E36) | One site per account (D19) |
+| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | Draft; E30 settles it with `ChangeSet` (one FK direction between them, and D6 vs Q9) |
 | `ChangeSet` | siteId, source, createdByUserId?, apiKeyId?, summary, ops (JSON), status (`DRAFT` \| `PREVIEWED` \| `PUBLISHED` \| `DISCARDED` \| `FAILED`), previewBuildId, publishedBuildId | |
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
