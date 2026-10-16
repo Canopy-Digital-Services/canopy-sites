@@ -122,7 +122,7 @@ Shipped in v5.3.0 and v5.3.1. The sales demo works end to end on production thro
 
 Michael's decisions reshaped the brief before any code (section 6): the demo is its own capability with Client 2 as content only, served at `/demo`, with sample Stats and a partner login. Planning corrected the PRD (D23 to D27). Found on the way: the org disables deploy keys (D7); `next.config`'s CSP replaced `/demo`'s sandbox; the preview redirect used the container's address; a demo reset left removed changes listed.
 
-Two migrations, both additive. 188 portal tests and 12 contract tests.
+Two migrations, both additive. 185 portal tests and 12 contract tests.
 
 ## 8. Follow-ups (recorded, not built)
 
