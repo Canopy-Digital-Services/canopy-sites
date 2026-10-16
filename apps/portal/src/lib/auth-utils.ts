@@ -1,26 +1,8 @@
-import * as bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
 import { MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { getSession, type SessionContext } from "@/lib/session";
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
-}
 
 /**
  * Generate a cryptographically secure random token

@@ -1,7 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword, generateToken, hashToken } from "@/lib/auth-utils";
+import { generateToken, hashToken } from "@/lib/auth-utils";
+import { hashPassword, needsRehash, verifyPassword } from "@/lib/password";
+import { passwordProblem } from "@/lib/password-policy";
 import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
@@ -39,8 +41,9 @@ export async function signUp(formData: FormData) {
     return { error: "Email and password are required" };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" };
+  const problem = passwordProblem(password);
+  if (problem) {
+    return { error: problem };
   }
 
   if (await signUpThrottled()) {
@@ -85,10 +88,10 @@ export async function signUp(formData: FormData) {
 const INVALID_CREDENTIALS = "Invalid email or password";
 
 /**
- * A bcrypt hash of a random string nobody knows, compared against when the
- * email is unknown so sign-in takes as long as for a real account.
+ * A hash of a random string nobody knows, verified against when the email is
+ * unknown so sign-in takes as long as for a real account.
  */
-const UNKNOWN_USER_HASH = "$2b$10$eDrFTE/YEInPF9KbUxiK/eC/Ql2y2hUGZJl9UJETV5pdu.GmZjlDW";
+const UNKNOWN_USER_HASH = "scrypt$15$8$3$0rTeU8SSUAwkT3DlGs5OfQ==$bfAUa1aKd6eHfa1lpDyWJrUzvAOsNTVkDDlRfrnh92Q=";
 
 /**
  * Sign in with email and password. On success sets the session cookie; the
@@ -131,7 +134,13 @@ export async function signInAction(input: {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date(), failedLoginCount: 0, lastFailedLoginAt: null },
+    data: {
+      lastLoginAt: new Date(),
+      failedLoginCount: 0,
+      lastFailedLoginAt: null,
+      // Upgrade a pre-Epic 28 bcrypt hash while the plain password is in hand.
+      ...(needsRehash(user.password) ? { password: await hashPassword(password) } : {}),
+    },
   });
   clearSignInThrottle(email);
 
@@ -293,8 +302,9 @@ export async function resetPassword(formData: FormData) {
     return { error: "Token and password are required" };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" };
+  const problem = passwordProblem(password);
+  if (problem) {
+    return { error: problem };
   }
 
   // Validate token
@@ -367,8 +377,9 @@ export async function changePassword(formData: FormData) {
     return { error: "Current password and new password are required" };
   }
 
-  if (newPassword.length < 8) {
-    return { error: "New password must be at least 8 characters" };
+  const problem = passwordProblem(newPassword);
+  if (problem) {
+    return { error: problem };
   }
 
   if (passwordChangeThrottled(session.user.id)) {

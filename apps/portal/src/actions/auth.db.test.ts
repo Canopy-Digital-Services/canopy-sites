@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { hashSessionToken, SESSION_COOKIE } from "@/lib/session";
-import { hashPassword, hashToken } from "@/lib/auth-utils";
+import { hashToken } from "@/lib/auth-utils";
+import { hashPassword } from "@/lib/password";
 import { createAccount, resetDatabase } from "../../test/db";
 import { jar, requestHeaders, resetRequest, signInAs } from "../../test/next-request";
 import { resetRateLimits } from "@/lib/rate-limit";
@@ -163,6 +164,17 @@ describe("signInAction", () => {
     expect(jar.has(SESSION_COOKIE)).toBe(false);
     expect(await prisma.session.count()).toBe(0);
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toMatchObject({ failedLoginCount: 1 });
+  });
+
+  it("upgrades a pre-Epic 28 bcrypt hash on sign-in, and the password keeps working", async () => {
+    const { user } = await createAccount();
+    const bcrypt = await import("bcrypt");
+    await prisma.user.update({ where: { id: user.id }, data: { password: await bcrypt.hash("old style pass", 10) } });
+
+    expect(await signInAction({ email: user.email, password: "old style pass", rememberMe: false })).toEqual({ success: true });
+    const stored = (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).password;
+    expect(stored).toMatch(/^scrypt\$15\$8\$3\$/);
+    expect(await signInAction({ email: user.email, password: "old style pass", rememberMe: false })).toEqual({ success: true });
   });
 
   it("refuses a user with no account membership", async () => {

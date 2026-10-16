@@ -17,6 +17,7 @@ import { changePassword } from "@/actions/auth";
 import { deleteSelfAccount } from "@/actions/accounts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
 
 type AccountDashboardProps = {
   email: string;
@@ -198,6 +199,7 @@ function PasswordSection() {
             <Label htmlFor="newPassword">New Password</Label>
             <PasswordInput
               id="newPassword"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -217,6 +219,7 @@ function PasswordSection() {
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <PasswordInput
               id="confirmPassword"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

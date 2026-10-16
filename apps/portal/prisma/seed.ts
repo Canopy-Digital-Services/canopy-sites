@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as bcrypt from 'bcrypt';
+import { hashPassword } from '../src/lib/password';
 
 // Create connection pool
 const pool = new Pool({
@@ -52,7 +52,7 @@ async function main() {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  const hashedPassword = await hashPassword(adminPassword);
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({

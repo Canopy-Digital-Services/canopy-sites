@@ -54,11 +54,15 @@ There is no auth library. Epic 28 replaced NextAuth with `src/lib/session.ts`; t
 **Action:** `signUp()` in `src/actions/auth.ts`
 
 Flow:
-1. Validate email format and password length (min 8 chars)
-2. Check for existing user with same email; reject if found
-3. Hash the password
+1. Validate email format and password length (`passwordProblem` in `src/lib/password-policy.ts`: 8 to 128 characters)
+2. Refuse if throttled; check for an existing user with the same email and reject if found
+3. Hash the password (see Password storage)
 4. Create User, Account, and an `OWNER` Membership in one write
 5. Create a session and set the cookie
+
+### Password storage
+
+`src/lib/password.ts`. New hashes are scrypt, N=2^15, r=8, p=3 (OWASP's 32 MiB option, about 140 ms), stored as `scrypt$15$8$3$<salt>$<key>` so the parameters can be raised later. Hashes from before Epic 28 are bcrypt; they still verify, and a successful sign-in re-hashes them (`needsRehash`). scrypt does not truncate, unlike bcrypt's 72 bytes. Client components import the length limits from `password-policy.ts`, never `password.ts` (Node-only).
 
 ---
 

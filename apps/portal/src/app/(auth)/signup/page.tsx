@@ -10,6 +10,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -108,6 +109,7 @@ export default function SignupPage() {
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -128,6 +130,7 @@ export default function SignupPage() {
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <PasswordInput
               id="confirmPassword"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
