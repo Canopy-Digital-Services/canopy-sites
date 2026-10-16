@@ -116,7 +116,7 @@ Shared volume `/srv/sites` between builder and caddy.
 
 | Repo | Contents |
 |---|---|
-| `Canopy-Forms` → renamed `canopy-sites` on GitHub | **The unified codebase**, restructured in place: `git mv` the app into `apps/portal`; add `apps/builder`, `packages/site-contract`. History, PRs, deploy keys, Coolify apps, DB, env and secrets all stay. GitHub redirects the old URL. **Make the repo private** (it is public today; it will hold the runbook and Sites internals) |
+| `Canopy-Forms` → renamed `canopy-sites` on GitHub | **The unified codebase**, restructured in place: `git mv` the app into `apps/portal`; add `apps/builder`, `packages/site-contract`. History, PRs, deploy keys, Coolify apps, DB, env and secrets all stay. GitHub redirects the old URL. **Stays public** (decided 2026-10-15): history scanned clean of live secrets, security comes from server-side enforcement (D9) rather than secrecy, and client data never enters this repo |
 | `canopy-site-template` (new) | Astro 7 starter implementing the contract; new client sites start here |
 | `client2`, `client1`, future client repos | One per client; depend on `site-contract` by git tag |
 

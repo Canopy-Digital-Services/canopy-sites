@@ -35,7 +35,7 @@ Goal: this repo becomes the unified portal, serving `forms.canopyds.com` and `si
 
 Repo and deploy:
 - `git mv` the Next.js app into `apps/portal`; add `apps/builder` (empty stub) and `packages/site-contract` (empty stub); root `package.json` with npm workspaces. Per-file history across the move needs `git log --follow`; accepted
-- Rename the GitHub repo `Canopy-Forms` → `canopy-sites` and **make it private**. GitHub redirects the old URL; Coolify's GitHub App source follows the rename (verify)
+- Rename the GitHub repo `Canopy-Forms` → `canopy-sites`; it stays public (PRD §4.3). GitHub redirects the old URL; Coolify's GitHub App source follows the rename (verify)
 - Existing Coolify apps (`dev`, `prod`) keep their DB, env and secrets. Change only the Dockerfile/build path and add `sites.canopyds.com` (and a `sites-dev` host) as domains. If the first build fails, the old container keeps serving
 - No migration-parity gate needed: the migrations never leave the repo
 - Update `docs/AGENT_CONTEXT.md` §6 for the new paths and hostnames

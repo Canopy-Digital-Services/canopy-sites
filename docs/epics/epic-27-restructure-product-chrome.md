@@ -30,7 +30,7 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 - Docker and Coolify build from the repo root as context.
 - `sitesEnabled` entitlement, Sites chrome, per-account home, Sites-only routes, host branding on logged-out pages.
 - Fix every place the hostname carried meaning (§5).
-- Rename the GitHub repo to `canopy-sites`, make it private, point the Coolify apps at the new paths, add the Sites hostnames.
+- Rename the GitHub repo to `canopy-sites` (it stays public, D11), point the Coolify apps at the new paths, add the Sites hostnames.
 
 ### Out
 
@@ -63,6 +63,8 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 **D9. `NEXTAUTH_URL` stays the Forms URL.** Removing it and relying on `AUTH_TRUST_HOST` would make NextAuth fully per host, but it would also derive cookie security from proxy headers that have not been checked on webber, risking a one-time logout or non-`Secure` cookies. Instead, no code lets NextAuth choose a destination: sign-in already used `redirect: false`; sign-out and account deletion now do too, then navigate to a relative path.
 
 **D10. `validateOrigin` unchanged.** The editor preview renders the embed from the definition it already holds and intercepts submit, so the dashboard never calls the embed API from the Sites host. Embed snippets keep `NEXT_PUBLIC_APP_URL` (the Forms host) on both hosts, which is correct.
+
+**D11. The repo stays public.** The first revision of the PRD made it private because it will hold the quick-edit runbook and Sites internals. Reversed the same day: Canopy is FOSS-friendly and its value is the operated platform, not the source. A scan of the full history found no live credentials (one local-dev `NEXTAUTH_SECRET` literal and placeholder passwords). Nothing planned depends on secrecy: guardrails are enforced server-side (PRD D9), so a public runbook weakens nothing, and per-client overlays and business facts live in the database while client sites live in their own private repos. Going private would not have withdrawn what is already published anyway. Standing rule in `docs/AGENT_CONTEXT.md` §7.
 
 ## 5. Survey: where the hostname carried meaning (2026-10-15)
 
@@ -108,7 +110,7 @@ Each step below touches shared state and waits for Michael's go-ahead.
 
 1. **Visual review** at `http://localhost:3007` and `http://sites.localhost:3007` (verification stack, still running; test accounts in `local-dev-state` memory, or sign in as yourself: the stack's DB is a copy of your local Forms DB).
 2. **Fold in the field-preview work.** Commit it on `dev` in the main checkout, then merge `dev` into `epic-27`; rename detection carries it into `apps/portal/`.
-3. **GitHub.** Rename `Canopy-Forms` to `canopy-sites`, make it private, update the local remote. Confirm Coolify's GitHub App source follows the rename.
+3. **GitHub.** Rename `Canopy-Forms` to `canopy-sites` (stays public), update the local remote. Confirm Coolify's GitHub App source follows the rename.
 4. **DNS.** `sites.canopyds.com` and `sites-dev.canopyds.com` to the tunnel, plus ingress, per the Nextcloud Webber runbook.
 5. **Coolify dev app** (`wogw0skcsgck80cs4gscs0c0`): Dockerfile `apps/portal/Dockerfile`, base directory `/`, watch paths `apps/portal/**`, `package.json`, `package-lock.json`, extra domain `sites-dev.canopyds.com`. Then merge `epic-27` into `dev`, confirm `[portal] Migrations complete` in the logs and both hosts serving.
 6. **Coolify prod app** (`j80s80ow8ss4444kk40cscsc`): the same build settings and `sites.canopyds.com`, changed immediately before the release PR merges. A failed build leaves the old container serving.
@@ -124,15 +126,14 @@ Each step below touches shared state and waits for Michael's go-ahead.
 - [x] Sign-in, sign-out, account deletion stay on the current host
 - [ ] Visual review signed off
 - [ ] Both hostnames served from one deploy, dev and prod
-- [ ] Repo renamed and private
+- [ ] Repo renamed
 
 ## 10. Follow-ups found
 
 - **Node 20 reached end of life on 2026-04-30.** Both Dockerfiles use `node:20-alpine`. Move to Node 24 in its own change, not mixed into this one.
-- **`docker-compose.yml` commits a literal `NEXTAUTH_SECRET`** in a repo that is public today. Confirm production's secret differs; rotate if not.
+- **`docker-compose.yml` committed a literal `NEXTAUTH_SECRET`** (public in history). Michael believes production uses a different value; the file now requires the secret from the environment instead.
 - Root layout `<title>` is "CANOPY FORMS" for every account and host.
 - Signup on the Sites host creates a Forms-only account under Sites branding. Decide whether Sites login should offer signup at all.
-- Making the repo private does not withdraw the MIT license on code already published.
 
 ## 11. Key files
 
