@@ -1,5 +1,11 @@
 Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
 
+## In Progress
+
+| Epic | Started | Status |
+|------|---------|--------|
+| [Epic 28: Account Audit and Membership Model](epic-28-account-audit-membership.md) | 2026-10-15 | 🔨 In progress |
+
 ## Completed Epics
 
 | Epic | Version | Date | Status |
