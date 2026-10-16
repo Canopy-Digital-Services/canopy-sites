@@ -1,13 +1,13 @@
 # Epic 28: Account Audit and Membership Model
 
-**Status:** In progress (on forms-dev and sites-dev; Michael's review and the release pending)
-**Version:** TBD
+**Status:** ✅ Complete
+**Version:** v5.1.0 (release PR opened 2026-10-16)
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 27 (Restructure in place; product-based chrome)
 **Successor:** E29 (Plan extension, Site model, operator Sites)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md`, `docs/tools/nextauth-v5.md`, `docs/tools/prisma-7.md`, `docs/canopy-sites/PRD.md` (D11, D12, Q7, Q8), and `docs/canopy-sites/ROADMAP.md`.
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md`, `docs/tools/prisma-7.md`, `docs/canopy-sites/PRD.md` (D11, D12, Q7, Q8), and `docs/canopy-sites/ROADMAP.md`.
 
 ---
 
@@ -179,7 +179,22 @@ Both may ship in one release (D5).
 - [x] Operator can set `Account.status` and `billingRef`
 - [ ] `npm run build`, `npm run lint`, `npm test` pass
 
-## 8. Progress log
+## 8. Completion report
+
+Shipped in v5.1.0. Everything in the brief: the audit (section 4, all fourteen findings resolved), Q7 and Q8, Membership with both migrations, and `Account.status` and `billingRef` with an operator Billing action. Beyond the brief, by Michael's decisions in section 3 and section 6: the owned session layer replacing NextAuth, credential throttling, hashed single-use reset tokens, scrypt, security headers, and the cross-project QA page.
+
+72 tests (unit and database). Verified locally on both hosts and on forms-dev and sites-dev after the deploy (progress log, 2026-10-15).
+
+**Production deploy notes** (for whoever watches the release):
+
+- Six migrations apply in order (`add_memberships` through `hash_password_reset_tokens`); expect `Applying migration` for each, then `[portal] Migrations complete`.
+- Everyone is signed out once: NextAuth cookies are ignored.
+- After production is verified, remove `NEXTAUTH_SECRET` and `AUTH_TRUST_HOST` from the prod Coolify app (`j80s80ow8ss4444kk40cscsc`). Not before: v5.0.0 still needs them, and a restart without them would break its sign-in. The dev app's were removed 2026-10-16.
+- The throttle and the stored submission IP hash depend on Cloudflare's `CF-Connecting-IP` reaching the app, verified on forms-dev; production sits behind the same tunnel and Traefik.
+
+Follow-ups, not started: self-hosted fonts (Fontsource; also ends the flaky `next build`), CSV formula injection in exports, MFA for Global Admins, Node 24 then Vitest 5, the help bubble's support message still building its page URL from `NEXTAUTH_URL`.
+
+## 9. Progress log
 
 - 2026-10-15: Brief read; audit run against the dev stack (section 4); Q7 researched and recommendation written; Michael reported the login-page cookie problem, traced to F1 plus F2.
 - 2026-10-15: Vitest in place (Q8). `next-auth` bumped to `beta.32` and the adapter removed. Engineering collective QA page created. Waiting on Michael for Q7 before the session and sign-in fixes.

@@ -51,8 +51,8 @@ If you can't sign in:
 2. Enter your email.
 3. You'll see a confirmation message whether or not the address is registered (this prevents someone from probing for accounts).
 4. If an account exists, you'll receive an email with a reset link.
-5. The link lands on `/reset-password` and is valid for **one hour**. Each link can only be used once.
-6. Enter a new password and confirm it. On success you're redirected to the login page.
+5. The link lands on `/reset-password` and is valid for **one hour**. Each link can only be used once, and requesting a new one cancels any earlier link.
+6. Enter a new password and confirm it. On success you're signed out on every device and redirected to the login page.
 
 If the link expired or has already been used, request a new one from the Forgot Password page.
 
@@ -78,7 +78,7 @@ There is no recovery. If you want to come back later, sign up again with the sam
 
 A few things worth knowing about how accounts are protected:
 
-- Passwords are hashed with bcrypt before they're stored. Plaintext passwords are never persisted.
-- Login attempts are tracked (last successful login, failed attempts) for abuse monitoring. This telemetry doesn't lock accounts on its own.
-- Password reset tokens are single-use and expire after one hour.
+- Passwords are hashed with scrypt before they're stored. Plaintext passwords are never persisted.
+- After five failed sign-ins for an email address, sign-in for that address pauses for 15 minutes. Password reset requests are limited the same way.
+- Password reset links are single-use and expire after one hour.
 - Generic error messages on login and password reset prevent email enumeration.

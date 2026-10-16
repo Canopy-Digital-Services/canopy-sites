@@ -258,7 +258,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
-| `NEXTAUTH_SECRET`, `AUTH_TRUST_HOST` | No longer read (Epic 28: sessions have no signing secret). Remove them from both Coolify apps, then delete this row. |
+| `NEXTAUTH_SECRET`, `AUTH_TRUST_HOST` | No longer read (Epic 28: sessions have no signing secret). Removed from the dev app 2026-10-16. Remove them from the prod app only after v5.1.0 is live there (v5.0.0 needs them), then delete this row. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
