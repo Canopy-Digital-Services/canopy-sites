@@ -10,15 +10,20 @@ datasource db {
 }
 
 
-// Internal account construct (one per user in v3)
+// The tenant: forms, plan, and (from E29) sites belong to an Account. Users
+// reach it through Membership; nothing in the UI names the Account itself.
 model Account {
   id                     String   @id @default(cuid())
   createdAt              DateTime @default(now())
   planCode               String   @default("FREE")
   requiresPlanResolution Boolean  @default(false)
+  // Billing state, set by an operator (PRD D12). Billing itself happens
+  // outside the portal; billingRef points there. Status gates nothing yet.
+  status                 AccountStatus @default(ACTIVE)
+  billingRef             String?
 
   plan          Plan           @relation(fields: [planCode], references: [code])
-  user          User?
+  memberships   Membership[]
   forms         Form[]
   notifications Notification[]
 
@@ -66,9 +71,7 @@ model User {
   createdAt           DateTime  @default(now())
   roleCode            String    @default("USER")
 
-  // Link to internal account (one-to-one in v3)
-  accountId           String    @unique
-  account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  memberships         Membership[]
 
   role                Role      @relation(fields: [roleCode], references: [code])
 
@@ -80,16 +83,46 @@ model User {
 
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
+  sessions            Session[]
 
   @@index([roleCode])
   @@map("users")
+}
+
+// A user's access to an account. v1 gives every user exactly one membership,
+// as OWNER; getCurrentAccountId enforces that. Platform roles (GLOBAL_ADMIN)
+// stay on User.roleCode, separate from this per-account role.
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  accountId String
+  role      MembershipRole
+  createdAt DateTime       @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId])
+  @@index([accountId])
+  @@map("memberships")
+}
+
+enum MembershipRole {
+  OWNER
+  MEMBER
+}
+
+enum AccountStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 // Form configuration
 model Form {
   id                        String   @id @default(cuid())
   accountId                 String
-  createdByUserId           String
+  createdByUserId           String?  // Null once the creator's user is deleted; the form stays with the account
   name                      String
   title                     String?
   description               String?
@@ -110,7 +143,7 @@ model Form {
   createdAt                 DateTime @default(now())
   
   account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  createdByUser   User         @relation("CreatedForms", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdByUser   User?        @relation("CreatedForms", fields: [createdByUserId], references: [id], onDelete: SetNull)
   fields          Field[]
   submissions     Submission[]
   notifications   Notification[]
@@ -209,18 +242,38 @@ enum NotificationType {
   LIMIT_DEADLINE_REACHED
 }
 
-// Password reset tokens
+// A signed-in browser. The cookie holds a random token; only its SHA-256 is
+// stored (as the id), so a database read yields no usable session. Idle
+// expiry rolls forward on use, never past absoluteExpiresAt. Deleting the row
+// signs that browser out. See src/lib/session.ts.
+model Session {
+  id                String   @id // SHA-256 hex of the cookie token
+  userId            String
+  rememberMe        Boolean
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime
+  absoluteExpiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// Password reset tokens. The emailed link carries a random token; only its
+// SHA-256 is stored, so a database read yields no working link. Issuing a new
+// one invalidates the user's older ones; consuming one is a single
+// conditional update, so a link works once.
 model PasswordResetToken {
   id        String   @id @default(cuid())
   userId    String
-  token     String   @unique
+  tokenHash String   @unique
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())
-  
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([token])
+
   @@index([userId])
   @@map("password_reset_tokens")
 }

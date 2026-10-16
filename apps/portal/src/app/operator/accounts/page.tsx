@@ -11,6 +11,10 @@ import { Users } from "lucide-react";
 import { DeleteAccountButton } from "./delete-account-button";
 import { ChangePlanButton } from "./change-plan-button";
 import { ChangeRoleButton } from "./change-role-button";
+import { BillingButton } from "./billing-button";
+import { ACCOUNT_STATUS_LABELS } from "@/lib/billing";
+
+const STATUS_BADGE = { ACTIVE: "success", PAST_DUE: "amber", CANCELLED: "neutral" } as const;
 
 export default async function AccountsPage() {
   const session = await requireGlobalAdmin();
@@ -93,6 +97,22 @@ export default async function AccountsPage() {
       ),
     },
     {
+      key: "billing",
+      header: "Billing",
+      cell: (account: typeof accounts[0]) => (
+        <div className="flex items-center gap-2">
+          <Badge variant={STATUS_BADGE[account.status]}>
+            {ACCOUNT_STATUS_LABELS[account.status]}
+          </Badge>
+          {account.billingRef && (
+            <span className="max-w-40 truncate text-xs text-muted-foreground" title={account.billingRef}>
+              {account.billingRef}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "role",
       header: "Role",
       cell: (account: typeof accounts[0]) => (
@@ -125,6 +145,12 @@ export default async function AccountsPage() {
             currentPlanCode={account.planCode}
             currentPublishedFormsCount={account.publishedFormsCount}
             plans={planOptions}
+          />
+          <BillingButton
+            accountId={account.id}
+            email={account.email}
+            currentStatus={account.status}
+            currentBillingRef={account.billingRef}
           />
           <DeleteAccountButton
             accountId={account.id}

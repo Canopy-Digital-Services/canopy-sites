@@ -2,7 +2,7 @@
 
 **For coding agents. Run the applicable checks before committing. Escalate to the user what you can't verify yourself.**
 
-No automated test suite exists in this repo. This checklist is the quality gate.
+`npm test` (Vitest) covers decisions that have tests; this checklist is the quality gate for everything else. What must be tested is in `docs/AGENT_CONTEXT.md` section 4.
 
 **Local dev:** The app runs on **port 3006** (e.g. `http://localhost:3006`). Use this base URL for browser verification, API smoke tests, and embed testing below.
 
@@ -14,14 +14,14 @@ Not every change needs every check. Match the checks to what you changed:
 
 | What you changed | Required checks |
 |-----------------|----------------|
-| Any code | Build, Lint, Doc impact check |
-| Schema (`prisma/schema.prisma`) | Build, Lint, Migration, Schema sync, Doc impact check |
-| Server actions / API routes | Build, Lint, API smoke test, Doc impact check |
-| Admin UI components | Build, Lint, Browser: admin flow, Doc impact check |
-| Embed source (`embed/src/*`) | Build, Lint, Embed build, Browser: embed flow, Doc impact check |
-| Auth pages or session logic | Build, Lint, Browser: auth flow, Doc impact check |
-| Environment variable usage | Build, Lint, Env check, Doc impact check |
-| Appearance / theme changes | Build, Lint, Embed build, Browser: embed flow, **Escalate: visual review**, Doc impact check |
+| Any code | Build, Lint and test, Doc impact check |
+| Schema (`prisma/schema.prisma`) | Build, Lint and test, Migration, Schema sync, Doc impact check |
+| Server actions / API routes | Build, Lint and test, API smoke test, Doc impact check |
+| Admin UI components | Build, Lint and test, Browser: admin flow, Doc impact check |
+| Embed source (`embed/src/*`) | Build, Lint and test, Embed build, Browser: embed flow, Doc impact check |
+| Auth pages or session logic | Build, Lint and test, Browser: auth flow, Doc impact check |
+| Environment variable usage | Build, Lint and test, Env check, Doc impact check |
+| Appearance / theme changes | Build, Lint and test, Embed build, Browser: embed flow, **Escalate: visual review**, Doc impact check |
 
 ---
 
@@ -35,15 +35,18 @@ docker exec canopy-portal npm run build
 
 Must exit 0. Catches TypeScript errors, missing imports, broken server components, and compile-time assertions (like the `field-types.ts` coverage check).
 
+`next build` fetches Google Fonts and fails intermittently in the dev container with a `TLS-related` error; rerun it. To check types alone, without the network: `docker exec canopy-portal npx tsc --noEmit -p .`. Vitest does not type-check, so passing tests do not mean the build compiles.
+
 **Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-portal env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache.
 
-### 2. Lint
+### 2. Lint and test
 
 ```bash
 npm run lint
+docker exec canopy-portal npm test
 ```
 
-Must exit 0 (or only pre-existing warnings). Do not suppress or disable lint rules to make it pass.
+Lint must exit 0 (or only pre-existing warnings). Do not suppress or disable lint rules to make it pass. Tests must all pass; never skip, weaken, or delete a test to get there. Changing session, sign-in, membership, entitlement, or deletion behavior means adding or updating the test that pins it.
 
 ### 3. Migration verification (schema changes only)
 
@@ -85,7 +88,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 1. Navigate to `http://localhost:3006/login`.
 2. Confirm the login page renders without errors.
 3. If you changed login/signup/reset logic, test the flow end-to-end.
-4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006` and confirm you stay on that host throughout (section 2 of `docs/AGENT_CONTEXT.md` explains why NextAuth would move you to the Forms host).
+4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006` and confirm you stay on that host throughout (redirects must stay relative; `docs/AGENT_CONTEXT.md` section 2).
 
 **Admin flow** (changes to admin UI):
 1. Navigate to `http://localhost:3006` and log in.
@@ -221,7 +224,7 @@ If there are unstaged changes (`M` files), determine whether they're needed. Coo
 
 | Before committing... | Always run |
 |---------------------|-----------|
-| Any change | `npm run build && npm run lint` + doc impact check |
+| Any change | build, `npm run lint`, `npm test` + doc impact check |
 | Schema change | + verify migration file + `npx prisma migrate status` |
 | Embed change | + `npm run embed:build` + confirm `public/embed.js` updated |
 | UI change | + browser check on the affected page |

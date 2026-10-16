@@ -8,7 +8,7 @@ This directory contains up-to-date documentation for the tools and technologies 
 
 ### When to Read Documentation
 
-- **Before writing code** that uses Prisma, Next.js, NextAuth, React, Tailwind CSS, or Docker
+- **Before writing code** that uses Prisma, Next.js, React, Tailwind CSS, or Docker
 - **Before making configuration changes** to any of these tools
 - **When encountering errors** related to these tools
 - **When implementing new features** that rely on these technologies
@@ -24,7 +24,6 @@ If you used a wrong or malformed command, API, or pattern because of outdated tr
 |------|--------------|--------------|
 | **Prisma** | [`prisma-7.md`](./prisma-7.md) | Database queries, schema changes, migrations |
 | **Next.js** | [`nextjs-16.md`](./nextjs-16.md) | Routes, API handlers, server components, proxy |
-| **NextAuth** | [`nextauth-v5.md`](./nextauth-v5.md) | Authentication, sessions, auth helpers |
 | **React** | [`react-19.md`](./react-19.md) | Components, hooks, forms, state management |
 | **Tailwind CSS** | [`tailwindcss-v4.md`](./tailwindcss-v4.md) | Styling, theme configuration, custom utilities |
 | **Docker** | [`docker.md`](./docker.md) | Container builds, compose commands, deployment |
@@ -48,8 +47,7 @@ These documents provide the latest information on tools, frameworks, and librari
 - **[Next.js 16](./nextjs-16.md)** - App Router, cache components, proxy.ts, async APIs
 - **[React 19](./react-19.md)** - Actions, new hooks, React Compiler, form improvements
 
-### Authentication & Styling
-- **[NextAuth v5](./nextauth-v5.md)** - Auth.js rewrite, universal auth() function, App Router-first
+### Styling
 - **[Tailwind CSS v4](./tailwindcss-v4.md)** - CSS-first configuration, @theme directive, performance improvements
 
 ### Deployment & Infrastructure
@@ -67,7 +65,7 @@ These documents provide the latest information on tools, frameworks, and librari
 
 If you're asked to:
 - "Add a new API route that requires authentication"
-  → Read: Next.js 16 (API routes), NextAuth v5 (auth patterns)
+  → Read: Next.js 16 (API routes); auth is `requireAuth` in `src/lib/auth-utils.ts` (`docs/ACCOUNT_OPERATIONS.md`)
   
 - "Update the database schema and create a migration"
   → Read: Prisma 7.3 (schema changes, migrations)

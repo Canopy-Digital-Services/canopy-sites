@@ -13,16 +13,17 @@ Run from the repo root; they delegate to the portal workspace.
 ```bash
 npm run build          # Production build (must pass before committing)
 npm run lint           # ESLint (must pass before committing)
+npm test               # Vitest, unit + database tests (must pass; run in the dev container)
 npm run embed:build    # Rebuild public/embed.js from embed/src/* (required after embed changes)
 npm run db:generate    # Regenerate Prisma client
 npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration)
 ```
 
-No automated test suite — see `docs/VERIFICATION_CHECKLIST.md` for the quality gate.
+Tests cover decisions (sessions, membership, entitlements, guardrails); `docs/VERIFICATION_CHECKLIST.md` covers the rest of the quality gate.
 
 ## Tool Documentation (read before writing code)
 
-The stack uses recent major versions (Next.js 16, React 19, Prisma 7, Tailwind v4, NextAuth v5) with breaking changes from older patterns. **Read the relevant `docs/tools/*.md` file before writing code that uses that tool.** See `docs/tools/README.md` for the index.
+The stack uses recent major versions (Next.js 16, React 19, Prisma 7, Tailwind v4) with breaking changes from older patterns. **Read the relevant `docs/tools/*.md` file before writing code that uses that tool.** See `docs/tools/README.md` for the index.
 
 ## WSL2 Environment Note
 
@@ -45,11 +46,12 @@ See `docs/AGENT_CONTEXT.md` section 6 for full git workflow details.
 
 Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both the dev and prod apps build from this repo. URLs, branches, Coolify app UUIDs, auto-deploy watch paths, and how to verify what a running container actually sees are in `docs/AGENT_CONTEXT.md` section 6.
 
-**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the **Canopy MCP** `nextcloud_read_file` tool (the working connector is named "Canopy MCP"; ignore the separate unauthenticated server literally named "nextcloud") with these paths:
+**Platform runbooks live in the Nextcloud Engineering collective, not this repo.** Read the relevant page before any infrastructure operation, via the canopy-mcp server's `nextcloud_read_file` tool (`mcp.canopyds.com`; named "Canopy MCP" on claude.ai and `nextcloud` in Claude Code, verified 2026-10-15; if one is unauthenticated, use whichever answers `nextcloud_collectives_list`) with these paths:
 
 - `/.Collectives/Engineering/Platforms/Coolify.md` — API shape and quirks, token locations and scopes, deploy and container behavior
-- `/.Collectives/Engineering/Runbooks/SSH Access.md` — access model, tunnel and key setup
+- `/.Collectives/Engineering/Servers/Readme.md` (SSH access section) — access model, tunnel and key setup
 - `/.Collectives/Engineering/Servers/Webber.md` — host inventory and what else runs there
+- `/.Collectives/Engineering/Quality Assurance.md`: testing and verification rules shared by every Canopy repo
 
 ## Documentation Maintenance
 

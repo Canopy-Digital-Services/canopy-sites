@@ -103,45 +103,27 @@ export const config = {
 };
 ```
 
-**New (Next.js 16):**
+**New (Next.js 16):** same API, renamed file and export.
 ```typescript
-// app/proxy.ts (must be in App Router directory)
-import { ProxyRequest, ProxyResponse } from 'next/server';
+// proxy.ts or src/proxy.ts (same place middleware.ts went)
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function proxy(
-  request: ProxyRequest
-): Promise<ProxyResponse> {
-  const { pathname } = request.nextUrl;
-  
-  if (pathname.startsWith('/admin')) {
-    return ProxyResponse.redirect(new URL('/login', request.url));
+export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  return ProxyResponse.next();
+  return NextResponse.next();
 }
 
-export const config = {
-  matcher: '/admin/:path*',
-};
+export const config = { matcher: '/admin/:path*' };
 ```
 
-**Key Differences:**
-- File location: `app/proxy.ts` (not root)
-- Function signature: `async function proxy(request: ProxyRequest): Promise<ProxyResponse>`
-- Return types: `ProxyResponse.redirect()`, `ProxyResponse.rewrite()`, `ProxyResponse.next()`
-- Runtime: Node.js by default (not Edge Runtime)
+**Key differences** (verified against `next` 16.1.6 in `node_modules`, 2026-10-15):
+- File: `proxy.ts` at the project root or `src/proxy.ts` (`PROXY_LOCATION_REGEXP` in `next/dist/lib/constants.js`). Not under `app/`.
+- Export: a function named `proxy` or a default export. There are no `ProxyRequest`/`ProxyResponse` types: use `NextRequest`/`NextResponse`.
+- Runtime: Node.js, so Prisma works there.
 
-**What Proxy Should Do:**
-- ✅ Rewrites (A/B testing, localization)
-- ✅ Redirects (legacy paths)
-- ✅ Headers (security headers)
-
-**What Proxy Should NOT Do:**
-- ❌ Database queries
-- ❌ JWT verification
-- ❌ Complex authentication logic
-
-**Authentication:** Move auth logic to **Server Layout Guards** using React Server Components instead of global proxy files.
+**Authorization stays in server layout guards** (`requireAuth`, `requireGlobalAdmin`), not the proxy. This repo has no proxy. A server component cannot set cookies (only server actions and route handlers can), which is why sessions roll their idle expiry in the database rather than in the cookie (Epic 28).
 
 **Automated Migration:**
 ```bash
@@ -291,9 +273,7 @@ This automatically:
 3. **Update TypeScript:** Ensure TypeScript 5.1.0+ is installed
 
 4. **Migrate Middleware:**
-   - Rename `middleware.ts` → `app/proxy.ts`
-   - Update function signature to use `ProxyRequest`/`ProxyResponse`
-   - Make function async
+   - Rename `middleware.ts` → `proxy.ts` (same directory) and the exported `middleware` function → `proxy`
 
 5. **Update Route Handlers:**
    - Make `params` and `searchParams` async
@@ -348,39 +328,6 @@ export async function GET(
 }
 ```
 
-### Proxy for Redirects
-
-```typescript
-// app/proxy.ts
-import { ProxyRequest, ProxyResponse } from 'next/server';
-
-export async function proxy(
-  request: ProxyRequest
-): Promise<ProxyResponse> {
-  const { pathname } = request.nextUrl;
-  
-  // Legacy redirects
-  if (pathname.startsWith('/old-path')) {
-    return ProxyResponse.redirect(
-      new URL('/new-path', request.url)
-    );
-  }
-  
-  // Security headers
-  const response = ProxyResponse.next();
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  
-  return response;
-}
-
-export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-};
-```
-
 ### Server Layout Guard (Auth Pattern)
 
 ```typescript
@@ -415,9 +362,6 @@ export default async function AdminLayout({
 This project (Canopy Forms) currently:
 - ✅ Using Next.js 16.1.6
 - ✅ Already using async `params` correctly (awaiting them)
-- ⚠️ Has `proxy.ts` but using old `NextRequest`/`NextResponse` API
-  - Should migrate to `ProxyRequest`/`ProxyResponse`
-  - Should make proxy function async
 - ⚠️ `searchParams` may need to be awaited (verify each usage)
 - ✅ Using App Router correctly
 - ✅ Has `next.config.ts` with standalone output for Docker
@@ -446,7 +390,7 @@ export default async function Page({ params }) {
 
 **Cause:** Migrated to `proxy.ts` but code still references middleware
 
-**Solution:** Update all references to use `proxy.ts` and new API
+**Solution:** Rename the exported function to `proxy` (or export a default) and keep the file at the root or in `src/`
 
 ## Resources
 
@@ -496,10 +440,7 @@ type RouteHandler = (
   context: { params: Promise<{ [key: string]: string }> }
 ) => Promise<Response>;
 
-// Proxy
-type ProxyFunction = (
-  request: ProxyRequest
-) => Promise<ProxyResponse>;
+// Proxy: (request: NextRequest) => NextResponse | Response | void, sync or async
 ```
 
 ---

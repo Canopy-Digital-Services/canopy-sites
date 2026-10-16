@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { AccountStatus } from "@prisma/client";
 
 /**
  * Account metadata with counts (for operator console)
@@ -15,6 +16,8 @@ export type AccountMetadata = {
   planCode: string;
   planDisplayName: string;
   requiresPlanResolution: boolean;
+  status: AccountStatus;
+  billingRef: string | null;
   roleCode: string;
   roleDisplayName: string;
 };
@@ -32,19 +35,29 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
       createdAt: true,
       planCode: true,
       requiresPlanResolution: true,
+      status: true,
+      billingRef: true,
       plan: {
         select: {
           displayName: true,
         },
       },
-      user: {
+      // v1 has one member per account, the owner; list the first owner.
+      memberships: {
+        where: { role: "OWNER" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
         select: {
-          id: true,
-          email: true,
-          lastLoginAt: true,
-          roleCode: true,
-          role: {
-            select: { displayName: true },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              lastLoginAt: true,
+              roleCode: true,
+              role: {
+                select: { displayName: true },
+              },
+            },
           },
         },
       },
@@ -70,52 +83,40 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
     publishedCounts.map((pc) => [pc.accountId, pc._count])
   );
 
-  // Get submission counts for all accounts in one query
-  const submissionCounts = await prisma.submission.groupBy({
-    by: ["formId"],
-    _count: true,
-    where: {
-      form: {
-        accountId: {
-          in: accounts.map((a) => a.id),
-        },
-      },
-    },
+  // Submission totals per account: one query, summing each form's count.
+  const formSubmissionCounts = await prisma.form.findMany({
+    where: { accountId: { in: accounts.map((a) => a.id) } },
+    select: { accountId: true, _count: { select: { submissions: true } } },
   });
-
-  // Build a map of accountId -> submission count
   const accountSubmissionCounts = new Map<string, number>();
-  
-  for (const account of accounts) {
-    const forms = await prisma.form.findMany({
-      where: { accountId: account.id },
-      select: { id: true },
-    });
-    
-    const formIds = forms.map((f) => f.id);
-    const count = submissionCounts
-      .filter((sc) => formIds.includes(sc.formId))
-      .reduce((sum, sc) => sum + sc._count, 0);
-    
-    accountSubmissionCounts.set(account.id, count);
+  for (const form of formSubmissionCounts) {
+    accountSubmissionCounts.set(
+      form.accountId,
+      (accountSubmissionCounts.get(form.accountId) ?? 0) + form._count.submissions
+    );
   }
 
   // Map to metadata format
-  return accounts.map((account) => ({
-    id: account.id,
-    createdAt: account.createdAt,
-    userId: account.user?.id ?? "",
-    email: account.user?.email ?? "Unknown",
-    lastLoginAt: account.user?.lastLoginAt ?? null,
-    formsCount: account._count.forms,
-    publishedFormsCount: publishedCountMap.get(account.id) ?? 0,
-    submissionsCount: accountSubmissionCounts.get(account.id) ?? 0,
-    planCode: account.planCode,
-    planDisplayName: account.plan.displayName,
-    requiresPlanResolution: account.requiresPlanResolution,
-    roleCode: account.user?.roleCode ?? "USER",
-    roleDisplayName: account.user?.role.displayName ?? "User",
-  }));
+  return accounts.map((account) => {
+    const owner = account.memberships[0]?.user;
+    return {
+      id: account.id,
+      createdAt: account.createdAt,
+      userId: owner?.id ?? "",
+      email: owner?.email ?? "Unknown",
+      lastLoginAt: owner?.lastLoginAt ?? null,
+      formsCount: account._count.forms,
+      publishedFormsCount: publishedCountMap.get(account.id) ?? 0,
+      submissionsCount: accountSubmissionCounts.get(account.id) ?? 0,
+      planCode: account.planCode,
+      planDisplayName: account.plan.displayName,
+      requiresPlanResolution: account.requiresPlanResolution,
+      status: account.status,
+      billingRef: account.billingRef,
+      roleCode: owner?.roleCode ?? "USER",
+      roleDisplayName: owner?.role.displayName ?? "User",
+    };
+  });
 }
 
 /**

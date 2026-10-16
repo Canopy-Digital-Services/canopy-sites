@@ -1,9 +1,3 @@
-## In Progress
-
-| Epic | Started | Status |
-|------|---------|--------|
-| [Epic 27: Restructure In Place; Product-Based Chrome](epic-27-restructure-product-chrome.md) | 2026-10-15 | Code complete on `epic-27`; deploy pending |
-
 Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
 
 ## Completed Epics
@@ -32,5 +26,7 @@ Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.m
 | [Epic 23: Account Plans & Entitlements](epic-23-account-plans-and-entitlements.md) | v4.11.0 | 2026-04-21 | ✅ Complete |
 | [Epic 25: Form Type Selection (Hosted vs Embedded)](epic-25-form-type-selection.md) | v4.12.0 | 2026-04-29 | ✅ Complete |
 | [Epic 26: Full-Response Email Notifications](epic-26-full-response-email-notifications.md) | v4.13.0 | 2026-07-24 | ✅ Complete |
+| [Epic 27: Restructure In Place; Product-Based Chrome](epic-27-restructure-product-chrome.md) | v5.0.0 | 2026-10-15 | ✅ Complete |
+| [Epic 28: Account Audit and Membership Model](epic-28-account-audit-membership.md) | v5.1.0 | 2026-10-16 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

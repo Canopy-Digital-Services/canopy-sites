@@ -1,25 +1,8 @@
-import * as bcrypt from "bcrypt";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
-}
+import { MultipleMembershipsError } from "@/lib/data-access/memberships";
+import { getSession, type SessionContext } from "@/lib/session";
 
 /**
  * Generate a cryptographically secure random token
@@ -28,16 +11,22 @@ export function generateToken(bytes: number = 32): string {
   return randomBytes(bytes).toString("hex");
 }
 
+/** SHA-256 hex of a high-entropy token, for storing tokens that must not be readable from the database. */
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 /**
- * Get the current session or redirect to login
+ * The current session, or redirect to /login. The session carries the user's
+ * id, email, and platform role as stored now, plus their memberships.
  */
-export async function requireAuth() {
-  const session = await auth();
-  
-  if (!session || !session.user || !session.user.id) {
+export async function requireAuth(): Promise<SessionContext> {
+  const session = await getSession();
+
+  if (!session) {
     redirect("/login");
   }
-  
+
   return session;
 }
 
@@ -49,31 +38,53 @@ export async function getCurrentUserId(): Promise<string> {
   return session.user.id;
 }
 
-/**
- * Get the current account ID or redirect to login
- */
-export async function getCurrentAccountId(): Promise<string> {
-  const session = await requireAuth();
-  const { prisma } = await import("@/lib/db");
-  
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountId: true },
-  });
-  
-  if (!user) {
-    throw new Error("User not found");
+/** The session user's only membership, or null. Throws for more than one (account switching is not built). */
+function soleMembership(session: SessionContext) {
+  if (session.memberships.length > 1) {
+    throw new MultipleMembershipsError(session.user.id);
   }
-  
-  return user.accountId;
+  return session.memberships[0] ?? null;
 }
 
 /**
- * Get the current session and verify the user holds the GLOBAL_ADMIN role.
- * Redirects home if not. The role claim is read from the session JWT;
- * a role change takes effect on the affected user's next login.
+ * The signed-in user's membership, or redirect to login. Throws when the user
+ * has none (account deletion removes sole members, so this means bad data).
  */
-export async function requireGlobalAdmin() {
+export async function getCurrentMembership() {
+  const session = await requireAuth();
+  const membership = soleMembership(session);
+
+  if (!membership) {
+    throw new Error(`User ${session.user.id} has no account membership`);
+  }
+
+  return membership;
+}
+
+/** The signed-in user's account, through their membership. */
+export async function getCurrentAccountId(): Promise<string> {
+  return (await getCurrentMembership()).accountId;
+}
+
+/**
+ * Home for a signed-in user, or null when signed out or the account cannot
+ * be resolved. For the login pages and `/`, which must render the sign-in
+ * form rather than an error whenever there is no usable session.
+ */
+export async function getSignedInHomePath(): Promise<string | null> {
+  const session = await getSession();
+  if (!session) return null;
+
+  const membership = soleMembership(session);
+  return membership ? getHomePath(membership.accountId) : null;
+}
+
+/**
+ * The current session, if the user holds the GLOBAL_ADMIN role; otherwise
+ * redirect home. The role is read from the database on every request, so a
+ * role change applies on the affected user's next request.
+ */
+export async function requireGlobalAdmin(): Promise<SessionContext> {
   const session = await requireAuth();
 
   if (session.user.role !== "GLOBAL_ADMIN") {

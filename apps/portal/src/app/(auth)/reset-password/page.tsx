@@ -9,6 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { resetPassword, validateResetToken } from "@/actions/auth";
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -186,6 +187,7 @@ export default function ResetPasswordPage() {
             <Label htmlFor="password">New Password</Label>
             <PasswordInput
               id="password"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -206,6 +208,7 @@ export default function ResetPasswordPage() {
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <PasswordInput
               id="confirmPassword"
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as bcrypt from 'bcrypt';
+import { hashPassword } from '../src/lib/password';
 
 // Create connection pool
 const pool = new Pool({
@@ -52,7 +52,7 @@ async function main() {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  const hashedPassword = await hashPassword(adminPassword);
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({
@@ -68,22 +68,16 @@ async function main() {
     // the operator is never subject to the free-tier cap on their own
     // deployment, and the bootstrap user lands with the GLOBAL_ADMIN role so
     // they can access the operator console immediately.
-    const account = await prisma.account.create({
+    user = await prisma.user.create({
       data: {
-        planCode: 'UNLOCKED',
-        user: {
-          create: {
-            email: adminEmail,
-            password: hashedPassword,
-            roleCode: 'GLOBAL_ADMIN',
-          },
+        email: adminEmail,
+        password: hashedPassword,
+        roleCode: 'GLOBAL_ADMIN',
+        memberships: {
+          create: { role: 'OWNER', account: { create: { planCode: 'UNLOCKED' } } },
         },
       },
-      include: {
-        user: true,
-      },
     });
-    user = account.user!;
     console.log(`✅ Admin user created: ${user.email}`);
     console.log(`   Password: ${adminPassword}`);
     console.log('⚠️  Make sure to change the admin password after first login!');

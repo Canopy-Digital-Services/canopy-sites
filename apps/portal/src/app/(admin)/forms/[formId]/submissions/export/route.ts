@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 
@@ -9,7 +10,6 @@ export async function GET(
   const { formId } = await params;
 
   try {
-    const { getCurrentAccountId } = await import("@/lib/auth-utils");
     const accountId = await getCurrentAccountId();
 
     // Verify ownership

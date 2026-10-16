@@ -44,7 +44,7 @@ If you are an LLM coding agent, disregard the rest of this document and see [`do
 
 - **Framework**: Next.js 16 (App Router)
 - **Database**: PostgreSQL with Prisma ORM
-- **Auth**: NextAuth v5 (credentials) with self-service signup
+- **Auth**: email and password with server-side sessions (no auth library), self-service signup
 - **Email**: Nodemailer (SMTP)
 - **UI**: Tailwind CSS + shadcn/ui
 - **Embed**: Vanilla JS (esbuild, no dependencies)
@@ -60,7 +60,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs
 | [AGENT_CONTEXT.md](docs/AGENT_CONTEXT.md) | **Start here** — Architecture, invariants, workflows, debugging |
 | [VERIFICATION_CHECKLIST.md](docs/VERIFICATION_CHECKLIST.md) | Pre-commit quality gate |
 | [UX_PATTERNS.md](docs/UX_PATTERNS.md) | UI/UX conventions for the admin interface |
-| [docs/tools/](docs/tools/) | Version-specific docs for Prisma, Next.js, NextAuth, React, Tailwind, etc. |
+| [docs/tools/](docs/tools/) | Version-specific docs for Prisma, Next.js, React, Tailwind, etc. |
 | [apps/portal/content/docs/](apps/portal/content/docs/) | User-facing documentation |
 | [docs/canopy-sites/](docs/canopy-sites/) | Canopy Sites PRD and roadmap |
 | [docs/epics/](docs/epics/) | Epic completion reports |

@@ -1,4 +1,5 @@
 import { getUserForms } from "@/lib/data-access/forms";
+import { getCurrentAccountId } from "@/lib/auth-utils";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
@@ -26,8 +27,8 @@ export default async function FormsPage({
   const { view: viewParam } = await searchParams;
   const view = viewParam === "list" ? "list" : "grid";
 
-  const accountId = (await import("@/lib/auth-utils")).getCurrentAccountId();
-  const forms = await getUserForms(await accountId);
+  const accountId = await getCurrentAccountId();
+  const forms = await getUserForms(accountId);
 
   const totalSubmissions = forms.reduce((sum, f) => sum + f._count.submissions, 0);
   const totalNew = forms.reduce((sum, f) => sum + f.newSubmissionsCount, 0);

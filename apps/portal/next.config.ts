@@ -10,6 +10,29 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: workspaceRoot,
   turbopack: { root: workspaceRoot },
   serverExternalPackages: ["bcrypt", "@node-rs/bcrypt", "@prisma/client", "prisma"],
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Reset links carry their token in the URL; never send it onward.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+      {
+        // Nothing may frame the admin, operator, or sign-in pages
+        // (clickjacking). Hosted forms (/f/*), the embed script, and the
+        // public submission endpoints are meant to be used from other sites.
+        source: "/((?!f/|api/embed/|api/submit/|embed\\.js).*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

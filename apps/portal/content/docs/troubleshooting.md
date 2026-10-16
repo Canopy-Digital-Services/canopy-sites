@@ -71,9 +71,9 @@ Quick fixes for the most common problems. If none of these match, check the brow
 - Text-type fields have default character limits that apply when you don't set one explicitly: Text 200, Email 254, Paragraph 2000. Hard maximums are 500, 320, and 10000 respectively, enforced server-side.
 - Dropdown and Checkboxes fields reject values that aren't in the configured options list. If you renamed an option, older embeds cached in browsers may still submit the old value until they re-fetch the definition.
 
-## I changed my password and got signed out
+## I changed my password and got signed out on another device
 
-That's expected. A password change signs you out of all sessions for security. Sign back in with the new password.
+That's expected. A password change signs you out everywhere except the browser you changed it in. Sign back in with the new password.
 
 ## Still stuck
 

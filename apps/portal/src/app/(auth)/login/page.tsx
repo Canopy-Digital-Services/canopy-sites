@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AuthBrandMark } from "@/components/auth-brand-mark";
@@ -11,6 +10,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { signInAction } from "@/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,15 +58,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        rememberMe: rememberMe ? "true" : "false",
-        redirect: false,
-      });
+      const result = await signInAction({ email, password, rememberMe });
 
-      if (result?.error) {
-        setServerError("Invalid email or password");
+      if ("error" in result) {
+        setServerError(result.error);
       } else {
         router.push("/");
         router.refresh();

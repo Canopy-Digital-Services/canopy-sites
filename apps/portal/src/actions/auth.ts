@@ -1,13 +1,32 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
-import { auth, signIn, signOut } from "@/lib/auth";
+import { generateToken, hashToken } from "@/lib/auth-utils";
+import { hashPassword, needsRehash, verifyPassword } from "@/lib/password";
+import { passwordProblem } from "@/lib/password-policy";
 import { redirect } from "next/navigation";
+import {
+  clearSessionCookie,
+  createSession,
+  getSession,
+  invalidateSession,
+  invalidateUserSessions,
+  setSessionCookie,
+} from "@/lib/session";
 import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor } from "@/lib/product";
+import {
+  clearPasswordChangeThrottle,
+  clearSignInThrottle,
+  passwordChangeThrottled,
+  resetRequestThrottled,
+  signInThrottled,
+  signUpThrottled,
+  THROTTLED_MESSAGE,
+} from "@/lib/auth-throttle";
 
 /**
  * Sign up a new user with email and password
@@ -22,8 +41,13 @@ export async function signUp(formData: FormData) {
     return { error: "Email and password are required" };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" };
+  const problem = passwordProblem(password);
+  if (problem) {
+    return { error: problem };
+  }
+
+  if (await signUpThrottled()) {
+    return { error: THROTTLED_MESSAGE };
   }
 
   // Check if user already exists
@@ -39,27 +63,20 @@ export async function signUp(formData: FormData) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create account and user together
-    await prisma.account.create({
+    // User, account, and the OWNER membership linking them, in one write
+    const user = await prisma.user.create({
       data: {
-        user: {
-          create: {
-            email,
-            password: hashedPassword,
-          },
+        email,
+        password: hashedPassword,
+        memberships: {
+          create: { role: "OWNER", account: { create: {} } },
         },
-      },
-      include: {
-        user: true,
       },
     });
 
-    // Sign in the user automatically
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    // Sign the new user in
+    const { token, session } = await createSession(user.id, false);
+    await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);
 
     return { success: true };
   } catch (error) {
@@ -68,15 +85,95 @@ export async function signUp(formData: FormData) {
   }
 }
 
+const INVALID_CREDENTIALS = "Invalid email or password";
+
+/**
+ * A hash of a random string nobody knows, verified against when the email is
+ * unknown so sign-in takes as long as for a real account.
+ */
+const UNKNOWN_USER_HASH = "scrypt$15$8$3$0rTeU8SSUAwkT3DlGs5OfQ==$bfAUa1aKd6eHfa1lpDyWJrUzvAOsNTVkDDlRfrnh92Q=";
+
+/**
+ * Sign in with email and password. On success sets the session cookie; the
+ * client then navigates to `/`, which resolves home. Every failure returns
+ * the same message, so the response never says whether an email exists.
+ */
+export async function signInAction(input: {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}): Promise<{ error: string } | { success: true }> {
+  const email = normalizeEmail(input.email ?? "");
+  const password = input.password ?? "";
+
+  if (!email || !password) {
+    return { error: "Email and password are required" };
+  }
+
+  if (await signInThrottled(email)) {
+    return { error: THROTTLED_MESSAGE };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, password: true, _count: { select: { memberships: true } } },
+  });
+
+  const valid = await verifyPassword(password, user?.password ?? UNKNOWN_USER_HASH);
+
+  // A user with no membership has nowhere to land, so it cannot sign in.
+  if (!user || !valid || user._count.memberships === 0) {
+    if (user) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginCount: { increment: 1 }, lastFailedLoginAt: new Date() },
+      });
+    }
+    return { error: INVALID_CREDENTIALS };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastLoginAt: new Date(),
+      failedLoginCount: 0,
+      lastFailedLoginAt: null,
+      // Upgrade a pre-Epic 28 bcrypt hash while the plain password is in hand.
+      ...(needsRehash(user.password) ? { password: await hashPassword(password) } : {}),
+    },
+  });
+  clearSignInThrottle(email);
+
+  const { token, session } = await createSession(user.id, input.rememberMe === true);
+  await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);
+
+  return { success: true };
+}
+
 /**
  * Request a password reset email
  * Always returns success to prevent email enumeration
  */
-export async function requestPasswordReset(formData: FormData) {
+type ResetRequestResult =
+  | { success: true; message: string; error?: never }
+  | { error: string; success?: never; message?: never };
+
+export async function requestPasswordReset(formData: FormData): Promise<ResetRequestResult> {
   const email = normalizeEmail((formData.get("email") as string | null) ?? "");
 
   if (!email) {
     return { error: "Email is required" };
+  }
+
+  const genericSuccess: ResetRequestResult = {
+    success: true,
+    message: "If an account exists with that email, a reset link has been sent.",
+  };
+
+  // Throttled requests get the same answer and send nothing, so nobody can
+  // flood an inbox and the response still says nothing about the account.
+  if (await resetRequestThrottled(email)) {
+    return genericSuccess;
   }
 
   // Find user by email
@@ -86,29 +183,34 @@ export async function requestPasswordReset(formData: FormData) {
 
   // Always return success, even if user doesn't exist (prevent enumeration)
   if (!user) {
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   }
 
   try {
-    // Generate secure token
+    // The email carries the token; the database keeps only its hash. A new
+    // link retires any earlier unused ones, so only the latest email works.
     const token = generateToken(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-
-    // Store token in database
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      }),
+      prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+        },
+      }),
+    ]);
 
     // Send password reset email. The account, not the request host, picks
     // the link host and product name (see appUrlFor).
-    const entitlements = await getAccountEntitlements(user.accountId);
+    const membership = await getSoleMembership(user.id);
+    const entitlements = membership
+      ? await getAccountEntitlements(membership.accountId)
+      : { sitesEnabled: false };
     const productName = productNameFor(entitlements);
     const resetUrl = `${appUrlFor(entitlements)}/reset-password?token=${token}`;
     
@@ -153,17 +255,11 @@ ${productName}
       `.trim(),
     });
 
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   } catch (error) {
     console.error("Password reset request error:", error);
     // Still return success to prevent enumeration
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   }
 }
 
@@ -176,7 +272,7 @@ export async function validateResetToken(token: string) {
   }
 
   const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { token },
+    where: { tokenHash: hashToken(token) },
     include: { user: { select: { email: true } } },
   });
 
@@ -206,8 +302,9 @@ export async function resetPassword(formData: FormData) {
     return { error: "Token and password are required" };
   }
 
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters" };
+  const problem = passwordProblem(password);
+  if (problem) {
+    return { error: problem };
   }
 
   // Validate token
@@ -217,30 +314,34 @@ export async function resetPassword(formData: FormData) {
   }
 
   try {
-    // Get the token with user info
-    const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
-      include: { user: true },
+    const hashedPassword = await hashPassword(password);
+    const tokenHash = hashToken(token);
+    const now = new Date();
+
+    // Consume the token with one conditional update, so two submissions of
+    // the same link cannot both succeed. Then set the password and sign the
+    // user out everywhere: whoever held the old password loses their sessions.
+    const done = await prisma.$transaction(async (tx) => {
+      const resetToken = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      if (!resetToken) return false;
+
+      const consumed = await tx.passwordResetToken.updateMany({
+        where: { id: resetToken.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (consumed.count !== 1) return false;
+
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword, passwordChangedAt: now },
+      });
+      await tx.session.deleteMany({ where: { userId: resetToken.userId } });
+      return true;
     });
 
-    if (!resetToken) {
-      return { error: "Invalid reset token" };
+    if (!done) {
+      return { error: "This reset link has already been used or has expired" };
     }
-
-    // Hash new password
-    const hashedPassword = await hashPassword(password);
-
-    // Update user password and mark token as used
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: resetToken.userId },
-        data: { password: hashedPassword, passwordChangedAt: new Date() },
-      }),
-      prisma.passwordResetToken.update({
-        where: { id: resetToken.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
 
     return { success: true };
   } catch (error) {
@@ -250,13 +351,13 @@ export async function resetPassword(formData: FormData) {
 }
 
 /**
- * Sign out the current user (callable from client components).
- * NextAuth resolves its own redirect against NEXTAUTH_URL (the Forms host),
- * which would move a user signing out on the Sites host to the Forms host.
- * Redirecting ourselves keeps the relative path on the current host.
+ * Sign out: delete this browser's session and its cookie, then go to the
+ * login page on the current host (a relative redirect never changes host).
  */
 export async function signOutAction() {
-  await signOut({ redirect: false });
+  const session = await getSession();
+  if (session) await invalidateSession(session.id);
+  await clearSessionCookie();
   redirect("/login");
 }
 
@@ -264,8 +365,8 @@ export async function signOutAction() {
  * Change password for the currently authenticated user
  */
 export async function changePassword(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const session = await getSession();
+  if (!session) {
     return { error: "Not authenticated" };
   }
 
@@ -276,8 +377,13 @@ export async function changePassword(formData: FormData) {
     return { error: "Current password and new password are required" };
   }
 
-  if (newPassword.length < 8) {
-    return { error: "New password must be at least 8 characters" };
+  const problem = passwordProblem(newPassword);
+  if (problem) {
+    return { error: problem };
+  }
+
+  if (passwordChangeThrottled(session.user.id)) {
+    return { error: THROTTLED_MESSAGE };
   }
 
   try {
@@ -300,6 +406,9 @@ export async function changePassword(formData: FormData) {
       where: { id: session.user.id },
       data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
+    // This browser stays signed in; every other session ends.
+    await invalidateUserSessions(session.user.id, session.id);
+    clearPasswordChangeThrottle(session.user.id);
 
     return { success: true };
   } catch (error) {

@@ -85,6 +85,9 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D13 | Template pinned to **Astro 7**. Client 2 upgraded as part of migration | M |
 | D14 | Client 2 migrates on `main` directly; site is stable with near-zero traffic | M |
 | D15 | Stats = white-boxed Umami via its API, nav alongside Editor and Forms, all accounts | M |
+| D16 | **No auth library.** Sessions are the portal's own database rows (`src/lib/session.ts`, E28), replacing NextAuth after its maintenance went security-fix-only; Better Auth's organization and API-key plugins did not fit (they want to own the tenant table; keys belong to users or orgs, not sites). Membership and E34's keys are built by hand. Revisit an auth library only for E34's "OAuth later" (Better Auth's OAuth-provider and MCP plugins). Security assessment in `docs/epics/epic-28-account-audit-membership.md` (was Q7) | M/R |
+| D17 | **Vitest**, with database tests against a real migrated `*_test` Postgres; never mock Prisma. Required for every E31 guardrail. Cross-project rules on the Engineering collective's Quality Assurance page (was Q8) | M/R |
+| D18 | **Two products: Forms (standalone) and Sites.** Gallery, Calendar (the `events` and `schedule` collections), and later editors are Sites features: routes in `apps/portal` editing contract collections through the ChangeSet pipeline, not products or repos. So `Plan.sitesEnabled` stays one boolean rather than a product-entitlement model | M |
 
 ---
 
@@ -172,7 +175,7 @@ Locked fields reject at validation regardless of source. Preview is auth-gated (
 
 ### 4.7 Public MCP endpoint
 
-Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scoped to one site, revocable, last-used tracked). OAuth later. Rate-limited per key. Same tools, same guardrails. Tools never publish without an explicit `publish` call, and `publish` requires a previewed ChangeSet.
+Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scoped to one site, revocable, last-used tracked), in the portal's own `ApiKey` table like its sessions (D16). OAuth later. Rate-limited per key. Same tools, same guardrails. Tools never publish without an explicit `publish` call, and `publish` requires a previewed ChangeSet.
 
 ### 4.8 Hostnames and DNS
 
@@ -240,8 +243,6 @@ Forms-only accounts see today's Forms UI on either hostname. Sites accounts see 
 | Q4 | Allowed font list for the tokens panel | Fontsource-hosted families only (no external font requests, per Client 1 pattern) |
 | Q5 | Does the portal ever write to the site repo other than through the builder | No |
 | Q6 | Client access to the GitHub repo: read-only collaborator, or transfer on exit | Read-only collaborator |
-| Q7 | Auth library: stay on NextAuth v5 (still beta; Auth.js has been maintained by the Better Auth team since 2025-09-22, security fixes only), or move to Better Auth, whose organization and API-key plugins overlap E28's Membership and E34's keys | Decide at the start of E28, before Membership is built by hand |
-| Q8 | Automated tests. Forms has none by design; the D9 guardrails (locked fields, scoped keys, publish requires preview) are the code that most needs them | Add a test runner (Vitest) in E28; required for E31's tool layer |
 | Q9 | E30 hosting: builder + Caddy (D6), or Cloudflare Pages direct upload (atomic deploys, previews, instant rollback built in; trades against "we run our own stack") | D6 stands; revisit before E30 |
 
 ---

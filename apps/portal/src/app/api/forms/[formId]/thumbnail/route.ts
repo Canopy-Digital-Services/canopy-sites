@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 
 export async function GET(
@@ -9,17 +9,13 @@ export async function GET(
 ) {
   const { formId } = await params;
 
-  const session = await auth();
-  if (!session?.user?.id) return new NextResponse(null, { status: 401 });
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountId: true },
-  });
-  if (!user) return new NextResponse(null, { status: 401 });
+  const session = await getSession();
+  // v1: exactly one membership; anything else gets no thumbnail.
+  const membership = session?.memberships.length === 1 ? session.memberships[0] : null;
+  if (!membership) return new NextResponse(null, { status: 401 });
 
   const form = await prisma.form.findFirst({
-    where: { id: formId, accountId: user.accountId },
+    where: { id: formId, accountId: membership.accountId },
     select: { thumbnail: true },
   });
 

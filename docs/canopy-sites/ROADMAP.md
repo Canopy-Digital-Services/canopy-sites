@@ -4,7 +4,7 @@
 
 **For the agent reading this:** each epic below is a brief, not a full epic doc. When you pick one up, write the full epic in the existing `docs/epics/epic-N-*.md` format (Goal / Scope / Requirements / Acceptance), index it in `docs/epics/README.md`, and work from that. Before starting, read `docs/AGENT_CONTEXT.md`. Keep epics atomic; one epic per Claude Code session is the intended grain.
 
-Epic numbers continue the Forms sequence (last shipped: 26). Epics in other repos are prefixed.
+Epic numbers continue the Forms sequence; what has shipped is in `docs/epics/README.md`. Epics in other repos are prefixed.
 
 ---
 
@@ -48,7 +48,10 @@ Chrome:
 
 Acceptance: both hostnames serve from one deploy; a Forms-only account's experience is unchanged in behavior on both hostnames; a Sites-flagged account sees the Sites nav on both hostnames and can reach its forms; sign-out and auth flows work from either hostname; `npm run build` + `lint` pass
 
-### E28 · Account audit and Membership model
+### E28 · Account audit and Membership model (shipped v5.1.0)
+
+Outcome: `docs/epics/epic-28-account-audit-membership.md`. Beyond the brief, Q7 ended in owned database sessions with no auth library (PRD D16), plus credential throttling, hashed reset tokens, scrypt, and security headers.
+
 
 Goal: pull Forms' account code forward with obvious improvements, and replace `User.accountId` 1:1 with `Membership`.
 
@@ -162,7 +165,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 
 ### E34 · Public MCP endpoint and API keys
 
-- Streamable HTTP MCP server at `/mcp` exposing the E31 tools. Bearer API key per account, scoped to one site, hashed at rest, revocable, last-used tracked. Rate limit per key
+- Streamable HTTP MCP server at `/mcp` exposing the E31 tools. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
 - Operator and account UI: create/revoke keys, copy once
 - Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, that publish always requires a preview
 - Acceptance: Claude Desktop with the key can list collections, propose a change, request preview, and publish on Client 2; a key for site A cannot read site B

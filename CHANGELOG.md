@@ -5,6 +5,34 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-10-16
+
+Accounts and sign-in rebuilt for Canopy Sites (Epic 28). **Everyone is signed out once by this release** and signs in again as usual.
+
+### Added
+
+- **Memberships**: users reach their account through a membership (owner or member), so an account can later have more than one person. Every existing user became their account's owner
+- **Account billing status** (Active, Past due, Cancelled) and a billing reference, set by operators with a new Billing action on the accounts page
+- **Sign-in protection**: after five failed sign-ins for an email address, sign-in for it pauses for 15 minutes; signup, password reset requests, and password changes are limited the same way
+- Security headers: HSTS, no MIME sniffing, a strict referrer policy, and no framing of the sign-in, admin, and operator pages (hosted forms and the embed are unaffected)
+
+### Changed
+
+- **Sessions are stored server-side** instead of in a self-contained cookie, replacing NextAuth. Signing out, changing or resetting a password, and deleting an account end sessions immediately everywhere; an active session now stays signed in instead of ending 4 hours after sign-in (7 days with "Keep me signed in")
+- **Changing your password keeps you signed in** on the browser you changed it in, and signs you out everywhere else
+- **Passwords are hashed with scrypt**; existing passwords upgrade on the next sign-in. Passwords are 8 to 128 characters
+- **Password reset links**: only the newest link works, each works once, and a reset signs you out on every device
+- Role changes take effect on the user's next page load instead of their next sign-in
+- `NEXTAUTH_SECRET` and `AUTH_TRUST_HOST` are no longer used
+
+### Fixed
+
+- An expired session can no longer leave the login page bouncing between `/login` and `/forms`
+- Rate limits used a client-supplied header for the client IP, so they could be bypassed; they now use the address Cloudflare reports
+- Rate limit windows longer than five minutes were silently cut to five
+- Deleting a user no longer deletes the forms they created; the forms stay with the account
+- The operator accounts page no longer runs one query per account
+
 ## [5.0.0] - 2026-10-15
 
 One codebase now serves Canopy Forms and the Canopy Sites client portal (Epic 27). Forms-only accounts see no change on either hostname.

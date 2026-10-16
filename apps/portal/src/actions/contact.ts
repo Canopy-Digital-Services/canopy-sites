@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
 import { isRateLimited } from "@/lib/rate-limit";
 import { isValidEmail } from "@/lib/validation";
@@ -51,9 +51,9 @@ function recipientFor(kind: ContactKind): string | undefined {
 export async function submitContactMessage(
   payload: ContactPayload
 ): Promise<ContactResult> {
-  const session = await auth();
-  const userEmail = session?.user?.email;
-  const userId = session?.user?.id;
+  const session = await getSession();
+  const userEmail = session?.user.email;
+  const userId = session?.user.id;
   if (!userEmail || !userId) {
     return { error: "You must be signed in to send a message." };
   }
