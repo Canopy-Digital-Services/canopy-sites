@@ -127,6 +127,9 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### E30 · Builder service + Caddy + preview hostname
 
+Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), preview hostnames and their auth (PRD D25, Q2), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
+
+
 Goal: a ChangeSet against Client 2 produces a viewable preview without touching production.
 
 - Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays builder + Caddy (PRD D27)
