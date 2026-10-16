@@ -57,3 +57,17 @@ export async function createForm(accountId: string, userId: string, opts: { publ
     },
   });
 }
+
+/** A site on the account, inserted directly (the account's plan is not checked). */
+export async function createSite(accountId: string, opts: { slug?: string; productionHostnames?: string[] } = {}) {
+  seq += 1;
+  return prisma.site.create({
+    data: {
+      accountId,
+      name: `Site ${seq}`,
+      slug: opts.slug ?? `site-${seq}`,
+      productionHostnames: opts.productionHostnames ?? [],
+      runbookOverlay: `Overlay for site ${seq}`,
+    },
+  });
+}
