@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.1] - 2026-10-16
+
+### Changed
+
+- **Reset demo starts the demo over**: it also clears the demo site's change history and quick edit conversations, so the Editor no longer lists changes the reset removed
+
 ## [5.3.0] - 2026-10-16
 
 Canopy Sites can edit a real site: quick edit, preview, publish, and Stats, first for the sales demo (Epic 30).
