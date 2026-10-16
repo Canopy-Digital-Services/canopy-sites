@@ -1,6 +1,6 @@
 # Epic 28: Account Audit and Membership Model
 
-**Status:** In progress (audit recorded; Q7 awaiting Michael)
+**Status:** In progress (Membership, status, billing done; session layer awaiting Michael's go)
 **Version:** TBD
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
@@ -54,6 +54,12 @@ Facts checked 2026-10-15 (npm registry, GitHub advisory API, library source in `
 
 **Recommendation.** Stay on NextAuth v5, bumped to `beta.32`. Build Membership by hand; it does not depend on the library. Keep `next-auth` imports confined to `src/lib/auth.ts`, `src/lib/auth-utils.ts`, the `(auth)` pages, `src/actions/auth.ts`, and the account deletion client call, so a later swap touches only those. **Revisit at E34**, where Better Auth's `@better-auth/oauth-provider` and `@better-auth/mcp` would cover the PRD's "OAuth later" for the MCP endpoint, or sooner if: an advisory hits the credentials or JWT path and goes unpatched for 30 days, or a Next.js major we need falls outside `next-auth`'s peer range.
 
+### Q7, second pass: own the session layer (proposed, awaiting Michael)
+
+Michael's answer to the recommendation above: stay on NextAuth unless the comparison was too narrow, a 1:1 swap instead of a rethink. It was. Against our code, NextAuth now supplies only the encrypted JWT cookie, the sign-in CSRF check, and three endpoints; everything else is ours, and three problems came from working around it (credentials cannot use database sessions, the Epic 17 dead end; `NEXTAUTH_URL` redirect rewriting, E27; server components dropping the refreshed cookie, F1). We already query the database on every request, so we pay for database sessions without their benefits: signing out deletes only the browser's cookie, and a copied cookie stays valid until it expires.
+
+**Proposal: remove NextAuth and own a small database-session layer** (the opaque-token pattern). A random token in an `httpOnly`, `SameSite=Lax` cookie; a `sessions` row keyed by the token's SHA-256; one `cache()`d lookup per request joining session, user, and membership. The idle expiry lives in the row, so it rolls without writing the cookie (F1, no `proxy.ts`); a missing or expired row is simply signed out (F2); one query per request (F3) with the current role (F4). Sign-out, password change and reset, and account deletion delete the rows, so revocation is immediate everywhere. Sign-in and sign-out become our own server actions, which Next already rejects when `Origin` does not match the host (checked in `next/dist/server/app-render/action-handler.js`), and redirect relatively, so the E27 cross-host workarounds go away. Cost: roughly 150 lines of security code we own, covered by database tests; one forced sign-out at the switch (no real users yet); `next-auth`, `/api/auth/*`, and `NEXTAUTH_SECRET` go away, while `NEXTAUTH_URL` stays as the app URL so Coolify needs no change. Passwordless sign-in (magic links, passkeys) would sit on top later.
+
 ### Q8. Test runner: Vitest (done, `2cbc4d7`)
 
 Vitest in `apps/portal`, run inside the dev container like the build. Two kinds of test:
@@ -78,10 +84,10 @@ Evidence is from the dev stack on `localhost:3006` with a throwaway `FREE` accou
 | F7 | **Reset tokens are stored in plaintext**, earlier tokens stay valid when a new one is issued, and validate-then-consume is not atomic. A database read yields working reset links for an hour. | `PasswordResetToken.token`; `resetPassword`. | Store a SHA-256 of the token, invalidate a user's open tokens on issue, consume with a conditional update. |
 | F8 | **bcrypt cost 10 and silent 72-byte truncation.** Cost 10 is the OWASP floor (about 60ms here; 12 is about 250ms). Two passwords sharing a 72-byte prefix both verify. No maximum length anywhere. | Run in the container with the app's `bcrypt` 6.0.0. | Cost 12 for new hashes, rehash on successful sign-in; reject passwords over 72 bytes. |
 | F9 | **Dormant `PrismaAdapter`.** Never called with credentials and JWT. | `docs/ACCOUNT_OPERATIONS.md` already says so. | Done (`1c65921`), which also left a single `@auth/core`. |
-| F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | Static imports. |
-| F11 | **Deleting a user deletes the forms they created.** `Form.createdByUser` is `onDelete: Cascade`. Harmless while user equals account; data loss once a member can be removed. | `prisma/schema.prisma` | `createdByUserId` nullable, `onDelete: SetNull`. |
-| F12 | **Account deletion relies on the `User.accountId` cascade.** After the contract migration, `prisma.account.delete()` would leave the owner's `User` row: a login with no account. | Schema. | Delete the account and every user whose only membership it was, in one transaction. |
-| F13 | **`User.accountId` readers outside the helper.** The thumbnail route resolves the account itself; `email-queue`, `deleteAccount`, `setUserRole`, `setAccountPlan`, `listAccountsMetadata`, the seed, and `backfill-global-admin.mjs` read `User.accountId` or `Account.user`. | `grep -rn accountId` | The Membership change's touch list. All session-side lookups go through `getCurrentAccountId`. |
+| F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | `getCurrentAccountId`'s is gone (`2dc35b2`); the four pages go with the session work. |
+| F11 | **Deleting a user deletes the forms they created.** `Form.createdByUser` is `onDelete: Cascade`. Harmless while user equals account; data loss once a member can be removed. | `prisma/schema.prisma` | Done (`4de566e`): `createdByUserId` nullable, `onDelete: SetNull`. |
+| F12 | **Account deletion relies on the `User.accountId` cascade.** After the contract migration, `prisma.account.delete()` would leave the owner's `User` row: a login with no account. | Schema. | Done (`2dc35b2`): `deleteAccountAndSoleMembers`. |
+| F13 | **`User.accountId` readers outside the helper.** The thumbnail route resolves the account itself; `email-queue`, `deleteAccount`, `setUserRole`, `setAccountPlan`, `listAccountsMetadata`, the seed, and `backfill-global-admin.mjs` read `User.accountId` or `Account.user`. | `grep -rn accountId` | Done (`2dc35b2`): all go through `src/lib/data-access/memberships.ts`. |
 | F14 | **`deleteAccount` finds the operator by email**, and `listAccountsMetadata` runs one `form.findMany` per account. | `src/actions/accounts.ts`, `src/lib/data-access/accounts.ts`. | Session user id; one grouped query. |
 
 Confirmed acceptable: password-change invalidation (per-request `passwordChangedAt` check), enumeration-safe reset request copy, the hard-delete model, the ownership helpers in `data-access/forms.ts`. Signup says "Email already registered", so sign-in timing (bcrypt only runs for known emails) leaks nothing signup does not.
@@ -111,14 +117,16 @@ model Membership {
 - `getCurrentAccountId()` resolves through Membership and throws unless there is exactly one. The many-membership path is that throw.
 - Signup creates Account, User, and an `OWNER` Membership in one write. Self-serve deletion requires `OWNER`.
 
-**Two migrations, two deploys.** Coolify starts the new container, which runs `migrate deploy`, while the old one still serves. So:
+**Two migrations** (done, `2dc35b2` and `95f04ad`). Coolify starts the new container, which runs `migrate deploy`, while the old one still serves.
 
-1. **Expand** (`add_memberships`): create the enum and table, backfill one `OWNER` row per user, drop `NOT NULL` on `users.accountId` (FK and cascade stay). Ships with the code that stops reading and writing the column.
-2. **Contract** (`drop_user_account_id`): re-run the backfill for users that lack a membership (signups served by the old container during the switchover), then drop the column. **Ships in a later deploy, to dev and to prod, only after the expand release is live in production.** It waits on a branch until then, so no dev to main release can carry both.
+1. **Expand** (`add_memberships`): create the enum and table, backfill one `OWNER` row per user with deterministic ids (`'mbr_' || user id`), drop `NOT NULL` on `users.accountId` (FK and cascade stay). Shipped with the code that stopped reading and writing the column.
+2. **Contract** (`drop_user_account_id`): re-run the backfill for users that lack a membership (a signup the old container served mid-deploy), then drop the FK, unique index, and column. Verified in a scratch database migrated through step 1 with a user inserted the old way.
+
+Both may ship in one release (D5).
 
 ## 6. Decisions
 
-**D1. Stay on NextAuth for E28** (pending Michael; section 3).
+**D1. Auth library.** Michael: stay on NextAuth unless a rethink beats it. Proposal on the table: own the session layer (section 3, second pass), awaiting his go.
 
 **D2. Real database in tests.** See Q8.
 
@@ -126,21 +134,25 @@ model Membership {
 
 **D4. Membership by hand, not the organization plugin.** Section 3.
 
-**D5. Contract migration in its own release.** Section 5.
+**D5. Both Membership migrations may ship in one release.** The brief's two migrations stay, so each step is independently safe, but holding the contract step for a later production release only protected real users from a minute of errors on the old container during the deploy, and there are none yet (Michael, 2026-10-15). The contract migration's re-backfill covers any signup in that window anyway.
 
-**D6. `Account.status` gates nothing yet.** `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`, plus free-text `billingRef`, set from the operator console and logged like `setAccountPlan`. What a status should block (publishing, Sites builds, sign-in) gets decided when there is something to gate.
+**D6. `Account.status` gates nothing yet.** `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`, plus free-text `billingRef`, set from the operator console and logged like `setAccountPlan`. What a status should block (publishing, Sites builds, sign-in) gets decided when there is something to gate. Confirmed by Michael 2026-10-15; done in `f7e271b` and `ecbe328`.
+
+**D7. No CI in E28.** Michael, 2026-10-15: not in scope, and not a prerequisite for the MVP. `npm test` runs in the dev container as part of the pre-commit gate. Revisit when E31's guardrails land or a second person commits to the repo; the Engineering QA page lists it as an open gap.
 
 ## 7. Acceptance
 
 - [ ] Q7 decided with Michael; Q8 in place and `npm test` passing in the container
 - [ ] F1 to F14 resolved or explicitly deferred here
 - [ ] Signup, login, reset, change password, delete account, operator account list, role and plan changes work unchanged on both hosts
-- [ ] Every session-side `accountId` lookup goes through `getCurrentAccountId`; nothing reads `User.accountId`
-- [ ] Both migrations read and verified per `docs/AGENT_CONTEXT.md` §5; the contract migration deployed separately
-- [ ] Operator can set `Account.status` and `billingRef`
+- [x] Every account lookup goes through `src/lib/data-access/memberships.ts`; `User.accountId` is dropped
+- [x] Both migrations read and verified per `docs/AGENT_CONTEXT.md` §5
+- [x] Operator can set `Account.status` and `billingRef`
 - [ ] `npm run build`, `npm run lint`, `npm test` pass
 
 ## 8. Progress log
 
 - 2026-10-15: Brief read; audit run against the dev stack (section 4); Q7 researched and recommendation written; Michael reported the login-page cookie problem, traced to F1 plus F2.
 - 2026-10-15: Vitest in place (Q8). `next-auth` bumped to `beta.32` and the adapter removed. Engineering collective QA page created. Waiting on Michael for Q7 before the session and sign-in fixes.
+- 2026-10-15: Michael: stay on NextAuth unless a rethink beats it; no real users, so ship the Membership migrations together; status gates nothing; no CI now. Proposed owning the session layer. Built Membership (expand and contract), the form-creator fix, and account status and billing with operator UI; 29 tests.
+- Build note: `next build` in the dev container intermittently fails fetching Google Fonts (`TLS-related` error from Turbopack); a rerun passes unchanged, as in E27. Self-hosting the fonts with `next/font/local` would make builds independent of the network. Follow-up, not E28.
