@@ -347,6 +347,8 @@ User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
   └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
   │           absoluteExpiresAt)
+  └─ SessionHandoff (id = SHA-256 of a one-time token, rememberMe, targetHost,
+  │                  expiresAt), Forms-host sign-in to a Sites-host session
   └─ PasswordResetToken (tokenHash, expiresAt, usedAt?)
 ```
 

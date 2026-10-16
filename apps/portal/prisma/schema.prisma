@@ -88,6 +88,7 @@ model User {
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
   sessions            Session[]
+  sessionHandoffs     SessionHandoff[]
 
   @@index([roleCode])
   @@map("users")
@@ -289,6 +290,24 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+// A one-time pass from sign-in on the Forms host to a session on the Sites
+// host, for a Sites account that signed in on the wrong host (PRD D22). Like
+// sessions, only the token's SHA-256 is stored. Single use, two minutes, and
+// good only on the host it names. See src/lib/session.ts.
+model SessionHandoff {
+  id         String   @id // SHA-256 hex of the token
+  userId     String
+  rememberMe Boolean
+  targetHost String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session_handoffs")
 }
 
 // Password reset tokens. The emailed link carries a random token; only its
