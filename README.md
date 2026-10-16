@@ -77,4 +77,4 @@ See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs
 
 ## License
 
-MIT License — [GitHub](https://github.com/Skinnerbox916/Canopy-Forms)
+MIT License — [GitHub](https://github.com/Canopy-Digital-Services/canopy-sites)

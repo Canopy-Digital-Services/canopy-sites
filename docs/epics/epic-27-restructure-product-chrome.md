@@ -1,7 +1,7 @@
 # Epic 27: Restructure In Place; Product-Based Chrome
 
 **Status:** In progress (code complete on branch `epic-27`; deploy steps pending)
-**Version:** v5.0.0 planned
+**Version:** v5.0.0 (release prepared; root `package.json` bumped)
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
 **Predecessors:** Epic 23 (Plans & Entitlements), Epic 24 (Roles & Global Admin)
@@ -110,7 +110,7 @@ Each step below touches shared state and waits for Michael's go-ahead.
 
 1. **Visual review** at `http://localhost:3007` and `http://sites.localhost:3007` (verification stack, still running; test accounts in `local-dev-state` memory, or sign in as yourself: the stack's DB is a copy of your local Forms DB).
 2. **Fold in the field-preview work.** Commit it on `dev` in the main checkout, then merge `dev` into `epic-27`; rename detection carries it into `apps/portal/`.
-3. **GitHub.** Rename `Canopy-Forms` to `canopy-sites` (stays public), update the local remote. Confirm Coolify's GitHub App source follows the rename.
+3. **GitHub.** ✅ Done 2026-10-15: renamed to `Canopy-Digital-Services/canopy-sites` (public), local remote updated. Remaining: set `git_repository` on the Coolify apps to the new name, then confirm the next push to `dev` still triggers an auto-deploy (not yet observed after the rename). Confirm Coolify's GitHub App source follows the rename.
 4. **DNS.** `sites.canopyds.com` and `sites-dev.canopyds.com` to the tunnel, plus ingress, per the Nextcloud Webber runbook.
 5. **Coolify dev app** (`wogw0skcsgck80cs4gscs0c0`): Dockerfile `apps/portal/Dockerfile`, base directory `/`, watch paths `apps/portal/**`, `package.json`, `package-lock.json`, extra domain `sites-dev.canopyds.com`. Then merge `epic-27` into `dev`, confirm `[portal] Migrations complete` in the logs and both hosts serving.
 6. **Coolify prod app** (`j80s80ow8ss4444kk40cscsc`): the same build settings and `sites.canopyds.com`, changed immediately before the release PR merges. A failed build leaves the old container serving.
@@ -126,7 +126,7 @@ Each step below touches shared state and waits for Michael's go-ahead.
 - [x] Sign-in, sign-out, account deletion stay on the current host
 - [ ] Visual review signed off
 - [ ] Both hostnames served from one deploy, dev and prod
-- [ ] Repo renamed
+- [x] Repo renamed
 
 ## 10. Follow-ups found
 
