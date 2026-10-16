@@ -231,14 +231,14 @@ GitHub's merge commit lands on `main` only, so the branches diverge by exactly o
 | Environment | URL | Branch | Coolify app UUID |
 |-------------|-----|--------|------------------|
 | Local | `http://localhost:3006` | working copy | — |
-| Dev | `https://forms-dev.canopyds.com` | `dev` | `wogw0skcsgck80cs4gscs0c0` |
-| Prod | `https://forms.canopyds.com` | `main` | `j80s80ow8ss4444kk40cscsc` |
+| Dev | `https://forms-dev.canopyds.com`, `https://sites-dev.canopyds.com` | `dev` | `wogw0skcsgck80cs4gscs0c0` |
+| Prod | `https://forms.canopyds.com`, `https://sites.canopyds.com` | `main` | `j80s80ow8ss4444kk40cscsc` |
 
 Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds `apps/portal/Dockerfile` with the repo root as context and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
-- Auto-deploy watch paths should be `apps/portal/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or files outside those paths do not trigger a deploy.
-- **Pending (as of 2026-10-15):** both Coolify apps still build `/Dockerfile` with watch paths `src/**`, `embed/**`, `prisma/**`, which match nothing after Epic 27 moved the app. Until Epic 27's deploy step updates them (and adds `sites.canopyds.com` / `sites-dev.canopyds.com`), do not merge the move into `dev` or `main`. Delete this bullet when the apps are updated.
+- Both apps build `/apps/portal/Dockerfile` from base directory `/`, with auto-deploy watch paths `apps/portal/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or other files outside those paths do not trigger a deploy. Each app serves its Forms and Sites hostnames (both are Coolify domains on the one app).
+- **Fox's Coolify holds copies of both apps** (same UUIDs, stopped) for the manual Forms failover (`fox-activate`, see the Nextcloud Outage Response runbook). Its start path builds from git, so any change to build settings or domains must be made on Fox too, or a failover build breaks. The same `$COOLIFY_TOKEN` works against Fox's API (`ssh fox`, `localhost:8000`).
 - **An env var change is inert until the container is recreated.** Coolify injects env at container creation, so a var added through the UI or API does nothing to the running app until it is redeployed. Confirm with the runtime probe in section 7 rather than the Coolify UI, which shows the stored value, not what the Node process holds.
 
 ---

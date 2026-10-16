@@ -1,6 +1,6 @@
 # Epic 27: Restructure In Place; Product-Based Chrome
 
-**Status:** In progress (code complete on branch `epic-27`; deploy steps pending)
+**Status:** In progress (live on dev; production release pending)
 **Version:** v5.0.0 (release prepared; root `package.json` bumped)
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
@@ -104,18 +104,16 @@ Run against an isolated stack (`-p canopy-e27`, port 3007) seeded from a dump of
 
 **Not yet verified:** visual review in a browser (wordmark, nav spacing, active state, mobile sheet). No browser tool was available in this session; needed before merge.
 
-## 8. Remaining steps
+## 8. Deploy steps
 
-Each step below touches shared state and waits for Michael's go-ahead.
-
-1. **Visual review** at `http://localhost:3007` and `http://sites.localhost:3007` (verification stack, still running; test accounts in `local-dev-state` memory, or sign in as yourself: the stack's DB is a copy of your local Forms DB).
-2. **Fold in the field-preview work.** Commit it on `dev` in the main checkout, then merge `dev` into `epic-27`; rename detection carries it into `apps/portal/`.
-3. **GitHub.** ✅ Done 2026-10-15: renamed to `Canopy-Digital-Services/canopy-sites` (public), local remote updated. Remaining: set `git_repository` on the Coolify apps to the new name, then confirm the next push to `dev` still triggers an auto-deploy (not yet observed after the rename). Confirm Coolify's GitHub App source follows the rename.
-4. **DNS.** `sites.canopyds.com` and `sites-dev.canopyds.com` to the tunnel, plus ingress, per the Nextcloud Webber runbook.
-5. **Coolify dev app** (`wogw0skcsgck80cs4gscs0c0`): Dockerfile `apps/portal/Dockerfile`, base directory `/`, watch paths `apps/portal/**`, `package.json`, `package-lock.json`, extra domain `sites-dev.canopyds.com`. Then merge `epic-27` into `dev`, confirm `[portal] Migrations complete` in the logs and both hosts serving.
-6. **Coolify prod app** (`j80s80ow8ss4444kk40cscsc`): the same build settings and `sites.canopyds.com`, changed immediately before the release PR merges. A failed build leaves the old container serving.
-7. **Local switchover.** Stop the `canopy-forms` compose project, restore its DB into the new `canopy-sites_pgdata` volume, bring up the root `docker-compose.dev.yml`, tear down the `canopy-e27` stack and remove the worktree (its `apps/portal/.next` is root-owned, written by the container, so remove that inside the container or with sudo first). The July leftovers are already gone.
-8. **Release.** Root `package.json` to 5.0.0, CHANGELOG, completion report here, index row. Delete the "Pending" bullet in `docs/AGENT_CONTEXT.md` §6.
+1. **Visual review.** ✅ Michael, 2026-10-15: "the look is right" (a click-around, not a full UAT).
+2. **Field-preview work.** ✅ Committed by Michael on `dev` (`dee6330`, `ee17ced`) and merged into `epic-27` (`554f47c`). The one conflict, a new file at the old path, resolved into `apps/portal/`.
+3. **GitHub.** ✅ Renamed to `Canopy-Digital-Services/canopy-sites` (public); local remote updated. The first push afterwards auto-deployed, so webhook delivery survived the rename.
+4. **DNS.** ✅ Proxied CNAMEs `sites-dev.canopyds.com` and `sites.canopyds.com` to Webber's tunnel. No ingress change: Webber and Fox both route `*.canopyds.com` to Traefik. (`deploy-to-webber.md` said new names need no DNS; that holds for ingress only.)
+5. **Coolify dev app.** ✅ `wogw0skcsgck80cs4gscs0c0`: new repo name, `/apps/portal/Dockerfile`, new watch paths, domains `forms-dev` and `sites-dev`. Coolify regenerated the Traefik labels with a router per host. `epic-27` fast-forwarded onto `dev` (`61d7550`) and deployed in about 165 s; the log shows `No pending migrations to apply` then `[portal] Migrations complete`. Both hosts return 200 with the right branding, and a CSRF plus wrong-credentials sign-in on `sites-dev` reaches the credentials check over HTTPS.
+6. **Prod and Fox.** Webber's prod app `j80s80ow8ss4444kk40cscsc` and Fox's copies of both apps get the same settings (prod domains `forms` and `sites`), then the release PR `dev` → `main` merges. Fox matters because `fox-activate` starts Forms through Coolify, which builds from git with whatever settings Fox holds.
+7. **Local switchover.** Stop the `canopy-forms` compose project, restore its DB into the new `canopy-sites_pgdata` volume, bring up the root `docker-compose.dev.yml`, tear down the `canopy-e27` stack and remove the worktree (its `apps/portal/.next` is root-owned, written by the container, so remove that inside the container first).
+8. **Release bookkeeping.** ✅ Version 5.0.0 and CHANGELOG (`88da96a`). After production is verified: status Complete, index row, and the Nextcloud runbooks (Outage Response moves `sites.canopyds.com` with `forms.canopyds.com`; Webber's domain table).
 
 ## 9. Acceptance
 
@@ -124,7 +122,7 @@ Each step below touches shared state and waits for Michael's go-ahead.
 - [x] Forms-only account: unchanged behavior on both hosts; `/editor`, `/stats` 404
 - [x] Sites account: Sites nav on both hosts, reaches its forms, home is `/editor`
 - [x] Sign-in, sign-out, account deletion stay on the current host
-- [ ] Visual review signed off
+- [x] Visual review (click-around, 2026-10-15)
 - [ ] Both hostnames served from one deploy, dev and prod
 - [x] Repo renamed
 
@@ -143,4 +141,5 @@ Modified (under `apps/portal/` unless noted): `next.config.ts`, `Dockerfile`, `D
 
 ## 12. Progress log
 
-- 2026-10-15: Brief reviewed and reversed (§2). Code, verification, and docs complete on `epic-27`. Steps in §8 pending.
+- 2026-10-15: Brief reviewed and reversed (§2). Code, verification, and docs complete on `epic-27`.
+- 2026-10-15: Repo renamed, DNS added, dev app repointed, `epic-27` on `dev` and live on `forms-dev` and `sites-dev`. Found Fox's failover copies of both apps; they need the same settings before or with the release.
