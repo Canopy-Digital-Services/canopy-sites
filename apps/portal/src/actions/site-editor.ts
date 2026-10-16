@@ -35,7 +35,7 @@ export async function sendQuickEdit(input: {
   try {
     const ctx = await context();
     const result = await runQuickEdit(ctx, { conversationId: input.conversationId, message: String(input.message ?? "") });
-    if (result.changeSetId) revalidatePath("/editor");
+    if (result.changeSetId) revalidatePath("/quick-edit");
     return { success: true, ...result };
   } catch (err) {
     return failure(err);
@@ -56,7 +56,7 @@ export async function publishPendingChange(changeSetId: string): Promise<Result<
   try {
     const ctx = await context();
     const result = await publishChange(ctx, String(changeSetId), { name: ctx.email.split("@")[0], email: ctx.email });
-    revalidatePath("/editor");
+    revalidatePath("/quick-edit");
     return { success: true, ...result };
   } catch (err) {
     return failure(err);
@@ -67,7 +67,7 @@ export async function discardPendingChange(changeSetId: string): Promise<Result<
   try {
     const ctx = await context();
     await discardChange(ctx.accountId, String(changeSetId));
-    revalidatePath("/editor");
+    revalidatePath("/quick-edit");
     return { success: true };
   } catch (err) {
     return failure(err);

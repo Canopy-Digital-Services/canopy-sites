@@ -100,6 +100,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D25 | **Preview hostnames sit one level under the zone** (`<slug>-preview.canopyds.com`, not `preview-<slug>.sites.canopyds.com`): Cloudflare's Universal SSL covers the apex and one level only, so a second-level name gets no certificate without Advanced Certificate Manager. The demo needs none: it previews at its own URL (D23) | R |
 | D26 | **`site-contract` ships from this repo** (was Q1): `packages/site-contract` is packed into a tarball attached to a GitHub release `site-contract-vX.Y.Z` on this repo, which site repos install by URL (npm cannot install a subdirectory of a git repo). The portal and builder use the workspace copy | R |
 | D27 | **D6 stands** (was Q9). Cloudflare Pages would replace only the serving half; a builder that applies ChangeSets and runs `astro build` is needed either way, and the positioning is "we run our own stack" | R |
+| D28 | **Sites nav: Quick Edit · Editor · Forms · Stats, with Quick Edit as home.** Editor is, for now, a static concept of in-place editing for sales: the demo site framed with editable fields outlined (hover highlights them, nothing saves) beside a static inspector. Building it for real is the option-2 visual editor (click a field, edit it in place, a ChangeSet through the tool layer) and reopens section 2's "full visual editor" line, which excludes layout editing, not in-place content editing | M |
 
 ---
 
@@ -215,7 +216,7 @@ Ownership enforcement stays in `src/lib/data-access/*` by `accountId`, now resol
 
 ## 6. Portal UX (sites chrome)
 
-Nav: **Editor · Forms · Stats** (+ Account). Branding patterned on Canopy Forms (`docs/UX_PATTERNS.md` applies).
+Nav: **Quick Edit · Editor · Forms · Stats** (+ Account) (D28). Branding patterned on Canopy Forms (`docs/UX_PATTERNS.md` applies).
 
 | Screen | Content |
 |---|---|

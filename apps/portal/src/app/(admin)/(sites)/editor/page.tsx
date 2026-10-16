@@ -1,92 +1,124 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
-import { ExternalLink } from "lucide-react";
+import type { Category } from "@canopy/site-contract";
 import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
-import { builderConfigured } from "@/lib/builder-client";
-import { getContentView, getEditorChanges, ToolError } from "@/lib/site-tools";
+import { builderConfigured, fetchSiteFile } from "@/lib/builder-client";
+import { getContentView } from "@/lib/site-tools";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
-import { Button } from "@/components/ui/button";
-import { EditorWorkspace, type EditorPage } from "./editor-workspace";
+import { Badge } from "@/components/ui/badge";
+import { VisualEditorConcept, type ConceptData } from "./visual-editor-concept";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * The visual editor, as a static concept for sales (Epic 30, D9): the demo
+ * site framed with in-place editing drawn over it, and an inspector beside
+ * it. Nothing here is interactive or saves anything; quick edit is the
+ * working editor. Everything shown comes from the site itself, so no client
+ * content lives in this repo.
+ */
 export default async function EditorPage() {
   const accountId = await getCurrentAccountId();
   const site = await getAccountSite(accountId);
 
-  if (!site || !builderConfigured()) {
+  const header = (
+    <PageHeader
+      title="Editor"
+      description="Click anything on your site to change it in place."
+      actions={<Badge variant="brand">Coming soon</Badge>}
+    />
+  );
+
+  if (!site?.isDemo || !builderConfigured()) {
     return (
       <PageContent>
         <div className="space-y-6">
-          <PageHeader title={site?.name ?? "Editor"} />
-          <EmptyState
-            title="Nothing to edit yet"
-            description={site ? "Your pages will appear here." : "Your site will appear here once it's set up."}
-          />
+          {header}
+          <EmptyState title="The visual editor is coming soon" description="Until then, Quick Edit makes any change to your site." />
         </div>
       </PageContent>
     );
   }
 
-  let pages: EditorPage[] = [];
-  let loadError: string | null = null;
-  let isDemo = false;
-  try {
-    const view = await getContentView(accountId);
-    isDemo = view.site.isDemo;
-    const content = view.published as { pages?: Array<{ id: string; path: string; title: string; navLabel?: string }> };
-    pages = (content.pages ?? []).map((p) => ({ id: p.id, path: p.path, title: p.navLabel ?? (p.id === "home" ? "Home" : p.title) }));
-  } catch (err) {
-    loadError = err instanceof ToolError ? err.message : "Your site couldn't be loaded.";
+  const data = await conceptData(accountId, site.slug).catch(() => null);
+  if (!data) {
+    return (
+      <PageContent>
+        <div className="space-y-6">
+          {header}
+          <EmptyState title="Your site couldn't be loaded" description="Try again in a moment." />
+        </div>
+      </PageContent>
+    );
   }
-  const changes = await getEditorChanges(accountId);
-  // The demo is the only site the portal serves today (PRD D23); client
-  // sites get their live address with E36.
-  const liveUrl = isDemo ? "/demo" : null;
 
   return (
     <PageContent width="wide">
       <div className="space-y-6">
-        <PageHeader
-          title={site.name}
-          actions={
-            liveUrl ? (
-              <Button variant="outline" asChild>
-                <a href={liveUrl} target="_blank" rel="noopener">
-                  View site
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            ) : null
-          }
-        />
-        {loadError ? (
-          <EmptyState title="Your site couldn't be loaded" description={loadError} />
-        ) : (
-          <EditorWorkspace
-            pages={pages}
-            liveUrl={liveUrl}
-            pending={
-              changes.pending
-                ? {
-                    id: changes.pending.id,
-                    summary: changes.pending.summary,
-                    status: changes.pending.status,
-                    error: changes.pending.error,
-                  }
-                : null
-            }
-            recent={changes.recent.map((c) => ({
-              id: c.id,
-              summary: c.summary,
-              publishedAt: c.publishedAt?.toISOString() ?? null,
-              by: c.by,
-            }))}
-          />
-        )}
+        {header}
+        <VisualEditorConcept data={data} />
       </div>
     </PageContent>
   );
+}
+
+const LOCKED_LABELS: Record<string, string> = {
+  "site.contact.phone": "Phone",
+  "site.contact.email": "Email",
+  "site.contact.address": "Address",
+};
+
+async function conceptData(accountId: string, slug: string): Promise<ConceptData> {
+  const view = await getContentView(accountId);
+  const content = view.published as {
+    pages?: Array<{ id: string; title: string; navLabel?: string; sections: Array<{ serviceIds?: string[] }> }>;
+    services?: Category[];
+  };
+
+  // The price drawn mid-edit is the first featured service's.
+  const featuredId = content.pages?.find((p) => p.id === "home")?.sections.find((s) => s.serviceIds?.length)?.serviceIds?.[0];
+  let selected: ConceptData["selected"] = null;
+  for (const category of content.services ?? []) {
+    const lists = [category.services, ...(category.groups ?? []).map((g) => g.services), ...(category.sections ?? []).flatMap((s) => [s.services, ...(s.groups ?? []).map((g) => g.services)])];
+    for (const service of lists.flat()) {
+      if (service && (featuredId ? service.id === featuredId : true)) {
+        selected = { category: category.name, service: service.name, price: service.priceLabel };
+        break;
+      }
+    }
+    if (selected) break;
+  }
+
+  return {
+    pages: (content.pages ?? []).map((p) => (p.id === "home" ? "Home" : (p.navLabel ?? p.title))),
+    selected,
+    locked: view.site.lockedFields.map((f) => LOCKED_LABELS[f] ?? f.split(".").pop() ?? f),
+    style: await siteStyle(slug).catch(() => ({ colors: [], fonts: [] })),
+  };
+}
+
+/** The site's own theme, read from its built stylesheet. */
+async function siteStyle(slug: string): Promise<ConceptData["style"]> {
+  const html = await (await fetchSiteFile(slug, "current", "")).text();
+  const sheets = [...html.matchAll(/href="\/demo\/(_astro\/[^"]+\.css)"/g)].map((m) => m[1]);
+  let css = "";
+  for (const sheet of sheets.slice(0, 4)) css += await (await fetchSiteFile(slug, "current", sheet)).text();
+
+  const colors = new Map<string, string>();
+  for (const m of css.matchAll(/--color-([a-z][a-z-]*):\s*(#[0-9a-fA-F]{3,8})\b/g)) {
+    // Skip Tailwind's numbered palette and plain black and white.
+    if (/\d/.test(m[1]) || m[1] === "black" || m[1] === "white" || colors.has(m[1])) continue;
+    colors.set(m[1], m[2]);
+  }
+  const fonts: ConceptData["style"]["fonts"] = [];
+  for (const [role, name] of [["serif", "Headings"], ["sans", "Body"]] as const) {
+    const m = css.match(new RegExp(`--font-${role}:\\s*["']?([^"',;]+)`));
+    if (m) fonts.push({ role: name, family: m[1].trim() });
+  }
+  return {
+    colors: [...colors].slice(0, 8).map(([name, hex]) => ({ name: name.replace(/-/g, " "), hex })),
+    fonts,
+  };
 }

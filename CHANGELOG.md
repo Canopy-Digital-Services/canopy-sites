@@ -5,6 +5,16 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.0] - 2026-10-16
+
+### Changed
+
+- **Quick Edit has its own tab** and is where Canopy Sites customers land after signing in
+
+### Added
+
+- **Editor**: a preview of the coming visual editor, showing the demo site with the content you'll be able to change in place outlined, a price mid-edit, and the details Canopy keeps locked. It doesn't save anything yet
+
 ## [5.3.1] - 2026-10-16
 
 ### Changed
