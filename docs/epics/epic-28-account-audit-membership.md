@@ -1,6 +1,6 @@
 # Epic 28: Account Audit and Membership Model
 
-**Status:** In progress (Membership, status, billing done; session layer awaiting Michael's go)
+**Status:** In progress (code complete; deployed verification and Michael's review pending)
 **Version:** TBD
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
@@ -38,7 +38,7 @@ Pull the inherited Forms account and auth code forward with the improvements the
 
 ## 3. Gating decisions
 
-### Q7. Auth library: recommendation is stay on NextAuth v5 for now (awaiting Michael)
+### Q7. Auth library, first pass: stay on NextAuth v5 (superseded by the second pass)
 
 Facts checked 2026-10-15 (npm registry, GitHub advisory API, library source in `node_modules`, and a spike against the dev stack):
 
@@ -54,11 +54,34 @@ Facts checked 2026-10-15 (npm registry, GitHub advisory API, library source in `
 
 **Recommendation.** Stay on NextAuth v5, bumped to `beta.32`. Build Membership by hand; it does not depend on the library. Keep `next-auth` imports confined to `src/lib/auth.ts`, `src/lib/auth-utils.ts`, the `(auth)` pages, `src/actions/auth.ts`, and the account deletion client call, so a later swap touches only those. **Revisit at E34**, where Better Auth's `@better-auth/oauth-provider` and `@better-auth/mcp` would cover the PRD's "OAuth later" for the MCP endpoint, or sooner if: an advisory hits the credentials or JWT path and goes unpatched for 30 days, or a Next.js major we need falls outside `next-auth`'s peer range.
 
-### Q7, second pass: own the session layer (proposed, awaiting Michael)
+### Q7, second pass: own the session layer (decided, built in `0d113c0`)
 
 Michael's answer to the recommendation above: stay on NextAuth unless the comparison was too narrow, a 1:1 swap instead of a rethink. It was. Against our code, NextAuth now supplies only the encrypted JWT cookie, the sign-in CSRF check, and three endpoints; everything else is ours, and three problems came from working around it (credentials cannot use database sessions, the Epic 17 dead end; `NEXTAUTH_URL` redirect rewriting, E27; server components dropping the refreshed cookie, F1). We already query the database on every request, so we pay for database sessions without their benefits: signing out deletes only the browser's cookie, and a copied cookie stays valid until it expires.
 
 **Proposal: remove NextAuth and own a small database-session layer** (the opaque-token pattern). A random token in an `httpOnly`, `SameSite=Lax` cookie; a `sessions` row keyed by the token's SHA-256; one `cache()`d lookup per request joining session, user, and membership. The idle expiry lives in the row, so it rolls without writing the cookie (F1, no `proxy.ts`); a missing or expired row is simply signed out (F2); one query per request (F3) with the current role (F4). Sign-out, password change and reset, and account deletion delete the rows, so revocation is immediate everywhere. Sign-in and sign-out become our own server actions, which Next already rejects when `Origin` does not match the host (checked in `next/dist/server/app-render/action-handler.js`), and redirect relatively, so the E27 cross-host workarounds go away. Cost: roughly 150 lines of security code we own, covered by database tests; one forced sign-out at the switch (no real users yet); `next-auth`, `/api/auth/*`, and `NEXTAUTH_SECRET` go away, while `NEXTAUTH_URL` stays as the app URL so Coolify needs no change. Passwordless sign-in (magic links, passkeys) would sit on top later.
+
+### Security posture of the owned session layer (2026-10-15)
+
+Michael's go was conditional on this: the portal holds PII (account emails; form submissions with names, emails, phones, addresses), not payment data.
+
+**Verdict: strong enough, and stronger than the NextAuth setup it replaced, given the fixes that shipped with it.** It adds no cryptography of its own: random bytes and SHA-256 from `node:crypto`.
+
+| Property | NextAuth as it ran | Owned sessions |
+|---|---|---|
+| Forging a session | Anyone with `NEXTAUTH_SECRET` can mint one for any user; a literal secret is in this public repo's history (E27) | No signing secret exists; tokens are 256-bit random |
+| Database read | JWTs not stored | Only token hashes stored: no usable session |
+| Sign-out | Deletes the browser's copy only; a copied cookie stays valid | Deletes the row: the token is dead everywhere |
+| Password change or reset, account deletion | Expired at the next request's database check | Rows deleted immediately |
+| Idle timeout | Never rolled (F1) | Rolls in the database |
+| Role change | Applied at next sign-in | Next request |
+| CSRF | NextAuth's token on sign-in | Next's `Origin` check on server actions, plus `SameSite=Lax` |
+| Fixation | n/a | New token on every sign-in; unknown tokens are rejected |
+
+Shipped with it, because the session layer alone is not enough for PII: credential throttling and the unspoofable client IP (F5, F6), hashed single-use reset tokens (F7), scrypt (F8), and baseline security headers (closing clickjacking on the admin and sign-in pages; `528efff`). Each has a test that fails without it.
+
+Residual risks, accepted or parked: password-only sign-in, so MFA for Global Admins is the next step (passkeys or TOTP fit on top of this design); NIST SP 800-63B-4 asks 15 characters for single-factor passwords and a common-password blocklist, and Michael kept the minimum at 8 with neither (2026-10-15); throttles are in memory, so they reset on deploy; anyone can lock an email out of sign-in for 15 minutes; CSV export does not neutralize formula cells (follow-up).
+
+**The repo stays public** (Michael, 2026-10-15). Nothing here gets weaker when the code is read: the defences are 256-bit tokens and server-side checks. The exposure that matters is publishing an unfixed weakness, so details of a live vulnerability stay out of the public repo (Nextcloud or a private GitHub advisory) until its fix is deployed. This doc's findings were pushed together with their fixes, with production updated by the next release.
 
 ### Q8. Test runner: Vitest (done, `2cbc4d7`)
 
@@ -82,7 +105,7 @@ Evidence is from the dev stack on `localhost:3006` with a throwaway `FREE` accou
 | F5 | **No throttle on sign-in, sign-up, or reset request.** `failedLoginCount` is written and never read. Reset requests can mail any registered address without limit. | `isRateLimited` is used only by the embed, submit, and contact paths. | Done: `src/lib/auth-throttle.ts`, including password change (`docs/ACCOUNT_OPERATIONS.md`). |
 | F6 | **Rate-limit keys trust the client.** `getClientIP` takes the first `X-Forwarded-For` entry, which the client writes; Cloudflare appends. Rotating a fake header bypasses every existing limit. | `src/lib/validation.ts` `getClientIP`. | Done: `clientIPFromHeaders`. The rate limiter's cleanup also cut every window to 5 minutes; fixed. Still to verify on dev: that `CF-Connecting-IP` reaches the container. |
 | F7 | **Reset tokens are stored in plaintext**, earlier tokens stay valid when a new one is issued, and validate-then-consume is not atomic. A database read yields working reset links for an hour. | `PasswordResetToken.token`; `resetPassword`. | Done: `hash_password_reset_tokens` migration and `resetPassword`; a concurrent double-submit test fails without the conditional update. |
-| F8 | **bcrypt cost 10 and silent 72-byte truncation.** Cost 10 is the OWASP floor (about 60ms here; 12 is about 250ms). Two passwords sharing a 72-byte prefix both verify. No maximum length anywhere. | Run in the container with the app's `bcrypt` 6.0.0. | Done: scrypt instead (N=2^15, r=8, p=3, no truncation), bcrypt still verifies and is re-hashed on sign-in; 8 to 128 characters. Minimum length is Michael's call (section 3, posture). |
+| F8 | **bcrypt cost 10 and silent 72-byte truncation.** Cost 10 is the OWASP floor (about 60ms here; 12 is about 250ms). Two passwords sharing a 72-byte prefix both verify. No maximum length anywhere. | Run in the container with the app's `bcrypt` 6.0.0. | Done: scrypt instead (N=2^15, r=8, p=3, no truncation), bcrypt still verifies and is re-hashed on sign-in; 8 to 128 characters. Minimum stays 8 (Michael, 2026-10-15; section 3, security posture). |
 | F9 | **Dormant `PrismaAdapter`.** Never called with credentials and JWT. | `docs/ACCOUNT_OPERATIONS.md` already says so. | Done (`1c65921`), which also left a single `@auth/core`. |
 | F10 | **Dynamic imports with no purpose.** `getCurrentAccountId` does `await import("@/lib/db")` though `auth-utils` imports `@/lib/auth`, which imports `db` statically; four pages do `(await import("@/lib/auth-utils"))`. | `grep 'import("@/lib'` | `getCurrentAccountId`'s is gone (`2dc35b2`); the four pages go with the session work. |
 | F11 | **Deleting a user deletes the forms they created.** `Form.createdByUser` is `onDelete: Cascade`. Harmless while user equals account; data loss once a member can be removed. | `prisma/schema.prisma` | Done (`4de566e`): `createdByUserId` nullable, `onDelete: SetNull`. |
@@ -126,11 +149,11 @@ Both may ship in one release (D5).
 
 ## 6. Decisions
 
-**D1. Auth library.** Michael: stay on NextAuth unless a rethink beats it. Proposal on the table: own the session layer (section 3, second pass), awaiting his go.
+**D1. No auth library: owned database sessions.** Michael asked whether staying on NextAuth was a 1:1 swap rather than a rethink; it was. He approved owning sessions subject to the security assessment (section 3).
 
 **D2. Real database in tests.** See Q8.
 
-**D3. The request context is the session boundary.** One memoized loader returns user id, email, platform role, and account id. Pages, actions, and routes call it (through `requireAuth`, `getCurrentAccountId`, `requireGlobalAdmin`), never `auth()` directly.
+**D3. The request context is the session boundary.** `getSession()` (memoized per request) returns the user's id, email, current role, and memberships. Pages, actions, and routes reach it through `requireAuth`, `getCurrentAccountId`, `requireGlobalAdmin`, or `getSession` itself, never the cookie.
 
 **D4. Membership by hand, not the organization plugin.** Section 3.
 
@@ -140,9 +163,15 @@ Both may ship in one release (D5).
 
 **D7. No CI in E28.** Michael, 2026-10-15: not in scope, and not a prerequisite for the MVP. `npm test` runs in the dev container as part of the pre-commit gate. Revisit when E31's guardrails land or a second person commits to the repo; the Engineering QA page lists it as an open gap.
 
+**D8. A password change keeps this browser signed in** and ends every other session, instead of signing out everywhere (Michael, 2026-10-15). Help pages updated.
+
+**D9. Passwords stay 8 to 128 characters**, no blocklist (Michael, 2026-10-15; residual risk in section 3).
+
+**D10. Security headers ship in E28** (Michael, 2026-10-15), though they were found during the assessment rather than the audit.
+
 ## 7. Acceptance
 
-- [ ] Q7 decided with Michael; Q8 in place and `npm test` passing in the container
+- [x] Q7 decided with Michael; Q8 in place and `npm test` passing in the container
 - [ ] F1 to F14 resolved or explicitly deferred here
 - [ ] Signup, login, reset, change password, delete account, operator account list, role and plan changes work unchanged on both hosts
 - [x] Every account lookup goes through `src/lib/data-access/memberships.ts`; `User.accountId` is dropped
