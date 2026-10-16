@@ -50,8 +50,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   // /demo/__canopy/preview?state=on|off switches the viewer's preview mode.
   if (path[0] === "__canopy" && path[1] === "preview") {
     const on = new URL(request.url).searchParams.get("state") !== "off";
-    if (on && !(await mayPreview(site.id))) return NextResponse.redirect(new URL("/login", request.url), 303);
-    const res = NextResponse.redirect(new URL("/demo", request.url), 303);
+    // Relative redirects only: the request's own URL carries the container's
+    // address behind the proxy (AGENT_CONTEXT section 2).
+    if (on && !(await mayPreview(site.id))) return new NextResponse(null, { status: 303, headers: { Location: "/login" } });
+    const res = new NextResponse(null, { status: 303, headers: { Location: "/demo" } });
     res.cookies.set(PREVIEW_COOKIE, on ? "1" : "", {
       httpOnly: true,
       secure: SECURE,

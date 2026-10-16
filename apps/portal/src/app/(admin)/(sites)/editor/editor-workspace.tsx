@@ -15,7 +15,7 @@ type Pending = { id: string; summary: string; status: string; error: string | nu
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
 
-const SUGGESTIONS = ["We're closed Monday the 20th", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
+const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
 
 export function EditorWorkspace({
   pages,
@@ -125,7 +125,7 @@ function QuickEdit() {
                 send(draft);
               }
             }}
-            placeholder="e.g. We're closed next Monday"
+            placeholder="e.g. Raise the blowout to $55"
             maxLength={2000}
             rows={2}
             className="min-h-[2.75rem] resize-none"
