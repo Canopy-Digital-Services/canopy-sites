@@ -3,7 +3,7 @@ import { getHomePath } from "@/lib/product";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, House } from "lucide-react";
+import { Globe, Users, House } from "lucide-react";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 
@@ -33,12 +33,20 @@ export default async function OperatorLayout({
   );
 
   const navItems = (
-    <Link href="/operator/accounts">
-      <Button variant="ghost" size="sm">
-        <Users className="mr-2 h-4 w-4" />
-        Accounts
-      </Button>
-    </Link>
+    <>
+      <Link href="/operator/accounts">
+        <Button variant="ghost" size="sm">
+          <Users className="mr-2 h-4 w-4" />
+          Accounts
+        </Button>
+      </Link>
+      <Link href="/operator/sites">
+        <Button variant="ghost" size="sm">
+          <Globe className="mr-2 h-4 w-4" />
+          Sites
+        </Button>
+      </Link>
+    </>
   );
 
   return (
