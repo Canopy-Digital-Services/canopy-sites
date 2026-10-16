@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { fetchSiteFile } from "@/lib/builder-client";
 import { canPreviewSite } from "@/lib/site-tools";
+import { EDITOR_MOCKUP } from "../editor-mockup";
 
 /**
  * The demo site at /demo (PRD D23), served from the builder's output. A
@@ -22,7 +23,10 @@ const PREVIEW_COOKIE = "canopy_demo_preview";
 const SECURE = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
 // The whole CSP for /demo: next.config leaves this path to the route.
-const CSP = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms; frame-ancestors 'none'";
+const SANDBOX = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms";
+const CSP = `${SANDBOX}; frame-ancestors 'none'`;
+// The Editor's static concept frames the demo from the portal itself.
+const MOCKUP_CSP = `${SANDBOX}; frame-ancestors 'self'`;
 
 async function demoSite() {
   const site = await prisma.site.findUnique({ where: { slug: DEMO_SLUG }, select: { id: true, slug: true, isDemo: true } });
@@ -37,7 +41,7 @@ async function mayPreview(siteId: string) {
 function previewBar(): string {
   return `<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:center;padding:10px 16px;background:#005f6a;color:#fff;font:500 14px/1.4 system-ui,sans-serif;box-shadow:0 -2px 12px rgba(0,0,0,.2)">`
     + `<span>Previewing unpublished changes</span>`
-    + `<a href="/editor" style="color:#fff;text-decoration:underline">Back to Editor</a>`
+    + `<a href="/quick-edit" style="color:#fff;text-decoration:underline">Back to Quick Edit</a>`
     + `<a href="/demo/__canopy/preview?state=off" style="color:#fff;text-decoration:underline">Exit preview</a>`
     + `</div>`;
 }
@@ -65,7 +69,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   }
 
   const jar = await cookies();
-  const preview = Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id));
+  const mockup = new URL(request.url).searchParams.get("canopy_editor_mockup") === "1";
+  const preview = !mockup && Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id));
   let upstream = await fetchSiteFile(site.slug, preview ? "preview" : "current", path.join("/"));
   if (preview && upstream.status === 404 && upstream.headers.get("content-type")?.includes("application/json")) {
     // No preview build yet: show the live site.
@@ -74,14 +79,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
 
   const headers = new Headers({
     "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream",
-    "Content-Security-Policy": CSP,
-    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": mockup ? MOCKUP_CSP : CSP,
+    "X-Frame-Options": mockup ? "SAMEORIGIN" : "DENY",
     "Access-Control-Allow-Origin": "*",
     "X-Robots-Tag": "noindex, nofollow",
     "Cache-Control": preview ? "no-store" : (upstream.headers.get("cache-control") ?? "no-cache"),
   });
   if (upstream.status === 404 && upstream.headers.get("content-type")?.includes("application/json")) {
     return new NextResponse("This demo site hasn't been published yet.", { status: 404, headers: { "Content-Type": "text/plain" } });
+  }
+  if (mockup && headers.get("Content-Type")?.startsWith("text/html")) {
+    const html = await upstream.text();
+    const withMockup = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${EDITOR_MOCKUP}</body>`) : html + EDITOR_MOCKUP;
+    return new NextResponse(withMockup, { status: upstream.status, headers });
   }
   if (preview && headers.get("Content-Type")?.startsWith("text/html")) {
     const html = await upstream.text();

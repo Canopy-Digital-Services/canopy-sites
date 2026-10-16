@@ -17,7 +17,7 @@ export default async function OperatorLayout({
   const entitlements = await getAccountEntitlements(await getCurrentAccountId());
   await requireHomeHost(entitlements);
   const homePath = homePathFor(entitlements);
-  const homeLabel = homePath === "/editor" ? "Back to editor" : "Back to forms";
+  const homeLabel = homePath === "/quick-edit" ? "Back to Quick Edit" : "Back to forms";
 
   const logo = (
     <div className="flex items-center gap-2">

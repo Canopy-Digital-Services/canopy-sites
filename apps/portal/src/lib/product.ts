@@ -9,7 +9,7 @@ export type Product = "forms" | "sites";
 
 /**
  * Where "home" is for a signed-in account. The account's products decide
- * this, never the hostname: a Sites account lands on the editor from either
+ * this, never the hostname: a Sites account lands on Quick Edit from either
  * host. Use this for redirects and home links instead of hardcoding a path.
  */
 export async function getHomePath(accountId: string): Promise<string> {
@@ -18,7 +18,7 @@ export async function getHomePath(accountId: string): Promise<string> {
 
 /** `getHomePath` for callers that already hold the entitlements. */
 export function homePathFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnabled">): string {
-  return sitesEnabled ? "/editor" : "/forms";
+  return sitesEnabled ? "/quick-edit" : "/forms";
 }
 
 /**

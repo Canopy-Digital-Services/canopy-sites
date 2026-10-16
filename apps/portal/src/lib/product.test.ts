@@ -12,7 +12,7 @@ const forms = { sitesEnabled: false };
 
 describe("homePathFor", () => {
   it("sends Sites accounts to the editor and everyone else to forms", () => {
-    expect(homePathFor(sites)).toBe("/editor");
+    expect(homePathFor(sites)).toBe("/quick-edit");
     expect(homePathFor(forms)).toBe("/forms");
   });
 });

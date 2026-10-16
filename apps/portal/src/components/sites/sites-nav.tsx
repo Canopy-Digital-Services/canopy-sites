@@ -3,10 +3,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartLine, ClipboardList, LayoutTemplate } from "lucide-react";
+import { ChartLine, ClipboardList, LayoutTemplate, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ITEMS = [
+  { href: "/quick-edit", label: "Quick Edit", icon: Lightbulb },
   { href: "/editor", label: "Editor", icon: LayoutTemplate },
   { href: "/forms", label: "Forms", icon: ClipboardList },
   { href: "/stats", label: "Stats", icon: ChartLine },

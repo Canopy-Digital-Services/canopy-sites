@@ -2,6 +2,7 @@
 
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import { useEffect, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
 
 const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
 
-export function EditorWorkspace({
+export function QuickEditWorkspace({
   pages,
   liveUrl,
   pending,
@@ -29,7 +30,10 @@ export function EditorWorkspace({
   recent: Recent[];
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid gap-6 lg:grid-cols-[9rem_minmax(0,1fr)_22rem]">
+      <div className="hidden items-end justify-center lg:flex">
+        <Image src="/illustrations/canopy-boy.svg" alt="" width={409} height={656} unoptimized className="h-auto w-full max-w-[9rem]" priority />
+      </div>
       <QuickEdit />
       <div className="space-y-6">
         {pending ? <PendingChange key={pending.id} pending={pending} liveUrl={liveUrl} /> : null}
@@ -73,8 +77,8 @@ function QuickEdit() {
   return (
     <Card className="flex min-h-[28rem] flex-col">
       <CardHeader>
-        <CardTitle className="font-heading">Quick edit</CardTitle>
-        <CardDescription>Tell us what to change. You&apos;ll see a preview before anything goes live.</CardDescription>
+        <CardTitle className="font-heading">What would you like to change?</CardTitle>
+        <CardDescription>Say it in your own words. You&apos;ll see a preview before anything goes live.</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
         {messages.length === 0 ? (
@@ -279,7 +283,8 @@ function RecentChanges({ recent }: { recent: Recent[] }) {
           {recent.map((c) => (
             <li key={c.id} className="text-sm">
               <p>{c.summary}</p>
-              <p className="text-xs text-muted-foreground">
+              {/* Local time in the browser; the server renders UTC. */}
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                 {c.publishedAt ? new Date(c.publishedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : null}
                 {c.by ? ` · ${c.by}` : null}
               </p>
