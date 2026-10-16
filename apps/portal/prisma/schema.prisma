@@ -83,6 +83,7 @@ model User {
 
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
+  sessions            Session[]
 
   @@index([roleCode])
   @@map("users")
@@ -239,6 +240,24 @@ enum NotificationType {
   NEW_SUBMISSION
   LIMIT_MAX_REACHED
   LIMIT_DEADLINE_REACHED
+}
+
+// A signed-in browser. The cookie holds a random token; only its SHA-256 is
+// stored (as the id), so a database read yields no usable session. Idle
+// expiry rolls forward on use, never past absoluteExpiresAt. Deleting the row
+// signs that browser out. See src/lib/session.ts.
+model Session {
+  id                String   @id // SHA-256 hex of the cookie token
+  userId            String
+  rememberMe        Boolean
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime
+  absoluteExpiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }
 
 // Password reset tokens
