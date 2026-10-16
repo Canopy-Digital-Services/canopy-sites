@@ -37,7 +37,7 @@ type Props = {
   userId: string;
   email: string;
   currentRoleCode: string;
-  /** The account's plan caps published forms, so promotion moves it to Unlocked. */
+  /** The account's plan caps published forms, so promotion moves it to Unlimited. */
   currentPlanHasFormCap: boolean;
   isSelf: boolean;
   isLastGlobalAdmin: boolean;
@@ -75,7 +75,7 @@ export function ChangeRoleButton({
         const result = await setUserRole(userId, selectedCode);
         toast.success(
           result.planAutoUpgraded
-            ? "Role changed. Account moved to Unlocked plan."
+            ? "Role changed. Account moved to the Unlimited plan."
             : "Role changed."
         );
         setOpen(false);
@@ -137,7 +137,7 @@ export function ChangeRoleButton({
 
           {willAutoUpgradePlan && (
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm">
-              This will also move {email}&apos;s account to the Unlocked plan
+              This will also move {email}&apos;s account to the Unlimited plan
               so they are never limited by their own form cap.
             </div>
           )}

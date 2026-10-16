@@ -1,6 +1,6 @@
 /**
  * One-shot backfill: promote the ADMIN_EMAIL user to GLOBAL_ADMIN and, when
- * their account's plan caps published forms, move it to UNLOCKED. The same
+ * their account's plan caps published forms, move it to PAID (Unlimited). The same
  * rule as setUserRole: an uncapped plan stays, so a SITES account keeps Sites.
  *
  * Invoked from scripts/start.sh after `prisma migrate deploy` on every boot.
@@ -71,12 +71,12 @@ async function main() {
       if (needsUnlock) {
         await tx.account.update({
           where: { id: account.id },
-          data: { planCode: 'UNLOCKED' },
+          data: { planCode: 'PAID' },
         });
       }
     });
 
-    const planNote = needsUnlock ? 'plan -> UNLOCKED' : `plan ${account.planCode} kept`;
+    const planNote = needsUnlock ? 'plan -> PAID' : `plan ${account.planCode} kept`;
     console.log(`[backfill-global-admin] ${user.email} is GLOBAL_ADMIN (${planNote}).`);
   } finally {
     await prisma.$disconnect();

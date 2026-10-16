@@ -17,13 +17,13 @@ function runBackfill(adminEmail: string) {
 beforeEach(resetDatabase);
 
 describe("backfill-global-admin", () => {
-  it("promotes the ADMIN_EMAIL user and lifts a capped plan to UNLOCKED", async () => {
+  it("promotes the ADMIN_EMAIL user and lifts a capped plan to Unlimited (PAID)", async () => {
     const { account, user } = await createAccount({ planCode: "FREE" });
 
     runBackfill(user.email);
 
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ roleCode: "GLOBAL_ADMIN" });
-    expect(await prisma.account.findUniqueOrThrow({ where: { id: account.id } })).toMatchObject({ planCode: "UNLOCKED" });
+    expect(await prisma.account.findUniqueOrThrow({ where: { id: account.id } })).toMatchObject({ planCode: "PAID" });
   });
 
   it("leaves an admin's SITES account alone on every boot, so Sites survives a deploy", async () => {

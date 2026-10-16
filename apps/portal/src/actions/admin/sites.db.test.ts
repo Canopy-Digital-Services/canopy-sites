@@ -56,7 +56,7 @@ describe("createSite", () => {
     expect(await prisma.site.count()).toBe(0);
   });
 
-  it.each(["FREE", "PAID", "UNLOCKED"])("refuses an account on %s, which has no Sites", async (planCode) => {
+  it.each(["FREE", "PAID"])("refuses an account on %s, which has no Sites", async (planCode) => {
     await signInAsAdmin();
     const { account } = await createAccount({ planCode });
 
@@ -145,7 +145,7 @@ describe("assignSite", () => {
   it("refuses an account without Sites, and one that already has a site", async () => {
     await signInAsAdmin();
     const { account: from } = await createAccount({ planCode: "SITES" });
-    const { account: forms } = await createAccount({ planCode: "UNLOCKED" });
+    const { account: forms } = await createAccount({ planCode: "PAID" });
     const { account: full } = await createAccount({ planCode: "SITES" });
     await insertSite(full.id);
     const site = await insertSite(from.id);

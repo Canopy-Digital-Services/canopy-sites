@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.1] - 2026-10-16
+
+### Changed
+
+- **Three plans: Free, Unlimited, and Sites.** Unlimited is the former Paid plan. The Hosting and Unlocked plans are retired and their accounts moved to Unlimited, which keeps every limit they had. Promoting a user to Global Admin now moves a plan with a form limit to Unlimited. Comped and sandbox accounts are marked with their billing status and reference, not a plan
+
 ## [5.2.0] - 2026-10-16
 
 Canopy Sites accounts get a real site, and each product gets its own address (Epic 29).

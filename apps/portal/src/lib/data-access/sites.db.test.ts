@@ -25,7 +25,7 @@ describe("getAccountSite", () => {
 describe("listAccountsAvailableForSite", () => {
   it("lists Sites accounts without a site, and nothing else", async () => {
     const { account: free } = await createAccount({ planCode: "FREE" });
-    const { account: unlocked } = await createAccount({ planCode: "UNLOCKED" });
+    const { account: unlimited } = await createAccount({ planCode: "PAID" });
     const { account: taken } = await createAccount({ planCode: "SITES" });
     await createSite(taken.id);
     const { account: open } = await createAccount({ planCode: "SITES" });
@@ -33,6 +33,6 @@ describe("listAccountsAvailableForSite", () => {
     const ids = (await listAccountsAvailableForSite()).map((a) => a.id);
     expect(ids).toEqual([open.id]);
     expect(ids).not.toContain(free.id);
-    expect(ids).not.toContain(unlocked.id);
+    expect(ids).not.toContain(unlimited.id);
   });
 });

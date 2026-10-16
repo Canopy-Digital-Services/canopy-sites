@@ -20,11 +20,9 @@ async function main() {
   // but running the seed on a database that predates the catalog (or after a
   // manual reset) should leave the plans intact.
   const plans = [
-    { code: 'FREE',     displayName: 'Free',     description: 'One published form.',                                     maxPublishedForms: 1,    sitesEnabled: false, isPublic: true,  sortOrder: 10 },
-    { code: 'HOSTING',  displayName: 'Hosting',  description: 'Hosting tier for self-hosted deployments.',               maxPublishedForms: 10,   sitesEnabled: false, isPublic: true,  sortOrder: 20 },
-    { code: 'PAID',     displayName: 'Paid',     description: 'Unlimited published forms.',                              maxPublishedForms: null, sitesEnabled: false, isPublic: true,  sortOrder: 30 },
-    { code: 'SITES',    displayName: 'Sites',    description: 'A Canopy Sites website, plus unlimited published forms.', maxPublishedForms: null, sitesEnabled: true,  isPublic: false, sortOrder: 40 },
-    { code: 'UNLOCKED', displayName: 'Unlocked', description: 'Internal / VIP accounts exempt from plan limits.',        maxPublishedForms: null, sitesEnabled: false, isPublic: false, sortOrder: 99 },
+    { code: 'FREE',  displayName: 'Free',      description: 'One published form.',                                     maxPublishedForms: 1,    sitesEnabled: false, isPublic: true,  sortOrder: 10 },
+    { code: 'PAID',  displayName: 'Unlimited', description: 'Unlimited published forms.',                              maxPublishedForms: null, sitesEnabled: false, isPublic: true,  sortOrder: 30 },
+    { code: 'SITES', displayName: 'Sites',     description: 'A Canopy Sites website, plus unlimited published forms.', maxPublishedForms: null, sitesEnabled: true,  isPublic: false, sortOrder: 40 },
   ];
   for (const plan of plans) {
     await prisma.plan.upsert({
@@ -38,7 +36,7 @@ async function main() {
   // Ensure role catalog is present. Same upsert pattern as plans.
   const roles = [
     { code: 'USER',         displayName: 'User',         description: 'Standard account holder.',                             isPublic: true,  sortOrder: 10 },
-    { code: 'GLOBAL_ADMIN', displayName: 'Global Admin', description: 'Full operator-console access; UNLOCKED plan granted.', isPublic: false, sortOrder: 90 },
+    { code: 'GLOBAL_ADMIN', displayName: 'Global Admin', description: 'Full operator-console access; a plan with a form limit moves to Unlimited.', isPublic: false, sortOrder: 90 },
   ];
   for (const role of roles) {
     await prisma.role.upsert({
@@ -65,7 +63,7 @@ async function main() {
     console.log(`ℹ️  Admin user already exists: ${existingUser.email}`);
     user = existingUser;
   } else {
-    // Create account and user together. Fresh admin accounts are UNLOCKED so
+    // Create account and user together. Fresh admin accounts are Unlimited (PAID) so
     // the operator is never subject to the free-tier cap on their own
     // deployment, and the bootstrap user lands with the GLOBAL_ADMIN role so
     // they can access the operator console immediately.
@@ -75,7 +73,7 @@ async function main() {
         password: hashedPassword,
         roleCode: 'GLOBAL_ADMIN',
         memberships: {
-          create: { role: 'OWNER', account: { create: { planCode: 'UNLOCKED' } } },
+          create: { role: 'OWNER', account: { create: { planCode: 'PAID' } } },
         },
       },
     });

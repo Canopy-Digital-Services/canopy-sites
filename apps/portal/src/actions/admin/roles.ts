@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
  *   1. Actor cannot change their own role (self-demotion guard).
  *   2. Demoting the last remaining GLOBAL_ADMIN is blocked.
  *   3. Promotion to GLOBAL_ADMIN moves an account on a capped plan to
- *      UNLOCKED in the same transaction, so a new admin is never capped on
+ *      PAID (Unlimited) in the same transaction, so a new admin is never capped on
  *      their own forms. Uncapped plans stay put, so promoting a Sites
  *      account keeps Sites. Demotion does NOT automatically revert the plan.
  *
@@ -71,7 +71,7 @@ export async function setUserRole(
     }
   }
 
-  // The account to move to UNLOCKED on promotion: the target's only one.
+  // The account to move to PAID on promotion: the target's only one.
   const membership = await getSoleMembership(userId);
   const account = membership
     ? await prisma.account.findUnique({
@@ -91,7 +91,7 @@ export async function setUserRole(
     if (shouldUpgradePlan && account) {
       await tx.account.update({
         where: { id: account.id },
-        data: { planCode: "UNLOCKED" },
+        data: { planCode: "PAID" },
       });
     }
   });

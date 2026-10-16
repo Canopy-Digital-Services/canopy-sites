@@ -42,7 +42,7 @@ model Plan {
   description       String?
   maxPublishedForms Int?
   // Canopy Sites: Sites chrome, /editor and /stats, and owning a Site.
-  // Only SITES has it; UNLOCKED means no Forms limits, not Sites.
+  // Only SITES has it. The catalog is FREE, PAID ("Unlimited"), and SITES.
   sitesEnabled      Boolean @default(false)
   isPublic          Boolean @default(true)
   sortOrder         Int     @default(0)
