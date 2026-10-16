@@ -21,54 +21,32 @@ The correct approach is a **container entrypoint script** that runs `prisma migr
 
 ## How it works in this project
 
-### Entrypoint script (`scripts/start.sh`)
+### Entrypoint script (`apps/portal/scripts/start.sh`)
 
 ```sh
 #!/bin/sh
 set -e
 
-echo "[canopy-forms] Running database migrations..."
-node ./node_modules/prisma/build/index.js migrate deploy
+# Runs from apps/portal; workspace dependencies are hoisted to the repo root.
+echo "[portal] Running database migrations..."
+node ../../node_modules/prisma/build/index.js migrate deploy
 
-echo "[canopy-forms] Running post-migration backfills..."
+echo "[portal] Running post-migration backfills..."
 node ./scripts/backfill-global-admin.mjs
 
-echo "[canopy-forms] Migrations complete. Starting application..."
+echo "[portal] Migrations complete. Starting application..."
 exec node server.js
 ```
 
 Key details:
 - `set -e` — exit immediately if any command fails
-- `node ./node_modules/prisma/build/index.js` — invokes the Prisma CLI directly without relying on `npx` (which might download the wrong version)
+- `node ../../node_modules/prisma/build/index.js` — invokes the Prisma CLI directly (the runner's working directory is `apps/portal`; npm workspaces hoist `node_modules` to the repo root) without relying on `npx` (which might download the wrong version)
 - `exec` — replaces the shell process with `node`, so signals (SIGTERM) reach the app correctly
 - `prisma migrate deploy` is idempotent — if all migrations are already applied, it's a sub-second no-op
 
 ### Dockerfile (runner stage)
 
-The multi-stage Dockerfile must copy enough into the runner for migrations to work:
-
-```dockerfile
-# Schema + migration SQL files
-COPY --from=builder /app/prisma ./prisma
-
-# Prisma config (Prisma 7 requires this for the datasource URL)
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-
-# Generated Prisma Client (query engine)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Prisma CLI + runtime packages (schema engine, config loader, etc.)
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Entrypoint script
-COPY scripts/start.sh ./start.sh
-RUN chmod +x ./start.sh
-
-USER nextjs
-
-CMD ["./start.sh"]
-```
+[`apps/portal/Dockerfile`](../apps/portal/Dockerfile) builds with the repo root as context (npm workspaces). Its runner stage copies, at minimum, what migrations need: the standalone output (which places `server.js` in `apps/portal/`), `apps/portal/prisma/`, `apps/portal/prisma.config.ts`, the **full** root `node_modules` from the deps stage (Prisma CLI and engines included), and `apps/portal/scripts/`. It then sets `WORKDIR /app/apps/portal` and runs `CMD ["./scripts/start.sh"]` as the `nextjs` user.
 
 What each piece does:
 - `prisma/` — contains `schema.prisma` and `migrations/` directory with SQL files
@@ -140,15 +118,15 @@ provider = "postgresql"
 After deploying, check the container logs. You should see:
 
 ```
-[canopy-forms] Running database migrations...
+[portal] Running database migrations...
 Prisma schema loaded from prisma/schema.prisma.
 Datasource "db": PostgreSQL database "postgres", schema "public" at "hostname:5432"
 N migrations found in prisma/migrations
 
 No pending migrations to apply.      ← (or) Applied migration: 20260219000000_add_password_changed_at
 
-[canopy-forms] Running post-migration backfills...
-[canopy-forms] Migrations complete. Starting application...
+[portal] Running post-migration backfills...
+[portal] Migrations complete. Starting application...
 ```
 
 ### Confirm a failed migration blocks startup
@@ -212,19 +190,19 @@ ALTER TYPE "FieldType" RENAME VALUE 'SELECT' TO 'DROPDOWN';
 EOF
 
 # 4. Apply the SQL to the dev database via the db container
-docker.exe exec canopy-forms-db psql -U user -d canopy-forms \
+docker.exe exec canopy-portal-db psql -U user -d canopy-forms \
   -c "ALTER TYPE \"FieldType\" RENAME VALUE 'SELECT' TO 'DROPDOWN';"
 
 # 5. Mark the migration as applied in Prisma's tracking table
-docker.exe exec canopy-forms npx prisma migrate resolve \
+docker.exe exec canopy-portal npx prisma migrate resolve \
   --applied 20260224000000_rename_select_to_dropdown
 
 # 6. Regenerate client + restart dev server
-docker.exe exec canopy-forms npx prisma generate
-docker.exe restart canopy-forms
+docker.exe exec canopy-portal npx prisma generate
+docker.exe restart canopy-portal
 
 # 7. Verify no drift
-docker.exe exec canopy-forms npx prisma migrate status
+docker.exe exec canopy-portal npx prisma migrate status
 ```
 
 ### When to use this instead of `prisma migrate dev`
@@ -238,7 +216,7 @@ docker.exe exec canopy-forms npx prisma migrate status
 ### Important notes
 
 - The migration directory name **must** match exactly when calling `prisma migrate resolve --applied`
-- `psql` runs on the **db container** (`canopy-forms-db`), not the app container — the app container doesn't have `psql`
+- `psql` runs on the **db container** (`canopy-portal-db`), not the app container — the app container doesn't have `psql`
 - The db user is `user` (per `docker-compose.dev.yml` `POSTGRES_USER`)
 - Always run `prisma migrate status` after to confirm no pending migrations and no drift
 - On deploy, `prisma migrate deploy` in `start.sh` will apply this migration automatically (it reads the SQL file, not `prisma migrate dev`)

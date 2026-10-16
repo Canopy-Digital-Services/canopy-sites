@@ -1,26 +1,28 @@
-name: canopy-forms
+name: canopy-sites
 
 services:
-  canopy-forms:
+  portal:
     build:
       context: .
+      dockerfile: apps/portal/Dockerfile
       args:
         NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
-    container_name: canopy-forms
+      SITES_URL: "https://sites.canopyds.com"
+    container_name: canopy-portal
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "127.0.0.1:3006:3000"
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
       - proxy
     environment:
       # Database - update with your PostgreSQL credentials
       DATABASE_URL: "postgresql://user:password@postgres:5432/canoforms?schema=public"
       
       # NextAuth
-      NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env (openssl rand -base64 32)}"
       NEXTAUTH_URL: "https://forms.canopyds.com"
       NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
       AUTH_TRUST_HOST: "true"
@@ -40,22 +42,22 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: canopy-forms-db
+    container_name: canopy-portal-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: canoforms
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
 
 volumes:
-  postgres_data:
+  pgdata:
 
 networks:
-  canopy-forms-network:
+  canopy-sites-network:
     driver: bridge
   proxy:
     external: true

@@ -1,18 +1,20 @@
-name: canopy-forms
+name: canopy-sites
 
 services:
-  canopy-forms:
+  portal:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    container_name: canopy-forms
+      dockerfile: apps/portal/Dockerfile.dev
+    container_name: canopy-portal
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "127.0.0.1:3006:3000"
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
+    # Repo root is mounted (workspaces); the portal runs from its own directory
+    working_dir: /app/apps/portal
     volumes:
       # Mount source code for hot reloading
       - .:/app
@@ -27,6 +29,7 @@ services:
       NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
       NEXTAUTH_URL: "http://localhost:3006"
       NEXT_PUBLIC_APP_URL: "http://localhost:3006"
+      SITES_URL: "http://sites.localhost:3006"
       AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)
@@ -44,21 +47,21 @@ services:
 
   postgres:
     image: postgres:17-alpine
-    container_name: canopy-forms-db
+    container_name: canopy-portal-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: canopy-forms
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     networks:
-      - canopy-forms-network
+      - canopy-sites-network
 
 volumes:
   node_modules:
-  postgres_data:
+  pgdata:
 
 networks:
-  canopy-forms-network:
+  canopy-sites-network:
     driver: bridge

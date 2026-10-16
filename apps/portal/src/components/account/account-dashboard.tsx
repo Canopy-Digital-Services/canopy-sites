@@ -1,0 +1,290 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { PageHeader } from "@/components/patterns/page-header";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
+import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
+import { changePassword, signOutAction } from "@/actions/auth";
+import { deleteSelfAccount } from "@/actions/accounts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useToast } from "@/hooks/use-toast";
+
+type AccountDashboardProps = {
+  email: string;
+  planDisplayName: string;
+  publishedFormsCount: number;
+  maxPublishedForms: number | null;
+  totalFormsCount: number;
+};
+
+export function AccountDashboard({
+  email,
+  planDisplayName,
+  publishedFormsCount,
+  maxPublishedForms,
+  totalFormsCount,
+}: AccountDashboardProps) {
+  return (
+    <div className="max-w-[640px] mx-auto space-y-6">
+      <PageHeader title="Account" />
+      <EmailSection email={email} />
+      <PlanSection
+        planDisplayName={planDisplayName}
+        publishedFormsCount={publishedFormsCount}
+        maxPublishedForms={maxPublishedForms}
+        totalFormsCount={totalFormsCount}
+      />
+      <PasswordSection />
+      <DeleteAccountSection />
+    </div>
+  );
+}
+
+function EmailSection({ email }: { email: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Email</CardTitle>
+        <CardDescription>
+          Your email address is used for signing in and receiving notifications.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm">{email}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanSection({
+  planDisplayName,
+  publishedFormsCount,
+  maxPublishedForms,
+  totalFormsCount,
+}: {
+  planDisplayName: string;
+  publishedFormsCount: number;
+  maxPublishedForms: number | null;
+  totalFormsCount: number;
+}) {
+  const cap =
+    maxPublishedForms === null ? "unlimited" : String(maxPublishedForms);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Plan</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-sm">
+          <span className="text-muted-foreground">Plan:</span>{" "}
+          <span className="font-medium">{planDisplayName}</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-muted-foreground">Published forms:</span>{" "}
+          <span className="font-medium">
+            {publishedFormsCount} of {cap}
+          </span>
+        </p>
+        <p className="text-sm">
+          <span className="text-muted-foreground">Total forms:</span>{" "}
+          <span className="font-medium">{totalFormsCount}</span>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PasswordSection() {
+  const { toast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const errors = {
+    currentPassword: !currentPassword ? "Current password is required" : "",
+    newPassword: !newPassword
+      ? "New password is required"
+      : newPassword.length < 8
+        ? `Password must be at least 8 characters (currently ${newPassword.length})`
+        : "",
+    confirmPassword: !confirmPassword
+      ? "Confirm your new password"
+      : confirmPassword !== newPassword
+        ? "Passwords do not match"
+        : "",
+  };
+
+  const showError = (field: keyof typeof errors) =>
+    (touched[field] || submitted) && errors[field];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitted(true);
+    setServerError("");
+
+    if (errors.currentPassword || errors.newPassword || errors.confirmPassword) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("currentPassword", currentPassword);
+      formData.append("newPassword", newPassword);
+
+      const result = await changePassword(formData);
+
+      if (result?.error) {
+        setServerError(result.error);
+      } else {
+        toast.success("Password changed. Signing you out...");
+        setTimeout(() => signOutAction(), 1500);
+      }
+    } catch {
+      setServerError("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Password</CardTitle>
+        <CardDescription>
+          You&apos;ll be signed out of all sessions shortly after.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit} noValidate>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <PasswordInput
+              id="currentPassword"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              onBlur={() =>
+                setTouched((t) => ({ ...t, currentPassword: true }))
+              }
+              aria-invalid={!!showError("currentPassword")}
+              disabled={isLoading}
+            />
+            {showError("currentPassword") && (
+              <p className="text-sm text-destructive">
+                {errors.currentPassword}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <PasswordInput
+              id="newPassword"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, newPassword: true }))}
+              aria-invalid={!!showError("newPassword")}
+              disabled={isLoading}
+            />
+            {showError("newPassword") ? (
+              <p className="text-sm text-destructive">{errors.newPassword}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Must be at least 8 characters
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <PasswordInput
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              onBlur={() =>
+                setTouched((t) => ({ ...t, confirmPassword: true }))
+              }
+              aria-invalid={!!showError("confirmPassword")}
+              disabled={isLoading}
+            />
+            {showError("confirmPassword") && (
+              <p className="text-sm text-destructive">
+                {errors.confirmPassword}
+              </p>
+            )}
+          </div>
+          {serverError && (
+            <p className="text-sm text-destructive">{serverError}</p>
+          )}
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Changing password..." : "Change Password"}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
+function DeleteAccountSection() {
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    startTransition(async () => {
+      try {
+        await deleteSelfAccount();
+        // NextAuth resolves its redirect against NEXTAUTH_URL (the Forms host);
+        // navigate ourselves so the user stays on the host they started on.
+        await signOut({ redirect: false });
+        window.location.assign("/login?deleted=1");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to delete account"
+        );
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Delete Account</CardTitle>
+        <CardDescription>
+          Permanently delete your account and all associated data. This action
+          cannot be undone.
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <ConfirmDialog
+          title="Delete Account"
+          description="This will permanently delete your account, all your forms, and all submission data. This action cannot be undone."
+          onConfirm={handleDelete}
+          destructive
+          trigger={
+            <Button variant="destructive" disabled={isPending}>
+              {isPending ? "Deleting..." : "Delete Account"}
+            </Button>
+          }
+        />
+      </CardFooter>
+    </Card>
+  );
+}

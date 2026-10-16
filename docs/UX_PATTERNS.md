@@ -1,6 +1,6 @@
 # UX Patterns
 
-UI conventions for the Canopy Forms admin interface, plus the embed theming system.
+UI conventions for the portal's admin interface (Canopy Forms, and the Canopy Sites chrome around it), plus the embed theming system. Code paths here are relative to `apps/portal/`.
 
 **How to use this doc.** Section 1 is the complete rule set: every prohibition and every required choice, with no rationale. Read it before any UI work. The sections after it add detail, code, and the reasoning behind a rule, and are meant to be read by section, not front to back. If a rule and a code sample ever disagree, the rule wins and the sample is stale.
 
@@ -319,6 +319,7 @@ When available controls depend on a type choice, **do not preselect a type**. Pr
 - Primary action stays disabled until the type and any required downstream fields are filled.
 - **Edit mode renders the full form immediately.** Picker-gating is for add/create only.
 - Preserve structurally compatible state across type switches (label, help text); clear only what doesn't apply (options when leaving `DROPDOWN`).
+- Types in `FIELD_PREVIEW_TYPES` ([field-preview.tsx](src/components/forms/field-preview.tsx)), currently only `NAME`, get an always-on live preview of the field being edited. On `lg+` the dialog widens and the preview is a sticky right column; below `lg` it stacks under the type selector. The field renders through the embed with `fieldsOnly` (no header, Submit, or watermark), with the form's live theme, at the width it gets on the live form, because the auto-fit name-part grid wraps by width.
 
 Reference: [field-editor-modal.tsx](src/components/field-editor-modal.tsx), see `handleTypeChange`.
 
@@ -490,7 +491,7 @@ Baseline-aligned, since it's a parenthetical to the title rather than a chip bes
 
 `PageHeader` ([page-header.tsx](src/components/patterns/page-header.tsx)) takes `title`, `description`, `actions`, and `backHref`. Prefer `backHref` (an ArrowLeft before the title) over a "Back to X" action button.
 
-`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts.
+`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts. For Sites accounts the admin layout passes `SitesNav` ([sites-nav.tsx](src/components/sites/sites-nav.tsx)) as `navItems`: ghost `size="sm"` buttons with an icon and label, the current section getting `variant="secondary"` and `aria-current="page"` (the same soft highlight as an active filter). Forms-only accounts get no nav items.
 
 `UserMenu` ([user-menu.tsx](src/components/patterns/user-menu.tsx)) is a 32px initials circle (`bg-primary text-primary-foreground`, `bg-primary/80` on hover) with no visible email, opening downward to email, Manage Account, and Sign Out. Initials are the first two alphanumerics of the email local part, uppercased, falling back to "?".
 
@@ -653,7 +654,7 @@ Render SVG logos from `public/` with a plain `<img src="/brand/…" />` (no SVGR
 
 **Avoid spaces in filenames referenced by URL.** Browsers encode them as `%20`, which is easy to get wrong and hard to grep. Keep the spaced original for editing if a design tool produced it, and add a lowercase hyphenated copy in `public/brand/`.
 
-For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components/brand-mark.tsx)) with `public/brand/forms-logo-combined.svg`, rather than rebuilding it. It appears in auth card headers and the admin nav header.
+For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components/brand-mark.tsx)) rather than rebuilding it. It renders `public/brand/<product>-logo-combined.svg` and appears in the admin nav header, where `product` follows the account (see `docs/AGENT_CONTEXT.md` section 2). Auth card headers use `AuthBrandMark` ([auth-brand-mark.tsx](src/components/auth-brand-mark.tsx)), which brands by hostname; on login it renders the larger `<product>-logo-full.svg` (wordmark, green rule, "By Canopy"). Forms and Sites have identical layouts: both wordmarks are Urbanist Regular outlined at the same cap height and baseline, teal `#005f6a`, beside the product's gradient icon (`forms-logo.svg`, `sites-logo.svg`). A new product gets the same pair of files, not a code branch.
 
 Accessibility: decorative images get `alt=""`, meaningful ones get a descriptive `alt`, and color is never the only carrier of meaning.
 

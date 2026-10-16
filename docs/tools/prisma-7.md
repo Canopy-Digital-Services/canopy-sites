@@ -315,11 +315,11 @@ All migration commands run **inside the Docker container** (DATABASE_URL is only
 #    prisma/schema.prisma
 
 # 2. Create migration inside the container
-docker.exe exec canopy-forms npx prisma migrate dev --name your_migration_name
+docker.exe exec canopy-portal npx prisma migrate dev --name your_migration_name
 
 # NOTE: If the dev server has a stale Prisma client after schema changes,
 # restart the container:
-docker.exe restart canopy-forms
+docker.exe restart canopy-portal
 ```
 
 #### Manual SQL Migration (Alternative / Production)
@@ -331,16 +331,16 @@ mkdir -p prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
 # 2. Write migration SQL in migration.sql
 
 # 3. Apply SQL directly to database
-docker.exe exec -i canopy-forms-db psql -U user -d canopy-forms < prisma/migrations/MIGRATION_DIR/migration.sql
+docker.exe exec -i canopy-portal-db psql -U user -d canopy-forms < prisma/migrations/MIGRATION_DIR/migration.sql
 
 # 4. Mark as applied in Prisma's tracking table
-docker.exe exec canopy-forms npx prisma migrate resolve --applied MIGRATION_DIR_NAME
+docker.exe exec canopy-portal npx prisma migrate resolve --applied MIGRATION_DIR_NAME
 
 # 5. Regenerate Prisma client
-docker.exe exec canopy-forms npx prisma generate
+docker.exe exec canopy-portal npx prisma generate
 
 # 6. Restart dev server to pick up regenerated client
-docker.exe restart canopy-forms
+docker.exe restart canopy-portal
 ```
 
 #### Docker File Permissions Gotcha (WSL2)
@@ -350,7 +350,7 @@ Files created by `prisma migrate dev` inside the container are owned by the cont
 To remove container-created files:
 ```bash
 # ✅ Works — delete from inside the container
-docker.exe exec canopy-forms rm -rf prisma/migrations/20260220_test_migration
+docker.exe exec canopy-portal rm -rf prisma/migrations/20260220_test_migration
 
 # ❌ Fails — host user doesn't own the files
 rm -rf prisma/migrations/20260220_test_migration
@@ -360,7 +360,7 @@ This applies to any files created by `docker exec` commands, not just migrations
 
 ```bash
 # ✅ Run the build inside the container (clears its own .next output before writing)
-docker.exe exec -e NODE_ENV=production canopy-forms npm run build
+docker.exe exec -e NODE_ENV=production canopy-portal npm run build
 
 # ❌ Running on the host fails if .next/ was container-built
 npm run build
@@ -373,26 +373,26 @@ npm run build
 docker.exe compose build && docker.exe compose up -d
 
 # Apply schema changes without creating migration files (dev only):
-docker.exe exec canopy-forms npm run db:push
+docker.exe exec canopy-portal npm run db:push
 
 # Seed the database (create admin user):
-docker.exe exec canopy-forms npm run db:seed
+docker.exe exec canopy-portal npm run db:seed
 ```
 
-**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker.exe restart canopy-forms`.
+**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker.exe restart canopy-portal`.
 
 #### Accessing Database Directly
 
 ```bash
 # Connect to PostgreSQL shell
-docker.exe exec -it canopy-forms-db psql -U user -d canopy-forms
+docker.exe exec -it canopy-portal-db psql -U user -d canopy-forms
 
 # Execute SQL file
-docker.exe exec -i canopy-forms-db psql -U user -d canopy-forms < file.sql
+docker.exe exec -i canopy-portal-db psql -U user -d canopy-forms < file.sql
 
 # View logs
-docker.exe logs canopy-forms -f
-docker.exe logs canopy-forms-db -f
+docker.exe logs canopy-portal -f
+docker.exe logs canopy-portal-db -f
 ```
 
 ## Resources
@@ -409,25 +409,25 @@ docker.exe logs canopy-forms-db -f
 
 ```bash
 # Create migration from schema changes
-docker.exe exec canopy-forms npx prisma migrate dev --name migration_name
+docker.exe exec canopy-portal npx prisma migrate dev --name migration_name
 
 # Regenerate Prisma client (after manual schema edits)
-docker.exe exec canopy-forms npx prisma generate
+docker.exe exec canopy-portal npx prisma generate
 
 # Push schema without migration file (dev only, quick iteration)
-docker.exe exec canopy-forms npm run db:push
+docker.exe exec canopy-portal npm run db:push
 
 # Seed database
-docker.exe exec canopy-forms npm run db:seed
+docker.exe exec canopy-portal npm run db:seed
 
 # Restart dev server (required after prisma generate)
-docker.exe restart canopy-forms
+docker.exe restart canopy-portal
 
 # Rebuild container from scratch
 docker.exe compose -f docker-compose.dev.yml build && docker.exe compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker.exe logs canopy-forms -f
+docker.exe logs canopy-portal -f
 ```
 
 ### Schema Template

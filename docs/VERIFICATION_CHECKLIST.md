@@ -30,12 +30,12 @@ Not every change needs every check. Match the checks to what you changed:
 ### 1. Build
 
 ```bash
-docker exec canopy-forms npm run build
+docker exec canopy-portal npm run build
 ```
 
 Must exit 0. Catches TypeScript errors, missing imports, broken server components, and compile-time assertions (like the `field-types.ts` coverage check).
 
-**Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-forms env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache.
+**Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-portal env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache.
 
 ### 2. Lint
 
@@ -85,12 +85,14 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 1. Navigate to `http://localhost:3006/login`.
 2. Confirm the login page renders without errors.
 3. If you changed login/signup/reset logic, test the flow end-to-end.
+4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006` and confirm you stay on that host throughout (section 2 of `docs/AGENT_CONTEXT.md` explains why NextAuth would move you to the Forms host).
 
 **Admin flow** (changes to admin UI):
 1. Navigate to `http://localhost:3006` and log in.
 2. Navigate to the area you changed (form list, form editor, settings, etc.).
 3. Confirm the UI renders correctly and interactions work (save, delete, reorder, etc.).
 4. Check the browser console for JavaScript errors.
+5. If you changed a layout, navigation, or home redirect, check both chromes: a Forms-only account and a Sites account (plan `UNLOCKED` until Epic 29). The Sites account sees Editor · Forms · Stats; the Forms-only account sees today's Forms UI and gets 404 on `/editor`.
 
 **Embed flow** (changes to embed source or appearance):
 1. In the admin UI, navigate to a form's editor and use the Integrate tab to get the embed snippet.
@@ -150,7 +152,7 @@ Some things the agent can't verify reliably. When these apply, tell the user **e
 
 **Escalation template** (no-access case only):
 > This change includes [a migration / an env variable change / etc.]. After it deploys to forms-dev:
-> 1. Check the container logs for migration success: `[canopy-forms] Migrations complete.`
+> 1. Check the container logs for migration success: `[portal] Migrations complete.`
 > 2. [Specific thing to verify, e.g., "confirm the new column appears in a submission response"]
 > 3. If it fails, check [specific env var / Coolify setting].
 
@@ -197,7 +199,7 @@ Before committing, scan this table. If your changes match a trigger, check the l
 | New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 2 (Public API contracts) | Gate order, response codes |
 | Auth or session logic | `docs/AGENT_CONTEXT.md` section 2 (Auth & ownership) | Auth rules |
 | New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 7 | Env variable table |
-| Epic completion or version bump | Follow section 10 checklist | `package.json`, `CHANGELOG.md`, epic report, epic table |
+| Epic completion or version bump | Follow section 10 checklist | Root `package.json`, `CHANGELOG.md`, epic report, epic table |
 
 If none of the triggers match, no doc update is needed. If your change introduces a new doc maintenance trigger not listed here, add it to this table.
 

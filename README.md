@@ -1,6 +1,6 @@
-# Canopy Forms
+# Canopy portal
 
-A SaaS forms management platform for static sites. Create forms in a web UI, embed them anywhere with a single script tag.
+One codebase for two products: **Canopy Forms**, a forms platform for static sites, and the client portal for **Canopy Sites**, hand-built websites with hosting and updates for a monthly rate. The Next.js app lives in `apps/portal/`; the site builder and content contract will join it under `apps/` and `packages/` (see [`docs/canopy-sites/ROADMAP.md`](docs/canopy-sites/ROADMAP.md)).
 
 > **For Developers & AI Assistants**: Start with [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md) — it's the authoritative guide for understanding and working on this codebase.
 
@@ -12,7 +12,7 @@ Canopy Forms lets website owners add forms to static sites without backend code:
 2. **Embed anywhere** with two lines of HTML
 3. **Manage submissions** — view, export (CSV/JSON), get email notifications
 
-**Platform URL**: https://forms.canopyds.com
+**Platform URL**: https://forms.canopyds.com (Canopy Sites clients: https://sites.canopyds.com, same app)
 
 ### Quick Embed Example
 
@@ -33,9 +33,9 @@ Canopy Forms lets website owners add forms to static sites without backend code:
 docker compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker logs canopy-forms -f
+docker logs canopy-portal -f
 
-# Access at http://localhost:3006
+# Access at http://localhost:3006 (Sites branding: http://sites.localhost:3006)
 ```
 
 If you are an LLM coding agent, disregard the rest of this document and see [`docs/AGENT_CONTEXT.md`](docs/AGENT_CONTEXT.md) for detailed development workflow, architecture, and commands.
@@ -61,7 +61,8 @@ See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs
 | [VERIFICATION_CHECKLIST.md](docs/VERIFICATION_CHECKLIST.md) | Pre-commit quality gate |
 | [UX_PATTERNS.md](docs/UX_PATTERNS.md) | UI/UX conventions for the admin interface |
 | [docs/tools/](docs/tools/) | Version-specific docs for Prisma, Next.js, NextAuth, React, Tailwind, etc. |
-| [content/docs/](content/docs/) | User-facing documentation |
+| [apps/portal/content/docs/](apps/portal/content/docs/) | User-facing documentation |
+| [docs/canopy-sites/](docs/canopy-sites/) | Canopy Sites PRD and roadmap |
 | [docs/epics/](docs/epics/) | Epic completion reports |
 
 ## Security Features
@@ -76,4 +77,4 @@ See [CHANGELOG.md](CHANGELOG.md) for full version history and [docs/epics/](docs
 
 ## License
 
-MIT License — [GitHub](https://github.com/Skinnerbox916/Canopy-Forms)
+MIT License — [GitHub](https://github.com/Canopy-Digital-Services/canopy-sites)

@@ -1,0 +1,146 @@
+import * as crypto from "crypto";
+
+/**
+ * Validate that the origin matches one of the allowed domains
+ * Handles apex and www variants, case-insensitive
+ */
+export function validateOrigin(
+  origin: string | null,
+  allowedOrigins: string[],
+  referer?: string | null
+): boolean {
+  // For same-origin requests, browsers don't send Origin header
+  // Use Referer as fallback to extract the origin
+  let effectiveOrigin = origin;
+  if (!effectiveOrigin && referer) {
+    try {
+      const refererUrl = new URL(referer);
+      effectiveOrigin = refererUrl.origin;
+    } catch {
+      // Invalid referer URL
+    }
+  }
+  
+  if (!effectiveOrigin) {
+    return false;
+  }
+
+  try {
+    const originUrl = new URL(effectiveOrigin);
+    const originHostname = originUrl.hostname.toLowerCase();
+
+    // Allow localhost for development/preview
+    if (
+      originHostname === "localhost" ||
+      originHostname === "127.0.0.1" ||
+      originHostname === "[::1]"
+    ) {
+      return true;
+    }
+
+    // Allow if it matches the dashboard's own domain (for previews)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (appUrl) {
+      try {
+        const dashboardHostname = new URL(appUrl).hostname.toLowerCase();
+        if (originHostname === dashboardHostname) {
+          return true;
+        }
+      } catch {
+        // Ignore invalid URL in env var
+      }
+    }
+
+    // Check against each allowed origin
+    for (const allowedDomain of allowedOrigins) {
+      const allowedLower = allowedDomain.toLowerCase();
+
+      // Exact match
+      if (originHostname === allowedLower) {
+        return true;
+      }
+
+      // Match subdomains (e.g., cdn.example.com matches example.com)
+      if (originHostname.endsWith(`.${allowedLower}`)) {
+        return true;
+      }
+
+      // www variant
+      if (originHostname === `www.${allowedLower}`) {
+        return true;
+      }
+
+      // Apex variant (if origin has www, check without it)
+      if (originHostname.startsWith("www.")) {
+        const withoutWww = originHostname.substring(4);
+        if (withoutWww === allowedLower) {
+          return true;
+        }
+      }
+
+      // Allow if domain matches www variant
+      if (allowedLower.startsWith("www.")) {
+        const withoutWww = allowedLower.substring(4);
+        if (originHostname === withoutWww) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** RFC 5322 compliant address shape. */
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/**
+ * Validate an email address.
+ * Rejects CR/LF outright — these values reach SMTP headers (Reply-To), where a
+ * newline would let a submitter inject additional headers.
+ */
+export function isValidEmail(value: string): boolean {
+  if (value.length > 320) return false;
+  if (/[\r\n]/.test(value)) return false;
+  return EMAIL_REGEX.test(value);
+}
+
+/**
+ * Canonical form for account emails. Stored emails are lowercase, so every
+ * lookup and insert goes through this to keep matching case-insensitive.
+ */
+export function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Hash an IP address using SHA-256
+ * Never store raw IPs for privacy
+ */
+export function hashIP(ip: string): string {
+  return crypto.createHash("sha256").update(ip).digest("hex");
+}
+
+/**
+ * Extract client IP from request headers
+ * Checks X-Forwarded-For, X-Real-IP, and falls back to remote address
+ */
+export function getClientIP(request: Request): string {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    // Take the first IP if there are multiple
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  const realIP = request.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP;
+  }
+
+  // Fallback to a placeholder if we can't determine IP
+  // In production behind a reverse proxy, this shouldn't happen
+  return "unknown";
+}
