@@ -164,6 +164,16 @@ The app started but migrations did not run. Check:
 - Is `start.sh` calling `prisma migrate deploy` before `node server.js`?
 - Is there a migration file in `prisma/migrations/` for the missing column?
 
+### `P3018` then `P3009`: a migration failed and the container restart-loops
+
+`P3018` is the first attempt's real error; every restart after it logs `P3009` ("found failed migrations") and applies nothing. Coolify has already swapped containers, so the site is down until it is fixed. Read the first attempt with `docker logs <container> 2>&1 | head -60`. Postgres runs the migration file as one implicit transaction, so a failed one leaves nothing half-applied; confirm in the database before changing anything. Then, after a `pg_dump`:
+
+1. Make the database what the migration expects (never edit the migration file: every other environment has applied it).
+2. Mark the failed attempt rolled back: `prisma migrate resolve --rolled-back <name>`, or the equivalent `UPDATE "_prisma_migrations" SET "rolled_back_at" = now() WHERE "migration_name" = '<name>' AND "finished_at" IS NULL` when the container is too busy restarting to exec into.
+3. `docker restart <container>`: the unchanged migration and everything after it apply on start.
+
+This happened on the v5.1.0 production deploy (2026-10-16): production's database predates the `0_baseline` squash, and three uniques there were constraints where the baseline has plain unique indexes, so `DROP INDEX "users_accountId_key"` failed. They were converted to unique indexes of the same names, and production's index set matched the migration history afterwards. Other uniques created before v4.6.0 and changed since would fail the same way, which is why a migration that drops an old index deserves a check against a copy of production first.
+
 ### Migrations applied but app still fails
 
 Check if the migration SQL actually creates the column the Prisma Client expects. Run `npx prisma migrate status` in the container to compare migration state vs. schema.
