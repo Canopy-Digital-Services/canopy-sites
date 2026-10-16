@@ -1,20 +1,21 @@
 /**
  * Sites. An account has at most one (PRD D19). Client code reaches a site
  * only through getAccountSite with the session's account, and sees only its
- * id, name, and slug: the rest (runbook overlay, locked fields, repo) is
- * operator configuration. The operator functions below read every site and
- * must only be called behind requireGlobalAdmin.
+ * id, name, slug, and whether it is the demo site: the rest (runbook
+ * overlay, locked fields, repo) is operator configuration. The operator
+ * functions below read every site and must only be called behind
+ * requireGlobalAdmin.
  */
 
 import { prisma } from "@/lib/db";
 
-export type AccountSite = { id: string; name: string; slug: string };
+export type AccountSite = { id: string; name: string; slug: string; isDemo: boolean };
 
 /** The account's site as its own users may see it, or null when it has none. */
 export async function getAccountSite(accountId: string): Promise<AccountSite | null> {
   return prisma.site.findUnique({
     where: { accountId },
-    select: { id: true, name: true, slug: true },
+    select: { id: true, name: true, slug: true, isDemo: true },
   });
 }
 
