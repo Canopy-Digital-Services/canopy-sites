@@ -138,14 +138,14 @@ When writing a plan, task list, or subagent brief, include the line "Before star
 
 ## 4. Commands & verification
 
-Root `package.json` scripts delegate to the portal workspace (`npm run build`, `lint`, `embed:build`, `db:generate`, `db:migrate -- --name x`, `db:seed`); the portal's own scripts are in `apps/portal/package.json`. Dependencies are added to the workspace that uses them (`npm install <pkg> -w @canopy/portal`); npm `overrides` only work in the root `package.json`. The two non-obvious scripts:
+Root `package.json` scripts delegate to the portal workspace (`npm run build`, `lint`, `test`, `embed:build`, `db:generate`, `db:migrate -- --name x`, `db:seed`); the portal's own scripts are in `apps/portal/package.json`. Dependencies are added to the workspace that uses them (`npm install <pkg> -w @canopy/portal`); npm `overrides` only work in the root `package.json`. The two non-obvious scripts:
 
 - `npm run embed:build` rebuilds `public/embed.js` from `embed/src/*`. Required after any embed change.
 - `npm run db:push` exists. **Never run it.** It mutates the database without creating a migration, so the change never reaches deployed environments.
 
-`npm run build` and `npm run lint` must both pass before committing.
+`npm run build`, `npm run lint`, and `npm test` must pass before committing. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which further checks apply to which change type.
 
-There is no automated test suite. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which checks apply to which change type.
+**Tests.** `npm test` runs Vitest in `apps/portal` (config `vitest.config.mts`). `*.test.ts` beside the code are unit tests with no I/O. `*.db.test.ts` run against a `*_test` database that `test/db-global-setup.ts` creates and migrates with `prisma migrate deploy`; `test/db.ts` has `resetDatabase` and factories, and every helper refuses a database whose name does not end in `_test`. Run tests in the container (`docker exec canopy-portal npm test`), where the Postgres host resolves. Never mock Prisma: the bugs worth catching are in queries, constraints, and cascades. What must have a test: session and sign-in decisions, account resolution and membership, entitlements, deletion cascades, and from E31 every guardrail. A bug fix in those areas lands with the test that reproduces it. Vitest stays on 4.x while the containers run Node 20 (5.x needs 22.12+); bump it with the Node 24 move.
 
 Local dev: the root `docker-compose.dev.yml` (project `canopy-sites`) runs `postgres:17-alpine` (container `canopy-portal-db`) plus the portal (container `canopy-portal`) on `http://localhost:3006`, using `apps/portal/Dockerfile.dev` with the repo root mounted for hot reload and `apps/portal` as the working directory, so `docker exec canopy-portal <cmd>` runs in the app. `http://sites.localhost:3006` resolves to the same app with the Sites host branding. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`.
 
