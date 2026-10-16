@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.1] - 2026-10-16
+
+### Changed
+
+- **Editor and Quick Edit open faster**: the page appears at once, and the parts that wait on the site's content (page list, inspector) fill in behind placeholders
+- Canopy Boy moves to the top of Quick Edit, beside the title
+
 ## [5.4.0] - 2026-10-16
 
 ### Changed
