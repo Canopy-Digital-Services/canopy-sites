@@ -239,7 +239,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
 - Both apps build `/apps/portal/Dockerfile` from base directory `/`, with auto-deploy watch paths `apps/portal/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or other files outside those paths do not trigger a deploy. Each app serves its Forms and Sites hostnames (both are Coolify domains on the one app).
-- **Fox's Coolify holds copies of both apps** (same UUIDs, stopped) for the manual Forms failover (`fox-activate`, see the Nextcloud Outage Response runbook). Its start path builds from git, so any change to build settings or domains must be made on Fox too, or a failover build breaks. The same `$COOLIFY_TOKEN` works against Fox's API (`ssh fox`, `localhost:8000`).
+- **Fox's Coolify holds stopped copies of both apps** (same UUIDs) from the manual Forms failover design (`fox-activate`). As of 2026-10-15 Fox is not standing by for Forms (no database sync until one is designed before the Forms beta), so those copies need no upkeep. If Forms failover is revived, mirror build settings and domains onto them first: the start path builds from git with Fox's copy of the settings. The same `$COOLIFY_TOKEN` works against Fox's API (`ssh fox`, `localhost:8000`).
 - **An env var change is inert until the container is recreated.** Coolify injects env at container creation, so a var added through the UI or API does nothing to the running app until it is redeployed. Confirm with the runtime probe in section 7 rather than the Coolify UI, which shows the stored value, not what the Node process holds.
 
 ---
