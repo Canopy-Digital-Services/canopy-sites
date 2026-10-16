@@ -17,14 +17,14 @@ export function HostProductProvider({
   return <HostProductContext value={product}>{children}</HostProductContext>;
 }
 
-/** Logo for auth card headers. `full` is the large stacked Forms logo used on login. */
+/** Logo for auth card headers. `full` is the large logo with the "By Canopy" tagline, used on login. */
 export function AuthBrandMark({ full = false }: { full?: boolean }) {
   const product = useContext(HostProductContext);
 
-  if (full && product === "forms") {
+  if (full) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- Static SVG brand asset
-      <img src="/brand/forms-logo-full.svg" alt="" className="h-16 w-auto" />
+      <img src={`/brand/${product}-logo-full.svg`} alt="" className="h-16 w-auto" />
     );
   }
   return <BrandMark size="md" product={product} />;
