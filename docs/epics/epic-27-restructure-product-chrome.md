@@ -40,7 +40,7 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 | Host-aware links in password-reset and support emails | E28 (added to its brief) |
 | Auth library decision, test runner | PRD Q7 and Q8, decided at the start of E28 |
 | Real Editor and Stats content | E29+, E35 |
-| Canopy Sites logo files | Michael; a text wordmark stands in |
+| Canopy Sites wordmark SVG | Michael supplied the icon (2026-10-15, `public/brand/sites-logo.svg`); a text wordmark sits beside it until a wordmark file exists |
 
 ## 4. Decisions
 

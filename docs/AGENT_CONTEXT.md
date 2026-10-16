@@ -297,7 +297,7 @@ Hard rules:
 - **Reordering**: `SortableList` (`src/components/ui/sortable-list.tsx`) with drag and drop. Never Up/Down buttons.
 - **Icon buttons**: always wrapped in `Tooltip`. `GripVertical` drag, `Trash2` delete, `Pencil` edit.
 - **Typography**: three families. `font-heading` is Urbanist (all semantic headings), `font-sans` is Inter (body default, buttons, labels, tables), `font-mono` is Geist Mono (code, IDs, embed snippets). Headings are a single weight (600); hierarchy comes from size.
-- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`. `product="sites"` renders a placeholder text wordmark until Canopy Sites brand assets exist. Auth card headers use `AuthBrandMark`, which brands by host.
+- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`. `product="sites"` renders `public/brand/sites-logo.svg` (icon only) beside a "Canopy Sites" text wordmark until a Sites wordmark SVG exists. Auth card headers use `AuthBrandMark`, which brands by host.
 - **Validation**: admin and auth use inline touched/submitted with `noValidate`. The embed uses native popups. See section 2.
 
 ---
