@@ -21,7 +21,8 @@ const DEMO_SLUG = "demo";
 const PREVIEW_COOKIE = "canopy_demo_preview";
 const SECURE = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
-const SANDBOX = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms";
+// The whole CSP for /demo: next.config leaves this path to the route.
+const CSP = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms; frame-ancestors 'none'";
 
 async function demoSite() {
   const site = await prisma.site.findUnique({ where: { slug: DEMO_SLUG }, select: { id: true, slug: true, isDemo: true } });
@@ -71,7 +72,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
 
   const headers = new Headers({
     "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream",
-    "Content-Security-Policy": SANDBOX,
+    "Content-Security-Policy": CSP,
+    "X-Frame-Options": "DENY",
     "Access-Control-Allow-Origin": "*",
     "X-Robots-Tag": "noindex, nofollow",
     "Cache-Control": preview ? "no-store" : (upstream.headers.get("cache-control") ?? "no-cache"),
