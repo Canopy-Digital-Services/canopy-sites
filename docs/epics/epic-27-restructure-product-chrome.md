@@ -1,7 +1,7 @@
 # Epic 27: Restructure In Place; Product-Based Chrome
 
-**Status:** In progress (live on dev; production release pending)
-**Version:** v5.0.0 (release prepared; root `package.json` bumped)
+**Status:** ✅ Complete
+**Version:** v5.0.0 (released 2026-10-15, PR #22)
 **Started:** 2026-10-15
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
 **Predecessors:** Epic 23 (Plans & Entitlements), Epic 24 (Roles & Global Admin)
@@ -110,7 +110,7 @@ Run against an isolated stack (`-p canopy-e27`, port 3007) seeded from a dump of
 3. **GitHub.** ✅ Renamed to `Canopy-Digital-Services/canopy-sites` (public); local remote updated. The first push afterwards auto-deployed, so webhook delivery survived the rename.
 4. **DNS.** ✅ Proxied CNAMEs `sites-dev.canopyds.com` and `sites.canopyds.com` to Webber's tunnel. No ingress change: Webber and Fox both route `*.canopyds.com` to Traefik. (`deploy-to-webber.md` said new names need no DNS; that holds for ingress only.)
 5. **Coolify dev app.** ✅ `wogw0skcsgck80cs4gscs0c0`: new repo name, `/apps/portal/Dockerfile`, new watch paths, domains `forms-dev` and `sites-dev`. Coolify regenerated the Traefik labels with a router per host. `epic-27` fast-forwarded onto `dev` (`61d7550`) and deployed in about 165 s; the log shows `No pending migrations to apply` then `[portal] Migrations complete`. Both hosts return 200 with the right branding, and a CSRF plus wrong-credentials sign-in on `sites-dev` reaches the credentials check over HTTPS.
-6. **Prod and Fox.** Webber's prod app `j80s80ow8ss4444kk40cscsc` and Fox's copies of both apps get the same settings (prod domains `forms` and `sites`), then the release PR `dev` → `main` merges. Fox matters because `fox-activate` starts Forms through Coolify, which builds from git with whatever settings Fox holds.
+6. **Prod.** ✅ Webber's prod app `j80s80ow8ss4444kk40cscsc` got the same build settings, domains `forms` and `sites`, and `SITES_URL`; Fox's stopped copies got the build settings too (Fox does not currently stand by for Forms, so that is housekeeping only). Michael ran UAT on dev, then release PR #22 merged as `1256573` on 2026-10-15 (03:20 UTC on the 16th). The webhook deployed it in about 175 s: `No pending migrations to apply` against the production database, `[portal] Migrations complete`, both hosts 200 with their own branding, the embed API answering from the database, and a CSRF plus wrong-credentials sign-in on `sites.canopyds.com` reaching the credentials check.
 7. **Local switchover.** Stop the `canopy-forms` compose project, restore its DB into the new `canopy-sites_pgdata` volume, bring up the root `docker-compose.dev.yml`, tear down the `canopy-e27` stack and remove the worktree (its `apps/portal/.next` is root-owned, written by the container, so remove that inside the container first).
 8. **Release bookkeeping.** ✅ Version 5.0.0 and CHANGELOG (`88da96a`). After production is verified: status Complete, index row, and the Nextcloud runbooks (Outage Response moves `sites.canopyds.com` with `forms.canopyds.com`; Webber's domain table).
 
@@ -122,7 +122,7 @@ Run against an isolated stack (`-p canopy-e27`, port 3007) seeded from a dump of
 - [x] Sites account: Sites nav on both hosts, reaches its forms, home is `/editor`
 - [x] Sign-in, sign-out, account deletion stay on the current host
 - [x] Visual review (click-around, 2026-10-15)
-- [ ] Both hostnames served from one deploy, dev and prod
+- [x] Both hostnames served from one deploy, dev and prod
 - [x] Repo renamed
 
 ## 10. Follow-ups found
@@ -142,3 +142,4 @@ Modified (under `apps/portal/` unless noted): `next.config.ts`, `Dockerfile`, `D
 
 - 2026-10-15: Brief reviewed and reversed (§2). Code, verification, and docs complete on `epic-27`.
 - 2026-10-15: Repo renamed, DNS added, dev app repointed, `epic-27` on `dev` and live on `forms-dev` and `sites-dev`. Found Fox's failover copies of both apps; they need the same settings before or with the release.
+- 2026-10-15: Michael's dev UAT turned up the reset-email host and branding (fixed with `SITES_URL`) and the Sites login logo (built `sites-logo-full.svg` and `sites-logo-combined.svg`). Released v5.0.0; production verified.
