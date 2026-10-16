@@ -1,6 +1,6 @@
 import * as bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
 import { MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { getSession, type SessionContext } from "@/lib/session";
@@ -27,6 +27,11 @@ export async function verifyPassword(
  */
 export function generateToken(bytes: number = 32): string {
   return randomBytes(bytes).toString("hex");
+}
+
+/** SHA-256 hex of a high-entropy token, for storing tokens that must not be readable from the database. */
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 /**

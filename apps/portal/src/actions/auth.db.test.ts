@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { hashSessionToken, SESSION_COOKIE } from "@/lib/session";
-import { hashPassword } from "@/lib/auth-utils";
+import { hashPassword, hashToken } from "@/lib/auth-utils";
 import { createAccount, resetDatabase } from "../../test/db";
 import { jar, requestHeaders, resetRequest, signInAs } from "../../test/next-request";
 import { resetRateLimits } from "@/lib/rate-limit";
@@ -212,16 +212,64 @@ describe("changePassword", () => {
   });
 });
 
-describe("resetPassword", () => {
-  it("ends every session the user has", async () => {
+/** Requests a reset for the email and returns the token from the emailed link. */
+async function requestResetToken(email: string) {
+  await requestPasswordReset(form({ email }));
+  const text = vi.mocked(sendEmail).mock.calls.at(-1)?.[0].text ?? "";
+  return text.match(/reset-password\?token=([a-f0-9]+)/)?.[1] ?? "";
+}
+
+describe("password reset", () => {
+  it("stores only the token's hash", async () => {
+    const { user } = await accountWithPassword();
+    const token = await requestResetToken(user.email);
+
+    expect(token).toMatch(/^[a-f0-9]{64}$/);
+    const rows = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tokenHash).toBe(hashToken(token));
+    expect(JSON.stringify(rows)).not.toContain(token);
+  });
+
+  it("resets the password and ends every session the user has", async () => {
     const { user } = await accountWithPassword();
     await signInAs(user.id);
     await signInAs(user.id);
-    await prisma.passwordResetToken.create({
-      data: { userId: user.id, token: "reset-token", expiresAt: new Date(Date.now() + 60_000) },
-    });
+    const token = await requestResetToken(user.email);
 
-    expect(await resetPassword(form({ token: "reset-token", password: "brand new password" }))).toEqual({ success: true });
+    expect(await resetPassword(form({ token, password: "brand new password" }))).toEqual({ success: true });
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
+    expect(await signInAction({ email: user.email, password: "brand new password", rememberMe: false })).toEqual({
+      success: true,
+    });
+  });
+
+  it("retires an earlier link when a new one is sent", async () => {
+    const { user } = await accountWithPassword();
+    const first = await requestResetToken(user.email);
+    const second = await requestResetToken(user.email);
+
+    expect(await resetPassword(form({ token: first, password: "brand new password" }))).toHaveProperty("error");
+    expect(await resetPassword(form({ token: second, password: "brand new password" }))).toEqual({ success: true });
+  });
+
+  it("works once, even when submitted twice at the same moment", async () => {
+    const { user } = await accountWithPassword();
+    const token = await requestResetToken(user.email);
+
+    const results = await Promise.all([
+      resetPassword(form({ token, password: "first new password" })),
+      resetPassword(form({ token, password: "second new password" })),
+    ]);
+    expect(results.filter((r) => "success" in r)).toHaveLength(1);
+    expect(await resetPassword(form({ token, password: "third new password" }))).toHaveProperty("error");
+  });
+
+  it("refuses an expired link", async () => {
+    const { user } = await accountWithPassword();
+    const token = await requestResetToken(user.email);
+    await prisma.passwordResetToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
+
+    expect(await resetPassword(form({ token, password: "brand new password" }))).toHaveProperty("error");
   });
 });

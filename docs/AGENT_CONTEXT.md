@@ -340,7 +340,9 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
 
 User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
-  └─ PasswordResetToken (token, expiresAt, usedAt?)
+  └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
+  │           absoluteExpiresAt)
+  └─ PasswordResetToken (tokenHash, expiresAt, usedAt?)
 ```
 
 Enums:

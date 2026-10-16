@@ -145,9 +145,9 @@ Flow:
 Flow:
 1. User submits email on `/forgot-password`
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
-3. If user found: generate secure token (32 bytes hex), store in `PasswordResetToken` table with 1-hour expiry
+3. Unless throttled, if the user exists: generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and mark the user's earlier unused tokens used, so only the newest link works
 4. Send reset email with link to `/reset-password?token=...`
-5. User sets new password → server validates token, hashes password, updates User, marks token used, and deletes all of the user's sessions
+5. User sets new password → server consumes the token with one conditional update (unused and unexpired), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
 6. Redirect to `/login?reset=success`
 
 ### Important: no account-level guard

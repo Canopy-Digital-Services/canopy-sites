@@ -45,7 +45,7 @@ describe("deleteAccountAndSoleMembers", () => {
     const { account, user } = await createAccount();
     await createForm(account.id, user.id, { published: true });
     await prisma.passwordResetToken.create({
-      data: { userId: user.id, token: "t", expiresAt: new Date(Date.now() + 60_000) },
+      data: { userId: user.id, tokenHash: "t", expiresAt: new Date(Date.now() + 60_000) },
     });
 
     await deleteAccountAndSoleMembers(account.id);

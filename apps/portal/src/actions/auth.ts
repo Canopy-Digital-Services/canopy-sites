@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
+import { hashPassword, verifyPassword, generateToken, hashToken } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
@@ -178,18 +178,23 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
   }
 
   try {
-    // Generate secure token
+    // The email carries the token; the database keeps only its hash. A new
+    // link retires any earlier unused ones, so only the latest email works.
     const token = generateToken(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-
-    // Store token in database
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      }),
+      prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+        },
+      }),
+    ]);
 
     // Send password reset email. The account, not the request host, picks
     // the link host and product name (see appUrlFor).
@@ -258,7 +263,7 @@ export async function validateResetToken(token: string) {
   }
 
   const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { token },
+    where: { tokenHash: hashToken(token) },
     include: { user: { select: { email: true } } },
   });
 
@@ -299,32 +304,34 @@ export async function resetPassword(formData: FormData) {
   }
 
   try {
-    // Get the token with user info
-    const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
-      include: { user: true },
+    const hashedPassword = await hashPassword(password);
+    const tokenHash = hashToken(token);
+    const now = new Date();
+
+    // Consume the token with one conditional update, so two submissions of
+    // the same link cannot both succeed. Then set the password and sign the
+    // user out everywhere: whoever held the old password loses their sessions.
+    const done = await prisma.$transaction(async (tx) => {
+      const resetToken = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      if (!resetToken) return false;
+
+      const consumed = await tx.passwordResetToken.updateMany({
+        where: { id: resetToken.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (consumed.count !== 1) return false;
+
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword, passwordChangedAt: now },
+      });
+      await tx.session.deleteMany({ where: { userId: resetToken.userId } });
+      return true;
     });
 
-    if (!resetToken) {
-      return { error: "Invalid reset token" };
+    if (!done) {
+      return { error: "This reset link has already been used or has expired" };
     }
-
-    // Hash new password
-    const hashedPassword = await hashPassword(password);
-
-    // Update the password, mark the token used, and sign the user out
-    // everywhere: whoever held the old password loses their sessions.
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: resetToken.userId },
-        data: { password: hashedPassword, passwordChangedAt: new Date() },
-      }),
-      prisma.passwordResetToken.update({
-        where: { id: resetToken.id },
-        data: { usedAt: new Date() },
-      }),
-      prisma.session.deleteMany({ where: { userId: resetToken.userId } }),
-    ]);
 
     return { success: true };
   } catch (error) {

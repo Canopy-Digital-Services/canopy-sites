@@ -260,18 +260,20 @@ model Session {
   @@map("sessions")
 }
 
-// Password reset tokens
+// Password reset tokens. The emailed link carries a random token; only its
+// SHA-256 is stored, so a database read yields no working link. Issuing a new
+// one invalidates the user's older ones; consuming one is a single
+// conditional update, so a link works once.
 model PasswordResetToken {
   id        String   @id @default(cuid())
   userId    String
-  token     String   @unique
+  tokenHash String   @unique
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())
-  
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([token])
+
   @@index([userId])
   @@map("password_reset_tokens")
 }
