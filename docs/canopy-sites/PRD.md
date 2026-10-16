@@ -87,6 +87,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D15 | Stats = white-boxed Umami via its API, nav alongside Editor and Forms, all accounts | M |
 | D16 | **No auth library.** Sessions are the portal's own database rows (`src/lib/session.ts`, E28), replacing NextAuth after its maintenance went security-fix-only; Better Auth's organization and API-key plugins did not fit (they want to own the tenant table; keys belong to users or orgs, not sites). Membership and E34's keys are built by hand. Revisit an auth library only for E34's "OAuth later" (Better Auth's OAuth-provider and MCP plugins). Security assessment in `docs/epics/epic-28-account-audit-membership.md` (was Q7) | M/R |
 | D17 | **Vitest**, with database tests against a real migrated `*_test` Postgres; never mock Prisma. Required for every E31 guardrail. Cross-project rules on the Engineering collective's Quality Assurance page (was Q8) | M/R |
+| D18 | **Two products: Forms (standalone) and Sites.** Gallery, Calendar (the `events` and `schedule` collections), and later editors are Sites features: routes in `apps/portal` editing contract collections through the ChangeSet pipeline, not products or repos. So `Plan.sitesEnabled` stays one boolean rather than a product-entitlement model | M |
 
 ---
 
