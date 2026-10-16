@@ -48,7 +48,7 @@ export function SiteBuildsCard({ siteId, isDemo, hasRepo }: { siteId: string; is
         {isDemo ? (
           <ConfirmDialog
             title="Reset demo"
-            description="Puts the demo's content back at its baseline, discards any pending change, and publishes. Edits made since are removed from the live demo and the branch."
+            description="Puts the demo's content back at its baseline and publishes it. Edits made since, and the demo's change history and quick edit conversations, are removed."
             onConfirm={() => run(() => resetDemoSite(siteId))}
             trigger={
               <Button variant="outline" disabled={isPending || !hasRepo}>

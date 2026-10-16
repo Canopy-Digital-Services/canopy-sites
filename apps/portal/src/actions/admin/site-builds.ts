@@ -78,10 +78,12 @@ export async function resetDemoSite(siteId: string): Promise<Result> {
     const { site, ref } = await operatorSite(siteId);
     if (!site.isDemo) return { error: "Only a demo site can be reset." };
     await requestReset(ref, "demo-baseline");
-    await prisma.changeSet.updateMany({
-      where: { siteId: site.id, status: { in: ["DRAFT", "PREVIEWED"] } },
-      data: { status: "DISCARDED", error: "The demo was reset." },
-    });
+    // A reset starts the demo over: the changes and conversations it removes
+    // would otherwise still be listed in the Editor.
+    await prisma.$transaction([
+      prisma.changeSet.deleteMany({ where: { siteId: site.id } }),
+      prisma.conversation.deleteMany({ where: { siteId: site.id } }),
+    ]);
     const commit = await buildAndPublish(site.id, session.user.email);
     console.log(JSON.stringify({ event: "resetDemoSite", actorEmail: session.user.email, siteId, commit, at: new Date().toISOString() }));
     revalidatePath(`/operator/sites/${siteId}`);

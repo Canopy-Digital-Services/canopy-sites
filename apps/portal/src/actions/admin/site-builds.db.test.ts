@@ -63,7 +63,7 @@ describe("operator site builds", () => {
     expect((await prisma.site.findUniqueOrThrow({ where: { id: site.id } })).contractVersion).toBe("0.1.0");
   });
 
-  it("reset only a demo site, discarding its pending change", async () => {
+  it("reset only a demo site, clearing its change history and conversations", async () => {
     const { user } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     await signInAs(user.id);
     const client = await demoSite(false);
@@ -74,8 +74,17 @@ describe("operator site builds", () => {
     const pending = await prisma.changeSet.create({
       data: { siteId: client.id, source: "QUICK_EDIT", summary: "x", ops: [], baseCommit: "a".repeat(40), status: "PREVIEWED" },
     });
+    await prisma.conversation.create({ data: { siteId: client.id, model: "m" } });
+    const { account: otherAccount } = await createAccount({ planCode: "SITES" });
+    const otherSite = await createSite(otherAccount.id);
+    const otherChange = await prisma.changeSet.create({
+      data: { siteId: otherSite.id, source: "QUICK_EDIT", summary: "y", ops: [], baseCommit: "a".repeat(40), status: "PUBLISHED" },
+    });
     expect(await resetDemoSite(client.id)).toMatchObject({ success: true });
     expect(calls).toEqual({ reset: 1, publish: 1 });
-    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: pending.id } })).status).toBe("DISCARDED");
+    expect(await prisma.changeSet.findUnique({ where: { id: pending.id } })).toBeNull();
+    expect(await prisma.conversation.count({ where: { siteId: client.id } })).toBe(0);
+    // Only the demo's history goes.
+    expect(await prisma.changeSet.findUnique({ where: { id: otherChange.id } })).not.toBeNull();
   });
 });
