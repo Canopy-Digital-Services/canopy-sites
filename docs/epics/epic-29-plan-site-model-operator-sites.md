@@ -171,7 +171,7 @@ Three migrations (`add_plan_sites_enabled`, `add_sites`, `add_session_handoffs`)
 
 ## 8. Follow-ups (recorded, not built)
 
-- **`lockedFields`, `contractVersion`, and `slug` are also in each site repo's `canopy.json`** (PRD section 4.4). Two sources of truth; E30 or E31 decides which wins. Suggested: the database for `lockedFields` (guardrails are server-side, D9), the repo for `contractVersion` (the build uses what the repo installs), with the builder flagging drift.
+- ~~`lockedFields`, `contractVersion`, and `slug` are also in each site repo's `canopy.json`~~ decided 2026-10-16: no `canopy.json`; the `Site` row owns `slug` and `lockedFields`, the repo owns the contract version (PRD D24).
 - **Deleting a site** is not in the brief. Until it exists, a test site can only be reassigned, and an account that owns one cannot be deleted (D4).
 - ~~`GLOBAL_ADMIN`'s seeded description~~ fixed in v5.2.1 with D9.
 - **Thrown messages from operator actions** (`deleteAccount`, `setAccountPlan`, `setUserRole`, `setAccountBilling`) may reach the toast as Next's generic production error rather than the refusal text. Check on forms-dev and convert to result values if so.

@@ -13,13 +13,17 @@ Epic numbers continue the Forms sequence; what has shipped is in `docs/epics/REA
 ```
 Phase 0  Portal foundation            [this repo]         E27 → E28 → E29
 Phase 1  Content contract + Client 2       [site-contract, Client 2] C1 → H1 → H2 → H3         (parallel with Phase 0)
-Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, H3)
+Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, C1)
 Phase 3  Editor                       [this repo]         E31 → E32 → E33 → E34 → E35 (needs E30)
 Phase 4  Client 2 production cutover       [webber]             E36                        (needs E33 stable)
 Phase 5  Client 1 migration             [client1]              T1                         (needs E36 stable a week)
 ```
 
 Production Client 2 keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 targets the preview hostname only. During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
+
+### Demo slice first (decided 2026-10-16)
+
+E30 is built first as the demo slice (PRD D23): the builder, preview and publish for the demo site at `sites.canopyds.com/demo`, plus the parts of C1, E31, E32 and E35 the demo needs (Stats with sample data). The demo site has its own repo, so H1 to H3 no longer gate E30; they stay Client 2's own migration. Each brief below keeps whatever the slice leaves, and the E30 epic doc records the split.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -79,14 +83,14 @@ Goal: the portal knows what a Site is and which accounts have the product.
 
 ## Phase 1 — Content contract and Client 2 migration
 
-### C1 · `site-contract` v0.1 (`packages/site-contract`, published per PRD Q1)
+### C1 · `site-contract` v0.1 (`packages/site-contract`, released per PRD D26)
 
 Goal: the Zod schemas for every v1 collection, exported three ways.
 
-- Collections per PRD §4.4: `site`, `pages`, `services`, `schedule`, `events`, `announcements`, `gallery`, `team`, `reviews`, `text`, `tokens`, plus `canopy.json` (slug, contractVersion, lockedFields)
+- Collections per PRD §4.4, each landing with the first site that renders it (D21's rule): v0.1 holds what the demo site renders, `site`, `pages`, `services`, `reviews`, `gallery`, `announcements`; `tokens` arrives with H3, `schedule` and `team` with T1, `events` and `text` with the first site that shows them. No `canopy.json` (PRD D24)
 - Exports: Zod schemas; inferred TS types; JSON Schema (generated, committed); a `validateSite(dir)` function the builder calls
 - Shapes are derived from Client 2 `services.json` and Client 1 `site.ts`; do not invent fields neither site needs. Hours allows structured or freeform string
-- Versioned with git tags from day one
+- Versioned from day one: each version is a GitHub release `site-contract-vX.Y.Z` carrying the packed tarball (PRD D26)
 - Acceptance: `validateSite` passes on a fixture mirroring Client 2 content and fails with readable errors on a bad fixture
 
 ### H1 · Client 2 → Astro 7 (`client2`)
@@ -97,10 +101,11 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### H2 · Client 2 → content collections
 
-- Move `services.json` and every hardcoded string (hero copy, about, reviews, policies, contact, hours, socials) into `src/content/<collection>/` per C1. Install `site-contract` by tag
-- Gallery images stay in `src/assets`; gallery collection entries reference them with `image()`
+- Move `services.json` and every hardcoded string (hero copy, about, reviews, policies, contact, hours, socials) into `src/content/<collection>.json` per C1. Install `site-contract` by release tarball
+- Every fact has one source: the home page's featured services reference the menu, and hours render from structured data into both the contact section and the JSON-LD
+- Gallery images stay in `src/assets`; gallery entries name them by path under `src/assets`
 - Pages render from collections; no business data in templates (the Client 1 `site.ts` rule, applied through collections)
-- `canopy.json` with locked fields: phone, email, address
+- Locked fields (phone, email, address) are set on the `Site` row (PRD D24)
 - Acceptance: `validateSite` passes; `astro check` clean; visual parity
 
 ### H3 · Client 2 → tokens
@@ -113,7 +118,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### C2 · `canopy-site-template` (new repo, after H3)
 
-- Astro 7 starter extracted from Client 2 post-migration: layout, content collections wired to the contract, tokens pipeline, Umami config, Dockerfile, `canopy.json`
+- Astro 7 starter extracted from Client 2 post-migration: layout, content collections wired to the contract, tokens pipeline, Umami config, Dockerfile
 - Can be deferred until the first new client; Client 2 is the de-facto template until then
 
 ---
@@ -124,13 +129,13 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 Goal: a ChangeSet against Client 2 produces a viewable preview without touching production.
 
-- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them, and shape `Build` for whichever hosting PRD Q9 settles on
+- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays builder + Caddy (PRD D27)
 
 - `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (deploy key, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
-- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`, `preview-<slug>.sites.canopyds.com` → `preview`) and reloads. In this phase only preview hostnames are configured
+- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`, `<slug>-preview.canopyds.com` → `preview`, PRD D25) and reloads. In this phase only preview hostnames are configured
 - Preview auth per PRD Q2
-- DNS: wildcard `*.sites.canopyds.com` → tunnel + ingress rule. Verify resolution before building anything on it
+- DNS: a proxied CNAME to the tunnel per preview hostname (PRD D25)
 - Shared volume between builder and caddy. Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
 - Operator: build log per site with status, duration, stdout tail
 - Acceptance: operator triggers a no-op ChangeSet on Client 2 → preview hostname serves the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
