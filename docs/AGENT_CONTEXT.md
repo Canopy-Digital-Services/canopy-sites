@@ -331,7 +331,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
-  │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId)
+  │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId?)
   │    └─ Field (name, type:FieldType, label, placeholder?, order, required,
   │    │         options?, validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)

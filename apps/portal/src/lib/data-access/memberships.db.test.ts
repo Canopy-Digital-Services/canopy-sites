@@ -67,6 +67,19 @@ describe("deleteAccountAndSoleMembers", () => {
     expect(await getSoleMembership(shared.id)).toEqual({ accountId: other.id, role: "OWNER" });
   });
 
+  it("keeps the account's forms when the member who created them is deleted", async () => {
+    const { account } = await createAccount();
+    const member = await createMember(account.id);
+    const form = await createForm(account.id, member.id);
+
+    await prisma.user.delete({ where: { id: member.id } });
+
+    expect(await prisma.form.findUnique({ where: { id: form.id } })).toMatchObject({
+      accountId: account.id,
+      createdByUserId: null,
+    });
+  });
+
   it("leaves other accounts untouched", async () => {
     const { account } = await createAccount();
     const { account: bystander, user: bystanderUser } = await createAccount();
