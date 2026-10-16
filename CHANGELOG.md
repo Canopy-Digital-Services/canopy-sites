@@ -1,9 +1,32 @@
 # Changelog
 
-All notable changes to Canopy Forms will be documented in this file.
+All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canopy Sites portal) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [5.0.0] - 2026-10-15
+
+One codebase now serves Canopy Forms and the Canopy Sites client portal (Epic 27). Forms-only accounts see no change on either hostname.
+
+### Added
+
+- **Canopy Sites chrome**: accounts with Canopy Sites get the Canopy Sites wordmark and an Editor · Forms · Stats nav on any hostname, with `/editor` as home. Editor and Stats are placeholders until later epics fill them
+- **`sites.canopyds.com`**: same app as `forms.canopyds.com`; login, signup, and password reset pages show Canopy Sites branding there
+- **Live field preview** in the field editor for Name fields, rendered through the embed with the form's live theme
+- Embed `fieldsOnly` render option (fields without header, Submit button, or watermark)
+
+### Changed
+
+- **Repository restructured** into npm workspaces with the app in `apps/portal/`; the GitHub repo is now `Canopy-Digital-Services/canopy-sites`. Docker builds use the repo root as context and `apps/portal/Dockerfile`
+- Local dev containers renamed to `canopy-portal` and `canopy-portal-db` (port 3006 unchanged)
+- `docker-compose.yml` requires `NEXTAUTH_SECRET` from the environment instead of a committed value
+
+### Fixed
+
+- **Email matching**: login, signup, and password reset now trim and lowercase the email, so a capitalized or autofilled address no longer fails login or silently skips the reset email
+- Signing out or deleting an account from a non-Forms hostname no longer lands on the Forms host's login page
+- An expired session no longer counts as signed in on `/` and the auth pages
 
 ## [4.14.1] - 2026-10-14
 
