@@ -37,7 +37,8 @@ type Props = {
   userId: string;
   email: string;
   currentRoleCode: string;
-  currentPlanCode: string;
+  /** The account's plan caps published forms, so promotion moves it to Unlocked. */
+  currentPlanHasFormCap: boolean;
   isSelf: boolean;
   isLastGlobalAdmin: boolean;
   roles: RoleOption[];
@@ -47,7 +48,7 @@ export function ChangeRoleButton({
   userId,
   email,
   currentRoleCode,
-  currentPlanCode,
+  currentPlanHasFormCap,
   isSelf,
   isLastGlobalAdmin,
   roles,
@@ -62,7 +63,7 @@ export function ChangeRoleButton({
   const willAutoUpgradePlan =
     selectedCode === "GLOBAL_ADMIN" &&
     currentRoleCode !== "GLOBAL_ADMIN" &&
-    currentPlanCode !== "UNLOCKED";
+    currentPlanHasFormCap;
 
   function handleSubmit() {
     if (selectedCode === currentRoleCode) {

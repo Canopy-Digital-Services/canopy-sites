@@ -44,11 +44,11 @@ Identify which layer a change touches before starting.
 
 ### Data model
 
-- **Form-first**: `Account → Form → Field / Submission`. There is no Site model.
+- **Form-first**: `Account → Form → Field / Submission`. A Sites account also has at most one `Site` (unique `accountId`, PRD D19), allowed only on a plan with `sitesEnabled`; an account that owns a site cannot be deleted (`onDelete: Restrict`), so reassign the site first.
 - Forms own `allowedOrigins[]`. Origin control is per form, not per account.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
-- Every Account has a `Plan` (FK on `planCode`). `Plan.maxPublishedForms` is the only entitlement today, and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site.
+- Every Account has a `Plan` (FK on `planCode`). Entitlements are typed columns on `Plan` (`maxPublishedForms`, `sitesEnabled`), and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site, and never compare plan codes.
 - `Account.requiresPlanResolution` is set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker, cleared only by a successful `resolvePlan`.
 
 ### Auth & ownership
@@ -57,14 +57,15 @@ Identify which layer a change touches before starting.
 - Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
-- **Redirects after sign-in, sign-out, and account deletion are relative paths** (`/`, `/login`), so a user stays on the host they started on. Never build a redirect or a post-auth destination from `NEXTAUTH_URL` or the request's `Host`.
+- **Each account has a home host**, the one its emails use (`appUrlFor`): Sites accounts on `SITES_URL`, every other account on `NEXTAUTH_URL` (PRD D22). `requireHomeHost` (`src/lib/product.ts`) in the admin and operator layouts sends a signed-in account on the other configured host home, so a new signed-in layout outside `(admin)` calls it too; `signInAction` on the other host checks the password and starts no session there: a Forms account gets `homeUrl` (the login page links to it), a Sites account gets a one-time handoff (`createSessionHandoff` in `src/lib/session.ts`) that the login page's "Go to Canopy Sites" modal posts to `/auth/handoff` on the Sites host, which accepts only the configured Forms origin. Signup lives on the Forms host. With `SITES_URL` unset or equal to `NEXTAUTH_URL` nothing routes.
+- **Every other redirect after sign-in, sign-out, and account deletion is a relative path** (`/`, `/login`). The home-host redirect is the only absolute one, and its destination comes from configuration. Never build a redirect or a post-auth destination from the request's `Host`.
 - **Links emailed to an account come from `appUrlFor(entitlements)`** (`src/lib/product.ts`): `SITES_URL` for Sites accounts, `NEXTAUTH_URL` otherwise, with `productNameFor` for the product name in the copy. Never build an emailed link from request headers: a reset link built from `Host` would hand a victim's token to whatever domain the requester sent.
 
 ### Products and chrome
 
-- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) on any host; every other account gets the Forms chrome. Until Epic 29 adds `Plan.sitesEnabled`, `sitesEnabled` is derived from `planCode === "UNLOCKED"` inside `entitlements.ts`; never compare plan codes elsewhere.
+- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) ; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`: `UNLOCKED` means no Forms limits, not Sites.
 - Sites-only routes (`/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
-- The hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
+- Apart from routing an account to its home host, the hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
 
 ### Validation
 
@@ -120,7 +121,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/editor` and `/stats` for Sites accounts. Operator console is `/operator/accounts`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/editor` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/editor` and `/stats` for Sites accounts. Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/editor` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -257,8 +258,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
-| `NEXTAUTH_SECRET`, `AUTH_TRUST_HOST` | No longer read (Epic 28: sessions have no signing secret). Removed from the dev app 2026-10-16. Remove them from the prod app only after v5.1.0 is live there (v5.0.0 needs them), then delete this row. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
@@ -324,7 +324,8 @@ If a future change adds another file holding version-specific information, add i
 Canonical source: `prisma/schema.prisma`.
 
 ```
-Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
+Plan (code PK, displayName, description?, maxPublishedForms?, sitesEnabled, isPublic,
+      sortOrder)
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
@@ -338,11 +339,16 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │    │         options?, validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
+  └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
+           contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
+           maxBuildsRetained), one per account, onDelete Restrict
 
 User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
   └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
   │           absoluteExpiresAt)
+  └─ SessionHandoff (id = SHA-256 of a one-time token, rememberMe, targetHost,
+  │                  expiresAt), Forms-host sign-in to a Sites-host session
   └─ PasswordResetToken (tokenHash, expiresAt, usedAt?)
 ```
 
@@ -355,6 +361,6 @@ Enums:
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
-Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `UNLOCKED` (null, `isPublic: false`, admin-granted only). `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
+Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `SITES` (null, `sitesEnabled`, `isPublic: false`), `UNLOCKED` (null, `isPublic: false`). `SITES` and `UNLOCKED` are operator-assigned only. `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
 
-Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves the account to `UNLOCKED`.
+Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves an account on a capped plan to `UNLOCKED` (an uncapped plan such as `SITES` stays).

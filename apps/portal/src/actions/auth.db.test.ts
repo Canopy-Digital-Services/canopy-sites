@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { hashSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { hashToken } from "@/lib/auth-utils";
@@ -285,3 +285,79 @@ describe("password reset", () => {
     expect(await resetPassword(form({ token, password: "brand new password" }))).toHaveProperty("error");
   });
 });
+
+describe("home host (PRD D22)", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXTAUTH_URL", "https://forms.example.com");
+    vi.stubEnv("SITES_URL", "https://sites.example.com");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("tells a Forms account signing in on the Sites host where it signs in, without a session", async () => {
+    const { user, password } = await accountWithPassword();
+    requestHeaders.set("host", "sites.example.com");
+
+    expect(await signInAction({ email: user.email, password, rememberMe: false })).toEqual({
+      error: "This account signs in at forms.example.com.",
+      homeUrl: "https://forms.example.com",
+    });
+    expect(jar.has(SESSION_COOKIE)).toBe(false);
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
+  });
+
+  it("gives a Sites account signing in on the Forms host a one-time pass to the Sites host, not a session", async () => {
+    const { account, user, password } = await accountWithPassword();
+    await prisma.account.update({ where: { id: account.id }, data: { planCode: "SITES" } });
+    requestHeaders.set("host", "forms.example.com");
+
+    const result = await signInAction({ email: user.email, password, rememberMe: true });
+
+    expect(result).toMatchObject({ handoff: { action: "https://sites.example.com/auth/handoff" } });
+    const token = "handoff" in result ? result.handoff.token : "";
+    expect(await prisma.sessionHandoff.findUnique({ where: { id: hashSessionToken(token) } })).toMatchObject({
+      userId: user.id,
+      rememberMe: true,
+      targetHost: "sites.example.com",
+    });
+    expect(jar.has(SESSION_COOKIE)).toBe(false);
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
+  });
+
+  it("gives no pass for a wrong password", async () => {
+    const { account, user } = await accountWithPassword();
+    await prisma.account.update({ where: { id: account.id }, data: { planCode: "SITES" } });
+    requestHeaders.set("host", "forms.example.com");
+
+    expect(await signInAction({ email: user.email, password: "wrong password!", rememberMe: false })).toEqual({
+      error: "Invalid email or password",
+    });
+    expect(await prisma.sessionHandoff.count()).toBe(0);
+  });
+
+  it("signs an account in on its home host", async () => {
+    const { user, password } = await accountWithPassword();
+    requestHeaders.set("host", "forms.example.com");
+
+    expect(await signInAction({ email: user.email, password, rememberMe: false })).toEqual({ success: true });
+    expect(await cookieSession()).toMatchObject({ userId: user.id });
+  });
+
+  it("says nothing about the host until the password is right", async () => {
+    const { user } = await accountWithPassword();
+    requestHeaders.set("host", "sites.example.com");
+
+    expect(await signInAction({ email: user.email, password: "wrong password!", rememberMe: false })).toEqual({
+      error: "Invalid email or password",
+    });
+  });
+
+  it("refuses signup on the Sites host and creates nothing", async () => {
+    requestHeaders.set("host", "sites.example.com");
+
+    expect(await signUp(form({ email: "new@test.invalid", password: "long enough pw" }))).toEqual({
+      error: "Create an account at forms.example.com.",
+    });
+    expect(await prisma.user.count({ where: { email: "new@test.invalid" } })).toBe(0);
+  });
+});
+

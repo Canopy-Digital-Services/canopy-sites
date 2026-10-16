@@ -18,12 +18,13 @@ async function main() {
 
   // Ensure plan catalog is present. Migrations seed these rows on first apply,
   // but running the seed on a database that predates the catalog (or after a
-  // manual reset) should leave the four plans intact.
+  // manual reset) should leave the plans intact.
   const plans = [
-    { code: 'FREE',     displayName: 'Free',     description: 'One published form.',                              maxPublishedForms: 1,    isPublic: true,  sortOrder: 10 },
-    { code: 'HOSTING',  displayName: 'Hosting',  description: 'Hosting tier for self-hosted deployments.',        maxPublishedForms: 10,   isPublic: true,  sortOrder: 20 },
-    { code: 'PAID',     displayName: 'Paid',     description: 'Unlimited published forms.',                       maxPublishedForms: null, isPublic: true,  sortOrder: 30 },
-    { code: 'UNLOCKED', displayName: 'Unlocked', description: 'Internal / VIP accounts exempt from plan limits.', maxPublishedForms: null, isPublic: false, sortOrder: 99 },
+    { code: 'FREE',     displayName: 'Free',     description: 'One published form.',                                     maxPublishedForms: 1,    sitesEnabled: false, isPublic: true,  sortOrder: 10 },
+    { code: 'HOSTING',  displayName: 'Hosting',  description: 'Hosting tier for self-hosted deployments.',               maxPublishedForms: 10,   sitesEnabled: false, isPublic: true,  sortOrder: 20 },
+    { code: 'PAID',     displayName: 'Paid',     description: 'Unlimited published forms.',                              maxPublishedForms: null, sitesEnabled: false, isPublic: true,  sortOrder: 30 },
+    { code: 'SITES',    displayName: 'Sites',    description: 'A Canopy Sites website, plus unlimited published forms.', maxPublishedForms: null, sitesEnabled: true,  isPublic: false, sortOrder: 40 },
+    { code: 'UNLOCKED', displayName: 'Unlocked', description: 'Internal / VIP accounts exempt from plan limits.',        maxPublishedForms: null, sitesEnabled: false, isPublic: false, sortOrder: 99 },
   ];
   for (const plan of plans) {
     await prisma.plan.upsert({

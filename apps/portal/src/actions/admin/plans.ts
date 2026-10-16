@@ -18,6 +18,8 @@ import { revalidatePath } from "next/cache";
  *
  * The flag is flipped on inside the same transaction that updates the plan
  * so the account is never in a half-state where limits disagree with data.
+ *
+ * Refuses a plan without Sites for an account that owns a site.
  */
 export async function setAccountPlan(
   accountId: string,
@@ -36,6 +38,7 @@ export async function setAccountPlan(
     where: { id: accountId },
     select: {
       planCode: true,
+      site: { select: { id: true } },
       memberships: {
         where: { role: "OWNER" },
         orderBy: { createdAt: "asc" },
@@ -47,6 +50,13 @@ export async function setAccountPlan(
 
   if (!account) {
     throw new Error(`Account not found: ${accountId}`);
+  }
+
+  // A site lives only on an account with Sites (PRD D19), so the site moves first.
+  if (account.site && !plan.sitesEnabled) {
+    throw new Error(
+      `This account has a site, and the ${plan.displayName} plan does not include Sites. Move the site to another account first.`
+    );
   }
 
   const publishedCount = await prisma.form.count({

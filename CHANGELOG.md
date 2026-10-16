@@ -5,6 +5,23 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2026-10-16
+
+Canopy Sites accounts get a real site, and each product gets its own address (Epic 29).
+
+### Added
+
+- **Sites**: operators create a site for an account on the new Sites plan from a Sites page in the operator console, and record its repository, branch, contract version, production hostnames, locked fields, quick-edit overlay, and Umami website. One site per account. Creating a site makes no repository, DNS record, or Umami website
+- **Sites plan**: Canopy Sites plus unlimited published forms, assigned by operators only
+- The **Editor** shows the account's site
+- **Go to Canopy Sites**: a Canopy Sites customer who signs in at forms.canopyds.com gets a button that signs them in to their Sites dashboard, without entering the password again
+
+### Changed
+
+- **Each account lives at its own product's address**: Canopy Forms customers at forms.canopyds.com, Canopy Sites customers at sites.canopyds.com. A Forms customer signing in at the Sites address is told where to sign in, signup is at the Forms address, and a signed-in page at the other address moves you to yours
+- **Unlocked no longer includes Canopy Sites**; it means no Forms limits. Promoting a user to Global Admin, in the console or through `ADMIN_EMAIL` at startup, moves their account to Unlocked only from a plan with a form limit
+- An account that has a website cannot be deleted from Account settings (contact support) or by an operator until its site moves to another account, and cannot move to a plan without Sites
+
 ## [5.1.0] - 2026-10-16
 
 Accounts and sign-in rebuilt for Canopy Sites (Epic 28). **Everyone is signed out once by this release** and signs in again as usual.

@@ -28,5 +28,6 @@ Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.m
 | [Epic 26: Full-Response Email Notifications](epic-26-full-response-email-notifications.md) | v4.13.0 | 2026-07-24 | ✅ Complete |
 | [Epic 27: Restructure In Place; Product-Based Chrome](epic-27-restructure-product-chrome.md) | v5.0.0 | 2026-10-15 | ✅ Complete |
 | [Epic 28: Account Audit and Membership Model](epic-28-account-audit-membership.md) | v5.1.0 | 2026-10-16 | ✅ Complete |
+| [Epic 29: Plan Extension, Site Model, Operator Sites](epic-29-plan-site-model-operator-sites.md) | v5.2.0 | 2026-10-16 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

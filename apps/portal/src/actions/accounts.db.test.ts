@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { createAccount, resetDatabase } from "../../test/db";
+import { createAccount, createSite, resetDatabase } from "../../test/db";
 import { jar, resetRequest, signInAs } from "../../test/next-request";
 import { SESSION_COOKIE } from "@/lib/session";
 
@@ -42,6 +42,18 @@ describe("deleteAccount (operator)", () => {
     await deleteAccount(account.id);
     expect(await prisma.user.count({ where: { roleCode: "GLOBAL_ADMIN" } })).toBe(1);
   });
+
+  it("refuses an account that owns a site", async () => {
+    const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const { account, user } = await createAccount({ planCode: "SITES" });
+    await createSite(account.id);
+    await signInAs(admin.id);
+
+    await expect(deleteAccount(account.id)).rejects.toThrow("Move the site to another account first");
+    expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
+    expect(await prisma.user.count({ where: { id: user.id } })).toBe(1);
+    expect(await prisma.site.count({ where: { accountId: account.id } })).toBe(1);
+  });
 });
 
 describe("deleteSelfAccount", () => {
@@ -68,5 +80,18 @@ describe("deleteSelfAccount", () => {
 
     await expect(deleteSelfAccount()).rejects.toThrow("Only the account owner");
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
+  });
+
+  it("refuses an owner whose account has a site, and keeps them signed in", async () => {
+    const { account, user } = await createAccount({ planCode: "SITES" });
+    await createSite(account.id);
+    await signInAs(user.id);
+
+    expect(await deleteSelfAccount()).toEqual({
+      error: "Your account includes a website. Contact support to close it.",
+    });
+    expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
+    expect(await prisma.user.count({ where: { id: user.id } })).toBe(1);
+    expect(jar.has(SESSION_COOKIE)).toBe(true);
   });
 });

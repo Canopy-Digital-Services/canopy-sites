@@ -5,6 +5,7 @@ export type PlanRecord = {
   displayName: string;
   description: string | null;
   maxPublishedForms: number | null;
+  sitesEnabled: boolean;
   isPublic: boolean;
   sortOrder: number;
 };

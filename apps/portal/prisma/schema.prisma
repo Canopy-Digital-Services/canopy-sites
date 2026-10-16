@@ -26,20 +26,24 @@ model Account {
   memberships   Membership[]
   forms         Form[]
   notifications Notification[]
+  site          Site?
 
   @@index([planCode])
   @@map("accounts")
 }
 
 // Plan catalog. Rows are seeded via migration; not user-editable at runtime.
-// Account.planCode references Plan.code. Entitlements (only maxPublishedForms
-// today) live as typed columns so each future entitlement is an explicit
-// migration, not a hidden JSON shape change.
+// Account.planCode references Plan.code. Entitlements live as typed columns
+// so each future entitlement is an explicit migration, not a hidden JSON
+// shape change. Read them through getAccountEntitlements.
 model Plan {
   code              String  @id
   displayName       String
   description       String?
   maxPublishedForms Int?
+  // Canopy Sites: Sites chrome, /editor and /stats, and owning a Site.
+  // Only SITES has it; UNLOCKED means no Forms limits, not Sites.
+  sitesEnabled      Boolean @default(false)
   isPublic          Boolean @default(true)
   sortOrder         Int     @default(0)
 
@@ -84,6 +88,7 @@ model User {
   createdForms        Form[]  @relation("CreatedForms")
   passwordResetTokens PasswordResetToken[]
   sessions            Session[]
+  sessionHandoffs     SessionHandoff[]
 
   @@index([roleCode])
   @@map("users")
@@ -116,6 +121,33 @@ enum AccountStatus {
   ACTIVE
   PAST_DUE
   CANCELLED
+}
+
+// A Canopy Sites website: one per account (PRD D19), only on a plan with
+// sitesEnabled. Holds what the operator records about the site; the repo,
+// DNS, and Umami website are made by hand. Clients see only id, name, and
+// slug (getAccountSite); everything else is operator configuration.
+// An account that owns a site cannot be deleted (Restrict): the row will
+// drive the client's live hosting from E30 on.
+model Site {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and preview-<slug>.sites.canopyds.com
+  name                String
+  repoUrl             String?
+  defaultBranch       String   @default("main")
+  productionHostnames String[] @default([]) // Lowercase; no hostname belongs to two sites (checked in the action)
+  contractVersion     String?  // site-contract version the repo implements (MAJOR.MINOR.PATCH)
+  umamiWebsiteId      String?
+  runbookOverlay      String   @default("") // Client part of the quick-edit system prompt (E32)
+  lockedFields        String[] @default([]) // Dotted contract paths edits may not change (E31), e.g. site.contact.phone
+  maxBuildsRetained   Int      @default(5)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@map("sites")
 }
 
 // Form configuration
@@ -258,6 +290,24 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+// A one-time pass from sign-in on the Forms host to a session on the Sites
+// host, for a Sites account that signed in on the wrong host (PRD D22). Like
+// sessions, only the token's SHA-256 is stored. Single use, two minutes, and
+// good only on the host it names. See src/lib/session.ts.
+model SessionHandoff {
+  id         String   @id // SHA-256 hex of the token
+  userId     String
+  rememberMe Boolean
+  targetHost String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session_handoffs")
 }
 
 // Password reset tokens. The emailed link carries a random token; only its

@@ -20,12 +20,20 @@ describe("getAccountEntitlements", () => {
     });
   });
 
-  it("gives UNLOCKED no cap and Canopy Sites", async () => {
-    const { account, user } = await createAccount({ planCode: "UNLOCKED" });
+  it("gives SITES no cap and Canopy Sites", async () => {
+    const { account, user } = await createAccount({ planCode: "SITES" });
     await createForm(account.id, user.id, { published: true });
 
     const e = await getAccountEntitlements(account.id);
     expect(e).toMatchObject({ maxPublishedForms: null, canPublishAnother: true, sitesEnabled: true });
+  });
+
+  it("gives UNLOCKED no cap and no Canopy Sites", async () => {
+    const { account, user } = await createAccount({ planCode: "UNLOCKED" });
+    await createForm(account.id, user.id, { published: true });
+
+    const e = await getAccountEntitlements(account.id);
+    expect(e).toMatchObject({ maxPublishedForms: null, canPublishAnother: true, sitesEnabled: false });
   });
 
   it("throws for an account that does not exist", async () => {

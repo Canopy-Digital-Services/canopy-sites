@@ -71,7 +71,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | # | Decision | Src |
 |---|---|---|
 | D1 | Editor edits **structured content**, never Astro source. The LLM proposes changes to schema'd collections; the site rebuilds | M |
-| D2 | Forms is a sub-portal of the same codebase. One login, one Account, same data on both hosts, no redirects. **The account's products decide the chrome**, not the hostname: an account with `sitesEnabled` gets Editor · Forms · Stats on either host; every other account gets today's Forms UI exactly. The hostname only brands logged-out pages (login, signup, password reset; `/docs` requires sign-in, so it follows the account). Reason: Forms notification emails link to `forms.canopyds.com`, and NextAuth routes auth through one `NEXTAUTH_URL`, so a host-carried meaning strands users | M/R |
+| D2 | Forms is a sub-portal of the same codebase. One login, one Account. **The account's products decide the chrome**: an account with `sitesEnabled` gets Editor · Forms · Stats; every other account gets today's Forms UI exactly. Which host an account uses is D22 | M/R |
 | D3 | Client has **publishing authority**, gated by a preview they can see first | M |
 | D4 | Per-site Git repos on the GitHub org. Clients get repo access to back the portability claim | M |
 | D5 | Content lives in the repo. Media lives in the repo (`src/assets`), optimized by Astro at build. No external object storage; stays off cloud storage | M/R |
@@ -88,6 +88,10 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D16 | **No auth library.** Sessions are the portal's own database rows (`src/lib/session.ts`, E28), replacing NextAuth after its maintenance went security-fix-only; Better Auth's organization and API-key plugins did not fit (they want to own the tenant table; keys belong to users or orgs, not sites). Membership and E34's keys are built by hand. Revisit an auth library only for E34's "OAuth later" (Better Auth's OAuth-provider and MCP plugins). Security assessment in `docs/epics/epic-28-account-audit-membership.md` (was Q7) | M/R |
 | D17 | **Vitest**, with database tests against a real migrated `*_test` Postgres; never mock Prisma. Required for every E31 guardrail. Cross-project rules on the Engineering collective's Quality Assurance page (was Q8) | M/R |
 | D18 | **Two products: Forms (standalone) and Sites.** Gallery, Calendar (the `events` and `schedule` collections), and later editors are Sites features: routes in `apps/portal` editing contract collections through the ChangeSet pipeline, not products or repos. So `Plan.sitesEnabled` stays one boolean rather than a product-entitlement model | M |
+| D19 | **One site per account**, enforced by a unique `Site.accountId`. The ICP is a small business or local organization with one website. An account that owns a site cannot be deleted, and a site lives only on an account whose plan has `sitesEnabled` (E29) | M |
+| D20 | **`SITES` is the only Sites plan.** `UNLOCKED` means "no Forms limits" (Global Admins, VIP Forms users, accounts E23 grandfathered), so it does not imply Sites (E29) | M/R |
+| D21 | **A column lands with its first reader when its values would otherwise be guesses.** `Build` and `ChangeSet` arrive in E30; `analyticsTier` is not in v1; the token budget becomes `Plan.monthlyAiBudgetCents` in E32 (estimated model spend in US cents per calendar month, UTC, per account; `null` = no ceiling), because models and cache reads price tokens differently; `Site.status` arrives in E36 (E29) | M/R |
+| D22 | **Each account has a home host**, the one its emails already use: Sites accounts on `sites.canopyds.com`, every other account on `forms.canopyds.com`, so Forms stays a standalone product at its own address. A signed-in page on the other host redirects home (sessions are per host, so that is one more sign-in). Sign-in on the Forms host for a Sites customer shows "you use Forms through your Sites dashboard" with a **Go to Canopy Sites** button that signs them in there through a one-time handoff; a Forms customer signing in on the Sites host is told where to sign in. Signup is on the Forms host. Supersedes D2's "either host, no redirects", whose reasons (Forms-host email links, NextAuth's single URL) E27 and E28 removed. Shared cross-subdomain cookies rejected: previews live under `*.sites.canopyds.com` (E29) | M/R |
 
 ---
 
@@ -189,10 +193,10 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | Model | Fields (abridged) | Notes |
 |---|---|---|
 | `Membership` | userId, accountId, role (`OWNER` \| `MEMBER`), createdAt | Replaces `User.accountId` 1:1. `@@unique([userId, accountId])` |
-| `Plan` (extend) | + `sitesEnabled Boolean`, + `analyticsTier` enum, + `monthlyTokenBudget Int?` | Typed columns per existing pattern; seed `SITES` plan code |
+| `Plan` (extend) | + `sitesEnabled Boolean` (E29); + `monthlyAiBudgetCents Int?` (E32) | Typed columns per existing pattern; seed `SITES` plan code. No `analyticsTier` in v1 (D21) |
 | `Account` (extend) | + `status` (`ACTIVE` \| `PAST_DUE` \| `CANCELLED`), + `billingRef String?` | |
-| `Site` | accountId, slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, status, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained | One account may own several sites |
-| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | |
+| `Site` | accountId (unique), slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained; + status (E36) | One site per account (D19) |
+| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | Draft; E30 settles it with `ChangeSet` (one FK direction between them, and D6 vs Q9) |
 | `ChangeSet` | siteId, source, createdByUserId?, apiKeyId?, summary, ops (JSON), status (`DRAFT` \| `PREVIEWED` \| `PUBLISHED` \| `DISCARDED` \| `FAILED`), previewBuildId, publishedBuildId | |
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
@@ -214,7 +218,7 @@ Nav: **Editor · Forms · Stats** (+ Account). Branding patterned on Canopy Form
 | Forms | Existing Forms UI under Sites chrome |
 | Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, overlay editor, locked fields, API keys), build log, token usage, "edit as client" |
 
-Forms-only accounts see today's Forms UI on either hostname. Sites accounts see the Sites chrome on either hostname.
+Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts see the Sites chrome at sites.canopyds.com (D22).
 
 ---
 

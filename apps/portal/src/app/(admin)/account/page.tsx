@@ -2,11 +2,13 @@ import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
 import { AccountDashboard } from "@/components/account/account-dashboard";
 import { PageContent } from "@/components/patterns/page-content";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { getAccountSite } from "@/lib/data-access/sites";
 
 export default async function AccountPage() {
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const entitlements = await getAccountEntitlements(accountId);
+  const site = await getAccountSite(accountId);
 
   return (
     <PageContent>
@@ -16,6 +18,7 @@ export default async function AccountPage() {
         publishedFormsCount={entitlements.publishedFormsCount}
         maxPublishedForms={entitlements.maxPublishedForms}
         totalFormsCount={entitlements.totalFormsCount}
+        hasSite={site !== null}
       />
     </PageContent>
   );

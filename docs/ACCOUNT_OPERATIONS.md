@@ -92,7 +92,7 @@ Flow:
 
 A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
-Sign-in and sign-out are our own server actions with relative redirects, so they never leave the current host. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
+Sign-in and sign-out are our own server actions with relative redirects. Sign-in on the host that is not the account's home (PRD D22; `docs/AGENT_CONTEXT.md` section 2) creates no session there. A Forms account gets `homeUrl`, which the login page links to. A Sites account gets a handoff: a random token whose SHA-256 is stored in `session_handoffs` with the target host, good once for two minutes. The login page's modal posts it (a native form POST, so the browser sends the Forms origin) to `/auth/handoff` on the Sites host, which refuses any other origin (no login CSRF), consumes the token with a conditional delete, and starts the session. Password change and reset drop pending handoffs along with sessions. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
 
 ---
 
@@ -231,7 +231,7 @@ FK to `Role.code`. Two roles ship today:
 | code           | purpose |
 |----------------|---------|
 | `USER`         | Default for every signup. No operator access. |
-| `GLOBAL_ADMIN` | Full operator-console access. Grants `UNLOCKED` plan automatically at promotion. |
+| `GLOBAL_ADMIN` | Full operator-console access. Promotion moves an account on a capped plan to `UNLOCKED`; an uncapped plan (`PAID`, `SITES`) stays. |
 
 Role changes are made via the operator console (`Change Role` action). The
 acting admin cannot change their own role, and the system refuses to demote
@@ -249,7 +249,8 @@ places:
    `roleCode = "GLOBAL_ADMIN"` and `planCode = "UNLOCKED"`.
 2. `scripts/backfill-global-admin.mjs` — runs on every container boot after
    `prisma migrate deploy`. Idempotently promotes the user matching
-   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN` on the `UNLOCKED` plan.
+   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN`, by the same plan rule as
+   promotion in the console, so an admin's `SITES` account survives every boot.
    If `ADMIN_EMAIL` is unset or no user matches, logs a notice and exits
    cleanly.
 

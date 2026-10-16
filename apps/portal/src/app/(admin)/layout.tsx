@@ -11,7 +11,7 @@ import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { prisma } from "@/lib/db";
 import { PlanResolutionDialog } from "@/components/plan/plan-resolution-dialog";
 import { SitesNav } from "@/components/sites/sites-nav";
-import { homePathFor } from "@/lib/product";
+import { homePathFor, requireHomeHost } from "@/lib/product";
 
 export default async function AdminLayout({
   children,
@@ -21,6 +21,8 @@ export default async function AdminLayout({
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const entitlements = await getAccountEntitlements(accountId);
+  // Each account lives on its own product's host (PRD D22).
+  await requireHomeHost(entitlements);
   // The account's products pick the chrome; the hostname plays no part.
   const product = entitlements.sitesEnabled ? "sites" : "forms";
 

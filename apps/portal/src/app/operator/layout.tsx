@@ -1,9 +1,10 @@
 import { requireGlobalAdmin, getCurrentAccountId } from "@/lib/auth-utils";
-import { getHomePath } from "@/lib/product";
+import { homePathFor, requireHomeHost } from "@/lib/product";
+import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, House } from "lucide-react";
+import { Globe, Users, House } from "lucide-react";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 
@@ -13,7 +14,9 @@ export default async function OperatorLayout({
   children: React.ReactNode;
 }) {
   const session = await requireGlobalAdmin();
-  const homePath = await getHomePath(await getCurrentAccountId());
+  const entitlements = await getAccountEntitlements(await getCurrentAccountId());
+  await requireHomeHost(entitlements);
+  const homePath = homePathFor(entitlements);
   const homeLabel = homePath === "/editor" ? "Back to editor" : "Back to forms";
 
   const logo = (
@@ -33,12 +36,20 @@ export default async function OperatorLayout({
   );
 
   const navItems = (
-    <Link href="/operator/accounts">
-      <Button variant="ghost" size="sm">
-        <Users className="mr-2 h-4 w-4" />
-        Accounts
-      </Button>
-    </Link>
+    <>
+      <Link href="/operator/accounts">
+        <Button variant="ghost" size="sm">
+          <Users className="mr-2 h-4 w-4" />
+          Accounts
+        </Button>
+      </Link>
+      <Link href="/operator/sites">
+        <Button variant="ghost" size="sm">
+          <Globe className="mr-2 h-4 w-4" />
+          Sites
+        </Button>
+      </Link>
+    </>
   );
 
   return (

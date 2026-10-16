@@ -118,11 +118,68 @@ export async function invalidateSession(sessionId: string): Promise<void> {
   await prisma.session.deleteMany({ where: { id: sessionId } });
 }
 
-/** Signs a user out everywhere, optionally keeping one session (the one making the request). */
+/** Signs a user out everywhere, optionally keeping one session (the one making the request). Pending handoffs go too. */
 export async function invalidateUserSessions(userId: string, keepSessionId?: string): Promise<void> {
   await prisma.session.deleteMany({
     where: { userId, ...(keepSessionId ? { id: { not: keepSessionId } } : {}) },
   });
+  await prisma.sessionHandoff.deleteMany({ where: { userId } });
+}
+
+// ---------------------------------------------------------------------------
+// Handoff: a Sites account that signs in on the Forms host is passed to a
+// session on the Sites host without a second sign-in (PRD D22, E29 D8).
+
+/** Long enough to read the sign-in modal and press its button. */
+export const HANDOFF_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * A one-time pass to a session on `targetHost`, for a user whose password was
+ * just verified on the other host. Returns the token; only its hash is
+ * stored. The user's earlier unused handoffs, and everyone's expired ones,
+ * are dropped.
+ */
+export async function createSessionHandoff(
+  userId: string,
+  rememberMe: boolean,
+  targetHost: string,
+  now = new Date()
+): Promise<string> {
+  const token = generateSessionToken();
+  await prisma.$transaction([
+    prisma.sessionHandoff.deleteMany({ where: { OR: [{ userId }, { expiresAt: { lte: now } }] } }),
+    prisma.sessionHandoff.create({
+      data: {
+        id: hashSessionToken(token),
+        userId,
+        rememberMe,
+        targetHost,
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + HANDOFF_TTL_MS),
+      },
+    }),
+  ]);
+  return token;
+}
+
+/**
+ * Uses up a handoff token on `host`: who it was for, or null when it is
+ * unknown, expired, already used, or meant for another host. The conditional
+ * delete makes it single use even when two requests race.
+ */
+export async function consumeSessionHandoff(
+  token: string,
+  host: string,
+  now = new Date()
+): Promise<{ userId: string; rememberMe: boolean } | null> {
+  if (!token) return null;
+  const id = hashSessionToken(token);
+  const row = await prisma.sessionHandoff.findUnique({ where: { id }, select: { userId: true, rememberMe: true } });
+  if (!row) return null;
+  const { count } = await prisma.sessionHandoff.deleteMany({
+    where: { id, targetHost: host, expiresAt: { gt: now } },
+  });
+  return count === 1 ? row : null;
 }
 
 // ---------------------------------------------------------------------------

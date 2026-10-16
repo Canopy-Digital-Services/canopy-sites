@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireGlobalAdmin, getCurrentMembership } from "@/lib/auth-utils";
 import { clearSessionCookie } from "@/lib/session";
 import {
+  AccountHasSiteError,
   deleteAccountAndSoleMembers,
   getSoleMembership,
 } from "@/lib/data-access/memberships";
@@ -15,7 +16,7 @@ import { revalidatePath } from "next/cache";
  *
  * Guarded by Global Admin; refuses the operator's own account and anything
  * that would remove the last Global Admin, so the deployment cannot brick
- * itself.
+ * itself. An account that owns a site is refused until the site moves.
  */
 export async function deleteAccount(accountId: string) {
   const session = await requireGlobalAdmin();
@@ -40,24 +41,41 @@ export async function deleteAccount(accountId: string) {
     }
   }
 
-  await deleteAccountAndSoleMembers(accountId);
+  try {
+    await deleteAccountAndSoleMembers(accountId);
+  } catch (error) {
+    if (error instanceof AccountHasSiteError) {
+      throw new Error("This account has a site. Move the site to another account first.");
+    }
+    throw error;
+  }
 
   revalidatePath("/operator/accounts");
 }
 
 /**
- * Delete the signed-in user's own account (hard delete). Owners only.
+ * Delete the signed-in user's own account (hard delete). Owners only. An
+ * account with a site is refused with a message: closing it is a
+ * conversation, not a click (PRD D19).
  *
  * Epic 14: Self-service account deletion
  */
-export async function deleteSelfAccount() {
+export async function deleteSelfAccount(): Promise<{ success: true } | { error: string }> {
   const membership = await getCurrentMembership();
 
   if (membership.role !== "OWNER") {
     throw new Error("Only the account owner can delete the account");
   }
 
+  try {
+    await deleteAccountAndSoleMembers(membership.accountId);
+  } catch (error) {
+    if (error instanceof AccountHasSiteError) {
+      return { error: "Your account includes a website. Contact support to close it." };
+    }
+    throw error;
+  }
   // The user's sessions went with them; this clears the browser's cookie.
-  await deleteAccountAndSoleMembers(membership.accountId);
   await clearSessionCookie();
+  return { success: true };
 }

@@ -15,9 +15,10 @@ import { revalidatePath } from "next/cache";
  * Change a user's role. Guards:
  *   1. Actor cannot change their own role (self-demotion guard).
  *   2. Demoting the last remaining GLOBAL_ADMIN is blocked.
- *   3. Promotion to GLOBAL_ADMIN also moves the account to UNLOCKED in the
- *      same transaction so a new admin is never capped on their own forms.
- *      Demotion does NOT automatically revert the plan.
+ *   3. Promotion to GLOBAL_ADMIN moves an account on a capped plan to
+ *      UNLOCKED in the same transaction, so a new admin is never capped on
+ *      their own forms. Uncapped plans stay put, so promoting a Sites
+ *      account keeps Sites. Demotion does NOT automatically revert the plan.
  *
  * The affected user's current session continues to reflect the old role
  * until they re-authenticate; the UI copy states this explicitly.
@@ -75,12 +76,12 @@ export async function setUserRole(
   const account = membership
     ? await prisma.account.findUnique({
         where: { id: membership.accountId },
-        select: { id: true, planCode: true },
+        select: { id: true, plan: { select: { maxPublishedForms: true } } },
       })
     : null;
 
   const shouldUpgradePlan =
-    roleCode === "GLOBAL_ADMIN" && !!account && account.planCode !== "UNLOCKED";
+    roleCode === "GLOBAL_ADMIN" && !!account && account.plan.maxPublishedForms !== null;
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({

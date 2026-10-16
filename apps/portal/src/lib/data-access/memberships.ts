@@ -14,6 +14,14 @@ export class MultipleMembershipsError extends Error {
   }
 }
 
+/** Thrown by deleteAccountAndSoleMembers: an account that owns a site is not deleted (PRD D19). */
+export class AccountHasSiteError extends Error {
+  constructor(accountId: string) {
+    super(`Account ${accountId} has a site. Move the site to another account first.`);
+    this.name = "AccountHasSiteError";
+  }
+}
+
 export type SoleMembership = { accountId: string; role: MembershipRole };
 
 /**
@@ -44,9 +52,15 @@ export async function listAccountMemberEmails(accountId: string): Promise<string
  * in one transaction. Account cascades remove memberships, forms, and their
  * fields, submissions, and notifications; user cascades remove reset tokens.
  * Users who also belong to another account keep their login.
+ *
+ * Throws AccountHasSiteError for an account that owns a site, which the
+ * database also refuses (Site.accountId is onDelete: Restrict).
  */
 export async function deleteAccountAndSoleMembers(accountId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    if (await tx.site.findUnique({ where: { accountId }, select: { id: true } })) {
+      throw new AccountHasSiteError(accountId);
+    }
     const members = await tx.membership.findMany({
       where: { accountId },
       select: { userId: true, user: { select: { _count: { select: { memberships: true } } } } },

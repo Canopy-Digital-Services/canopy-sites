@@ -132,7 +132,9 @@ export default async function AccountsPage() {
             userId={account.userId}
             email={account.email}
             currentRoleCode={account.roleCode}
-            currentPlanCode={account.planCode}
+            currentPlanHasFormCap={
+              planOptions.find((p) => p.code === account.planCode)?.maxPublishedForms != null
+            }
             isSelf={account.userId === currentUserId}
             isLastGlobalAdmin={
               account.roleCode === "GLOBAL_ADMIN" && globalAdminCount <= 1

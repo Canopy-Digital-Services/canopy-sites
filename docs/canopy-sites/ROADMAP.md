@@ -41,7 +41,7 @@ Repo and deploy:
 - Update `docs/AGENT_CONTEXT.md` §6 for the new paths and hostnames
 
 Chrome:
-- **`Plan.sitesEnabled` picks the chrome** (landed in E29; until then `getAccountEntitlements` derives `sitesEnabled` from the `UNLOCKED` plan, which E29's seed also enables). Sites accounts get Editor · Forms · Stats on either hostname; all other accounts get today's Forms UI exactly, on either hostname
+- **`Plan.sitesEnabled` picks the chrome** (landed in E29; until then `getAccountEntitlements` derived `sitesEnabled` from the `UNLOCKED` plan, which E29 made a Forms-only plan, PRD D20). Sites accounts get Editor · Forms · Stats on either hostname; all other accounts get today's Forms UI exactly, on either hostname
 - Hostname brands **logged-out pages only** (login, signup, password reset; `/docs` requires sign-in). After login, hostname carries no meaning: no per-host home route, no per-host gate page, no per-host sign-out target
 - Survey and fix the places where the host currently carries meaning: `NEXTAUTH_URL` / `trustHost`, `validateOrigin`'s use of `NEXT_PUBLIC_APP_URL`, email links, home redirects. Record findings in the epic doc
 - Forms mounted at `/forms` as today; Sites home at `/editor`, Stats at `/stats`; `/` redirects by product
@@ -62,15 +62,18 @@ Goal: pull Forms' account code forward with obvious improvements, and replace `U
 - No invite UI, no role UI beyond what operator already has
 - Acceptance: all existing flows (signup, login, reset, delete account, operator account list) work unchanged; every `accountId` lookup goes through the data-access layer; migrations read and verified per `docs/AGENT_CONTEXT.md` §5
 
-### E29 · Plan extension, Site model, operator Sites
+### E29 · Plan extension, Site model, operator Sites (shipped v5.2.0)
+
+Outcome: `docs/epics/epic-29-plan-site-model-operator-sites.md`. Beyond the brief, by Michael's decisions there: `UNLOCKED` stopped being a Sites plan (PRD D20), one site per account (D19), and each account got a home host with a sign-in handoff from the Forms host (D22).
+
 
 Goal: the portal knows what a Site is and which accounts have the product.
 
-- Extend `Plan`: `sitesEnabled`, `analyticsTier`, `monthlyTokenBudget`. Seed `SITES` plan: `sitesEnabled = true`, `maxPublishedForms = NULL` (same Forms entitlement as `PAID`). Existing plans (`FREE`, `HOSTING`, `PAID`, `UNLOCKED`) get `sitesEnabled = false`, except `UNLOCKED` → `true`. Replace E27's `UNLOCKED` stand-in in `getAccountEntitlements` with the column
-- Add `Site` per PRD §5. Add `Build`, `ChangeSet` as empty-but-migrated tables now so E30/E31 do not need schema churn, or defer; agent's call, document it
+- Extend `Plan`: `sitesEnabled`. Seed `SITES` plan: `sitesEnabled = true`, `maxPublishedForms = NULL` (same Forms entitlement as `PAID`). Existing plans (`FREE`, `HOSTING`, `PAID`, `UNLOCKED`) get `sitesEnabled = false` (PRD D20). Replace E27's `UNLOCKED` stand-in in `getAccountEntitlements` with the column. `analyticsTier` and the token budget are not added (PRD D21)
+- Add `Site` per PRD §5, one per account (PRD D19). `Build` and `ChangeSet` are deferred to E30 (PRD D21)
 - Operator: `/operator/sites` list and detail (create site, assign to account, repo URL, hostnames, contract version, locked fields, runbook overlay textarea). Creating a site does **not** create a repo or DNS; those are manual in v1
 - Sites home for a client with one site: placeholder Editor page showing the site name and "nothing to edit yet"
-- Acceptance: operator can create Client 2 as a Site on Michael's account; client login on either host lands on it
+- Acceptance: operator can create Client 2 as a Site on Michael's account; client login lands on it at the Sites host, and the Forms host points there (PRD D22)
 
 ---
 
@@ -121,6 +124,8 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 Goal: a ChangeSet against Client 2 produces a viewable preview without touching production.
 
+- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them, and shape `Build` for whichever hosting PRD Q9 settles on
+
 - `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (deploy key, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
 - Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`, `preview-<slug>.sites.canopyds.com` → `preview`) and reloads. In this phase only preview hostnames are configured
@@ -151,7 +156,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 - Claude API, tool use, tools = E31 layer in-process. Model names and per-model roles (classify vs edit) in env, not code
 - Prompt assembly: base runbook (repo file, `docs/canopy-sites/runbook/base.md`, cached as a system block) + `Site.runbookOverlay` + JSON Schema for the collections the request touches. Base runbook v1 covers: hours, announcement, event, schedule, services/prices, gallery add/remove/reorder, copy block, tokens, "I don't know which page"
 - Preflight before LLM: file type, dimensions, HEIC conversion, size. LLM sees results, not raw files, except for moderation (Q3)
-- `Conversation` persisted with tokens in/out and cost estimate. Account monthly budget from `Plan.monthlyTokenBudget`; soft-stop at 100% with operator notification
+- `Conversation` persisted with tokens in/out and cost estimate. Add `Plan.monthlyAiBudgetCents` (meaning in PRD D21), with the `SITES` value set from the cost per edit this epic measures; soft-stop at 100% with operator notification
 - UI: global chat on Editor home; page-scoped chat from a tile (scopes schema + overlay excerpt to that page). Each assistant turn that produces a ChangeSet shows Preview / Publish inline
 - Operator: token usage per account/site/month; "edit as client" opens the same chat with operator identity recorded on the ChangeSet
 - Acceptance: five scripted edits on Client 2 (hours, announcement, price change, gallery add with HEIC, hero copy) each produce a correct preview; cost per edit recorded and reported
@@ -172,7 +177,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 
 ### E35 · Stats
 
-- Umami API client; per-site `umamiWebsiteId`. Stats page: visitors, pageviews, top pages, referrers, selectable date range. `analyticsTier` on Plan gates nothing in v1 beyond the page existing
+- Umami API client; per-site `umamiWebsiteId`. Stats page: visitors, pageviews, top pages, referrers, selectable date range. Every Sites account gets the same Stats; there is no `analyticsTier` in v1 (PRD D21)
 - Acceptance: Client 2 stats match the Umami dashboard for the same range
 
 ---
@@ -182,6 +187,8 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 ### E36 · Production on Caddy, publish by swap
 
 Preconditions: E33 stable on preview for at least a week of real use.
+
+Add `Site.status` here (deferred from E29, PRD D21), with values naming which sites Caddy serves in production.
 
 1. Portal adds `client2.example` + `www` to Caddy config → `current` symlink (pointing at the latest published build)
 2. Traefik: route both hostnames to the Caddy container instead of the Client 2 nginx app. Verify `curl -sI https://client2.example/` 200 and content parity
