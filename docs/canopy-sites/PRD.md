@@ -4,6 +4,8 @@
 
 **Revision note (2026-10-15, after Claude Code review of E27):** D2 and §4.3 revised. Chrome is decided by the account's products, not the hostname; the unified codebase is the existing Forms repo restructured in place, not a new repo.
 
+**Revision note (2026-10-16, demo planning):** D23 to D27 added; Q1 and Q9 answered; §2, §4.1, §4.4, §4.8 revised. The sales demo is its own site and account, with Client 2's content standing in for a dedicated demo site; `canopy.json` is gone; preview hostnames sit one level under the zone.
+
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
@@ -46,7 +48,8 @@
 - Public MCP endpoint with per-account API keys
 - Stats: white-boxed Umami dashboard for all accounts
 - Operator: accounts, sites, build log, token usage, edit-as-client
-- Client 2 migrated to the template as testbed and client demo
+- Client 2 migrated to the template as testbed
+- A demo site at `sites.canopyds.com/demo` on its own account, for sales calls and partner sandboxes (D23)
 
 ### Out of v1 (explicit)
 
@@ -91,7 +94,12 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D19 | **One site per account**, enforced by a unique `Site.accountId`. The ICP is a small business or local organization with one website. An account that owns a site cannot be deleted, and a site lives only on an account whose plan has `sitesEnabled` (E29) | M |
 | D20 | **`SITES` is the only Sites plan, and plans are entitlement levels only: Free, Unlimited (`PAID`), Sites.** `UNLOCKED` stopped meaning Sites in E29 and then duplicated `PAID`; it and the never-assigned `HOSTING` were retired in v5.2.1, their accounts moved to `PAID`. Comp, sandbox, and partner access are billing state (D12), not a plan | M/R |
 | D21 | **A column lands with its first reader when its values would otherwise be guesses.** `Build` and `ChangeSet` arrive in E30; `analyticsTier` is not in v1; the token budget becomes `Plan.monthlyAiBudgetCents` in E32 (estimated model spend in US cents per calendar month, UTC, per account; `null` = no ceiling), because models and cache reads price tokens differently; `Site.status` arrives in E36 (E29) | M/R |
-| D22 | **Each account has a home host**, the one its emails already use: Sites accounts on `sites.canopyds.com`, every other account on `forms.canopyds.com`, so Forms stays a standalone product at its own address. A signed-in page on the other host redirects home (sessions are per host, so that is one more sign-in). Sign-in on the Forms host for a Sites customer shows "you use Forms through your Sites dashboard" with a **Go to Canopy Sites** button that signs them in there through a one-time handoff; a Forms customer signing in on the Sites host is told where to sign in. Signup is on the Forms host. Supersedes D2's "either host, no redirects", whose reasons (Forms-host email links, NextAuth's single URL) E27 and E28 removed. Shared cross-subdomain cookies rejected: previews live under `*.sites.canopyds.com` (E29) | M/R |
+| D22 | **Each account has a home host**, the one its emails already use: Sites accounts on `sites.canopyds.com`, every other account on `forms.canopyds.com`, so Forms stays a standalone product at its own address. A signed-in page on the other host redirects home (sessions are per host, so that is one more sign-in). Sign-in on the Forms host for a Sites customer shows "you use Forms through your Sites dashboard" with a **Go to Canopy Sites** button that signs them in there through a one-time handoff; a Forms customer signing in on the Sites host is told where to sign in. Signup is on the Forms host. Supersedes D2's "either host, no redirects", whose reasons (Forms-host email links, NextAuth's single URL) E27 and E28 removed. Shared cross-subdomain cookies rejected: client previews live on other `canopyds.com` hostnames (E29, D25) | M/R |
+| D23 | **The demo is its own site on its own account**, never a client's: publishing on a call must never change a real client's live site. A dedicated Sites account (partners join it as members) owns a demo site in its own private repo, served at `sites.canopyds.com/demo` and previewed there by signed-in members. Until a dedicated demo site is built, its content and design are a copy of Client 2's (the owner agreed, as part of her free site); it never touches Client 2's repo, analytics, or search presence. `Site.isDemo` turns on sample stats and reset | M/R |
+| D24 | **No `canopy.json`.** The `Site` row owns `slug` (it names build directories and hostnames, and two sites may build from one repo) and `lockedFields` (guardrails are server-side, D9); the repo owns the contract version, as whatever `@canopy/site-contract` it installs, which the builder records on `Site.contractVersion` | R |
+| D25 | **Preview hostnames sit one level under the zone** (`<slug>-preview.canopyds.com`, not `preview-<slug>.sites.canopyds.com`): Cloudflare's Universal SSL covers the apex and one level only, so a second-level name gets no certificate without Advanced Certificate Manager. The demo needs none: it previews at its own URL (D23) | R |
+| D26 | **`site-contract` ships from this repo** (was Q1): `packages/site-contract` is packed into a tarball attached to a GitHub release `site-contract-vX.Y.Z` on this repo, which site repos install by URL (npm cannot install a subdirectory of a git repo). The portal and builder use the workspace copy | R |
+| D27 | **D6 stands** (was Q9). Cloudflare Pages would replace only the serving half; a builder that applies ChangeSets and runs `astro build` is needed either way, and the positioning is "we run our own stack" | R |
 
 ---
 
@@ -103,7 +111,8 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 Internet → Cloudflare → cloudflared tunnel → Traefik (coolify-proxy)
    ├── sites.canopyds.com / forms.canopyds.com → portal (Next.js)
    ├── <client-domain>                         → Caddy → /srv/sites/<slug>/current
-   └── preview-<slug>.sites.canopyds.com       → Caddy → /srv/sites/<slug>/preview   (auth-gated)
+   ├── <slug>-preview.canopyds.com             → Caddy → /srv/sites/<slug>/preview   (auth-gated, D25)
+   └── sites.canopyds.com/demo                 → portal → builder output (D23)
 ```
 
 Unchanged: Cloudflare, tunnel, Traefik, webber, Umami, Postgres, Coolify as the orchestrator for the portal stack.
@@ -125,11 +134,10 @@ Shared volume `/srv/sites` between builder and caddy.
 |---|---|
 | `Canopy-Forms` → renamed `canopy-sites` on GitHub | **The unified codebase**, restructured in place: `git mv` the app into `apps/portal`; add `apps/builder`, `packages/site-contract`. History, PRs, deploy keys, Coolify apps, DB, env and secrets all stay. GitHub redirects the old URL. **Stays public** (decided 2026-10-15): history scanned clean of live secrets, security comes from server-side enforcement (D9) rather than secrecy, and client data never enters this repo |
 | `canopy-site-template` (new) | Astro 7 starter implementing the contract; new client sites start here |
-| `client2`, `client1`, future client repos | One per client; depend on `site-contract` by git tag |
+| `client2`, `client1`, future client repos | One per client; depend on `site-contract` by release tarball (D26) |
+| `canopy-demo-site` (private) | The demo site (D23): Client 2's content and design until a dedicated demo site replaces them |
 
 The local `canopy-sites` folder that held only these docs is retired; the docs live in this repo at `docs/canopy-sites/`.
-
-`site-contract` packaging is the one open structural question — see §8.
 
 ### 4.4 Content contract (`packages/site-contract`)
 
@@ -151,7 +159,7 @@ Collections (v1), from what Client 2 and Client 1 actually contain:
 | `text` | long-form markdown pages | Client 2 policies, bios |
 | `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme` |
 
-File layout in a site repo: `src/content/<collection>/…` via Astro content-layer `file()`/`glob()` loaders; `src/assets/` for media; `tokens.json` at root; `canopy.json` with slug, contract version, locked fields.
+File layout in a site repo: one JSON document per collection at `src/content/<collection>.json`, parsed with the contract's schemas at build time so a violation fails the build; `src/assets/` for media; `tokens.json` at root. No `canopy.json` (D24).
 
 ### 4.5 Change pipeline
 
@@ -183,7 +191,7 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 
 ### 4.8 Hostnames and DNS
 
-- `*.sites.canopyds.com` wildcard proxied CNAME → tunnel, plus wildcard ingress rule, so preview hostnames need no per-site DNS. Verify once on webber; `deploy-to-webber.md` documents that bare `*.canopyds.com` ingress without a DNS record does not resolve
+- Preview hostnames are `<slug>-preview.canopyds.com` (D25). The tunnel's ingress already wildcards `*.canopyds.com`; each name needs a proxied CNAME to the tunnel (there is no wildcard DNS record, per `deploy-to-webber.md`)
 - Client production domains: per-client zones as today (Cloudflare registrar + nameservers), CNAME to tunnel
 
 ---
@@ -196,7 +204,7 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | `Plan` (extend) | + `sitesEnabled Boolean` (E29); + `monthlyAiBudgetCents Int?` (E32) | Typed columns per existing pattern; seed `SITES` plan code. No `analyticsTier` in v1 (D21) |
 | `Account` (extend) | + `status` (`ACTIVE` \| `PAST_DUE` \| `CANCELLED`), + `billingRef String?` | |
 | `Site` | accountId (unique), slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained; + status (E36) | One site per account (D19) |
-| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | Draft; E30 settles it with `ChangeSet` (one FK direction between them, and D6 vs Q9) |
+| `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | Draft; E30 settles it with `ChangeSet` (one FK direction between them) |
 | `ChangeSet` | siteId, source, createdByUserId?, apiKeyId?, summary, ops (JSON), status (`DRAFT` \| `PREVIEWED` \| `PUBLISHED` \| `DISCARDED` \| `FAILED`), previewBuildId, publishedBuildId | |
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
@@ -241,13 +249,11 @@ Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts s
 
 | # | Question | Default if unanswered |
 |---|---|---|
-| Q1 | `site-contract` packaging: separate repo with git tags, or a tarball published from the portal monorepo | Separate repo, git tags |
-| Q2 | Preview auth: portal session cookie on `*.sites.canopyds.com`, or signed URL per build | Signed URL per build, 7-day expiry |
+| Q2 | Preview auth on a client's preview hostname: signed URL per build, or previewing at the production hostname behind a signed cookie (the demo previews at its own URL for signed-in members, D23) | Signed URL per build, 7-day expiry |
 | Q3 | Image moderation: vision call per upload, or defer to operator review for v1 | Vision call via cheaper model; operator notified on reject |
 | Q4 | Allowed font list for the tokens panel | Fontsource-hosted families only (no external font requests, per Client 1 pattern) |
 | Q5 | Does the portal ever write to the site repo other than through the builder | No |
 | Q6 | Client access to the GitHub repo: read-only collaborator, or transfer on exit | Read-only collaborator |
-| Q9 | E30 hosting: builder + Caddy (D6), or Cloudflare Pages direct upload (atomic deploys, previews, instant rollback built in; trades against "we run our own stack") | D6 stands; revisit before E30 |
 
 ---
 

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "home",
+    "path": "/",
+    "title": "Fixture Salon | Hairstylist in Springfield",
+    "description": "Cuts, color, and waxing in Springfield.",
+    "hero": { "subheadline": "Specializing in lifestyle cuts.", "cta": { "label": "Book Now", "href": "https://book.example.com/salon" } },
+    "sections": [
+      { "id": "featured", "eyebrow": "Featured Services", "heading": "My personal favorites", "serviceIds": ["haircut", "full-face-wax"], "cta": { "label": "View Full Menu", "href": "/services" } },
+      { "id": "about", "heading": "Who, me?", "quote": "Looking good is feeling good.", "body": ["First paragraph.", "Second paragraph."] }
+    ]
+  },
+  { "id": "services", "path": "/services", "navLabel": "Services", "title": "Services | Fixture Salon", "description": "The full menu.", "sections": [] }
+]

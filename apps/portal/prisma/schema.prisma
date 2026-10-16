@@ -89,6 +89,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   sessions            Session[]
   sessionHandoffs     SessionHandoff[]
+  changeSets          ChangeSet[]
+  conversations       Conversation[]
 
   @@index([roleCode])
   @@map("users")
@@ -132,7 +134,7 @@ enum AccountStatus {
 model Site {
   id                  String   @id @default(cuid())
   accountId           String   @unique
-  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and preview-<slug>.sites.canopyds.com
+  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and <slug>-preview.canopyds.com
   name                String
   repoUrl             String?
   defaultBranch       String   @default("main")
@@ -142,12 +144,113 @@ model Site {
   runbookOverlay      String   @default("") // Client part of the quick-edit system prompt (E32)
   lockedFields        String[] @default([]) // Dotted contract paths edits may not change (E31), e.g. site.contact.phone
   maxBuildsRetained   Int      @default(5)
+  // A sales demo, never a client's site (PRD D23): Stats shows sample data.
+  isDemo              Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  account       Account        @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  changeSets    ChangeSet[]
+  builds        Build[]
+  conversations Conversation[]
 
   @@map("sites")
+}
+
+// One proposed edit to a site's content, from any source (PRD section 4.5).
+// ops are @canopy/site-contract ChangeOps against the branch at baseCommit.
+// A site has at most one pending (DRAFT or PREVIEWED) change at a time; a new
+// proposal builds on it and supersedes it.
+model ChangeSet {
+  id              String          @id @default(cuid())
+  siteId          String
+  source          ChangeSetSource
+  createdByUserId String?
+  conversationId  String?
+  summary         String
+  ops             Json
+  baseCommit      String
+  status          ChangeSetStatus @default(DRAFT)
+  error           String?
+  publishedCommit String?
+  publishedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  site         Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  createdBy    User?         @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  builds       Build[]
+
+  @@index([siteId, status])
+  @@index([siteId, createdAt])
+  @@map("change_sets")
+}
+
+enum ChangeSetSource {
+  QUICK_EDIT
+  OPERATOR
+}
+
+enum ChangeSetStatus {
+  DRAFT
+  PREVIEWED
+  PUBLISHED
+  DISCARDED
+  FAILED
+}
+
+// A preview build of a ChangeSet, made by apps/builder. Publish points the
+// live site at a succeeded build without rebuilding it.
+model Build {
+  id          String      @id @default(cuid())
+  siteId      String
+  changeSetId String?
+  status      BuildStatus @default(QUEUED)
+  baseCommit  String?
+  error       String?
+  log         String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime    @default(now())
+
+  site      Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  changeSet ChangeSet? @relation(fields: [changeSetId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, createdAt])
+  @@index([changeSetId])
+  @@map("builds")
+}
+
+enum BuildStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// A quick edit conversation (E32): the model's message history, its token
+// use, and the estimated spend, per account through its site (PRD D7, D21).
+model Conversation {
+  id               String   @id @default(cuid())
+  siteId           String
+  userId           String?
+  model            String
+  messages         Json     @default("[]")
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  costUsd          Decimal  @default(0) @db.Decimal(12, 6)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  changeSets ChangeSet[]
+
+  @@index([siteId, createdAt])
+  @@map("conversations")
 }
 
 // Form configuration

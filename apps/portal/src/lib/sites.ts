@@ -16,7 +16,7 @@ export const RUNBOOK_OVERLAY_MAX_LENGTH = 20_000;
 /** Contact fields are locked by default (PRD section 4.4); a new site starts with these. */
 export const DEFAULT_LOCKED_FIELDS = ["site.contact.phone", "site.contact.email", "site.contact.address"];
 
-// A DNS label short enough to prefix with "preview-" and stay within 63 characters.
+// A DNS label short enough to take a "-preview" suffix and stay within 63 characters.
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const HOSTNAME_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const BRANCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9._-]+)*$/;

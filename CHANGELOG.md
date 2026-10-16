@@ -5,6 +5,17 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-10-16
+
+Canopy Sites can edit a real site: quick edit, preview, publish, and Stats, first for the sales demo (Epic 30).
+
+### Added
+
+- **Quick edit**: Canopy Sites customers describe a change in plain language on the Editor ("Raise the haircut price to $90") and get a private preview. Nothing goes live until they click Publish. Locked fields (contact details) and anything that would break the site are refused with a reason
+- **Editor**: the site's pages, the change waiting for review with Preview, Publish, and Discard, and recently published changes
+- **Stats**: visitors, pageviews, top pages, and referrers for the last 7, 30, or 90 days. The demo site shows labeled sample data; other sites show their stats once they are live
+- **The demo site** at sites.canopyds.com/demo, on its own account, for sales calls and partners. Operators can build and publish a site from its repository, reset the demo to its starting point, and add a member to an account
+
 ## [5.2.1] - 2026-10-16
 
 ### Changed

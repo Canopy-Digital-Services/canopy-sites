@@ -1,5 +1,32 @@
 {
   "name": "@canopy/site-contract",
-  "private": true,
-  "description": "Versioned Zod schemas for client site content. Empty until C1; packaging is PRD open question Q1."
+  "version": "0.1.0",
+  "description": "Versioned Zod schemas for Canopy Sites content, shared by the portal, the builder, and every site repo.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
 }

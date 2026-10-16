@@ -2,7 +2,7 @@
 
 Authoritative reference for coding agents working in this repo.
 
-**Layout.** npm workspaces. The Next.js app that serves Canopy Forms and the Canopy Sites portal is `apps/portal/`; `apps/builder/` and `packages/site-contract/` stay empty until Epic 30 and C1. **Code paths in this doc are relative to `apps/portal/`.** Paths under `docs/`, plus `package.json`, `package-lock.json`, `CHANGELOG.md`, and the compose files, are at the repo root. Canopy Sites is specified in `docs/canopy-sites/PRD.md` and sequenced in `docs/canopy-sites/ROADMAP.md`.
+**Layout.** npm workspaces. The Next.js app that serves Canopy Forms and the Canopy Sites portal is `apps/portal/`; `apps/builder/` is the site build service (its own README) and `packages/site-contract/` the content contract every site repo installs (its own README; PRD D26). **Code paths in this doc are relative to `apps/portal/`.** Paths under `docs/`, plus `package.json`, `package-lock.json`, `CHANGELOG.md`, and the compose files, are at the repo root. Canopy Sites is specified in `docs/canopy-sites/PRD.md` and sequenced in `docs/canopy-sites/ROADMAP.md`.
 
 **Code wins over docs.** Verify anything here against the file before relying on it. Source-of-truth order: code > `prisma/schema.prisma` > `prisma/migrations/` > `CHANGELOG.md` > docs.
 
@@ -93,7 +93,8 @@ Payload cap: 64KB. Length caps are three-tier (default applies when the field se
 - **Submit API**: POST only, for white-box HTML forms that never fetch a schema.
 - **Single-field submit** (`/api/submit/[formId]/[fieldName]`): does **not** use the shared module. It reimplements only origin, rate limit, and honeypot, validates nothing but required-presence on the one field, and has no type, published, `stopAt`, or `maxSubmissions` gate. Treat its stored values as unvalidated: `src/lib/submission-email.ts` re-runs `isValidEmail()` before using a submitted address as `Reply-To`, which is what blocks CRLF header injection. Any new gate added to `public-submit.ts` has to be added here separately or it does not apply to this route.
 - Origin: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost is always allowed.
-- **Framing.** `next.config.ts` sends `X-Frame-Options: DENY` and `frame-ancestors 'none'` on every path except `/f/*`, `/api/embed/*`, `/api/submit/*`, and `/embed.js`, which other sites use. A new route meant to be loaded by other sites must be added to that exclusion; everything else stays unframeable (clickjacking).
+- **Framing.** `next.config.ts` sends `X-Frame-Options: DENY` and `frame-ancestors 'none'` on every path except `/f/*`, `/api/embed/*`, `/api/submit/*`, and `/embed.js`, which other sites use, and `/demo`, which sends its own. A new route meant to be loaded by other sites must be added to that exclusion; everything else stays unframeable (clickjacking). A config header replaces a route's header of the same name, so a route that needs its own CSP must be excluded there too.
+- **`/demo`** (`src/app/demo/[[...path]]/route.ts`) serves the demo site (PRD D23) from the builder. It is client-editable content on the portal's origin, so every response carries `Content-Security-Policy: sandbox ...` (an opaque origin that can't use the portal session) plus CORS for its fonts and module scripts. Never drop the sandbox or add `allow-same-origin`.
 - **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`; `type === "HOSTED"` returns `code: "FORM_HOSTED_ONLY"`. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
 - A filled honeypot **does not reject**. It stores the submission with `isSpam: true`, which is why `maxSubmissions` counts non-spam rows only and spam skips the notification email.
 - Submission limits return 403 and raise a `LIMIT_DEADLINE_REACHED` or `LIMIT_MAX_REACHED` notification.
@@ -115,13 +116,14 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
 | `src/lib/public-submit.ts` | Where server-side submission validation and gates belong. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
+| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, locked fields, the contract, and rate limits are enforced here for every source (Editor, quick edit, later MCP). Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
 | `src/components/ui/` | shadcn primitives. Extend, do not fork. |
 | `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/editor` and `/stats` for Sites accounts. Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/editor` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/editor` and `/stats` for Sites accounts. `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/editor` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -240,7 +242,8 @@ GitHub's merge commit lands on `main` only, so the branches diverge by exactly o
 Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds `apps/portal/Dockerfile` with the repo root as context and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
-- Both apps build `/apps/portal/Dockerfile` from base directory `/`, with auto-deploy watch paths `apps/portal/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or other files outside those paths do not trigger a deploy. Each app serves its Forms and Sites hostnames (both are Coolify domains on the one app).
+- Both apps build `/apps/portal/Dockerfile` from base directory `/`, with auto-deploy watch paths `apps/portal/**`, `packages/site-contract/**`, `package.json`, `package-lock.json`. Changes to `docs/**` or other files outside those paths do not trigger a deploy.
+- **The builder** (`apps/builder`) is its own Coolify app, production only as of 2026-10-16: `canopy-builder`, UUID `p7tvlgubddrucz9mnppbhabt`, branch `main`, Dockerfile `/apps/builder/Dockerfile` from `/`, no domain (internal), network alias `canopy-builder` (the portal's `BUILDER_URL` is `http://canopy-builder:4100`; container names change on every deploy), persistent volume at `/srv/sites`, watch paths `apps/builder/**`, `packages/site-contract/**`, `package-lock.json`. Its variables are in `apps/builder/README.md`. forms-dev has no builder, so its Editor shows the empty state. Each app serves its Forms and Sites hostnames (both are Coolify domains on the one app).
 - **Fox's Coolify holds stopped copies of both apps** (same UUIDs) from the manual Forms failover design (`fox-activate`). As of 2026-10-15 Fox is not standing by for Forms (no database sync until one is designed before the Forms beta), so those copies need no upkeep. If Forms failover is revived, mirror build settings and domains onto them first: the start path builds from git with Fox's copy of the settings. The same `$COOLIFY_TOKEN` works against Fox's API (`ssh fox`, `localhost:8000`).
 - **An env var change is inert until the container is recreated.** Coolify injects env at container creation, so a var added through the UI or API does nothing to the running app until it is redeployed. Confirm with the runtime probe in section 7 rather than the Coolify UI, which shows the stored value, not what the Node process holds.
 
@@ -260,6 +263,9 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `PAID`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
+| `BUILDER_URL` / `BUILDER_TOKEN` | The builder's internal URL and the shared token (same value on the builder). Unset means the Editor shows its empty state and `/demo` 404s. |
+| `ANTHROPIC_API_KEY` | Quick edit (PRD D7, a Claude Platform key). Unset means quick edit says it isn't set up. |
+| `QUICK_EDIT_MODEL` | Optional, default `claude-opus-5-5`. Costs per model are estimated in `src/lib/quick-edit/index.ts`. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
@@ -341,7 +347,14 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
-           maxBuildsRetained), one per account, onDelete Restrict
+           maxBuildsRetained, isDemo), one per account, onDelete Restrict
+       └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
+       │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
+       │             error?, publishedCommit?, publishedAt?)
+       └─ Build (changeSetId?, status:BuildStatus, baseCommit?, error?, log?,
+       │         startedAt?, finishedAt?)
+       └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
+                        cacheWriteTokens, costUsd)
 
 User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
@@ -359,6 +372,7 @@ Enums:
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
+- `ChangeSetSource`: `QUICK_EDIT | OPERATOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
 Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan; `HOSTING` and `UNLOCKED` were retired for that reason in v5.2.1.

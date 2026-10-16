@@ -21,6 +21,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Workspace packages the portal imports ship compiled (exports point at dist/)
+RUN npm run build -w @canopy/site-contract
 WORKDIR /app/apps/portal
 
 # Build embed script first (uses the workspace's node_modules)
@@ -54,6 +56,8 @@ COPY --from=builder /app/apps/portal/prisma.config.ts ./apps/portal/prisma.confi
 
 # Copy FULL node_modules
 COPY --from=deps /app/node_modules ./node_modules
+# Workspace packages, which node_modules links to (built in the builder stage)
+COPY --from=builder /app/packages/site-contract ./packages/site-contract
 
 # Entrypoint + post-migration backfills
 COPY apps/portal/scripts ./apps/portal/scripts

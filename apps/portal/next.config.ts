@@ -25,7 +25,9 @@ const nextConfig: NextConfig = {
         // Nothing may frame the admin, operator, or sign-in pages
         // (clickjacking). Hosted forms (/f/*), the embed script, and the
         // public submission endpoints are meant to be used from other sites.
-        source: "/((?!f/|api/embed/|api/submit/|embed\\.js).*)",
+        // /demo sets its own CSP (sandbox plus frame-ancestors): a header set
+        // here would replace the route's.
+        source: "/((?!f/|api/embed/|api/submit/|embed\\.js|demo(?:/|$)).*)",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
