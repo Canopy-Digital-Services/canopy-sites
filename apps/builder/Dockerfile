@@ -17,7 +17,7 @@ RUN npm ci --no-audit --no-fund -w @canopy/builder -w @canopy/site-contract --in
 
 COPY packages/site-contract ./packages/site-contract
 COPY apps/builder ./apps/builder
-RUN npx -y -p typescript@5 tsc -p packages/site-contract/tsconfig.json
+RUN npm run build -w @canopy/site-contract
 
 # Site builds run as the unprivileged node user; /srv/sites is the volume.
 RUN mkdir -p /srv/sites && chown node:node /srv/sites
