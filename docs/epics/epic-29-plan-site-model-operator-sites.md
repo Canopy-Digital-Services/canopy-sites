@@ -121,11 +121,11 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 ## 5. Acceptance
 
 - [x] Section 3 decided with Michael
-- [ ] Operator creates Client 2 as a Site on Michael's account; signing in on either host lands on the Editor showing it
-- [ ] A Forms-only account's experience is unchanged on both hosts
-- [ ] One account can never read another's site (test)
-- [ ] Both migrations read and verified per `docs/AGENT_CONTEXT.md` section 5
-- [ ] `npm run build`, `npm run lint`, `npm test` pass
+- [ ] Operator creates Client 2 as a Site on Michael's account; signing in on either host lands on the Editor showing it (Michael, on forms-dev; the same flow passed locally with a throwaway account, section 8)
+- [x] A Forms-only account's experience is unchanged on both hosts (local)
+- [x] One account can never read another's site (`sites.db.test.ts`, and the client pages carry none of the operator fields)
+- [x] Both migrations read and verified per `docs/AGENT_CONTEXT.md` section 5 (locally; forms-dev and production when deployed)
+- [x] `npm run build`, `npm run lint`, `npm test` pass
 
 ## 6. Decisions
 
@@ -146,13 +146,26 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 - **C4. Field formats.** `repoUrl` an `https://` URL or empty; `contractVersion` `MAJOR.MINOR.PATCH` or empty (C1 versions by git tag); `lockedFields` dotted paths into the contract (`site.contact.phone`), prefilled on a new site with the three contact fields PRD section 4.4 locks by default; `runbookOverlay` at most 20,000 characters; `name` at most 100.
 - **C5. The detail page edits every operator-set field**, including `defaultBranch` and `umamiWebsiteId`, which the brief's list does not name. `maxBuildsRetained` keeps its default with no control until E30 prunes builds.
 - **C6. New operator actions return `{ success } | { error }`** (the `contact.ts` and `auth.ts` shape). Guards added to existing operator actions throw, like the refusals beside them (follow-up in section 7).
+- **C7. The boot-time `ADMIN_EMAIL` backfill follows D6.** `scripts/backfill-global-admin.mjs` runs on every container start and moved the admin's account back to `UNLOCKED` whenever it was on another plan, which would have taken Sites from Michael's account on every deploy. It now lifts only a capped plan, like `setUserRole`, with a test that runs the script.
+- **C8. The guard lives in `deleteAccountAndSoleMembers`**, the one deletion path, so the operator and self-serve actions both inherit it; each maps `AccountHasSiteError` to its own message. A client's Account page shows "Contact support to close it" in place of the Delete button, and the help page says so.
+- **C9. One-site-per-account and deletion each have two layers**, a check in code for the message and the database constraint underneath (unique index, `RESTRICT`). The mutation check removed the code check alone (the constraint still refused), then both together (the test failed).
 
 ## 7. Follow-ups (recorded, not built)
 
 - **`lockedFields`, `contractVersion`, and `slug` are also in each site repo's `canopy.json`** (PRD section 4.4). Two sources of truth; E30 or E31 decides which wins. Suggested: the database for `lockedFields` (guardrails are server-side, D9), the repo for `contractVersion` (the build uses what the repo installs), with the builder flagging drift.
 - **Deleting a site** is not in the brief. Until it exists, a test site can only be reassigned, and an account that owns one cannot be deleted (D4).
+- **`GLOBAL_ADMIN`'s seeded description** still reads "UNLOCKED plan granted"; since D6 that holds only for capped plans. Catalog text, changed by migration if it matters.
 - **Thrown messages from operator actions** (`deleteAccount`, `setAccountPlan`, `setUserRole`, `setAccountBilling`) may reach the toast as Next's generic production error rather than the refusal text. Check on forms-dev and convert to result values if so.
 
 ## 8. Progress log
 
 - 2026-10-16: Release PR #23 (v5.1.0) still open, so step 0 (production verification, removing `NEXTAUTH_SECRET` and `AUTH_TRUST_HOST` from prod, resync) is skipped. Brief, PRD, and E28 read; section 3 written for Michael and decided the same day (section 6).
+- 2026-10-16: Built. Commits, in order: `677050f` (`Plan.sitesEnabled`, `SITES`), `08cb710` (entitlements read the column; promotion and the boot backfill keep Sites), `fdc2f33` (`Site`), `9f9e40a` (site data access and actions), `9a20e49` (deletion and plan-change guards), `00eeca5` (operator Sites), `006f8a9` (Editor home). Both migrations' SQL read before applying: `add_plan_sites_enabled` adds the column defaulting false and inserts `SITES`; `add_sites` creates the table with unique `accountId` and `slug` and `ON DELETE RESTRICT`. 125 tests; every guard's test was run with the guard removed and failed (C9 for the two-layer ones).
+- 2026-10-16: Verified locally over HTTP with throwaway accounts on both hosts: `/` sends a `SITES` account to `/editor` and an `UNLOCKED` admin and a `FREE` account to `/forms`; `/editor` 404s for `FREE`; `/operator/sites` redirects a client home. `createSite` called as a server action: a client is redirected, a cross-origin request is rejected by Next, a `FREE` account and a second site are refused with their messages, and a `SITES` account gets its site with the contact fields locked. The client's Editor shows the site's name on both hosts; the Account page shows the support message; probe strings in `runbookOverlay` and `repoUrl` appear in none of the client's pages, while the overlay probe shows on the operator detail page. Throwaway data removed afterwards.
+
+## 9. Deploy notes
+
+- Two migrations: `add_plan_sites_enabled`, then `add_sites`. Expect `Applying migration` for each, then `[portal] Migrations complete`.
+- On deploy every `UNLOCKED` account returns to the Forms chrome, Michael's included. Then, per environment: Operator Console, Accounts, Change Plan to Sites on Michael's account; Sites, New site, assign Client 2 to it; sign in on the Forms and Sites hosts and land on the Editor showing Client 2.
+- `dev` holds these commits locally only. Release PR #23 (v5.1.0) is open from `dev`, so pushing `dev` before it merges would put E29 into that release.
+
