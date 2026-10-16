@@ -103,6 +103,7 @@ Tool layer 14, members 5, operator site builds 3, stats 20, contract 12; every o
 - **D6. Approved for tonight without asking again:** GitHub (the demo repo, its deploy key, the contract release), Coolify (the builder app, portal env vars, deploys by API), and the production release with the demo setup.
 - **D7. The builder reaches the demo repo with a fine-grained token** limited to that repo (Contents read and write), since the org disables deploy keys.
 - **D8. The demo login is `demo@canopyds.com`; Michael adds the partner himself** with the operator's Add member.
+- **D9. Quick Edit gets its own tab, and Editor becomes a static concept of the visual editor** for the call ("the sale tomorrow specifically sounded like he wanted a visual editor"): option 2 from the scope discussion (in-place editing of contract fields), shown on the demo site with no functionality, so Houston can walk the prospect through it. Canopy Boy stands left of the chat; Quick Edit's tab has a lightbulb. The only interactivity is a highlight on editable fields on hover. Recorded as PRD D28.
 
 ### Agent calls inside scope
 
@@ -115,6 +116,7 @@ Tool layer 14, members 5, operator site builds 3, stats 20, contract 12; every o
 - **C7. Quick edit runs `claude-opus-5-5` at medium effort** (`QUICK_EDIT_MODEL` overrides), records tokens and estimated cost per conversation, and can't publish. Measured locally: about $0.007 to $0.035 per turn.
 - **C8. Operator Build and publish, Reset demo, and Mark as demo** were needed for the site's first build and between calls; Global Admin only, tested.
 - **C9. `Build` has no `kind` column**: every build is a preview, and publishing points `current` at one (D21's rule).
+- **C10. Quick Edit moves to `/quick-edit` and becomes the Sites home; `/editor` is the concept.** The concept draws its overlays inside the real demo page (injected by `/demo` in mock mode, so they line up at any width) rather than a screenshot, which would put client content in this public repo. Its inspector reads the site's own content and stylesheet (the first featured price, the locked fields, the theme colors and fonts), and a "Coming soon" badge keeps it from passing as working software.
 
 ## 7. Completion report
 
