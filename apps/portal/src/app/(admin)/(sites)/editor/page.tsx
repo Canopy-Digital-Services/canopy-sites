@@ -1,4 +1,5 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
+import { Suspense } from "react";
 import type { Category } from "@canopy/site-contract";
 import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
@@ -8,7 +9,8 @@ import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { VisualEditorConcept, type ConceptData } from "./visual-editor-concept";
+import { VisualEditorConcept } from "./visual-editor-concept";
+import { Inspector, InspectorSkeleton, PageTabs, PageTabsSkeleton, type ConceptData } from "./concept-panels";
 
 export const dynamic = "force-dynamic";
 
@@ -42,23 +44,26 @@ export default async function EditorPage() {
     );
   }
 
-  const data = await conceptData(accountId, site.slug).catch(() => null);
-  if (!data) {
-    return (
-      <PageContent>
-        <div className="space-y-6">
-          {header}
-          <EmptyState title="Your site couldn't be loaded" description="Try again in a moment." />
-        </div>
-      </PageContent>
-    );
-  }
+  // Not awaited: the page and the framed site render at once, and the parts
+  // that need the site's content stream in behind skeletons.
+  const data = conceptData(accountId, site.slug).catch(() => null);
 
   return (
     <PageContent width="wide">
       <div className="space-y-6">
         {header}
-        <VisualEditorConcept data={data} />
+        <VisualEditorConcept
+          pageTabs={
+            <Suspense fallback={<PageTabsSkeleton />}>
+              <PageTabs data={data} />
+            </Suspense>
+          }
+          inspector={
+            <Suspense fallback={<InspectorSkeleton />}>
+              <Inspector data={data} />
+            </Suspense>
+          }
+        />
       </div>
     </PageContent>
   );
@@ -71,7 +76,9 @@ const LOCKED_LABELS: Record<string, string> = {
 };
 
 async function conceptData(accountId: string, slug: string): Promise<ConceptData> {
-  const view = await getContentView(accountId);
+  // The content read fetches from GitHub; the stylesheet comes from the
+  // builder's disk. Run them side by side.
+  const [view, style] = await Promise.all([getContentView(accountId), siteStyle(slug).catch(() => ({ colors: [], fonts: [] }))]);
   const content = view.published as {
     pages?: Array<{ id: string; title: string; navLabel?: string; sections: Array<{ serviceIds?: string[] }> }>;
     services?: Category[];
@@ -95,7 +102,7 @@ async function conceptData(accountId: string, slug: string): Promise<ConceptData
     pages: (content.pages ?? []).map((p) => (p.id === "home" ? "Home" : (p.navLabel ?? p.title))),
     selected,
     locked: view.site.lockedFields.map((f) => LOCKED_LABELS[f] ?? f.split(".").pop() ?? f),
-    style: await siteStyle(slug).catch(() => ({ colors: [], fonts: [] })),
+    style,
   };
 }
 
