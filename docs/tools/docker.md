@@ -287,7 +287,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 - `proxy`: External network (for reverse proxy integration)
 
 **Volumes:**
-- `pgdata`: Persistent database storage. Never rename it back to `postgres_data`: under the `canopy-sites` project name that resolves to the abandoned July 2026 volume, which holds an unrelated schema.
+- `pgdata`: Persistent database storage
 
 ### Development Mode Configuration
 

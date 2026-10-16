@@ -59,8 +59,6 @@ services:
 
 volumes:
   node_modules:
-  # Not "postgres_data": under this project name that would attach the
-  # abandoned July 2026 canopy-sites volume, which holds an unrelated schema.
   pgdata:
 
 networks:

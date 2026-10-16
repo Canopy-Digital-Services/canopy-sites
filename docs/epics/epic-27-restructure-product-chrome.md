@@ -52,7 +52,7 @@ The first brief (ROADMAP draft 1) imported Forms into a new `canopy-sites` repo 
 
 **D4. Version at the root.** The root `package.json` carries the release version; workspace manifests are private and unversioned.
 
-**D5. Docker.** Both Dockerfiles stay in `apps/portal/` and build with the repo root as context. Next's `outputFileTracingRoot` and `turbopack.root` point at the repo root, so standalone output nests `server.js` under `apps/portal/` and the runner's working directory is `/app/apps/portal`; `start.sh` reaches the hoisted Prisma CLI at `../../node_modules`. Compose files stay at the root (builder and Caddy join them in E30) under project `canopy-sites`, containers `canopy-portal` and `canopy-portal-db`, port 3006 unchanged. The Postgres volume is `pgdata`, because `postgres_data` under this project name is the abandoned July volume, which holds an unrelated schema.
+**D5. Docker.** Both Dockerfiles stay in `apps/portal/` and build with the repo root as context. Next's `outputFileTracingRoot` and `turbopack.root` point at the repo root, so standalone output nests `server.js` under `apps/portal/` and the runner's working directory is `/app/apps/portal`; `start.sh` reaches the hoisted Prisma CLI at `../../node_modules`. Compose files stay at the root (builder and Caddy join them in E30) under project `canopy-sites`, containers `canopy-portal` and `canopy-portal-db`, port 3006 unchanged. The Postgres volume is `pgdata`; it was named to avoid the abandoned July `canopy-sites_postgres_data` volume, which Michael deleted on 2026-10-15 along with the July containers, network, and image.
 
 **D6. `sitesEnabled` without a schema change.** `getAccountEntitlements` returns `sitesEnabled`, derived from `planCode === "UNLOCKED"` until E29 adds the column. E29's seed enables `UNLOCKED` and no other existing plan, so the switch is invisible. Keeping E27 schema-free keeps the restructure deploy behavior-neutral for the database.
 
@@ -114,7 +114,7 @@ Each step below touches shared state and waits for Michael's go-ahead.
 4. **DNS.** `sites.canopyds.com` and `sites-dev.canopyds.com` to the tunnel, plus ingress, per the Nextcloud Webber runbook.
 5. **Coolify dev app** (`wogw0skcsgck80cs4gscs0c0`): Dockerfile `apps/portal/Dockerfile`, base directory `/`, watch paths `apps/portal/**`, `package.json`, `package-lock.json`, extra domain `sites-dev.canopyds.com`. Then merge `epic-27` into `dev`, confirm `[portal] Migrations complete` in the logs and both hosts serving.
 6. **Coolify prod app** (`j80s80ow8ss4444kk40cscsc`): the same build settings and `sites.canopyds.com`, changed immediately before the release PR merges. A failed build leaves the old container serving.
-7. **Local switchover.** Stop the `canopy-forms` compose project, restore its DB into the new `canopy-sites_pgdata` volume, remove the exited July `canopy-sites` containers, bring up the root `docker-compose.dev.yml`, tear down the `canopy-e27` stack and remove the worktree.
+7. **Local switchover.** Stop the `canopy-forms` compose project, restore its DB into the new `canopy-sites_pgdata` volume, bring up the root `docker-compose.dev.yml`, tear down the `canopy-e27` stack and remove the worktree (its `apps/portal/.next` is root-owned, written by the container, so remove that inside the container or with sudo first). The July leftovers are already gone.
 8. **Release.** Root `package.json` to 5.0.0, CHANGELOG, completion report here, index row. Delete the "Pending" bullet in `docs/AGENT_CONTEXT.md` §6.
 
 ## 9. Acceptance
