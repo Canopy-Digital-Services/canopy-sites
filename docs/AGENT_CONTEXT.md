@@ -63,7 +63,7 @@ Identify which layer a change touches before starting.
 
 ### Products and chrome
 
-- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) ; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`: `UNLOCKED` means no Forms limits, not Sites.
+- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) ; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`.
 - Sites-only routes (`/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
 - Apart from routing an account to its home host, the hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
 
@@ -258,7 +258,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `PAID`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
@@ -361,6 +361,6 @@ Enums:
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
-Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `SITES` (null, `sitesEnabled`, `isPublic: false`), `UNLOCKED` (null, `isPublic: false`). `SITES` and `UNLOCKED` are operator-assigned only. `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
+Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan; `HOSTING` and `UNLOCKED` were retired for that reason in v5.2.1.
 
-Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves an account on a capped plan to `UNLOCKED` (an uncapped plan such as `SITES` stays).
+Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves an account on a capped plan to `PAID` (an uncapped plan such as `SITES` stays).

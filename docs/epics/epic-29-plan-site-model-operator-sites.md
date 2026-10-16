@@ -149,6 +149,7 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 - **D6. `UNLOCKED` is not a Sites plan** (Q4). `SITES` is the only one; promotion to Global Admin moves only capped plans to `UNLOCKED`.
 - **D7. Each account has a home host** (Q5), built in E29.
 - **D8. A Sites customer signing in on the Forms host gets a modal, not a second sign-in** (Michael, after trying D7 on forms-dev): "as a Sites customer, you use Forms through your Sites dashboard", with a **Go to Canopy Sites** button that signs them in there. A Forms-only customer on the Sites host keeps the "signs in at" message; that direction gets no handoff. The button carries a one-time handoff token (section 4).
+- **D9. Three plans: Free, Unlimited, Sites** (after the release, v5.2.1). Michael asked what `UNLOCKED` and `HOSTING` still do: `HOSTING` was a never-assigned placeholder for what is now `SITES`, and `UNLOCKED` had the same entitlements as `PAID` once it stopped meaning Sites. Both retired, their accounts moved to `PAID`, now shown as "Unlimited"; promotion lifts capped plans to `PAID`. A sandbox for a partner or investor is a `SITES` account (or a member on a shared demo account) with its billing reference saying so; `UNLOCKED` would have shown them Forms only.
 
 ### Agent calls inside scope
 
@@ -172,7 +173,7 @@ Three migrations (`add_plan_sites_enabled`, `add_sites`, `add_session_handoffs`)
 
 - **`lockedFields`, `contractVersion`, and `slug` are also in each site repo's `canopy.json`** (PRD section 4.4). Two sources of truth; E30 or E31 decides which wins. Suggested: the database for `lockedFields` (guardrails are server-side, D9), the repo for `contractVersion` (the build uses what the repo installs), with the builder flagging drift.
 - **Deleting a site** is not in the brief. Until it exists, a test site can only be reassigned, and an account that owns one cannot be deleted (D4).
-- **`GLOBAL_ADMIN`'s seeded description** still reads "UNLOCKED plan granted"; since D6 that holds only for capped plans. Catalog text, changed by migration if it matters.
+- ~~`GLOBAL_ADMIN`'s seeded description~~ fixed in v5.2.1 with D9.
 - **Thrown messages from operator actions** (`deleteAccount`, `setAccountPlan`, `setUserRole`, `setAccountBilling`) may reach the toast as Next's generic production error rather than the refusal text. Check on forms-dev and convert to result values if so.
 
 ## 9. Progress log

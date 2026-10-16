@@ -14,7 +14,7 @@ async function addSubmissions(formId: string, n: number) {
 describe("listAccountsMetadata", () => {
   it("reports each account's owner, form counts, and submission total", async () => {
     const a = await createAccount({ planCode: "FREE" });
-    const b = await createAccount({ planCode: "UNLOCKED", roleCode: "GLOBAL_ADMIN" });
+    const b = await createAccount({ planCode: "PAID", roleCode: "GLOBAL_ADMIN" });
     const a1 = await createForm(a.account.id, a.user.id, { published: true });
     const a2 = await createForm(a.account.id, a.user.id);
     const b1 = await createForm(b.account.id, b.user.id, { published: true });

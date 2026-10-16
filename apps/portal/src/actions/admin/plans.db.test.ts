@@ -19,7 +19,7 @@ async function planOf(accountId: string) {
 }
 
 describe("setAccountPlan and sites", () => {
-  it.each(["FREE", "PAID", "UNLOCKED"])("refuses to move an account that owns a site to %s", async (planCode) => {
+  it.each(["FREE", "PAID"])("refuses to move an account that owns a site to %s", async (planCode) => {
     const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     const { account } = await createAccount({ planCode: "SITES" });
     await createSite(account.id);
@@ -34,8 +34,8 @@ describe("setAccountPlan and sites", () => {
     const { account } = await createAccount({ planCode: "SITES" });
     await signInAs(admin.id);
 
-    await setAccountPlan(account.id, "UNLOCKED");
-    expect(await planOf(account.id)).toBe("UNLOCKED");
+    await setAccountPlan(account.id, "PAID");
+    expect(await planOf(account.id)).toBe("PAID");
   });
 
   it("moves a Forms account onto SITES", async () => {

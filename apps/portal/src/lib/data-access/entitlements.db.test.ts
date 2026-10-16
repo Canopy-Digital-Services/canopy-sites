@@ -28,8 +28,8 @@ describe("getAccountEntitlements", () => {
     expect(e).toMatchObject({ maxPublishedForms: null, canPublishAnother: true, sitesEnabled: true });
   });
 
-  it("gives UNLOCKED no cap and no Canopy Sites", async () => {
-    const { account, user } = await createAccount({ planCode: "UNLOCKED" });
+  it("gives Unlimited (PAID) no cap and no Canopy Sites", async () => {
+    const { account, user } = await createAccount({ planCode: "PAID" });
     await createForm(account.id, user.id, { published: true });
 
     const e = await getAccountEntitlements(account.id);

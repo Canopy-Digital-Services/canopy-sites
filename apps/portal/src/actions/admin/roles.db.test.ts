@@ -19,13 +19,13 @@ async function planOf(accountId: string) {
 }
 
 describe("setUserRole promotion to Global Admin", () => {
-  it("moves an account on a capped plan to UNLOCKED", async () => {
+  it("moves an account on a capped plan to Unlimited (PAID)", async () => {
     const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     const { account, user } = await createAccount({ planCode: "FREE" });
     await signInAs(admin.id);
 
     expect(await setUserRole(user.id, "GLOBAL_ADMIN")).toEqual({ success: true, planAutoUpgraded: true });
-    expect(await planOf(account.id)).toBe("UNLOCKED");
+    expect(await planOf(account.id)).toBe("PAID");
   });
 
   it("leaves a Sites account on SITES, so promotion never takes Sites away", async () => {
