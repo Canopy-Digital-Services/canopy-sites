@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AssignSiteButton } from "./assign-site-button";
 import { SiteSettingsForm } from "./site-settings-form";
+import { SiteBuildsCard } from "./site-builds-card";
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   await requireGlobalAdmin();
@@ -39,6 +40,8 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             <AssignSiteButton siteId={site.id} siteName={site.name} accounts={accounts} />
           </CardFooter>
         </Card>
+
+        <SiteBuildsCard siteId={site.id} isDemo={site.isDemo} hasRepo={Boolean(site.repoUrl)} />
 
         <SiteSettingsForm
           siteId={site.id}

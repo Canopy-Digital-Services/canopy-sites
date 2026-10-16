@@ -298,6 +298,25 @@ export function publish(
   });
 }
 
+/**
+ * Puts the branch back at a tag (the demo's baseline between sales calls):
+ * hard reset to the tag and force-push. Only tags named `demo-baseline` are
+ * accepted, so this can't rewrite a client's history to an arbitrary ref.
+ * The caller rebuilds and publishes afterwards.
+ */
+export function resetToTag(site: SiteRef, tag: string): Promise<{ commit: string }> {
+  return enqueue(site.slug, async () => {
+    if (tag !== "demo-baseline") throw new StepError("Only the demo-baseline tag can be reset to");
+    const log = new Log();
+    const d = dirs(site.slug);
+    const { env } = await prepare(site, log);
+    await git(d.repo, env, ["fetch", "origin", `+refs/tags/${tag}:refs/tags/${tag}`], log);
+    await git(d.repo, env, ["reset", "-q", "--hard", `refs/tags/${tag}`], log);
+    await git(d.repo, env, ["push", "--force", "origin", `HEAD:refs/heads/${site.branch}`], log);
+    return { commit: (await git(d.repo, env, ["rev-parse", "HEAD"])).trim() };
+  });
+}
+
 /** Which builds the site's live and preview views point at. */
 export async function siteStatus(slug: string) {
   const d = dirs(slug);

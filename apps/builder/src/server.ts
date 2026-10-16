@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import path from "node:path";
 import type { ChangeOp } from "@canopy/site-contract";
 import { resolveFile, sendFile } from "./serve.ts";
-import { BUILD_ID, getBuild, publish, readSiteContent, siteStatus, SLUG, startPreview, viewRoot, type SiteRef } from "./sites.ts";
+import { BUILD_ID, getBuild, publish, readSiteContent, resetToTag, siteStatus, SLUG, startPreview, viewRoot, type SiteRef } from "./sites.ts";
 import { StepError } from "./run.ts";
 
 /**
@@ -132,6 +132,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
       email: /^[^\s<>@]+@[^\s<>@]+$/.test(authorEmail) ? authorEmail : "sites@canopyds.com",
     });
     return json(res, 200, result);
+  }
+
+  // POST /v1/sites/:slug/reset  { repoUrl, branch, tag }
+  if (action === "reset") {
+    if (typeof body.tag !== "string") throw new StepError("tag is required");
+    return json(res, 200, await resetToTag(siteRef(slug, body), body.tag));
   }
 
   return json(res, 404, { error: "Not found" });

@@ -86,6 +86,15 @@ export function requestPublish(
   });
 }
 
+/** Force the branch back to a baseline tag (demo reset). */
+export function requestReset(site: BuilderSite, tag: string) {
+  return call<{ commit: string }>(`/v1/sites/${site.slug}/reset`, {
+    method: "POST",
+    body: JSON.stringify({ ...siteBody(site), tag }),
+    timeoutMs: 120_000,
+  });
+}
+
 /** A built file for the portal to pass through (the /demo route). */
 export async function fetchSiteFile(slug: string, view: "current" | "preview", path: string): Promise<Response> {
   const base = process.env.BUILDER_URL;
