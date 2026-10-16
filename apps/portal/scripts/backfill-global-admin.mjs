@@ -1,10 +1,10 @@
 /**
- * One-shot backfill: promote the ADMIN_EMAIL user to GLOBAL_ADMIN and move
- * their account to the UNLOCKED plan.
+ * One-shot backfill: promote the ADMIN_EMAIL user to GLOBAL_ADMIN and, when
+ * their account's plan caps published forms, move it to UNLOCKED. The same
+ * rule as setUserRole: an uncapped plan stays, so a SITES account keeps Sites.
  *
  * Invoked from scripts/start.sh after `prisma migrate deploy` on every boot.
- * Idempotent: a user who is already GLOBAL_ADMIN (with an UNLOCKED account)
- * is left alone. If ADMIN_EMAIL is unset, or no user matches, the script
+ * Idempotent: a GLOBAL_ADMIN on an uncapped plan is left alone. If ADMIN_EMAIL is unset, or no user matches, the script
  * logs a warning and exits 0 so the container still starts.
  *
  * This is intentionally plain ESM (not TypeScript) so it runs in the
@@ -43,7 +43,9 @@ async function main() {
     // v1: one membership per user; that account is the one to unlock.
     const memberships = await prisma.membership.findMany({
       where: { userId: user.id },
-      select: { account: { select: { id: true, planCode: true } } },
+      select: {
+        account: { select: { id: true, planCode: true, plan: { select: { maxPublishedForms: true } } } },
+      },
       take: 2,
     });
     if (memberships.length !== 1) {
@@ -53,9 +55,9 @@ async function main() {
     const account = memberships[0].account;
 
     const alreadyAdmin = user.roleCode === 'GLOBAL_ADMIN';
-    const alreadyUnlocked = account?.planCode === 'UNLOCKED';
+    const needsUnlock = account.plan.maxPublishedForms !== null;
 
-    if (alreadyAdmin && alreadyUnlocked) {
+    if (alreadyAdmin && !needsUnlock) {
       return;
     }
 
@@ -66,7 +68,7 @@ async function main() {
           data: { roleCode: 'GLOBAL_ADMIN' },
         });
       }
-      if (!alreadyUnlocked) {
+      if (needsUnlock) {
         await tx.account.update({
           where: { id: account.id },
           data: { planCode: 'UNLOCKED' },
@@ -74,7 +76,8 @@ async function main() {
       }
     });
 
-    console.log(`[backfill-global-admin] Promoted ${user.email} to GLOBAL_ADMIN (plan -> UNLOCKED).`);
+    const planNote = needsUnlock ? 'plan -> UNLOCKED' : `plan ${account.planCode} kept`;
+    console.log(`[backfill-global-admin] ${user.email} is GLOBAL_ADMIN (${planNote}).`);
   } finally {
     await prisma.$disconnect();
     await pool.end();

@@ -29,6 +29,7 @@ export async function getAccountEntitlements(
         select: {
           displayName: true,
           maxPublishedForms: true,
+          sitesEnabled: true,
         },
       },
       _count: {
@@ -56,8 +57,6 @@ export async function getAccountEntitlements(
     totalFormsCount: account._count.forms,
     canPublishAnother,
     requiresPlanResolution: account.requiresPlanResolution,
-    // Stand-in until Epic 29 adds Plan.sitesEnabled, whose seed enables
-    // UNLOCKED and no other existing plan. Swap this for the column then.
-    sitesEnabled: account.planCode === "UNLOCKED",
+    sitesEnabled: account.plan.sitesEnabled,
   };
 }

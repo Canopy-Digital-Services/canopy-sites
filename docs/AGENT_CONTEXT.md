@@ -48,7 +48,7 @@ Identify which layer a change touches before starting.
 - Forms own `allowedOrigins[]`. Origin control is per form, not per account.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
-- Every Account has a `Plan` (FK on `planCode`). `Plan.maxPublishedForms` is the only entitlement today, and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site.
+- Every Account has a `Plan` (FK on `planCode`). Entitlements are typed columns on `Plan` (`maxPublishedForms`, `sitesEnabled`), and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site, and never compare plan codes.
 - `Account.requiresPlanResolution` is set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker, cleared only by a successful `resolvePlan`.
 
 ### Auth & ownership
@@ -62,7 +62,7 @@ Identify which layer a change touches before starting.
 
 ### Products and chrome
 
-- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) on any host; every other account gets the Forms chrome. Until Epic 29 adds `Plan.sitesEnabled`, `sitesEnabled` is derived from `planCode === "UNLOCKED"` inside `entitlements.ts`; never compare plan codes elsewhere.
+- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Editor · Forms · Stats) on any host; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`: `UNLOCKED` means no Forms limits, not Sites.
 - Sites-only routes (`/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
 - The hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
 
@@ -257,7 +257,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `NEXTAUTH_SECRET`, `AUTH_TRUST_HOST` | No longer read (Epic 28: sessions have no signing secret). Removed from the dev app 2026-10-16. Remove them from the prod app only after v5.1.0 is live there (v5.0.0 needs them), then delete this row. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
@@ -324,7 +324,8 @@ If a future change adds another file holding version-specific information, add i
 Canonical source: `prisma/schema.prisma`.
 
 ```
-Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrder)
+Plan (code PK, displayName, description?, maxPublishedForms?, sitesEnabled, isPublic,
+      sortOrder)
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
@@ -355,6 +356,6 @@ Enums:
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
-Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `UNLOCKED` (null, `isPublic: false`, admin-granted only). `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
+Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `SITES` (null, `sitesEnabled`, `isPublic: false`), `UNLOCKED` (null, `isPublic: false`). `SITES` and `UNLOCKED` are operator-assigned only. `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
 
-Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves the account to `UNLOCKED`.
+Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves an account on a capped plan to `UNLOCKED` (an uncapped plan such as `SITES` stays).

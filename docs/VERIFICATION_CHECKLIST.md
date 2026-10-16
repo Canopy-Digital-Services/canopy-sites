@@ -95,7 +95,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 2. Navigate to the area you changed (form list, form editor, settings, etc.).
 3. Confirm the UI renders correctly and interactions work (save, delete, reorder, etc.).
 4. Check the browser console for JavaScript errors.
-5. If you changed a layout, navigation, or home redirect, check both chromes: a Forms-only account and a Sites account (plan `UNLOCKED` until Epic 29). The Sites account sees Editor · Forms · Stats; the Forms-only account sees today's Forms UI and gets 404 on `/editor`.
+5. If you changed a layout, navigation, or home redirect, check both chromes: a Forms-only account and a Sites account (plan `SITES`). The Sites account sees Editor · Forms · Stats; the Forms-only account sees today's Forms UI and gets 404 on `/editor`.
 
 **Embed flow** (changes to embed source or appearance):
 1. In the admin UI, navigate to a form's editor and use the Integrate tab to get the embed snippet.

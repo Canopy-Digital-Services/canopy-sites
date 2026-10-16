@@ -231,7 +231,7 @@ FK to `Role.code`. Two roles ship today:
 | code           | purpose |
 |----------------|---------|
 | `USER`         | Default for every signup. No operator access. |
-| `GLOBAL_ADMIN` | Full operator-console access. Grants `UNLOCKED` plan automatically at promotion. |
+| `GLOBAL_ADMIN` | Full operator-console access. Promotion moves an account on a capped plan to `UNLOCKED`; an uncapped plan (`PAID`, `SITES`) stays. |
 
 Role changes are made via the operator console (`Change Role` action). The
 acting admin cannot change their own role, and the system refuses to demote
@@ -249,7 +249,8 @@ places:
    `roleCode = "GLOBAL_ADMIN"` and `planCode = "UNLOCKED"`.
 2. `scripts/backfill-global-admin.mjs` — runs on every container boot after
    `prisma migrate deploy`. Idempotently promotes the user matching
-   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN` on the `UNLOCKED` plan.
+   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN`, by the same plan rule as
+   promotion in the console, so an admin's `SITES` account survives every boot.
    If `ADMIN_EMAIL` is unset or no user matches, logs a notice and exits
    cleanly.
 
