@@ -1,7 +1,7 @@
 # Epic 29: Plan Extension, Site Model, Operator Sites
 
-**Status:** 🔨 In progress
-**Version:** v5.2.0 (planned)
+**Status:** ✅ Complete
+**Version:** v5.2.0 (released 2026-10-16)
 **Started:** 2026-10-16
 **Phase:** 0, Portal foundation (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 28 (Account audit and Membership model)
@@ -34,7 +34,7 @@ The portal knows what a Site is and which accounts have the Sites product. `Plan
 | `analyticsTier`, `monthlyTokenBudget`, `Site.status` | With their first reader (D2) |
 | Repo creation, DNS, Caddy config, Umami website creation | Manual in v1 (brief); Caddy config from `Site` rows is E30 |
 | Anything that reads `repoUrl`, `contractVersion`, `lockedFields`, `runbookOverlay` | E30 (builder), E31 (guardrails), E32 (quick edit). E29 stores them |
-| Deleting a site | Not in the brief; follow-up (section 7) |
+| Deleting a site | Not in the brief; follow-up (section 8) |
 | Signup on the Sites host, inviting a client | E27 follow-up; PRD keeps invites out of v1 |
 
 ## 3. Gating decisions
@@ -130,8 +130,8 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 ## 5. Acceptance
 
 - [x] Section 3 decided with Michael
-- [ ] Operator creates Client 2 as a Site on Michael's account; signing in lands on the Editor showing it on the Sites host, and sign-in on the Forms host points there (D7; Michael, on forms-dev)
-- [ ] A Forms-only account never stays on the Sites host: sign-in there points to the Forms host, and a session there redirects (D7)
+- [ ] Operator creates Client 2 as a Site on Michael's account and lands on it from either host. Michael moved his forms-dev account to `SITES` and used the handoff; Client 2 itself is not created yet, which is the first step of the demo work. The create, assign, and Editor flow passed with throwaway accounts (section 9)
+- [x] A Forms-only account never stays on the Sites host: sign-in there points to the Forms host, and a session there redirects (D7)
 - [x] A Forms-only account's experience is unchanged on both hosts (local)
 - [x] One account can never read another's site (`sites.db.test.ts`, and the client pages carry none of the operator fields)
 - [x] Both migrations read and verified per `docs/AGENT_CONTEXT.md` section 5 (locally; forms-dev and production when deployed)
@@ -157,30 +157,36 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 - **C3. Hostname rules.** Lowercased, validated as hostnames, no duplicates within a site, and unclaimed by any other site, checked in the action: Caddy will route hostname to site, so a double claim would serve one client's domain from another's build. An array per PRD section 5 rather than a table, since only the operator writes it.
 - **C4. Field formats.** `repoUrl` an `https://` URL or empty; `contractVersion` `MAJOR.MINOR.PATCH` or empty (C1 versions by git tag); `lockedFields` dotted paths into the contract (`site.contact.phone`), prefilled on a new site with the three contact fields PRD section 4.4 locks by default; `runbookOverlay` at most 20,000 characters; `name` at most 100.
 - **C5. The detail page edits every operator-set field**, including `defaultBranch` and `umamiWebsiteId`, which the brief's list does not name. `maxBuildsRetained` keeps its default with no control until E30 prunes builds.
-- **C6. New operator actions return `{ success } | { error }`** (the `contact.ts` and `auth.ts` shape). Guards added to existing operator actions throw, like the refusals beside them (follow-up in section 7).
+- **C6. New operator actions return `{ success } | { error }`** (the `contact.ts` and `auth.ts` shape). Guards added to existing operator actions throw, like the refusals beside them (follow-up in section 8).
 - **C7. The boot-time `ADMIN_EMAIL` backfill follows D6.** `scripts/backfill-global-admin.mjs` runs on every container start and moved the admin's account back to `UNLOCKED` whenever it was on another plan, which would have taken Sites from Michael's account on every deploy. It now lifts only a capped plan, like `setUserRole`, with a test that runs the script.
 - **C8. The guard lives in `deleteAccountAndSoleMembers`**, the one deletion path, so the operator and self-serve actions both inherit it; each maps `AccountHasSiteError` to its own message. A client's Account page shows "Contact support to close it" in place of the Delete button, and the help page says so.
 - **C9. One-site-per-account and deletion each have two layers**, a check in code for the message and the database constraint underneath (unique index, `RESTRICT`). The mutation check removed the code check alone (the constraint still refused), then both together (the test failed).
 
-## 7. Follow-ups (recorded, not built)
+## 7. Completion report
+
+Shipped in v5.2.0. The brief: `Plan.sitesEnabled` and the `SITES` plan replacing the `UNLOCKED` stand-in, the `Site` model, operator Sites list and detail, and the Editor showing the site. Michael's decisions changed it in section 3 and section 6: `Build` and `ChangeSet` wait for E30, columns land with their first reader, one site per account with deletion and plan guards, `UNLOCKED` is a Forms-only plan, and each account has a home host with a sign-in handoff from the Forms host (PRD D19 to D22). Found and fixed on the way: the boot-time `ADMIN_EMAIL` backfill would have taken Sites from Michael's account on every deploy (C7).
+
+Three migrations (`add_plan_sites_enabled`, `add_sites`, `add_session_handoffs`), none of which drops anything. 145 tests (72 at v5.1.0), every new guard checked to fail without it. Michael approved the release after trying the handoff on forms-dev (2026-10-16); Client 2 is created as part of the demo work.
+
+## 8. Follow-ups (recorded, not built)
 
 - **`lockedFields`, `contractVersion`, and `slug` are also in each site repo's `canopy.json`** (PRD section 4.4). Two sources of truth; E30 or E31 decides which wins. Suggested: the database for `lockedFields` (guardrails are server-side, D9), the repo for `contractVersion` (the build uses what the repo installs), with the builder flagging drift.
 - **Deleting a site** is not in the brief. Until it exists, a test site can only be reassigned, and an account that owns one cannot be deleted (D4).
 - **`GLOBAL_ADMIN`'s seeded description** still reads "UNLOCKED plan granted"; since D6 that holds only for capped plans. Catalog text, changed by migration if it matters.
 - **Thrown messages from operator actions** (`deleteAccount`, `setAccountPlan`, `setUserRole`, `setAccountBilling`) may reach the toast as Next's generic production error rather than the refusal text. Check on forms-dev and convert to result values if so.
 
-## 8. Progress log
+## 9. Progress log
 
 - 2026-10-16: Release PR #23 (v5.1.0) still open, so step 0 (production verification, removing `NEXTAUTH_SECRET` and `AUTH_TRUST_HOST` from prod, resync) is skipped. Brief, PRD, and E28 read; section 3 written for Michael and decided the same day (section 6).
 - 2026-10-16: Built. Commits, in order: `677050f` (`Plan.sitesEnabled`, `SITES`), `08cb710` (entitlements read the column; promotion and the boot backfill keep Sites), `fdc2f33` (`Site`), `9f9e40a` (site data access and actions), `9a20e49` (deletion and plan-change guards), `00eeca5` (operator Sites), `006f8a9` (Editor home). Both migrations' SQL read before applying: `add_plan_sites_enabled` adds the column defaulting false and inserts `SITES`; `add_sites` creates the table with unique `accountId` and `slug` and `ON DELETE RESTRICT`. 125 tests; every guard's test was run with the guard removed and failed (C9 for the two-layer ones).
 - 2026-10-16: Verified locally over HTTP with throwaway accounts on both hosts: `/` sends a `SITES` account to `/editor` and an `UNLOCKED` admin and a `FREE` account to `/forms`; `/editor` 404s for `FREE`; `/operator/sites` redirects a client home. `createSite` called as a server action: a client is redirected, a cross-origin request is rejected by Next, a `FREE` account and a second site are refused with their messages, and a `SITES` account gets its site with the contact fields locked. The client's Editor shows the site's name on both hosts; the Account page shows the support message; probe strings in `runbookOverlay` and `repoUrl` appear in none of the client's pages, while the overlay probe shows on the operator detail page. Throwaway data removed afterwards.
 - 2026-10-16: Michael released #23; step 0 done (record in the E28 progress log): production recovered from a failed `drop_user_account_id` caused by pre-baseline schema drift, verified, and redeployed without `NEXTAUTH_SECRET` and `AUTH_TRUST_HOST`. `ADMIN_EMAIL` is Michael's address on both Coolify apps, so C7 is what keeps his account on `SITES` across deploys. `dev` resynced with `main` and pushed.
-- 2026-10-16: forms-dev deployed `328970a`: `add_plan_sites_enabled` and `add_sites` applied, `[portal] Migrations complete`, both dev hosts serve. Dev catalog has `sitesEnabled` on `SITES` only; Michael's account is still `UNLOCKED` with no site, and the boot backfill left it alone. Waiting on Michael's click-through on forms-dev (section 9).
+- 2026-10-16: forms-dev deployed `328970a`: `add_plan_sites_enabled` and `add_sites` applied, `[portal] Migrations complete`, both dev hosts serve. Dev catalog has `sitesEnabled` on `SITES` only; Michael's account is still `UNLOCKED` with no site, and the boot backfill left it alone. Waiting on Michael's click-through on forms-dev (section 10).
 - 2026-10-16: Michael on forms-dev: a Forms-only account under the sites-dev hostname is confusing (Q5). Decided D7, PRD D22. Built in `261fd23` (the other session's `f6b8bbf`, login logo left-justified, sits just before it, untouched). Ten new tests, each guard's test checked to fail with the guard removed. Verified locally and on forms-dev over HTTPS with a throwaway account (deleted afterwards): `/signup` on sites-dev redirects to forms-dev's; the sites-dev login page has no "Create account"; sign-in on sites-dev returns `homeUrl` forms-dev and sets no cookie; a Forms session presented on sites-dev is sent to forms-dev from `/forms`, `/account`, `/docs`, `/operator`, and `/`.
 - 2026-10-16: Michael tried D7 on forms-dev: after clearing site data, sign-in on forms-dev told his Sites account to sign in at sites-dev, a second password entry. Decided D8. Built in `a93c471` (`add_session_handoffs`: table, index, cascading FK; SQL read before applying) and `807c57a`. Nine new tests; each guard (Forms origin only, single use, host binding, expiry, dropped with sessions, earlier pass replaced, pass only for Sites accounts) checked to fail with it removed. Verified locally over HTTP: Sites-account sign-in on the Forms host returns a pass and no session; a post from another origin gets 403; a post from the Forms origin sets a cookie for the Sites host only and lands on `/editor`; a replay goes to `/login`. The other session's `bee47fc` (updated Sites mark, SVGs only) was in the working tree and went up with this push.
 - 2026-10-16: forms-dev deployed `807c57a`: `add_session_handoffs` applied. Over HTTPS with a throwaway Sites account (deleted afterwards): sign-in on forms-dev returned a pass and set no cookie; a post from another origin got 403; the post from forms-dev's origin set `__Host-canopy_session` (Secure, host-only) on sites-dev and landed on `/editor` (200); a replay went to `/login`; no handoff rows left behind.
 
-## 9. Deploy notes
+## 10. Deploy notes
 
 - Three migrations: `add_plan_sites_enabled`, `add_sites`, `add_session_handoffs`. None drops anything, so production's pre-baseline uniques (`docs/PRISMA_MIGRATIONS.md`, now converted) are not in play. Expect `Applying migration` for each, then `[portal] Migrations complete`.
 - On deploy every `UNLOCKED` account returns to the Forms chrome, Michael's included, and lives on the Forms host (D7). Then, per environment, on the Forms host: Operator Console, Accounts, Change Plan to Sites on Michael's account. The next page load sends the session to the Sites host, where Michael signs in once; there: Sites, New site, assign Client 2 to his account; the Editor shows Client 2. Signing in on the Forms host then shows the Go to Canopy Sites modal, whose button lands on the Editor signed in.

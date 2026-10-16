@@ -21,6 +21,8 @@ Your email is also the contact address used for email notifications, so use an a
 
 Sign in at `/login` with your email and password. Login errors are intentionally generic ("Invalid email or password") to avoid revealing whether an account exists for a given address.
 
+Canopy Forms accounts sign in at forms.canopyds.com and Canopy Sites accounts at sites.canopyds.com. If you sign in at the other one, Forms customers see where to sign in, and Sites customers get a **Go to Canopy Sites** button that signs them in there.
+
 ## Email
 
 Your email address is shown on the Account page. It's used for:

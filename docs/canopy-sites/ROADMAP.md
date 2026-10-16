@@ -62,7 +62,10 @@ Goal: pull Forms' account code forward with obvious improvements, and replace `U
 - No invite UI, no role UI beyond what operator already has
 - Acceptance: all existing flows (signup, login, reset, delete account, operator account list) work unchanged; every `accountId` lookup goes through the data-access layer; migrations read and verified per `docs/AGENT_CONTEXT.md` §5
 
-### E29 · Plan extension, Site model, operator Sites
+### E29 · Plan extension, Site model, operator Sites (shipped v5.2.0)
+
+Outcome: `docs/epics/epic-29-plan-site-model-operator-sites.md`. Beyond the brief, by Michael's decisions there: `UNLOCKED` stopped being a Sites plan (PRD D20), one site per account (D19), and each account got a home host with a sign-in handoff from the Forms host (D22).
+
 
 Goal: the portal knows what a Site is and which accounts have the product.
 
