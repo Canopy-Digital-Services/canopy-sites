@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
 import { getRole } from "@/lib/data-access/roles";
+import { getSoleMembership } from "@/lib/data-access/memberships";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -44,8 +45,6 @@ export async function setUserRole(
       id: true,
       email: true,
       roleCode: true,
-      accountId: true,
-      account: { select: { planCode: true } },
     },
   });
 
@@ -71,17 +70,26 @@ export async function setUserRole(
     }
   }
 
+  // The account to move to UNLOCKED on promotion: the target's only one.
+  const membership = await getSoleMembership(userId);
+  const account = membership
+    ? await prisma.account.findUnique({
+        where: { id: membership.accountId },
+        select: { id: true, planCode: true },
+      })
+    : null;
+
   const shouldUpgradePlan =
-    roleCode === "GLOBAL_ADMIN" && target.account.planCode !== "UNLOCKED";
+    roleCode === "GLOBAL_ADMIN" && !!account && account.planCode !== "UNLOCKED";
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { roleCode },
     });
-    if (shouldUpgradePlan) {
+    if (shouldUpgradePlan && account) {
       await tx.account.update({
-        where: { id: target.accountId },
+        where: { id: account.id },
         data: { planCode: "UNLOCKED" },
       });
     }

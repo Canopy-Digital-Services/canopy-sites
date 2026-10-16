@@ -36,7 +36,12 @@ export async function setAccountPlan(
     where: { id: accountId },
     select: {
       planCode: true,
-      user: { select: { email: true } },
+      memberships: {
+        where: { role: "OWNER" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { user: { select: { email: true } } },
+      },
     },
   });
 
@@ -82,7 +87,7 @@ export async function setAccountPlan(
       event: "setAccountPlan",
       actorEmail,
       targetAccountId: accountId,
-      targetEmail: account.user?.email ?? null,
+      targetEmail: account.memberships[0]?.user.email ?? null,
       fromPlan: account.planCode,
       toPlan: planCode,
       unpublishedCount,

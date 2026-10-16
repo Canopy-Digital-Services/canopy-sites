@@ -10,7 +10,8 @@ datasource db {
 }
 
 
-// Internal account construct (one per user in v3)
+// The tenant: forms, plan, and (from E29) sites belong to an Account. Users
+// reach it through Membership; nothing in the UI names the Account itself.
 model Account {
   id                     String   @id @default(cuid())
   createdAt              DateTime @default(now())
@@ -18,7 +19,10 @@ model Account {
   requiresPlanResolution Boolean  @default(false)
 
   plan          Plan           @relation(fields: [planCode], references: [code])
-  user          User?
+  memberships   Membership[]
+  // Epic 28 transition only: the old 1:1 link. Never read; dropped by the
+  // drop_user_account_id migration.
+  legacyUser    User?          @relation("LegacyUserAccount")
   forms         Form[]
   notifications Notification[]
 
@@ -66,9 +70,12 @@ model User {
   createdAt           DateTime  @default(now())
   roleCode            String    @default("USER")
 
-  // Link to internal account (one-to-one in v3)
-  accountId           String    @unique
-  account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  // Epic 28 transition only: superseded by Membership. Never read or
+  // written; dropped by the drop_user_account_id migration.
+  accountId           String?   @unique
+  legacyAccount       Account?  @relation("LegacyUserAccount", fields: [accountId], references: [id], onDelete: Cascade)
+
+  memberships         Membership[]
 
   role                Role      @relation(fields: [roleCode], references: [code])
 
@@ -83,6 +90,29 @@ model User {
 
   @@index([roleCode])
   @@map("users")
+}
+
+// A user's access to an account. v1 gives every user exactly one membership,
+// as OWNER; getCurrentAccountId enforces that. Platform roles (GLOBAL_ADMIN)
+// stay on User.roleCode, separate from this per-account role.
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  accountId String
+  role      MembershipRole
+  createdAt DateTime       @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId])
+  @@index([accountId])
+  @@map("memberships")
+}
+
+enum MembershipRole {
+  OWNER
+  MEMBER
 }
 
 // Form configuration

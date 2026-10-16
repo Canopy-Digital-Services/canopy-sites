@@ -37,14 +37,22 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
           displayName: true,
         },
       },
-      user: {
+      // v1 has one member per account, the owner; list the first owner.
+      memberships: {
+        where: { role: "OWNER" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
         select: {
-          id: true,
-          email: true,
-          lastLoginAt: true,
-          roleCode: true,
-          role: {
-            select: { displayName: true },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              lastLoginAt: true,
+              roleCode: true,
+              role: {
+                select: { displayName: true },
+              },
+            },
           },
         },
       },
@@ -101,21 +109,24 @@ export async function listAccountsMetadata(): Promise<AccountMetadata[]> {
   }
 
   // Map to metadata format
-  return accounts.map((account) => ({
-    id: account.id,
-    createdAt: account.createdAt,
-    userId: account.user?.id ?? "",
-    email: account.user?.email ?? "Unknown",
-    lastLoginAt: account.user?.lastLoginAt ?? null,
-    formsCount: account._count.forms,
-    publishedFormsCount: publishedCountMap.get(account.id) ?? 0,
-    submissionsCount: accountSubmissionCounts.get(account.id) ?? 0,
-    planCode: account.planCode,
-    planDisplayName: account.plan.displayName,
-    requiresPlanResolution: account.requiresPlanResolution,
-    roleCode: account.user?.roleCode ?? "USER",
-    roleDisplayName: account.user?.role.displayName ?? "User",
-  }));
+  return accounts.map((account) => {
+    const owner = account.memberships[0]?.user;
+    return {
+      id: account.id,
+      createdAt: account.createdAt,
+      userId: owner?.id ?? "",
+      email: owner?.email ?? "Unknown",
+      lastLoginAt: owner?.lastLoginAt ?? null,
+      formsCount: account._count.forms,
+      publishedFormsCount: publishedCountMap.get(account.id) ?? 0,
+      submissionsCount: accountSubmissionCounts.get(account.id) ?? 0,
+      planCode: account.planCode,
+      planDisplayName: account.plan.displayName,
+      requiresPlanResolution: account.requiresPlanResolution,
+      roleCode: owner?.roleCode ?? "USER",
+      roleDisplayName: owner?.role.displayName ?? "User",
+    };
+  });
 }
 
 /**

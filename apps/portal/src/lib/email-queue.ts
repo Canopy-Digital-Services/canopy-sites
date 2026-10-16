@@ -1,7 +1,7 @@
-import { prisma } from "./db";
 import { sendNewSubmissionNotification } from "./email";
 import type { ResponseLine } from "./submission-email";
 import { getAccountEntitlements } from "./data-access/entitlements";
+import { listAccountMemberEmails } from "./data-access/memberships";
 import { appUrlFor } from "./product";
 
 /**
@@ -83,11 +83,7 @@ async function getAppUrl(accountId: string): Promise<string> {
  */
 async function getDashboardEmails(accountId: string): Promise<Set<string>> {
   try {
-    const users = await prisma.user.findMany({
-      where: { accountId },
-      select: { email: true },
-    });
-    return new Set(users.map((u) => u.email.trim().toLowerCase()));
+    return new Set(await listAccountMemberEmails(accountId));
   } catch (error) {
     console.error("Could not resolve account emails for notification:", error);
     return new Set();

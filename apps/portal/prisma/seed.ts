@@ -68,22 +68,16 @@ async function main() {
     // the operator is never subject to the free-tier cap on their own
     // deployment, and the bootstrap user lands with the GLOBAL_ADMIN role so
     // they can access the operator console immediately.
-    const account = await prisma.account.create({
+    user = await prisma.user.create({
       data: {
-        planCode: 'UNLOCKED',
-        user: {
-          create: {
-            email: adminEmail,
-            password: hashedPassword,
-            roleCode: 'GLOBAL_ADMIN',
-          },
+        email: adminEmail,
+        password: hashedPassword,
+        roleCode: 'GLOBAL_ADMIN',
+        memberships: {
+          create: { role: 'OWNER', account: { create: { planCode: 'UNLOCKED' } } },
         },
       },
-      include: {
-        user: true,
-      },
     });
-    user = account.user!;
     console.log(`✅ Admin user created: ${user.email}`);
     console.log(`   Password: ${adminPassword}`);
     console.log('⚠️  Make sure to change the admin password after first login!');

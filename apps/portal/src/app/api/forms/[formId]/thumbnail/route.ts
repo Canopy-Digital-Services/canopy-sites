@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSoleMembership } from "@/lib/data-access/memberships";
 
 export async function GET(
   request: NextRequest,
@@ -12,14 +13,11 @@ export async function GET(
   const session = await auth();
   if (!session?.user?.id) return new NextResponse(null, { status: 401 });
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountId: true },
-  });
-  if (!user) return new NextResponse(null, { status: 401 });
+  const membership = await getSoleMembership(session.user.id);
+  if (!membership) return new NextResponse(null, { status: 401 });
 
   const form = await prisma.form.findFirst({
-    where: { id: formId, accountId: user.accountId },
+    where: { id: formId, accountId: membership.accountId },
     select: { thumbnail: true },
   });
 

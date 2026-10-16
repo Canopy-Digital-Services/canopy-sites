@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor } from "@/lib/product";
 
 /**
@@ -39,18 +40,14 @@ export async function signUp(formData: FormData) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create account and user together
-    await prisma.account.create({
+    // User, account, and the OWNER membership linking them, in one write
+    await prisma.user.create({
       data: {
-        user: {
-          create: {
-            email,
-            password: hashedPassword,
-          },
+        email,
+        password: hashedPassword,
+        memberships: {
+          create: { role: "OWNER", account: { create: {} } },
         },
-      },
-      include: {
-        user: true,
       },
     });
 
@@ -108,7 +105,10 @@ export async function requestPasswordReset(formData: FormData) {
 
     // Send password reset email. The account, not the request host, picks
     // the link host and product name (see appUrlFor).
-    const entitlements = await getAccountEntitlements(user.accountId);
+    const membership = await getSoleMembership(user.id);
+    const entitlements = membership
+      ? await getAccountEntitlements(membership.accountId)
+      : { sitesEnabled: false };
     const productName = productNameFor(entitlements);
     const resetUrl = `${appUrlFor(entitlements)}/reset-password?token=${token}`;
     

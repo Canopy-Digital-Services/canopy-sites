@@ -54,7 +54,7 @@ Identify which layer a change touches before starting.
 ### Auth & ownership
 
 - NextAuth v5 credentials provider, self-service signup.
-- Account is internal (one per user) and never surfaced in the UI.
+- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users. `User.accountId` is a dead column until the `drop_user_account_id` migration removes it; never read or write it.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
 - `NEXTAUTH_URL` is the Forms URL on every host, and NextAuth rewrites auth requests to that origin. **Never let NextAuth pick a post-auth destination**: call `signOut`/`signIn` with `redirect: false` and navigate to a relative path yourself (`signOutAction` in `src/actions/auth.ts`, account deletion in `src/components/account/account-dashboard.tsx`). Otherwise a Sites-host user lands on the Forms host.
@@ -327,8 +327,7 @@ Plan (code PK, displayName, description?, maxPublishedForms?, isPublic, sortOrde
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
-  └─ User (email, password, accountId, roleCode→Role.code, passwordChangedAt?,
-  │        lastLoginAt?, failedLoginCount, lastFailedLoginAt?)
+  └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
@@ -338,7 +337,9 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
 
-PasswordResetToken (userId, token, expiresAt, usedAt?)
+User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
+      failedLoginCount, lastFailedLoginAt?)
+  └─ PasswordResetToken (token, expiresAt, usedAt?)
 ```
 
 Enums:
@@ -347,6 +348,7 @@ Enums:
 - `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (embed API rejects HOSTED with `FORM_HOSTED_ONLY`; `/f/[formId]` rejects EMBEDDED with Form Not Available).
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
+- `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
 
 Seeded plans: `FREE` (maxPublishedForms 1), `HOSTING` (10), `PAID` (null, unlimited), `UNLOCKED` (null, `isPublic: false`, admin-granted only). `HOSTING` and `PAID` are placeholders and unreachable until billing ships.
 

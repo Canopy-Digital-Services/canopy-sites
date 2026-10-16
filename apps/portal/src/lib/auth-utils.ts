@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
+import { getSoleMembership } from "@/lib/data-access/memberships";
 
 /**
  * Hash a password using bcrypt
@@ -50,22 +51,33 @@ export async function getCurrentUserId(): Promise<string> {
 }
 
 /**
- * Get the current account ID or redirect to login
+ * The signed-in user's account, through their membership. Redirects to
+ * /login when signed out. Throws when the user has no membership (account
+ * deletion removes sole members, so this means bad data) or more than one
+ * (account switching is not built).
  */
 export async function getCurrentAccountId(): Promise<string> {
   const session = await requireAuth();
-  const { prisma } = await import("@/lib/db");
-  
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { accountId: true },
-  });
-  
-  if (!user) {
-    throw new Error("User not found");
+  const membership = await getSoleMembership(session.user.id);
+
+  if (!membership) {
+    throw new Error(`User ${session.user.id} has no account membership`);
   }
-  
-  return user.accountId;
+
+  return membership.accountId;
+}
+
+/**
+ * Home for a signed-in user, or null when signed out or the account cannot
+ * be resolved. For the login pages and `/`, which must render the sign-in
+ * form rather than an error whenever there is no usable session.
+ */
+export async function getSignedInHomePath(): Promise<string | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const membership = await getSoleMembership(session.user.id);
+  return membership ? getHomePath(membership.accountId) : null;
 }
 
 /**

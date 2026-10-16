@@ -1,7 +1,6 @@
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getCurrentAccountId } from "@/lib/auth-utils";
-import { getHomePath, getHostProduct } from "@/lib/product";
+import { getSignedInHomePath } from "@/lib/auth-utils";
+import { getHostProduct } from "@/lib/product";
 import { HostProductProvider } from "@/components/auth-brand-mark";
 
 export default async function AuthLayout({
@@ -9,12 +8,9 @@ export default async function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  
-  // If already logged in, redirect home
-  if (session?.user?.id) {
-    redirect(await getHomePath(await getCurrentAccountId()));
-  }
+  // Signed in with a usable account: go home instead of showing sign-in.
+  const home = await getSignedInHomePath();
+  if (home) redirect(home);
 
   const product = await getHostProduct();
 

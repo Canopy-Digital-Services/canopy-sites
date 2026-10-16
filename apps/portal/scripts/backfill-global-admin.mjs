@@ -32,7 +32,7 @@ async function main() {
   try {
     const user = await prisma.user.findFirst({
       where: { email: { equals: adminEmail, mode: 'insensitive' } },
-      select: { id: true, email: true, roleCode: true, accountId: true },
+      select: { id: true, email: true, roleCode: true },
     });
 
     if (!user) {
@@ -40,10 +40,17 @@ async function main() {
       return;
     }
 
-    const account = await prisma.account.findUnique({
-      where: { id: user.accountId },
-      select: { planCode: true },
+    // v1: one membership per user; that account is the one to unlock.
+    const memberships = await prisma.membership.findMany({
+      where: { userId: user.id },
+      select: { account: { select: { id: true, planCode: true } } },
+      take: 2,
     });
+    if (memberships.length !== 1) {
+      console.log(`[backfill-global-admin] ${user.email} has ${memberships.length} account memberships; expected 1. Skipping.`);
+      return;
+    }
+    const account = memberships[0].account;
 
     const alreadyAdmin = user.roleCode === 'GLOBAL_ADMIN';
     const alreadyUnlocked = account?.planCode === 'UNLOCKED';
@@ -61,7 +68,7 @@ async function main() {
       }
       if (!alreadyUnlocked) {
         await tx.account.update({
-          where: { id: user.accountId },
+          where: { id: account.id },
           data: { planCode: 'UNLOCKED' },
         });
       }

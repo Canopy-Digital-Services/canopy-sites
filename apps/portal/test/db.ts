@@ -18,23 +18,29 @@ export async function resetDatabase() {
 
 let seq = 0;
 
-/** An account with one user, the shape signup creates. */
+/** An account with one OWNER, the shape signup creates. */
 export async function createAccount(opts: { planCode?: string; roleCode?: string } = {}) {
   seq += 1;
-  const account = await prisma.account.create({
+  const account = await prisma.account.create({ data: { planCode: opts.planCode ?? "FREE" } });
+  const user = await createMember(account.id, "OWNER", { roleCode: opts.roleCode });
+  return { account, user };
+}
+
+/** A new user with a membership on an existing account. */
+export async function createMember(
+  accountId: string,
+  role: "OWNER" | "MEMBER" = "MEMBER",
+  opts: { roleCode?: string } = {}
+) {
+  seq += 1;
+  return prisma.user.create({
     data: {
-      planCode: opts.planCode ?? "FREE",
-      user: {
-        create: {
-          email: `user${seq}@test.invalid`,
-          password: "not-a-real-hash",
-          roleCode: opts.roleCode ?? "USER",
-        },
-      },
+      email: `user${seq}@test.invalid`,
+      password: "not-a-real-hash",
+      roleCode: opts.roleCode ?? "USER",
+      memberships: { create: { accountId, role } },
     },
-    include: { user: true },
   });
-  return { account, user: account.user! };
 }
 
 /** A form on the account, created by its user. */

@@ -20,18 +20,18 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 
 ## Account Model
 
-Every user has a 1:1 relationship with an Account. The Account is the tenant boundary — all forms, submissions, and fields belong to the Account.
+The Account is the tenant boundary: forms, submissions, and fields belong to it. Users reach an account through a **Membership** (`OWNER` or `MEMBER`, Epic 28). v1 gives every user exactly one membership, as `OWNER`; `getSoleMembership` in `src/lib/data-access/memberships.ts` throws for more than one, and `getCurrentAccountId()` resolves through it.
 
 ```
-Account (id, createdAt)
-  ├── User (email, password, accountId, passwordChangedAt?, lastLoginAt?, ...)
-  │     └── PasswordResetTokens[]
+Account (id, createdAt, planCode, ...)
+  ├── Memberships[] (role) ──→ User (email, password, roleCode, ...)
+  │                               └── PasswordResetTokens[]
   └── Forms[]
         ├── Fields[]
         └── Submissions[]
 ```
 
-All relationships use `onDelete: Cascade`. Deleting an Account cascades through the entire tree — User, Forms, Fields, Submissions, and PasswordResetTokens are all removed by the database.
+Deleting an Account cascades to its Memberships and Forms (and their Fields, Submissions, Notifications). It does **not** cascade to Users, so deletion goes through `deleteAccountAndSoleMembers`, which also deletes the users whose only membership it was.
 
 ### Key files
 
@@ -159,18 +159,16 @@ The password reset flow checks the User record but does NOT check Account state.
 
 ### Strategy: hard delete
 
-Account deletion uses `prisma.account.delete()`. The database cascades handle everything:
+Both paths call `deleteAccountAndSoleMembers(accountId)` (`src/lib/data-access/memberships.ts`), one transaction:
 
 ```
-prisma.account.delete({ where: { id: accountId } })
-  → User deleted (cascade)
-    → PasswordResetTokens deleted (cascade)
-  → Forms deleted (cascade)
-    → Fields deleted (cascade)
-    → Submissions deleted (cascade)
+prisma.account.delete()
+  → Memberships, Forms → Fields, Submissions, Notifications (cascade)
+prisma.user.deleteMany()   // users whose only membership was this account
+  → PasswordResetTokens (cascade)
 ```
 
-One operation. No multi-step process. No tombstones.
+A user who also belongs to another account keeps their login. No tombstones.
 
 ### Why hard delete (not soft delete)
 
@@ -184,14 +182,14 @@ One operation. No multi-step process. No tombstones.
 - Allows re-registration with the same email immediately
 - No zombie records in auth flows
 - No guards needed in signup, login, or password reset
-- Single database operation (atomic)
+- One transaction (atomic)
 
 ### Self-service flow
 
 1. User clicks "Delete Account" on `/account` dashboard
 2. `ConfirmDialog` shows destructive warning
-3. `deleteSelfAccount()` server action: `requireAuth()` → `getCurrentAccountId()` → `prisma.account.delete()`
-4. Client calls `signOut({ callbackUrl: "/login?deleted=1" })` from `next-auth/react`
+3. `deleteSelfAccount()` server action: `requireAuth()` → the user's membership, which must be `OWNER` → `deleteAccountAndSoleMembers()`
+4. Client calls `signOut({ redirect: false })` from `next-auth/react`, then `window.location.assign("/login?deleted=1")` so it stays on the current host
 5. Login page shows "Your account has been deleted." banner
 
 ### Post-deletion session behavior
@@ -206,7 +204,7 @@ For self-service deletion, the client calls `signOut()` immediately after the se
 
 1. Operator clicks delete on account in `/operator/accounts`
 2. `ConfirmDialog` with account email in the warning
-3. `deleteAccount(accountId)` server action: `requireOperator()` → self-deletion guard → `prisma.account.delete()`
+3. `deleteAccount(accountId)` server action: `requireGlobalAdmin()` → refuses the operator's own account and any deletion that would remove the last Global Admin → `deleteAccountAndSoleMembers()`
 4. `revalidatePath("/operator/accounts")` refreshes the list
 
 The operator cannot delete their own account (guard in server action).
