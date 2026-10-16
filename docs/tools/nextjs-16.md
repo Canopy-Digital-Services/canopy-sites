@@ -120,10 +120,10 @@ export const config = { matcher: '/admin/:path*' };
 
 **Key differences** (verified against `next` 16.1.6 in `node_modules`, 2026-10-15):
 - File: `proxy.ts` at the project root or `src/proxy.ts` (`PROXY_LOCATION_REGEXP` in `next/dist/lib/constants.js`). Not under `app/`.
-- Export: a function named `proxy` or a default export; `export { auth as proxy } from "@/lib/auth"` works. There are no `ProxyRequest`/`ProxyResponse` types: use `NextRequest`/`NextResponse`.
-- Runtime: Node.js, so Prisma and the NextAuth `jwt` callback run there.
+- Export: a function named `proxy` or a default export. There are no `ProxyRequest`/`ProxyResponse` types: use `NextRequest`/`NextResponse`.
+- Runtime: Node.js, so Prisma works there.
 
-**Authorization stays in server layout guards** (`requireAuth`, `requireGlobalAdmin`), not the proxy. In this repo the proxy's job is narrower: it is the only place a refreshed NextAuth session cookie can be written on a page navigation, because `auth()` in a server component discards `Set-Cookie`. Epic 28 F1 has the evidence.
+**Authorization stays in server layout guards** (`requireAuth`, `requireGlobalAdmin`), not the proxy. This repo has no proxy. A server component cannot set cookies (only server actions and route handlers can), which is why sessions roll their idle expiry in the database rather than in the cookie (Epic 28).
 
 **Automated Migration:**
 ```bash

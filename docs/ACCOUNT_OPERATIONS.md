@@ -8,8 +8,8 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 
 1. [Account Model](#account-model)
 2. [Account Creation (Signup)](#account-creation-signup)
-3. [Authentication (Login)](#authentication-login)
-4. [Session Management (JWT)](#session-management-jwt)
+3. [Authentication (Sign-in)](#authentication-sign-in)
+4. [Session Management](#session-management)
 5. [Password Change](#password-change)
 6. [Password Reset](#password-reset)
 7. [Account Deletion](#account-deletion)
@@ -37,11 +37,14 @@ Deleting an Account cascades to its Memberships and Forms (and their Fields, Sub
 
 | File | Purpose |
 |------|---------|
-| `src/lib/auth.ts` | NextAuth config: providers, JWT callbacks, session policy |
-| `src/lib/auth-utils.ts` | `requireAuth()`, `getCurrentAccountId()`, `requireGlobalAdmin()` |
-| `src/actions/auth.ts` | Server actions: signup, login, password change/reset, signout |
+| `src/lib/session.ts` | Sessions: token generation, database validation and rolling, revocation, the cookie |
+| `src/lib/auth-utils.ts` | `requireAuth()`, `getCurrentAccountId()`, `requireGlobalAdmin()`, password hashing |
+| `src/actions/auth.ts` | Server actions: signup, sign-in, password change/reset, sign-out |
 | `src/actions/accounts.ts` | Server actions: account deletion (self-service and operator) |
+| `src/lib/data-access/memberships.ts` | Account resolution and account deletion |
 | `src/lib/data-access/accounts.ts` | Operator console queries (metadata only) |
+
+There is no auth library. Epic 28 replaced NextAuth with `src/lib/session.ts`; the reasons and the security assessment are in `docs/epics/epic-28-account-audit-membership.md`.
 
 ---
 
@@ -52,69 +55,58 @@ Deleting an Account cascades to its Memberships and Forms (and their Fields, Sub
 
 Flow:
 1. Validate email format and password length (min 8 chars)
-2. Check for existing user with same email — reject if found
-3. Hash password with bcrypt (10 rounds)
-4. Create Account with nested User in a single Prisma operation
-5. Auto sign-in via `signIn("credentials", ...)`
-
-Signup calls `prisma.account.create()` directly. There is no Auth.js adapter: with credentials and JWT sessions it would never be called, and Auth.js's own `Account` model would collide with the tenant `Account`.
+2. Check for existing user with same email; reject if found
+3. Hash the password
+4. Create User, Account, and an `OWNER` Membership in one write
+5. Create a session and set the cookie
 
 ---
 
-## Authentication (Login)
+## Authentication (Sign-in)
 
 **Route:** `/login`
-**Provider:** Credentials (email + password)
-**Strategy:** JWT (no database sessions)
+**Action:** `signInAction()` in `src/actions/auth.ts`, called from the login page
 
 Flow:
-1. Look up User by email
-2. `bcrypt.compare()` against stored hash
-3. On failure: increment `failedLoginCount`, set `lastFailedLoginAt`, return null
-4. On success: reset failed count, set `lastLoginAt`, return user object
-5. JWT callback encodes `id`, `email`, `rememberMe`, timeout claims into token
-6. Session callback maps token claims to `session.user`
+1. Look up the User by normalized email
+2. Verify the password. An unknown email is verified against a dummy hash so the response takes as long as for a real account
+3. On failure (wrong password, unknown email, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
+4. On success: reset the failed count, set `lastLoginAt`, create a new session, set the cookie
+5. The client navigates to `/`, which resolves the account's home
 
-The `authorize()` callback in `src/lib/auth.ts` is the only authentication entry point.
-
-### Important: no account-level login guard
-
-The `authorize()` callback checks the User record only — it does not check whether the Account exists or has any flags. This is intentional: with hard-delete (see [Account Deletion](#account-deletion)), deleted users don't have User records to find.
+Sign-in and sign-out are our own server actions with relative redirects, so they never leave the current host. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
 
 ---
 
-## Session Management (JWT)
+## Session Management
 
-Sessions use JWT tokens (not database sessions). The cookie holds the full session state.
+Sessions are rows in the `sessions` table (`Session` model). The cookie holds a random 32-byte token; the row's id is the token's SHA-256, so the database never holds a usable token and there is no signing secret. The cookie is `HttpOnly`, `SameSite=Lax`, and on HTTPS `Secure` with the `__Host-` prefix (`__Host-canopy_session`; `canopy_session` on plain-HTTP local dev).
 
 ### Timeout policy
 
-| Scenario | Idle timeout | Absolute timeout |
-|----------|-------------|-----------------|
-| Default session | 4 hours | 7 days |
-| "Keep me signed in" | 7 days | 30 days |
+| Scenario | Idle timeout | Absolute timeout | Cookie |
+|----------|-------------|-----------------|--------|
+| Default session | 4 hours | 7 days | Ends when the browser closes |
+| "Keep me signed in" | 7 days | 30 days | Expires at the absolute timeout |
 
-- **Idle timeout** rolls forward on each request
-- **Absolute timeout** is a hard ceiling — never rolls
-- Cookie `maxAge` is 30 days (ceiling for "remember me" sessions)
-- JWT is re-signed every 5 minutes (`updateAge`)
+- **Idle timeout** lives in the row (`expiresAt`) and rolls forward on each request, written at most once a minute and never past `absoluteExpiresAt`
+- **Absolute timeout** (`absoluteExpiresAt`) never moves
+- An expired row is deleted the next time its token is presented
 
-### Periodic validation
+### Per-request validation
 
-Every 5 minutes, the JWT callback queries the database:
-1. If the User record no longer exists → expire the token
-2. If `passwordChangedAt` is after `sessionIssuedAt` → expire the token
-3. On DB error → skip validation (don't expire on transient failures)
+`getSession()` (memoized per request with React `cache`) reads the cookie and runs one query: the session row with its user's id, email, current `roleCode`, and memberships. No row, or an expired one, means signed out. `requireAuth()`, `getCurrentAccountId()`, and `requireGlobalAdmin()` all read from it, so role changes and account changes apply on the next request.
 
-This means: after account deletion or password change, existing sessions expire within 5 minutes.
+### Revocation
 
-### Token expiration
+Deleting rows is how sessions end, immediately and everywhere:
 
-When a token expires, `expireToken()` strips all identity claims (`id`, `email`, etc.). The session callback then sets `session.user.id = ""`. The `requireAuth()` guard checks `!session.user.id` and redirects to `/login`.
-
-### Key invariant
-
-**The JWT is the source of truth for the current session.** There are no database session records. Signing out clears the JWT cookie. There is no server-side session to invalidate — expiration relies on token claims and the periodic validation check.
+| Event | Sessions ended |
+|-------|----------------|
+| Sign-out | This browser's |
+| Password change | Every other session; this browser stays signed in |
+| Password reset | All of the user's |
+| User or account deletion | All, by cascade |
 
 ---
 
@@ -124,12 +116,10 @@ When a token expires, `expireToken()` strips all identity claims (`id`, `email`,
 **Action:** `changePassword()` in `src/actions/auth.ts`
 
 Flow:
-1. Verify current password via `bcrypt.compare()`
-2. Hash new password
-3. Update User record: new password hash + `passwordChangedAt = new Date()`
-4. Client shows success toast, then calls `signOutAction()` after 1.5s delay
-
-Setting `passwordChangedAt` causes the periodic JWT validation to expire all prior sessions within 5 minutes.
+1. Verify the current password
+2. Hash and store the new one (`passwordChangedAt = now`)
+3. Delete every other session of the user; this one stays
+4. The client shows a success toast and clears the form
 
 ---
 
@@ -143,7 +133,7 @@ Flow:
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
 3. If user found: generate secure token (32 bytes hex), store in `PasswordResetToken` table with 1-hour expiry
 4. Send reset email with link to `/reset-password?token=...`
-5. User sets new password → server validates token, hashes password, updates User, marks token used
+5. User sets new password → server validates token, hashes password, updates User, marks token used, and deletes all of the user's sessions
 6. Redirect to `/login?reset=success`
 
 ### Important: no account-level guard
@@ -189,16 +179,9 @@ A user who also belongs to another account keeps their login. No tombstones.
 1. User clicks "Delete Account" on `/account` dashboard
 2. `ConfirmDialog` shows destructive warning
 3. `deleteSelfAccount()` server action: `requireAuth()` → the user's membership, which must be `OWNER` → `deleteAccountAndSoleMembers()`
-4. Client calls `signOut({ redirect: false })` from `next-auth/react`, then `window.location.assign("/login?deleted=1")` so it stays on the current host
+   The user's sessions go with the user (cascade); the action also clears this browser's cookie
+4. Client navigates to the relative `/login?deleted=1`, so it stays on the current host
 5. Login page shows "Your account has been deleted." banner
-
-### Post-deletion session behavior
-
-After hard delete, the User record is gone. The JWT session is still active in the browser until:
-- The client calls `signOut()` (clears the cookie immediately), OR
-- The periodic JWT validation fires (within 5 minutes) and finds no User record → expires the token
-
-For self-service deletion, the client calls `signOut()` immediately after the server action returns.
 
 ### Operator flow
 
@@ -236,9 +219,8 @@ Role changes are made via the operator console (`Change Role` action). The
 acting admin cannot change their own role, and the system refuses to demote
 or delete the last remaining Global Admin.
 
-A role change takes effect on the affected user's **next login**. The
-session JWT carries the `role` claim and is not re-read from the database
-on every request.
+A role change takes effect on the affected user's **next request**: the
+session lookup reads `roleCode` from the database every time.
 
 ### `ADMIN_EMAIL` is bootstrap-only
 

@@ -25,12 +25,10 @@ services:
       # Database - update with your PostgreSQL credentials
       DATABASE_URL: "postgresql://user:password@postgres:5432/canopy-forms?schema=public"
       
-      # NextAuth
-      NEXTAUTH_SECRET: "KlIv302grODQdAt/eoJQaE/GtPeBSi7R/2xgYF03SO4="
+      # Public app URL (emailed links; https makes the session cookie Secure)
       NEXTAUTH_URL: "http://localhost:3006"
       NEXT_PUBLIC_APP_URL: "http://localhost:3006"
       SITES_URL: "http://sites.localhost:3006"
-      AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)
       SMTP_HOST: "${SMTP_HOST}"

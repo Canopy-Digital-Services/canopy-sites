@@ -21,11 +21,9 @@ services:
       # Database - update with your PostgreSQL credentials
       DATABASE_URL: "postgresql://user:password@postgres:5432/canoforms?schema=public"
       
-      # NextAuth
-      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env (openssl rand -base64 32)}"
+      # Public app URL (emailed links; https makes the session cookie Secure)
       NEXTAUTH_URL: "https://forms.canopyds.com"
       NEXT_PUBLIC_APP_URL: "https://forms.canopyds.com"
-      AUTH_TRUST_HOST: "true"
       
       # SMTP (Migadu or other)
       SMTP_HOST: "${SMTP_HOST}"

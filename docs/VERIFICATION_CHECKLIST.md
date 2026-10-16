@@ -86,7 +86,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 1. Navigate to `http://localhost:3006/login`.
 2. Confirm the login page renders without errors.
 3. If you changed login/signup/reset logic, test the flow end-to-end.
-4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006` and confirm you stay on that host throughout (section 2 of `docs/AGENT_CONTEXT.md` explains why NextAuth would move you to the Forms host).
+4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006` and confirm you stay on that host throughout (redirects must stay relative; `docs/AGENT_CONTEXT.md` section 2).
 
 **Admin flow** (changes to admin UI):
 1. Navigate to `http://localhost:3006` and log in.

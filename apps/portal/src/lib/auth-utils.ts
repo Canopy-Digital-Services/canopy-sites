@@ -1,9 +1,9 @@
 import * as bcrypt from "bcrypt";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
-import { getSoleMembership } from "@/lib/data-access/memberships";
+import { MultipleMembershipsError } from "@/lib/data-access/memberships";
+import { getSession, type SessionContext } from "@/lib/session";
 
 /**
  * Hash a password using bcrypt
@@ -30,15 +30,16 @@ export function generateToken(bytes: number = 32): string {
 }
 
 /**
- * Get the current session or redirect to login
+ * The current session, or redirect to /login. The session carries the user's
+ * id, email, and platform role as stored now, plus their memberships.
  */
-export async function requireAuth() {
-  const session = await auth();
-  
-  if (!session || !session.user || !session.user.id) {
+export async function requireAuth(): Promise<SessionContext> {
+  const session = await getSession();
+
+  if (!session) {
     redirect("/login");
   }
-  
+
   return session;
 }
 
@@ -50,21 +51,32 @@ export async function getCurrentUserId(): Promise<string> {
   return session.user.id;
 }
 
+/** The session user's only membership, or null. Throws for more than one (account switching is not built). */
+function soleMembership(session: SessionContext) {
+  if (session.memberships.length > 1) {
+    throw new MultipleMembershipsError(session.user.id);
+  }
+  return session.memberships[0] ?? null;
+}
+
 /**
- * The signed-in user's account, through their membership. Redirects to
- * /login when signed out. Throws when the user has no membership (account
- * deletion removes sole members, so this means bad data) or more than one
- * (account switching is not built).
+ * The signed-in user's membership, or redirect to login. Throws when the user
+ * has none (account deletion removes sole members, so this means bad data).
  */
-export async function getCurrentAccountId(): Promise<string> {
+export async function getCurrentMembership() {
   const session = await requireAuth();
-  const membership = await getSoleMembership(session.user.id);
+  const membership = soleMembership(session);
 
   if (!membership) {
     throw new Error(`User ${session.user.id} has no account membership`);
   }
 
-  return membership.accountId;
+  return membership;
+}
+
+/** The signed-in user's account, through their membership. */
+export async function getCurrentAccountId(): Promise<string> {
+  return (await getCurrentMembership()).accountId;
 }
 
 /**
@@ -73,19 +85,19 @@ export async function getCurrentAccountId(): Promise<string> {
  * form rather than an error whenever there is no usable session.
  */
 export async function getSignedInHomePath(): Promise<string | null> {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  const session = await getSession();
+  if (!session) return null;
 
-  const membership = await getSoleMembership(session.user.id);
+  const membership = soleMembership(session);
   return membership ? getHomePath(membership.accountId) : null;
 }
 
 /**
- * Get the current session and verify the user holds the GLOBAL_ADMIN role.
- * Redirects home if not. The role claim is read from the session JWT;
- * a role change takes effect on the affected user's next login.
+ * The current session, if the user holds the GLOBAL_ADMIN role; otherwise
+ * redirect home. The role is read from the database on every request, so a
+ * role change applies on the affected user's next request.
  */
-export async function requireGlobalAdmin() {
+export async function requireGlobalAdmin(): Promise<SessionContext> {
   const session = await requireAuth();
 
   if (session.user.role !== "GLOBAL_ADMIN") {

@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireGlobalAdmin, requireAuth } from "@/lib/auth-utils";
+import { requireGlobalAdmin, getCurrentMembership } from "@/lib/auth-utils";
+import { clearSessionCookie } from "@/lib/session";
 import {
   deleteAccountAndSoleMembers,
   getSoleMembership,
@@ -50,15 +51,13 @@ export async function deleteAccount(accountId: string) {
  * Epic 14: Self-service account deletion
  */
 export async function deleteSelfAccount() {
-  const session = await requireAuth();
-  const membership = await getSoleMembership(session.user.id);
+  const membership = await getCurrentMembership();
 
-  if (!membership) {
-    throw new Error("No account to delete");
-  }
   if (membership.role !== "OWNER") {
     throw new Error("Only the account owner can delete the account");
   }
 
+  // The user's sessions went with them; this clears the browser's cookie.
   await deleteAccountAndSoleMembers(membership.accountId);
+  await clearSessionCookie();
 }

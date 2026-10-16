@@ -39,7 +39,7 @@ On the Account page, fill in:
 2. **New Password** (minimum 8 characters)
 3. **Confirm New Password**
 
-Click **Change Password**. If the change succeeds, you're signed out of all sessions shortly after, so you can log back in with the new password.
+Click **Change Password**. You stay signed in here, and every other device or browser signed in to your account is signed out.
 
 If the current password is wrong, the form shows an error and nothing changes.
 

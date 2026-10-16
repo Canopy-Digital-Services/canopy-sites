@@ -2,8 +2,15 @@
 
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword, generateToken } from "@/lib/auth-utils";
-import { auth, signIn, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import {
+  clearSessionCookie,
+  createSession,
+  getSession,
+  invalidateSession,
+  invalidateUserSessions,
+  setSessionCookie,
+} from "@/lib/session";
 import { sendEmail } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
@@ -41,7 +48,7 @@ export async function signUp(formData: FormData) {
     const hashedPassword = await hashPassword(password);
 
     // User, account, and the OWNER membership linking them, in one write
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
@@ -51,18 +58,69 @@ export async function signUp(formData: FormData) {
       },
     });
 
-    // Sign in the user automatically
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    // Sign the new user in
+    const { token, session } = await createSession(user.id, false);
+    await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);
 
     return { success: true };
   } catch (error) {
     console.error("Signup error:", error);
     return { error: "Failed to create account" };
   }
+}
+
+const INVALID_CREDENTIALS = "Invalid email or password";
+
+/**
+ * A bcrypt hash of a random string nobody knows, compared against when the
+ * email is unknown so sign-in takes as long as for a real account.
+ */
+const UNKNOWN_USER_HASH = "$2b$10$eDrFTE/YEInPF9KbUxiK/eC/Ql2y2hUGZJl9UJETV5pdu.GmZjlDW";
+
+/**
+ * Sign in with email and password. On success sets the session cookie; the
+ * client then navigates to `/`, which resolves home. Every failure returns
+ * the same message, so the response never says whether an email exists.
+ */
+export async function signInAction(input: {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}): Promise<{ error: string } | { success: true }> {
+  const email = normalizeEmail(input.email ?? "");
+  const password = input.password ?? "";
+
+  if (!email || !password) {
+    return { error: "Email and password are required" };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, password: true, _count: { select: { memberships: true } } },
+  });
+
+  const valid = await verifyPassword(password, user?.password ?? UNKNOWN_USER_HASH);
+
+  // A user with no membership has nowhere to land, so it cannot sign in.
+  if (!user || !valid || user._count.memberships === 0) {
+    if (user) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginCount: { increment: 1 }, lastFailedLoginAt: new Date() },
+      });
+    }
+    return { error: INVALID_CREDENTIALS };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date(), failedLoginCount: 0, lastFailedLoginAt: null },
+  });
+
+  const { token, session } = await createSession(user.id, input.rememberMe === true);
+  await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);
+
+  return { success: true };
 }
 
 /**
@@ -230,7 +288,8 @@ export async function resetPassword(formData: FormData) {
     // Hash new password
     const hashedPassword = await hashPassword(password);
 
-    // Update user password and mark token as used
+    // Update the password, mark the token used, and sign the user out
+    // everywhere: whoever held the old password loses their sessions.
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
@@ -240,6 +299,7 @@ export async function resetPassword(formData: FormData) {
         where: { id: resetToken.id },
         data: { usedAt: new Date() },
       }),
+      prisma.session.deleteMany({ where: { userId: resetToken.userId } }),
     ]);
 
     return { success: true };
@@ -250,13 +310,13 @@ export async function resetPassword(formData: FormData) {
 }
 
 /**
- * Sign out the current user (callable from client components).
- * NextAuth resolves its own redirect against NEXTAUTH_URL (the Forms host),
- * which would move a user signing out on the Sites host to the Forms host.
- * Redirecting ourselves keeps the relative path on the current host.
+ * Sign out: delete this browser's session and its cookie, then go to the
+ * login page on the current host (a relative redirect never changes host).
  */
 export async function signOutAction() {
-  await signOut({ redirect: false });
+  const session = await getSession();
+  if (session) await invalidateSession(session.id);
+  await clearSessionCookie();
   redirect("/login");
 }
 
@@ -264,8 +324,8 @@ export async function signOutAction() {
  * Change password for the currently authenticated user
  */
 export async function changePassword(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const session = await getSession();
+  if (!session) {
     return { error: "Not authenticated" };
   }
 
@@ -300,6 +360,8 @@ export async function changePassword(formData: FormData) {
       where: { id: session.user.id },
       data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
+    // This browser stays signed in; every other session ends.
+    await invalidateUserSessions(session.user.id, session.id);
 
     return { success: true };
   } catch (error) {

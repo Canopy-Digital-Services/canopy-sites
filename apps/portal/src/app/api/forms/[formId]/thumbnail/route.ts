@@ -1,8 +1,7 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getSoleMembership } from "@/lib/data-access/memberships";
 
 export async function GET(
   request: NextRequest,
@@ -10,10 +9,9 @@ export async function GET(
 ) {
   const { formId } = await params;
 
-  const session = await auth();
-  if (!session?.user?.id) return new NextResponse(null, { status: 401 });
-
-  const membership = await getSoleMembership(session.user.id);
+  const session = await getSession();
+  // v1: exactly one membership; anything else gets no thumbnail.
+  const membership = session?.memberships.length === 1 ? session.memberships[0] : null;
   if (!membership) return new NextResponse(null, { status: 401 });
 
   const form = await prisma.form.findFirst({

@@ -18,9 +18,9 @@ Privacy-first embedded forms for static websites. Users build forms in a visual 
 
 The same app is the portal for Canopy Sites clients (hand-built sites maintained for a monthly rate), who get an Editor and Stats alongside Forms. See "Products and chrome" in section 2.
 
-Next.js 16 · React 19 · NextAuth v5 (beta) · Prisma 7 · TypeScript 5 · Tailwind v4 · Node 20
+Next.js 16 · React 19 · Prisma 7 · TypeScript 5 · Tailwind v4 · Vitest 4 · Node 20. No auth library: sessions are ours (`src/lib/session.ts`, Epic 28).
 
-**Read the matching `docs/tools/*.md` before writing code against any of these.** All are recent majors with breaking changes from older patterns: `prisma-7.md`, `nextjs-16.md`, `nextauth-v5.md`, `react-19.md`, `tailwindcss-v4.md`, `docker.md`. Index: `docs/tools/README.md`.
+**Read the matching `docs/tools/*.md` before writing code against any of these.** All are recent majors with breaking changes from older patterns: `prisma-7.md`, `nextjs-16.md`, `react-19.md`, `tailwindcss-v4.md`, `docker.md`. Index: `docs/tools/README.md`.
 
 If outdated training data led you to a wrong command, flag, or API, correct the relevant tool doc in the same session. The same rule covers live systems: when direct observation contradicts a claim in any doc (this one included), fix that doc in the same session per `docs/DOC_MAINTENANCE.md`.
 
@@ -53,11 +53,11 @@ Identify which layer a change touches before starting.
 
 ### Auth & ownership
 
-- NextAuth v5 credentials provider, self-service signup.
+- Email and password sign-in, self-service signup, server-side sessions in the `sessions` table (`src/lib/session.ts`; behavior in `docs/ACCOUNT_OPERATIONS.md`). Get the session through `requireAuth`, `getCurrentAccountId`, or `requireGlobalAdmin`, or `getSession` where signed-out is a normal answer. Never read the cookie or query `sessions` anywhere else, and never add a second way to authenticate a request without a database test for it.
 - Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
-- `NEXTAUTH_URL` is the Forms URL on every host, and NextAuth rewrites auth requests to that origin. **Never let NextAuth pick a post-auth destination**: call `signOut`/`signIn` with `redirect: false` and navigate to a relative path yourself (`signOutAction` in `src/actions/auth.ts`, account deletion in `src/components/account/account-dashboard.tsx`). Otherwise a Sites-host user lands on the Forms host.
+- **Redirects after sign-in, sign-out, and account deletion are relative paths** (`/`, `/login`), so a user stays on the host they started on. Never build a redirect or a post-auth destination from `NEXTAUTH_URL` or the request's `Host`.
 - **Links emailed to an account come from `appUrlFor(entitlements)`** (`src/lib/product.ts`): `SITES_URL` for Sites accounts, `NEXTAUTH_URL` otherwise, with `productNameFor` for the product name in the copy. Never build an emailed link from request headers: a reset link built from `Host` would hand a victim's token to whatever domain the requester sent.
 
 ### Products and chrome
@@ -126,7 +126,7 @@ Routes: `/` redirects to the account's home or `/login`. Admin lives under `/for
 | Document | Read it when |
 |----------|--------------|
 | `docs/VERIFICATION_CHECKLIST.md` | **Before committing.** Which checks to run per change type, and when to escalate to the user for manual verification. |
-| `docs/tools/*.md` | Before writing code against Prisma, Next.js, NextAuth, React, Tailwind, or Docker. |
+| `docs/tools/*.md` | Before writing code against Prisma, Next.js, React, Tailwind, or Docker. |
 | `docs/UX_PATTERNS.md` | Before building or modifying any UI. |
 | `docs/ACCOUNT_OPERATIONS.md` | Touching auth flows, account lifecycle, sessions, or deletion. |
 | `docs/PRISMA_MIGRATIONS.md` | Deployment, migration failures, or Dockerfile changes. |
@@ -249,8 +249,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | Variable | Notes |
 |----------|-------|
 | `DATABASE_URL` | Required. PostgreSQL connection string. |
-| `NEXTAUTH_SECRET` | Required. Signing and encryption key. |
-| `NEXTAUTH_URL` | Required. Public URL, used for auth callbacks and email links. |
+| `NEXTAUTH_URL` | Required. Public Forms URL: base for emailed links (`appUrlFor`), and when it starts with `https://` the session cookie is `Secure` with the `__Host-` prefix. The name predates Epic 28's removal of NextAuth. |
 | `NEXT_PUBLIC_APP_URL` | Build-time. Falls back to `NEXTAUTH_URL`. Must match the deployed public URL. |
 | `SITES_URL` | Optional. Public URL of this environment's Sites host (`https://sites.canopyds.com`, `https://sites-dev.canopyds.com`, local `http://sites.localhost:3006`). Base for password-reset and notification links sent to Sites accounts. Unset means those links use `NEXTAUTH_URL`. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Required if email is enabled. |
@@ -258,6 +257,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` to promote a user to `GLOBAL_ADMIN` on `UNLOCKED`. Never consulted at auth-check time. Removable once a Global Admin exists. |
+| `NEXTAUTH_SECRET`, `AUTH_TRUST_HOST` | No longer read (Epic 28: sessions have no signing secret). Remove them from both Coolify apps, then delete this row. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
@@ -267,7 +267,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 Verifying env inside a Coolify container: ask the runtime what the app actually sees (plain `printenv | grep` also works; verified 2026-08-14):
 
 ```sh
-node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXTAUTH_SECRET:!!process.env.NEXTAUTH_SECRET,NEXT_PUBLIC_APP_URL:process.env.NEXT_PUBLIC_APP_URL,SMTP_HOST:process.env.SMTP_HOST})'
+node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXT_PUBLIC_APP_URL:process.env.NEXT_PUBLIC_APP_URL,SMTP_HOST:process.env.SMTP_HOST})'
 ```
 
 ---

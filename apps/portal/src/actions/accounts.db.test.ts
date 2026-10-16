@@ -1,19 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { createAccount, resetDatabase } from "../../test/db";
+import { jar, resetRequest, signInAs } from "../../test/next-request";
+import { SESSION_COOKIE } from "@/lib/session";
 
-const session = vi.hoisted(() => ({ current: null as null | { user: { id: string; email: string; role: string } } }));
-vi.mock("@/lib/auth", () => ({ auth: async () => session.current }));
+vi.mock("next/headers", () => import("../../test/next-request"));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const { deleteAccount, deleteSelfAccount } = await import("./accounts");
 
-function signInAs(user: { id: string; email: string; roleCode: string }) {
-  session.current = { user: { id: user.id, email: user.email, role: user.roleCode } };
-}
-
 beforeEach(async () => {
-  session.current = null;
+  resetRequest();
   await resetDatabase();
 });
 
@@ -21,7 +18,7 @@ describe("deleteAccount (operator)", () => {
   it("deletes another account and its owner", async () => {
     const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     const { account, user } = await createAccount();
-    signInAs(admin);
+    await signInAs(admin.id);
 
     await deleteAccount(account.id);
 
@@ -31,7 +28,7 @@ describe("deleteAccount (operator)", () => {
 
   it("refuses the operator's own account", async () => {
     const { account, user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
-    signInAs(admin);
+    await signInAs(admin.id);
 
     await expect(deleteAccount(account.id)).rejects.toThrow("own account");
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
@@ -40,7 +37,7 @@ describe("deleteAccount (operator)", () => {
   it("deletes another admin's account while one admin remains", async () => {
     const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     const { account } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
-    signInAs(admin);
+    await signInAs(admin.id);
 
     await deleteAccount(account.id);
     expect(await prisma.user.count({ where: { roleCode: "GLOBAL_ADMIN" } })).toBe(1);
@@ -50,10 +47,12 @@ describe("deleteAccount (operator)", () => {
 describe("deleteSelfAccount", () => {
   it("lets the owner delete their account", async () => {
     const { account, user } = await createAccount();
-    signInAs(user);
+    await signInAs(user.id);
 
     await deleteSelfAccount();
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(0);
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
+    expect(jar.has(SESSION_COOKIE)).toBe(false);
   });
 
   it("refuses a member who is not the owner", async () => {
@@ -65,7 +64,7 @@ describe("deleteSelfAccount", () => {
         memberships: { create: { accountId: account.id, role: "MEMBER" } },
       },
     });
-    signInAs(member);
+    await signInAs(member.id);
 
     await expect(deleteSelfAccount()).rejects.toThrow("Only the account owner");
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);

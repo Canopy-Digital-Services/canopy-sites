@@ -13,8 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
-import { signOut } from "next-auth/react";
-import { changePassword, signOutAction } from "@/actions/auth";
+import { changePassword } from "@/actions/auth";
 import { deleteSelfAccount } from "@/actions/accounts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -152,8 +151,12 @@ function PasswordSection() {
       if (result?.error) {
         setServerError(result.error);
       } else {
-        toast.success("Password changed. Signing you out...");
-        setTimeout(() => signOutAction(), 1500);
+        toast.success("Password changed. Other devices are signed out.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTouched({});
+        setSubmitted(false);
       }
     } catch {
       setServerError("An error occurred. Please try again.");
@@ -167,7 +170,7 @@ function PasswordSection() {
       <CardHeader>
         <CardTitle>Password</CardTitle>
         <CardDescription>
-          You&apos;ll be signed out of all sessions shortly after.
+          Changing it signs you out on every other device.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} noValidate>
@@ -251,9 +254,6 @@ function DeleteAccountSection() {
     startTransition(async () => {
       try {
         await deleteSelfAccount();
-        // NextAuth resolves its redirect against NEXTAUTH_URL (the Forms host);
-        // navigate ourselves so the user stays on the host they started on.
-        await signOut({ redirect: false });
         window.location.assign("/login?deleted=1");
       } catch (error) {
         toast.error(

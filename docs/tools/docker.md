@@ -318,10 +318,8 @@ Required environment variables (set in `docker-compose.yml` or `.env`):
 **Database:**
 - `DATABASE_URL`: PostgreSQL connection string
 
-**NextAuth:**
-- `NEXTAUTH_SECRET`: Secret for session encryption
-- `NEXTAUTH_URL`: Public URL of the application
-- `AUTH_TRUST_HOST`: Set to `"true"` for production
+**App URL:**
+- `NEXTAUTH_URL`: Public Forms URL (emailed links; `https://` makes the session cookie `Secure`). Full list in `docs/AGENT_CONTEXT.md` section 7
 
 **SMTP (Email):**
 - `SMTP_HOST`: SMTP server hostname

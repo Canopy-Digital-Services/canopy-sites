@@ -23,7 +23,7 @@ Tests cover decisions (sessions, membership, entitlements, guardrails); `docs/VE
 
 ## Tool Documentation (read before writing code)
 
-The stack uses recent major versions (Next.js 16, React 19, Prisma 7, Tailwind v4, NextAuth v5) with breaking changes from older patterns. **Read the relevant `docs/tools/*.md` file before writing code that uses that tool.** See `docs/tools/README.md` for the index.
+The stack uses recent major versions (Next.js 16, React 19, Prisma 7, Tailwind v4) with breaking changes from older patterns. **Read the relevant `docs/tools/*.md` file before writing code that uses that tool.** See `docs/tools/README.md` for the index.
 
 ## WSL2 Environment Note
 
