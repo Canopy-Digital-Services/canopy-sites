@@ -121,6 +121,8 @@ model Site {
 - Editor page shows the site name when the account has a site.
 - Home host (D7): `homeHostRedirect`, `requireHomeHost`, and `signupHostRedirect` in `src/lib/product.ts`; the admin and operator layouts call `requireHomeHost`; `signInAction` returns `homeUrl` on the other host; signup redirects (and the action refuses) on the Sites host; the Sites login page drops "Create account".
 
+- Handoff (D8): `SessionHandoff` (token SHA-256 as id, `userId`, `rememberMe`, `targetHost`, `expiresAt`; two minutes, single use). Correct password for a Sites account on the Forms host creates one and returns it; the modal's button is a form POST to `<Sites host>/auth/handoff`, whose route accepts only the configured Forms origin (no login CSRF from another page, no token in a URL or log), consumes the token on the host it names, and starts the session. Password change and reset drop pending handoffs with the sessions.
+
 ### Tests
 
 Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per plan; `getAccountSite` never returning another account's site; create and update refusing non-admins, non-Sites accounts, a second site, a claimed hostname, a duplicate slug; the plan-change, promotion, and deletion guards. Each guard's test is run once with the guard removed and must fail.
@@ -146,6 +148,7 @@ Database tests for: the plan seed's `sitesEnabled` per plan; entitlements per pl
 - **D5. Sites only on Sites accounts**, checked when a site is created or reassigned and when a plan change would drop Sites (Q3).
 - **D6. `UNLOCKED` is not a Sites plan** (Q4). `SITES` is the only one; promotion to Global Admin moves only capped plans to `UNLOCKED`.
 - **D7. Each account has a home host** (Q5), built in E29.
+- **D8. A Sites customer signing in on the Forms host gets a modal, not a second sign-in** (Michael, after trying D7 on forms-dev): "as a Sites customer, you use Forms through your Sites dashboard", with a **Go to Canopy Sites** button that signs them in there. A Forms-only customer on the Sites host keeps the "signs in at" message; that direction gets no handoff. The button carries a one-time handoff token (section 4).
 
 ### Agent calls inside scope
 

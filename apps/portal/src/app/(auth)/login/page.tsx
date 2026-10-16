@@ -10,6 +10,14 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { signInAction } from "@/actions/auth";
 
 export default function LoginPage() {
@@ -21,8 +29,10 @@ export default function LoginPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
-  // Set when the account lives on the other product's host (PRD D22).
+  // Set when the account lives on the other product's host (PRD D22): a
+  // Forms account gets a link, a Sites account a one-time pass (E29 D8).
   const [homeUrl, setHomeUrl] = useState("");
+  const [handoff, setHandoff] = useState<{ action: string; token: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +74,9 @@ export default function LoginPage() {
     try {
       const result = await signInAction({ email, password, rememberMe });
 
-      if ("error" in result) {
+      if ("handoff" in result) {
+        setHandoff(result.handoff);
+      } else if ("error" in result) {
         if (result.homeUrl) setHomeUrl(result.homeUrl);
         else setServerError(result.error);
       } else {
@@ -173,6 +185,21 @@ export default function LoginPage() {
           </Button>
         </CardFooter>
       </form>
+      <Dialog open={handoff !== null} onOpenChange={(open) => !open && setHandoff(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>You&apos;re a Canopy Sites customer</DialogTitle>
+            <DialogDescription>You use Forms through your Sites dashboard.</DialogDescription>
+          </DialogHeader>
+          {/* A native POST, so the Sites host sees this page's Origin and sets its own cookie. */}
+          <form method="post" action={handoff?.action}>
+            <input type="hidden" name="token" value={handoff?.token ?? ""} />
+            <DialogFooter>
+              <Button type="submit">Go to Canopy Sites</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

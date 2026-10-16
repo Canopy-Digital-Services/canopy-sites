@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
   createSession,
+  createSessionHandoff,
   getSession,
   invalidateSession,
   invalidateUserSessions,
@@ -104,11 +105,17 @@ const UNKNOWN_USER_HASH = "scrypt$15$8$3$0rTeU8SSUAwkT3DlGs5OfQ==$bfAUa1aKd6eHfa
  * client then navigates to `/`, which resolves home. Every failure returns
  * the same message, so the response never says whether an email exists.
  */
+type SignInResult =
+  | { success: true }
+  | { error: string; homeUrl?: string }
+  /** A Sites account on the Forms host: the login page offers a button that posts `token` to `action` (E29 D8). */
+  | { handoff: { action: string; token: string } };
+
 export async function signInAction(input: {
   email: string;
   password: string;
   rememberMe: boolean;
-}): Promise<{ error: string; homeUrl?: string } | { success: true }> {
+}): Promise<SignInResult> {
   const email = normalizeEmail(input.email ?? "");
   const password = input.password ?? "";
 
@@ -139,10 +146,13 @@ export async function signInAction(input: {
   }
 
   // The password is right, but the account lives on its other product's
-  // host (PRD D22): say where, without a session here. Sessions are per host.
+  // host (PRD D22), and sessions are per host, so none starts here. A Sites
+  // customer on the Forms host gets a one-time pass to a session there
+  // (E29 D8); a Forms customer on the Sites host is told where to sign in.
   const membership = await getSoleMembership(user.id);
-  const homeUrl = membership && (await signInElsewhere(await getAccountEntitlements(membership.accountId)));
-  if (homeUrl) {
+  const entitlements = membership ? await getAccountEntitlements(membership.accountId) : null;
+  const homeUrl = entitlements && (await signInElsewhere(entitlements));
+  if (homeUrl && !entitlements.sitesEnabled) {
     clearSignInThrottle(email);
     return { error: `This account signs in at ${new URL(homeUrl).host}.`, homeUrl };
   }
@@ -158,6 +168,11 @@ export async function signInAction(input: {
     },
   });
   clearSignInThrottle(email);
+
+  if (homeUrl) {
+    const token = await createSessionHandoff(user.id, input.rememberMe === true, new URL(homeUrl).host);
+    return { handoff: { action: `${homeUrl}/auth/handoff`, token } };
+  }
 
   const { token, session } = await createSession(user.id, input.rememberMe === true);
   await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);

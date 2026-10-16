@@ -92,7 +92,7 @@ Flow:
 
 A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
-Sign-in and sign-out are our own server actions with relative redirects. Sign-in on the host that is not the account's home (PRD D22; `docs/AGENT_CONTEXT.md` section 2) creates no session and returns `homeUrl`, which the login page links to. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
+Sign-in and sign-out are our own server actions with relative redirects. Sign-in on the host that is not the account's home (PRD D22; `docs/AGENT_CONTEXT.md` section 2) creates no session there. A Forms account gets `homeUrl`, which the login page links to. A Sites account gets a handoff: a random token whose SHA-256 is stored in `session_handoffs` with the target host, good once for two minutes. The login page's modal posts it (a native form POST, so the browser sends the Forms origin) to `/auth/handoff` on the Sites host, which refuses any other origin (no login CSRF), consumes the token with a conditional delete, and starts the session. Password change and reset drop pending handoffs along with sessions. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
 
 ---
 

@@ -38,9 +38,12 @@ export function productNameFor({ sitesEnabled }: Pick<AccountEntitlements, "site
 }
 
 /** The host the browser asked for (X-Forwarded-Host behind the proxy), lowercased, with any port. */
-async function requestHost(): Promise<string> {
-  const h = await headers();
+export function hostFromHeaders(h: { get(name: string): string | null }): string {
   return (h.get("x-forwarded-host") ?? h.get("host") ?? "").split(",")[0].trim().toLowerCase();
+}
+
+async function requestHost(): Promise<string> {
+  return hostFromHeaders(await headers());
 }
 
 /**
@@ -85,6 +88,14 @@ export function homeHostRedirect(
   if (!hosts) return null;
   const away = entitlements.sitesEnabled ? hosts.forms : hosts.sites;
   return host === away ? appUrlFor(entitlements) : null;
+}
+
+/**
+ * The Forms host's origin when the environment has both hosts, else null.
+ * The handoff route accepts sign-in passes only from forms on this origin.
+ */
+export function formsOrigin(): string | null {
+  return productHosts() ? new URL(appUrlFor({ sitesEnabled: false })).origin : null;
 }
 
 /** For signed-in pages: redirect an account on the other product's host to its home host. */

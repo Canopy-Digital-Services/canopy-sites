@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { createAccount, resetDatabase } from "../../test/db";
 import {
+  consumeSessionHandoff,
   createSession,
+  createSessionHandoff,
+  HANDOFF_TTL_MS,
   hashSessionToken,
   invalidateUserSessions,
   SESSION_POLICY,
@@ -137,3 +140,52 @@ describe("revocation", () => {
     expect(await validateSessionToken(token)).toBeNull();
   });
 });
+
+describe("session handoff (E29 D8)", () => {
+  const SITES = "sites.example.com";
+
+  it("stores only the token's hash and hands over once, on the host it names", async () => {
+    const { user } = await createAccount({ planCode: "SITES" });
+    const token = await createSessionHandoff(user.id, true, SITES);
+
+    const row = await prisma.sessionHandoff.findUniqueOrThrow({ where: { id: hashSessionToken(token) } });
+    expect(row).toMatchObject({ userId: user.id, rememberMe: true, targetHost: SITES });
+    expect(await consumeSessionHandoff(token, SITES)).toEqual({ userId: user.id, rememberMe: true });
+    expect(await consumeSessionHandoff(token, SITES)).toBeNull();
+  });
+
+  it("refuses another host and leaves the pass for the right one", async () => {
+    const { user } = await createAccount({ planCode: "SITES" });
+    const token = await createSessionHandoff(user.id, false, SITES);
+
+    expect(await consumeSessionHandoff(token, "forms.example.com")).toBeNull();
+    expect(await consumeSessionHandoff(token, SITES)).toMatchObject({ userId: user.id });
+  });
+
+  it("expires after two minutes", async () => {
+    const { user } = await createAccount({ planCode: "SITES" });
+    const now = new Date();
+    const token = await createSessionHandoff(user.id, false, SITES, now);
+
+    expect(await consumeSessionHandoff(token, SITES, at(now, HANDOFF_TTL_MS))).toBeNull();
+  });
+
+  it("is used once even when two requests race", async () => {
+    const { user } = await createAccount({ planCode: "SITES" });
+    const token = await createSessionHandoff(user.id, false, SITES);
+
+    const results = await Promise.all([consumeSessionHandoff(token, SITES), consumeSessionHandoff(token, SITES)]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+  });
+
+  it("replaces the user's earlier pass, and goes with their sessions", async () => {
+    const { user } = await createAccount({ planCode: "SITES" });
+    const first = await createSessionHandoff(user.id, false, SITES);
+    const second = await createSessionHandoff(user.id, false, SITES);
+    expect(await consumeSessionHandoff(first, SITES)).toBeNull();
+
+    await invalidateUserSessions(user.id);
+    expect(await consumeSessionHandoff(second, SITES)).toBeNull();
+  });
+});
+

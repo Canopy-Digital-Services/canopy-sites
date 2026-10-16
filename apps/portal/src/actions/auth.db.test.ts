@@ -305,15 +305,33 @@ describe("home host (PRD D22)", () => {
     expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
-  it("sends a Sites account signing in on the Forms host to the Sites host", async () => {
+  it("gives a Sites account signing in on the Forms host a one-time pass to the Sites host, not a session", async () => {
     const { account, user, password } = await accountWithPassword();
     await prisma.account.update({ where: { id: account.id }, data: { planCode: "SITES" } });
     requestHeaders.set("host", "forms.example.com");
 
-    expect(await signInAction({ email: user.email, password, rememberMe: false })).toMatchObject({
-      homeUrl: "https://sites.example.com",
+    const result = await signInAction({ email: user.email, password, rememberMe: true });
+
+    expect(result).toMatchObject({ handoff: { action: "https://sites.example.com/auth/handoff" } });
+    const token = "handoff" in result ? result.handoff.token : "";
+    expect(await prisma.sessionHandoff.findUnique({ where: { id: hashSessionToken(token) } })).toMatchObject({
+      userId: user.id,
+      rememberMe: true,
+      targetHost: "sites.example.com",
     });
     expect(jar.has(SESSION_COOKIE)).toBe(false);
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
+  });
+
+  it("gives no pass for a wrong password", async () => {
+    const { account, user } = await accountWithPassword();
+    await prisma.account.update({ where: { id: account.id }, data: { planCode: "SITES" } });
+    requestHeaders.set("host", "forms.example.com");
+
+    expect(await signInAction({ email: user.email, password: "wrong password!", rememberMe: false })).toEqual({
+      error: "Invalid email or password",
+    });
+    expect(await prisma.sessionHandoff.count()).toBe(0);
   });
 
   it("signs an account in on its home host", async () => {
