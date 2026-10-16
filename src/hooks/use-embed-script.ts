@@ -6,6 +6,7 @@ import type { EmbedFormInstance } from "@/lib/embed-preview";
 type EmbedFormConstructorOptions = {
   formId?: string;
   preview?: boolean;
+  fieldsOnly?: boolean;
 };
 
 type CanopyFormsGlobal = {
@@ -22,12 +23,14 @@ type CanopyFormsGlobal = {
  *
  * Pass `{ preview: true }` from admin previews — Submit is intercepted (no
  * fetch, no submission row) and the button gets a tooltip explaining why.
+ * Pass `{ fieldsOnly: true }` to render just the fields (no header, Submit,
+ * or watermark).
  */
 export function useEmbedScript(
   containerRef: React.RefObject<HTMLDivElement | null>,
   options: EmbedFormConstructorOptions = {}
 ) {
-  const { preview } = options;
+  const { preview, fieldsOnly } = options;
   const formInstanceRef = useRef<EmbedFormInstance | null>(null);
   const [ready, setReady] = useState(false);
   const [embedUrl] = useState<string>(() => {
@@ -49,6 +52,7 @@ export function useEmbedScript(
       if (!cf?.CanopyForm || !containerRef.current) return;
       formInstanceRef.current = new cf.CanopyForm(containerRef.current, {
         preview,
+        fieldsOnly,
       });
       setReady(true);
     };
@@ -79,7 +83,7 @@ export function useEmbedScript(
       };
       document.head.appendChild(script);
     }
-  }, [embedUrl, containerRef, preview]);
+  }, [embedUrl, containerRef, preview, fieldsOnly]);
 
   return { formInstanceRef, ready };
 }
