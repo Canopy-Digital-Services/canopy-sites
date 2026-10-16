@@ -3,12 +3,15 @@ import { prisma } from "@/lib/db";
 import { hashSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { hashPassword } from "@/lib/auth-utils";
 import { createAccount, resetDatabase } from "../../test/db";
-import { jar, resetRequest, signInAs } from "../../test/next-request";
+import { jar, requestHeaders, resetRequest, signInAs } from "../../test/next-request";
+import { resetRateLimits } from "@/lib/rate-limit";
+import { AUTH_LIMITS, THROTTLED_MESSAGE } from "@/lib/auth-throttle";
+import { sendEmail } from "@/lib/email";
 
 vi.mock("next/headers", () => import("../../test/next-request"));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
 
-const { changePassword, resetPassword, signInAction, signOutAction, signUp } = await import("./auth");
+const { changePassword, requestPasswordReset, resetPassword, signInAction, signOutAction, signUp } = await import("./auth");
 
 function form(fields: Record<string, string>) {
   const fd = new FormData();
@@ -35,7 +38,84 @@ async function expectRedirect(promise: Promise<unknown>, to: string) {
 
 beforeEach(async () => {
   resetRequest();
+  resetRateLimits();
+  vi.mocked(sendEmail).mockClear();
+  requestHeaders.set("cf-connecting-ip", "203.0.113.10");
   await resetDatabase();
+});
+
+describe("throttling", () => {
+  it("locks an email after five tries, even with the right password, whether or not it exists", async () => {
+    const { user, password } = await accountWithPassword();
+    for (let i = 0; i < AUTH_LIMITS.signInPerEmail.max; i++) {
+      await signInAction({ email: user.email, password: "wrong", rememberMe: false });
+      await signInAction({ email: "ghost@example.com", password: "wrong", rememberMe: false });
+    }
+
+    expect(await signInAction({ email: user.email, password, rememberMe: false })).toEqual({ error: THROTTLED_MESSAGE });
+    expect(await signInAction({ email: "ghost@example.com", password: "x", rememberMe: false })).toEqual({
+      error: THROTTLED_MESSAGE,
+    });
+    expect(await prisma.session.count()).toBe(0);
+  });
+
+  it("counts only failures toward the email limit: a success resets it", async () => {
+    const { user, password } = await accountWithPassword();
+    for (let i = 0; i < AUTH_LIMITS.signInPerEmail.max - 1; i++) {
+      await signInAction({ email: user.email, password: "wrong", rememberMe: false });
+    }
+    expect(await signInAction({ email: user.email, password, rememberMe: false })).toEqual({ success: true });
+    for (let i = 0; i < AUTH_LIMITS.signInPerEmail.max - 1; i++) {
+      expect(await signInAction({ email: user.email, password: "wrong", rememberMe: false })).toEqual({
+        error: "Invalid email or password",
+      });
+    }
+  });
+
+  it("limits one IP across many emails, and not other IPs", async () => {
+    for (let i = 0; i < AUTH_LIMITS.signInPerIP.max; i++) {
+      await signInAction({ email: `spray${i}@example.com`, password: "wrong", rememberMe: false });
+    }
+    expect(await signInAction({ email: "fresh@example.com", password: "x", rememberMe: false })).toEqual({
+      error: THROTTLED_MESSAGE,
+    });
+
+    requestHeaders.set("cf-connecting-ip", "198.51.100.99");
+    expect(await signInAction({ email: "fresh@example.com", password: "x", rememberMe: false })).toEqual({
+      error: "Invalid email or password",
+    });
+  });
+
+  it("ignores a forged X-Forwarded-For when Cloudflare's header is present", async () => {
+    for (let i = 0; i < AUTH_LIMITS.signInPerIP.max; i++) {
+      requestHeaders.set("x-forwarded-for", `10.0.0.${i}`);
+      await signInAction({ email: `spray${i}@example.com`, password: "wrong", rememberMe: false });
+    }
+    requestHeaders.set("x-forwarded-for", "10.9.9.9");
+    expect(await signInAction({ email: "fresh@example.com", password: "x", rememberMe: false })).toEqual({
+      error: THROTTLED_MESSAGE,
+    });
+  });
+
+  it("sends at most three reset emails an hour to one address, with the same answer every time", async () => {
+    const { user } = await accountWithPassword();
+    const answers = [];
+    for (let i = 0; i < 5; i++) answers.push(await requestPasswordReset(form({ email: user.email })));
+
+    expect(new Set(answers.map((a) => JSON.stringify(a))).size).toBe(1);
+    expect(vi.mocked(sendEmail)).toHaveBeenCalledTimes(AUTH_LIMITS.resetRequestPerEmail.max);
+  });
+
+  it("stops guessing the current password from a signed-in session", async () => {
+    const { user } = await accountWithPassword();
+    await signInAs(user.id);
+    for (let i = 0; i < AUTH_LIMITS.passwordChangePerUser.max; i++) {
+      await changePassword(form({ currentPassword: `guess-${i}`, newPassword: "a new long password" }));
+    }
+    expect(await changePassword(form({ currentPassword: "correct horse battery", newPassword: "a new long password" }))).toEqual({
+      error: THROTTLED_MESSAGE,
+    });
+  });
 });
 
 describe("signUp", () => {

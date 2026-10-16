@@ -125,22 +125,27 @@ export function hashIP(ip: string): string {
 }
 
 /**
- * Extract client IP from request headers
- * Checks X-Forwarded-For, X-Real-IP, and falls back to remote address
+ * The client's IP. Prefers CF-Connecting-IP, which Cloudflare sets at the
+ * edge: the origin is reachable only through the Cloudflare tunnel (no public
+ * ports), so a client cannot supply its own. The first X-Forwarded-For entry
+ * is whatever the client sent, so it only serves local dev, where no
+ * Cloudflare header exists. Rate limits key on this, so never put a
+ * client-controlled header first.
  */
-export function getClientIP(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    // Take the first IP if there are multiple
-    return forwardedFor.split(",")[0].trim();
-  }
+export function clientIPFromHeaders(headers: { get(name: string): string | null }): string {
+  const cloudflare = headers.get("cf-connecting-ip")?.trim();
+  if (cloudflare) return cloudflare;
 
-  const realIP = request.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP;
-  }
+  const forwardedFor = headers.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
 
-  // Fallback to a placeholder if we can't determine IP
-  // In production behind a reverse proxy, this shouldn't happen
+  const realIP = headers.get("x-real-ip");
+  if (realIP) return realIP;
+
   return "unknown";
+}
+
+/** `clientIPFromHeaders` for route handlers that hold the Request. */
+export function getClientIP(request: Request): string {
+  return clientIPFromHeaders(request.headers);
 }

@@ -16,6 +16,15 @@ import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor } from "@/lib/product";
+import {
+  clearPasswordChangeThrottle,
+  clearSignInThrottle,
+  passwordChangeThrottled,
+  resetRequestThrottled,
+  signInThrottled,
+  signUpThrottled,
+  THROTTLED_MESSAGE,
+} from "@/lib/auth-throttle";
 
 /**
  * Sign up a new user with email and password
@@ -32,6 +41,10 @@ export async function signUp(formData: FormData) {
 
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters" };
+  }
+
+  if (await signUpThrottled()) {
+    return { error: THROTTLED_MESSAGE };
   }
 
   // Check if user already exists
@@ -94,6 +107,10 @@ export async function signInAction(input: {
     return { error: "Email and password are required" };
   }
 
+  if (await signInThrottled(email)) {
+    return { error: THROTTLED_MESSAGE };
+  }
+
   const user = await prisma.user.findUnique({
     where: { email },
     select: { id: true, password: true, _count: { select: { memberships: true } } },
@@ -116,6 +133,7 @@ export async function signInAction(input: {
     where: { id: user.id },
     data: { lastLoginAt: new Date(), failedLoginCount: 0, lastFailedLoginAt: null },
   });
+  clearSignInThrottle(email);
 
   const { token, session } = await createSession(user.id, input.rememberMe === true);
   await setSessionCookie(token, session.rememberMe, session.absoluteExpiresAt);
@@ -127,11 +145,26 @@ export async function signInAction(input: {
  * Request a password reset email
  * Always returns success to prevent email enumeration
  */
-export async function requestPasswordReset(formData: FormData) {
+type ResetRequestResult =
+  | { success: true; message: string; error?: never }
+  | { error: string; success?: never; message?: never };
+
+export async function requestPasswordReset(formData: FormData): Promise<ResetRequestResult> {
   const email = normalizeEmail((formData.get("email") as string | null) ?? "");
 
   if (!email) {
     return { error: "Email is required" };
+  }
+
+  const genericSuccess: ResetRequestResult = {
+    success: true,
+    message: "If an account exists with that email, a reset link has been sent.",
+  };
+
+  // Throttled requests get the same answer and send nothing, so nobody can
+  // flood an inbox and the response still says nothing about the account.
+  if (await resetRequestThrottled(email)) {
+    return genericSuccess;
   }
 
   // Find user by email
@@ -141,10 +174,7 @@ export async function requestPasswordReset(formData: FormData) {
 
   // Always return success, even if user doesn't exist (prevent enumeration)
   if (!user) {
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   }
 
   try {
@@ -211,17 +241,11 @@ ${productName}
       `.trim(),
     });
 
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   } catch (error) {
     console.error("Password reset request error:", error);
     // Still return success to prevent enumeration
-    return {
-      success: true,
-      message: "If an account exists with that email, a reset link has been sent.",
-    };
+    return genericSuccess;
   }
 }
 
@@ -340,6 +364,10 @@ export async function changePassword(formData: FormData) {
     return { error: "New password must be at least 8 characters" };
   }
 
+  if (passwordChangeThrottled(session.user.id)) {
+    return { error: THROTTLED_MESSAGE };
+  }
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -362,6 +390,7 @@ export async function changePassword(formData: FormData) {
     });
     // This browser stays signed in; every other session ends.
     await invalidateUserSessions(session.user.id, session.id);
+    clearPasswordChangeThrottle(session.user.id);
 
     return { success: true };
   } catch (error) {

@@ -68,11 +68,25 @@ Flow:
 **Action:** `signInAction()` in `src/actions/auth.ts`, called from the login page
 
 Flow:
-1. Look up the User by normalized email
-2. Verify the password. An unknown email is verified against a dummy hash so the response takes as long as for a real account
-3. On failure (wrong password, unknown email, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
-4. On success: reset the failed count, set `lastLoginAt`, create a new session, set the cookie
-5. The client navigates to `/`, which resolves the account's home
+1. Refuse if throttled (below), before any lookup or password check
+2. Look up the User by normalized email
+3. Verify the password. An unknown email is verified against a dummy hash so the response takes as long as for a real account
+4. On failure (wrong password, unknown email, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
+5. On success: reset the failed count and the email's throttle, set `lastLoginAt`, create a new session, set the cookie
+6. The client navigates to `/`, which resolves the account's home
+
+### Throttling
+
+`src/lib/auth-throttle.ts`, in memory (one container per environment; counts reset on deploy). Keys are the hashed client IP (`clientIPFromHeaders`: Cloudflare's `CF-Connecting-IP` first) and the normalized email or user id. The per-email limit applies to unregistered emails too, so it reveals nothing.
+
+| Endpoint | Limit | When over |
+|----------|-------|-----------|
+| Sign-in | 5 failures per email, 20 attempts per IP, per 15 min | "Too many attempts" error, no password check |
+| Signup | 5 per IP per hour | Same error |
+| Reset request | 3 per email, 10 per IP, per hour | The usual generic success, and no email sent |
+| Password change | 5 per user per 15 min | Same error |
+
+A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
 Sign-in and sign-out are our own server actions with relative redirects, so they never leave the current host. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
 
