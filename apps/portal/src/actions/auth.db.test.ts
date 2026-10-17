@@ -45,6 +45,10 @@ beforeEach(async () => {
   await resetDatabase();
 });
 
+// A spray of failed sign-ins each verify a password hash on purpose, which
+// takes about five seconds in all, so these get more than Vitest's default.
+const SPRAY_TIMEOUT_MS = 30_000;
+
 describe("throttling", () => {
   it("locks an email after five tries, even with the right password, whether or not it exists", async () => {
     const { user, password } = await accountWithPassword();
@@ -85,7 +89,7 @@ describe("throttling", () => {
     expect(await signInAction({ email: "fresh@example.com", password: "x", rememberMe: false })).toEqual({
       error: "Invalid email or password",
     });
-  });
+  }, SPRAY_TIMEOUT_MS);
 
   it("ignores a forged X-Forwarded-For when Cloudflare's header is present", async () => {
     for (let i = 0; i < AUTH_LIMITS.signInPerIP.max; i++) {
@@ -96,7 +100,7 @@ describe("throttling", () => {
     expect(await signInAction({ email: "fresh@example.com", password: "x", rememberMe: false })).toEqual({
       error: THROTTLED_MESSAGE,
     });
-  });
+  }, SPRAY_TIMEOUT_MS);
 
   it("sends at most three reset emails an hour to one address, with the same answer every time", async () => {
     const { user } = await accountWithPassword();
