@@ -86,7 +86,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
     "Cache-Control": preview ? "no-store" : (upstream.headers.get("cache-control") ?? "no-cache"),
   });
   if (upstream.status === 404 && upstream.headers.get("content-type")?.includes("application/json")) {
-    return new NextResponse("This demo site hasn't been published yet.", { status: 404, headers: { "Content-Type": "text/plain" } });
+    headers.set("Content-Type", "text/plain; charset=utf-8");
+    return new NextResponse("This demo site hasn't been published yet.", { status: 404, headers });
   }
   if (mockup && headers.get("Content-Type")?.startsWith("text/html")) {
     const html = await upstream.text();
