@@ -8,15 +8,14 @@ The site build worker (PRD section 4.2, Epic 30). An internal HTTP service for t
 - `POST /v1/sites/:slug/publish` re-applies the same ops to the same base commit, commits and pushes, then points `current` at the previewed build (no rebuild). If the branch moved since the preview, it refuses.
 - `GET /v1/sites/:slug/files/(current|preview)/<path>` serves a built file (the portal proxies `/demo` through this).
 
-One job at a time per site, two sites at most. Every route but `/healthz` needs `Authorization: Bearer $BUILDER_TOKEN`. Commands run with argument arrays, never a shell, and site builds get an environment without the builder's secrets.
+One job at a time per site, two sites at most. Every route but `/healthz` needs `Authorization: Bearer $BUILDER_TOKEN`. Commands run with argument arrays, never a shell; site builds get an environment without the builder's secrets, and dependencies install without their install scripts (`npm ci --ignore-scripts`), so a site that needs one fails to build.
 
 ## Environment
 
 | Variable | Notes |
 |---|---|
 | `BUILDER_TOKEN` | Required, at least 32 characters; the portal sends the same value |
-| `GIT_TOKEN_<SLUG>` | Per site, a fine-grained GitHub token limited to its repo with Contents read and write; slug uppercased, hyphens as underscores. Used because the org disables deploy keys |
-| `DEPLOY_KEY_<SLUG>` | Per site, alternatively, a write deploy key for its repo (PEM, or base64 of it) |
+| `GIT_TOKEN_<SLUG>` | Per site, a fine-grained GitHub token limited to its repo with Contents read and write; slug uppercased, hyphens as underscores. The org disables deploy keys, so this is the only way in |
 | `SITES_ROOT` | Default `/srv/sites`, a persistent volume |
 | `BUILDS_RETAINED` | Default 5; `current` and `preview` targets are always kept |
 | `BUILDER_ALLOW_LOCAL_REPOS` | `1` only in development, to build from a local bare repo path |

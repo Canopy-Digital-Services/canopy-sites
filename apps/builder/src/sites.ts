@@ -17,8 +17,6 @@ import { git, gitEnv, resetTree, resolveRepo, syncClone, type RepoRef } from "./
 import { buildEnv, Log, run, StepError } from "./run.ts";
 
 export const SITES_ROOT = process.env.SITES_ROOT ?? "/srv/sites";
-const KEYS_DIR = process.env.KEYS_DIR ?? "/tmp/canopy-keys";
-const KNOWN_HOSTS = path.join(SITES_ROOT, ".known_hosts");
 const RETAIN = Number(process.env.BUILDS_RETAINED ?? 5);
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -90,8 +88,8 @@ async function prepare(site: SiteRef, log: Log): Promise<{ ref: RepoRef; env: Re
   const d = dirs(site.slug);
   await mkdir(d.builds, { recursive: true });
   await mkdir(d.meta, { recursive: true });
-  const ref = await resolveRepo(site.slug, site.repoUrl, site.branch, KEYS_DIR);
-  const env = gitEnv(ref, KNOWN_HOSTS);
+  const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
+  const env = gitEnv(ref);
   const head = await syncClone(d.repo, ref, env, log);
   return { ref, env, head };
 }
@@ -160,7 +158,9 @@ async function npmCiIfNeeded(slug: string, repoDir: string, log: Log) {
     return;
   }
   log.add("Installing dependencies (npm ci)");
-  await run("npm", ["ci", "--no-audit", "--no-fund"], { cwd: repoDir, env: buildEnv(), log, timeoutMs: 600_000 });
+  // No install scripts: a dependency's install script would otherwise run
+  // with the builder's own user, and a site's build doesn't need one.
+  await run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: repoDir, env: buildEnv(), log, timeoutMs: 600_000 });
   await writeFile(d.lockHash, hash);
 }
 
