@@ -19,7 +19,7 @@ export * from "./schemas.js";
 export { applyChanges, PatchError, type ChangeOp } from "./patch.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.1.0";
+export const CONTRACT_VERSION = "0.1.1";
 
 /**
  * Every collection a site may have. Each is one JSON document at

@@ -17,6 +17,9 @@ export const Id = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, digits, and hyphens only")
   .max(60);
 
+// A link is written into attributes and structured data, so it may not carry
+// the characters that end one (markup, quotes, whitespace), even though a
+// browser would accept some of them.
 const HttpsUrl = z
   .string()
   .max(500)
@@ -26,7 +29,8 @@ const HttpsUrl = z
     } catch {
       return false;
     }
-  }, "Must be a full https:// link");
+  }, "Must be a full https:// link")
+  .refine((v) => !/[\s<>"'`\\]/.test(v), "Links can't contain spaces, quotes, or < >");
 
 /** A link target: a path on this site, an in-page anchor, or an https URL. */
 export const Href = z
