@@ -134,7 +134,7 @@ Goal: a ChangeSet against Client 2 produces a viewable preview without touching 
 
 - Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays builder + Caddy (PRD D27)
 
-- `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (deploy key, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
+- `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (repo-scoped token, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
 - Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`, `<slug>-preview.canopyds.com` → `preview`, PRD D25) and reloads. In this phase only preview hostnames are configured
 - Preview auth per PRD Q2

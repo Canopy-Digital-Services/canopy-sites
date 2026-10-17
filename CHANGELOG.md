@@ -5,6 +5,17 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.3] - 2026-10-17
+
+### Changed
+
+- Site content contract v0.1.1: link fields accept only the characters a link needs
+- The site builder installs a site's dependencies without running their install scripts, and no longer supports deploy keys (the repo-scoped token is the only way in)
+
+### Fixed
+
+- The demo's "not published yet" notice carries the same sandbox as every other `/demo` response
+
 ## [5.4.2] - 2026-10-16
 
 ### Changed

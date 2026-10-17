@@ -98,6 +98,18 @@ describe("validateContent", () => {
     expect(text).toContain('Unknown collection "widgets"');
   });
 
+  it("rejects links that could end an attribute or a script block", async () => {
+    const { content } = await readContent(GOOD);
+    const bad = structuredClone(content) as any;
+    bad.site.socials = [{ network: "instagram", url: "https://x.com/</script><script>alert(1)</script>" }];
+    bad.site.contact.bookingUrl = 'https://book.example.com/a"onmouseover="alert(1)';
+    bad.pages[0].hero.cta.href = "https://example.com/a b";
+    const text = formatIssues(validateContent(bad).issues);
+    expect(text).toContain("site/socials/0/url: Links can't contain");
+    expect(text).toContain("site/contact/bookingUrl: Links can't contain");
+    expect(text).toContain("pages/0/hero/cta/href");
+  });
+
   it("rejects duplicate ids", async () => {
     const { content } = await readContent(GOOD);
     const bad = structuredClone(content) as any;
