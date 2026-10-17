@@ -45,6 +45,7 @@ export default async function QuickEditPage() {
     <PageContent width="wide">
       <div className="space-y-6">
         <div className="flex items-end gap-4">
+          {/* In the header until the page gutter has room for him (below). */}
           <Image
             src="/illustrations/canopy-boy.svg"
             alt=""
@@ -52,7 +53,7 @@ export default async function QuickEditPage() {
             height={656}
             unoptimized
             priority
-            className="h-24 w-auto shrink-0 sm:h-32"
+            className="h-24 w-auto shrink-0 sm:h-32 min-[1720px]:hidden"
           />
           <div className="min-w-0 flex-1 pb-1">
             <PageHeader
@@ -71,30 +72,41 @@ export default async function QuickEditPage() {
             />
           </div>
         </div>
-        <QuickEditWorkspace
-          pagesCard={
-            <Suspense fallback={<PagesCardSkeleton />}>
-              <PagesCard pages={pages} liveUrl={liveUrl} />
-            </Suspense>
-          }
-          liveUrl={liveUrl}
-          pending={
-            changes.pending
-              ? {
-                  id: changes.pending.id,
-                  summary: changes.pending.summary,
-                  status: changes.pending.status,
-                  error: changes.pending.error,
-                }
-              : null
-          }
-          recent={changes.recent.map((c) => ({
-            id: c.id,
-            summary: c.summary,
-            publishedAt: c.publishedAt?.toISOString() ?? null,
-            by: c.by,
-          }))}
-        />
+        <div className="relative">
+          {/* Wide screens: standing in the left gutter beside the chat. */}
+          <Image
+            src="/illustrations/canopy-boy.svg"
+            alt=""
+            width={409}
+            height={656}
+            unoptimized
+            className="absolute right-full top-0 mr-6 hidden h-auto w-44 min-[1720px]:block"
+          />
+          <QuickEditWorkspace
+            pagesCard={
+              <Suspense fallback={<PagesCardSkeleton />}>
+                <PagesCard pages={pages} liveUrl={liveUrl} />
+              </Suspense>
+            }
+            liveUrl={liveUrl}
+            pending={
+              changes.pending
+                ? {
+                    id: changes.pending.id,
+                    summary: changes.pending.summary,
+                    status: changes.pending.status,
+                    error: changes.pending.error,
+                  }
+                : null
+            }
+            recent={changes.recent.map((c) => ({
+              id: c.id,
+              summary: c.summary,
+              publishedAt: c.publishedAt?.toISOString() ?? null,
+              by: c.by,
+            }))}
+          />
+        </div>
       </div>
     </PageContent>
   );
