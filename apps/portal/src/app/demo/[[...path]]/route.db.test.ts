@@ -6,15 +6,18 @@ import { jar, resetRequest, signInAs } from "../../../../test/next-request";
 vi.mock("next/headers", () => import("../../../../test/next-request"));
 
 // The builder stands in for its two views; the database is real.
-const builder = vi.hoisted(() => ({ built: true, calls: [] as string[] }));
+const builder = vi.hoisted(() => ({ built: true, calls: [] as string[], onlyInPreview: [] as string[] }));
 vi.mock("@/lib/builder-client", () => ({
   fetchSiteFile: vi.fn(async (_slug: string, view: "current" | "preview", path: string) => {
     builder.calls.push(view);
     if (!builder.built) {
       return new Response(JSON.stringify({ error: "Nothing built yet" }), { status: 404, headers: { "Content-Type": "application/json" } });
     }
+    if (view === "current" && builder.onlyInPreview.includes(path)) {
+      return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
+    }
     if (path.endsWith(".css")) return new Response("body{}", { headers: { "Content-Type": "text/css; charset=utf-8" } });
-    return new Response(`<html><body>${view}</body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return new Response(`<html><head><title>t</title></head><body>${view}</body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }),
 }));
 
@@ -38,13 +41,15 @@ beforeEach(async () => {
   await resetDatabase();
   builder.built = true;
   builder.calls = [];
+  builder.onlyInPreview = [];
 });
 
 describe("/demo", () => {
-  it("sandboxes every response: pages, assets, the preview, the concept, and the unpublished notice", async () => {
+  it("sandboxes every response: pages, assets, the preview, the editor's pages, and the unpublished notice", async () => {
     const { user } = await demoAccount();
-    const responses = [await get(), await get(["_astro", "app.css"]), await get([], "?canopy_editor_mockup=1")];
+    const responses = [await get(), await get(["_astro", "app.css"])];
     await signInAs(user.id);
+    responses.push(await get(["services"], "?canopy_editor=1"));
     jar.set(PREVIEW_COOKIE, { name: PREVIEW_COOKIE, value: "1", options: {} });
     responses.push(await get());
     builder.built = false;
@@ -59,17 +64,40 @@ describe("/demo", () => {
     expect(responses[0].headers.get("x-frame-options")).toBe("DENY");
   });
 
-  it("lets only the portal frame the Editor concept, which never shows the preview", async () => {
-    const { user } = await demoAccount();
-    await signInAs(user.id);
-    jar.set(PREVIEW_COOKIE, { name: PREVIEW_COOKIE, value: "1", options: {} });
+  it("gives the Editor's canvas the draft with the bridge, for members of the demo account only", async () => {
+    const { account, user } = await demoAccount();
+    const member = await createMember(account.id);
+    const { user: outsider } = await createAccount({ planCode: "SITES" });
 
-    const res = await get([], "?canopy_editor_mockup=1");
+    for (const id of [user.id, member.id]) {
+      resetRequest();
+      await signInAs(id);
+      const res = await get(["services"], "?canopy_editor=1");
+      const html = await res.text();
+      expect(res.status).toBe(200);
+      expect(html).toContain("<body>preview");
+      expect(html).toContain('<head><base href="/demo/services"><script>document.documentElement.setAttribute("data-canopy-editor","")</script><title>');
+      expect(html).toContain("canopy-canvas");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    }
+    resetRequest();
+    await signInAs(outsider.id);
+    expect((await get([], "?canopy_editor=1")).status).toBe(404);
+    resetRequest();
+    expect((await get([], "?canopy_editor=1")).status).toBe(404);
+  });
 
-    expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
-    expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+  it("serves a fingerprinted asset only the other build has, for the canvas's sessionless requests", async () => {
+    await demoAccount();
+    builder.onlyInPreview = ["_astro/new.css"];
+    const res = await get(["_astro", "new.css"]);
+    expect(res.status).toBe(200);
+    expect(builder.calls).toEqual(["current", "preview"]);
+    builder.calls = [];
+    builder.onlyInPreview = ["about/index.html"];
+    expect((await get(["about", "index.html"])).status).toBe(404);
     expect(builder.calls).toEqual(["current"]);
-    expect(await res.text()).toContain("<body>current");
   });
 
   it("shows the preview only to a signed-in member of the demo account who switched it on", async () => {

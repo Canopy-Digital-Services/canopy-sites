@@ -78,6 +78,24 @@ export async function syncClone(repoDir: string, ref: RepoRef, env: Record<strin
   return (await git(repoDir, env, ["rev-parse", "HEAD"])).trim();
 }
 
+/** Updates refs/remotes/origin/<branch> from the remote, leaving the working tree alone. */
+export async function fetchBranch(repoDir: string, ref: RepoRef, env: Record<string, string>) {
+  await git(repoDir, env, ["remote", "set-url", "origin", ref.remote]);
+  await git(repoDir, env, ["fetch", "--prune", "origin", `+refs/heads/${ref.branch}:refs/remotes/origin/${ref.branch}`]);
+}
+
+/**
+ * A file's text at a commit, or null when the commit has no such file. Reads
+ * git's objects, never the working tree, so it is safe while a build edits it.
+ */
+export async function showFile(repoDir: string, env: Record<string, string>, commit: string, file: string): Promise<string | null> {
+  const present = await git(repoDir, env, ["cat-file", "-e", `${commit}:${file}`]).then(
+    () => true,
+    () => false,
+  );
+  return present ? git(repoDir, env, ["show", `${commit}:${file}`]) : null;
+}
+
 /** Leaves the working tree exactly at HEAD again after a build's edits. */
 export async function resetTree(repoDir: string, env: Record<string, string>) {
   await git(repoDir, env, ["reset", "-q", "--hard", "HEAD"]);

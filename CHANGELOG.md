@@ -5,6 +5,21 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.0] - 2026-10-18
+
+### Added
+
+- The Editor is a working visual editor for the demo site (Epic 33, in progress): marked text, paragraphs, and prices edit in place on the site with a character count; other marked fields open Quick Edit scoped to that field; back, forward, a page picker, and desktop and phone views
+- Unpublished changes, Discard, and Publish in the Canopy Sites top bar, whichever tab made the changes
+- Site content contract v0.2.0: ids on every list entry, field addresses that survive reordering, field kinds and labels, site guide limits, and a migration from v0.1
+- The site builder rebuilds each published site at its local midnight, so dated announcements appear and expire on time
+
+### Changed
+
+- Every edit, from the Editor or Quick Edit, goes into one draft per site: the last change to a field wins, undoing every change drops the draft, and a template change from Canopy carries the draft over instead of failing it
+- Site builds use the site's time zone, so what's current on the build date follows the site's calendar
+- The builder answers content reads from its own copy of the site, without fetching from GitHub each time
+
 ## [5.4.5] - 2026-10-17
 
 ### Changed

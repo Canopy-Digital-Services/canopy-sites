@@ -3,7 +3,19 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import path from "node:path";
 import type { ChangeOp } from "@canopy/site-contract";
 import { resolveFile, sendFile } from "./serve.ts";
-import { BUILD_ID, getBuild, publish, readSiteContent, resetToTag, siteStatus, SLUG, startPreview, viewRoot, type SiteRef } from "./sites.ts";
+import {
+  BUILD_ID,
+  getBuild,
+  publish,
+  readSiteContent,
+  resetToTag,
+  siteStatus,
+  SLUG,
+  startNightlyRebuilds,
+  startPreview,
+  viewRoot,
+  type SiteRef,
+} from "./sites.ts";
 import { StepError } from "./run.ts";
 
 /**
@@ -48,9 +60,9 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
 }
 
 function siteRef(slug: string, body: Record<string, unknown>): SiteRef {
-  const { repoUrl, branch } = body;
+  const { repoUrl, branch, timeZone } = body;
   if (typeof repoUrl !== "string" || typeof branch !== "string") throw new StepError("repoUrl and branch are required");
-  return { slug, repoUrl, branch };
+  return { slug, repoUrl, branch, timeZone: typeof timeZone === "string" ? timeZone : undefined };
 }
 
 const OPS = new Set(["add", "remove", "replace", "move"]);
@@ -59,9 +71,14 @@ function parseOps(value: unknown): ChangeOp[] {
   if (!Array.isArray(value) || value.length > 100) throw new StepError("ops must be a list of at most 100 changes");
   return value.map((o, i) => {
     if (!o || typeof o !== "object") throw new StepError(`Change ${i + 1} is not an object`);
-    const { collection, op, path: p, value: v, from } = o as Record<string, unknown>;
-    if (typeof collection !== "string" || typeof op !== "string" || !OPS.has(op) || typeof p !== "string") {
-      throw new StepError(`Change ${i + 1} needs collection, op (add, remove, replace, move), and path`);
+    const { collection, op, path: p, value: v, from, address, before } = o as Record<string, unknown>;
+    if (typeof op !== "string" || !OPS.has(op)) throw new StepError(`Change ${i + 1} needs an op (add, remove, replace, move)`);
+    if (typeof address === "string") {
+      if (before !== undefined && typeof before !== "string") throw new StepError(`Change ${i + 1}: before must be an id`);
+      return { op: op as ChangeOp["op"], address, value: v, before: before as string | undefined };
+    }
+    if (typeof collection !== "string" || typeof p !== "string") {
+      throw new StepError(`Change ${i + 1} needs an address, or a collection and a path`);
     }
     if (from !== undefined && typeof from !== "string") throw new StepError(`Change ${i + 1}: from must be a path`);
     return { collection, op: op as ChangeOp["op"], path: p, value: v, from: from as string | undefined };
@@ -108,8 +125,8 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "POST") return json(res, 404, { error: "Not found" });
   const body = await readJson(req);
 
-  // POST /v1/sites/:slug/content  { repoUrl, branch }
-  if (action === "content") return json(res, 200, await readSiteContent(siteRef(slug, body)));
+  // POST /v1/sites/:slug/content  { repoUrl, branch, timeZone?, refresh? }
+  if (action === "content") return json(res, 200, await readSiteContent(siteRef(slug, body), { refresh: body.refresh === true }));
 
   // POST /v1/sites/:slug/previews  { repoUrl, branch, buildId, ops, baseCommit? }
   if (action === "previews") {
@@ -150,4 +167,7 @@ createServer((req, res) => {
     if (!res.headersSent) json(res, known ? 422 : 500, { error: known ? (err as Error).message : "Builder error", issues: (err as { issues?: unknown }).issues });
     else res.end();
   });
-}).listen(PORT, () => console.log(JSON.stringify({ event: "builder_listening", port: PORT })));
+}).listen(PORT, () => {
+  console.log(JSON.stringify({ event: "builder_listening", port: PORT }));
+  startNightlyRebuilds();
+});

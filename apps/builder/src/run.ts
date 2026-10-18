@@ -54,13 +54,18 @@ export function run(
   });
 }
 
-/** Environment for a site's npm and astro steps: no builder secrets. */
-export function buildEnv(): Record<string, string> {
+/**
+ * Environment for a site's npm and astro steps: no builder secrets. TZ is the
+ * site's time zone, so a page that shows what's current on the build date
+ * (announcements) uses the site's calendar, not the container's UTC.
+ */
+export function buildEnv(timeZone?: string): Record<string, string> {
   return {
     PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
     HOME: process.env.HOME ?? "/tmp",
     CI: "1",
     ASTRO_TELEMETRY_DISABLED: "1",
     npm_config_update_notifier: "false",
+    ...(timeZone ? { TZ: timeZone } : {}),
   };
 }

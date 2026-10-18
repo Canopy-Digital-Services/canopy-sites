@@ -3,15 +3,34 @@
   "tagline": "Lifestyle cuts and lived-in color.",
   "description": "A hairstylist in a small town, specializing in cuts, color, and waxing.",
   "contact": {
-    "address": { "locality": "Springfield", "region": "CA", "country": "US" },
+    "address": {
+      "locality": "Springfield",
+      "region": "CA",
+      "country": "US"
+    },
     "bookingUrl": "https://book.example.com/salon"
   },
   "hours": {
     "kind": "weekly",
     "days": [
-      { "day": "tuesday", "opens": "12:00", "closes": "17:00" },
-      { "day": "saturday", "opens": "12:00", "closes": "17:00" }
+      {
+        "day": "tuesday",
+        "opens": "12:00",
+        "closes": "17:00"
+      },
+      {
+        "day": "saturday",
+        "opens": "12:00",
+        "closes": "17:00"
+      }
     ]
   },
-  "socials": [{ "network": "instagram", "url": "https://instagram.com/fixture", "handle": "@fixture" }]
+  "socials": [
+    {
+      "id": "instagram",
+      "network": "instagram",
+      "url": "https://instagram.com/fixture",
+      "handle": "@fixture"
+    }
+  ]
 }

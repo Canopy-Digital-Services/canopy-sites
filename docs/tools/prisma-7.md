@@ -315,11 +315,16 @@ All migration commands run **inside the Docker container** (DATABASE_URL is only
 #    prisma/schema.prisma
 
 # 2. Create migration inside the container
-docker.exe exec canopy-portal npx prisma migrate dev --name your_migration_name
+docker exec canopy-portal npx prisma migrate dev --name your_migration_name
+
+# 3. Regenerate the client: in Prisma 7, migrate dev no longer runs generate
+#    (verified 2026-10-18: tests failed with PrismaClientValidationError on the
+#    new column until this ran)
+docker exec canopy-portal npx prisma generate
 
 # NOTE: If the dev server has a stale Prisma client after schema changes,
 # restart the container:
-docker.exe restart canopy-portal
+docker restart canopy-portal
 ```
 
 #### Manual SQL Migration (Alternative / Production)

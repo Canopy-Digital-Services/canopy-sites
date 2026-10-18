@@ -1,10 +1,13 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { access, mkdir, readdir, readFile, readlink, rename, rm, stat, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   applyChanges,
+  collections,
+  COLLECTION_NAMES,
   CONTRACT_VERSION,
   isCollectionName,
+  opCollection,
   PatchError,
   validateContent,
   type ChangeOp,
@@ -13,7 +16,7 @@ import {
   type RawContent,
 } from "@canopy/site-contract";
 import { formatIssues, readContent, validateSite, writeContent } from "@canopy/site-contract/node";
-import { git, gitEnv, resetTree, resolveRepo, syncClone, type RepoRef } from "./git.ts";
+import { fetchBranch, git, gitEnv, resetTree, resolveRepo, showFile, syncClone, type RepoRef } from "./git.ts";
 import { buildEnv, Log, run, StepError } from "./run.ts";
 
 export const SITES_ROOT = process.env.SITES_ROOT ?? "/srv/sites";
@@ -26,9 +29,12 @@ export interface SiteRef {
   slug: string;
   repoUrl: string;
   branch: string;
+  /** IANA zone: builds run on the site's calendar, and it is rebuilt at its local midnight. */
+  timeZone?: string;
 }
 
-export type BuildStatus = "queued" | "running" | "succeeded" | "failed";
+/** superseded: a newer preview of the same site arrived before this one started. */
+export type BuildStatus = "queued" | "running" | "succeeded" | "failed" | "superseded";
 
 export interface BuildRecord {
   id: string;
@@ -81,6 +87,21 @@ export function enqueue<T>(slug: string, fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
+// Fetches and checkouts take the site's git lock, so a content read's fetch
+// never lands in the middle of a build syncing its clone. Reads themselves
+// take git objects, never the working tree a build is editing.
+const gitLocks = new Map<string, Promise<unknown>>();
+function withGitLock<T>(slug: string, fn: () => Promise<T>): Promise<T> {
+  const prev = gitLocks.get(slug) ?? Promise.resolve();
+  const next = prev.catch(() => undefined).then(fn);
+  gitLocks.set(slug, next);
+  return next;
+}
+
+/** When each site's clone last fetched; content reads fetch only when it's older than FETCH_TTL_MS. */
+const lastFetch = new Map<string, number>();
+const FETCH_TTL_MS = Number(process.env.FETCH_TTL_SECONDS ?? 60) * 1000;
+
 // ---------------------------------------------------------------------------
 
 async function prepare(site: SiteRef, log: Log): Promise<{ ref: RepoRef; env: Record<string, string>; head: string }> {
@@ -90,24 +111,74 @@ async function prepare(site: SiteRef, log: Log): Promise<{ ref: RepoRef; env: Re
   await mkdir(d.meta, { recursive: true });
   const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
   const env = gitEnv(ref);
-  const head = await syncClone(d.repo, ref, env, log);
+  const head = await withGitLock(site.slug, () => syncClone(d.repo, ref, env, log));
+  lastFetch.set(site.slug, Date.now());
   return { ref, env, head };
 }
 
-/** Current content of the site's branch, straight from the repo. */
-export async function readSiteContent(site: SiteRef): Promise<{ commit: string; content: RawContent; contractVersion: string | null }> {
-  return enqueue(site.slug, async () => {
-    const log = new Log();
-    const { head } = await prepare(site, log);
-    const { content, issues } = await readContent(dirs(site.slug).repo);
-    if (issues.length) throw new StepError(formatIssues(issues));
-    return { commit: head, content, contractVersion: await installedContractVersion(site.slug) };
-  });
+export interface SiteContent {
+  commit: string;
+  content: RawContent;
+  /** SITE_GUIDE.md at the repo root (PRD D31, D40), or null when there is none. */
+  guide: string | null;
+  contractVersion: string | null;
 }
 
-async function installedContractVersion(slug: string): Promise<string | null> {
+/**
+ * The site branch's content, site guide, and contract version, read from
+ * git's objects in the working clone (PRD section 7, editor responsiveness):
+ * it fetches only when the clone's copy is older than FETCH_TTL_MS or the
+ * caller asks to refresh, and never waits behind a build.
+ */
+export async function readSiteContent(site: SiteRef, opts: { refresh?: boolean } = {}): Promise<SiteContent> {
+  await scheduleSite(site);
+  const d = dirs(site.slug);
+  const cloned = await access(path.join(d.repo, ".git")).then(
+    () => true,
+    () => false,
+  );
+  const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
+  const env = gitEnv(ref);
+  if (!cloned) {
+    await enqueue(site.slug, async () => {
+      await prepare(site, new Log());
+    });
+  } else if (opts.refresh || Date.now() - (lastFetch.get(site.slug) ?? 0) > FETCH_TTL_MS) {
+    await withGitLock(site.slug, () => fetchBranch(d.repo, ref, env));
+    lastFetch.set(site.slug, Date.now());
+  }
+  const commit = (await git(d.repo, env, ["rev-parse", `refs/remotes/origin/${site.branch}`])).trim();
+  const cached = contentCache.get(site.slug);
+  if (cached?.commit === commit) return structuredClone(cached);
+  const content: RawContent = {};
+  const issues: ContentIssue[] = [];
+  for (const name of COLLECTION_NAMES) {
+    const file = collections[name].file;
+    const text = await showFile(d.repo, env, commit, `src/content/${file}`);
+    if (text === null) continue;
+    try {
+      content[name] = JSON.parse(text);
+    } catch (err) {
+      issues.push({ collection: name, path: "", message: `${file} is not valid JSON: ${(err as Error).message}` });
+    }
+  }
+  if (issues.length) throw new StepError(formatIssues(issues));
+  const read: SiteContent = {
+    commit,
+    content,
+    guide: await showFile(d.repo, env, commit, "SITE_GUIDE.md"),
+    contractVersion: await installedContractVersion(d.repo, env, commit),
+  };
+  contentCache.set(site.slug, read);
+  return structuredClone(read);
+}
+
+/** The last content read per site; a commit names its content exactly, so it never goes stale. */
+const contentCache = new Map<string, SiteContent>();
+
+async function installedContractVersion(repoDir: string, env: Record<string, string>, commit: string): Promise<string | null> {
   try {
-    const lock = JSON.parse(await readFile(path.join(dirs(slug).repo, "package-lock.json"), "utf8"));
+    const lock = JSON.parse((await showFile(repoDir, env, commit, "package-lock.json")) ?? "{}");
     return lock.packages?.["node_modules/@canopy/site-contract"]?.version ?? null;
   } catch {
     return null;
@@ -131,7 +202,7 @@ async function applyOps(repoDir: string, ops: ChangeOp[]): Promise<CollectionNam
   }
   const result = validateContent(after);
   if (!result.ok) throw new ContentError(result.issues);
-  const touched = [...new Set(ops.map((o) => o.collection))].filter(isCollectionName);
+  const touched = [...new Set(ops.map(opCollection))].filter(isCollectionName);
   await writeContent(repoDir, after, touched);
   return touched;
 }
@@ -199,11 +270,23 @@ export async function getBuild(slug: string, id: string): Promise<BuildRecord | 
  * made the site's preview. Returns at once; poll getBuild for the outcome.
  * A failed build never moves `preview`.
  */
+const latestPreview = new Map<string, string>();
+
 export function startPreview(site: SiteRef, id: string, ops: ChangeOp[], baseCommit?: string): BuildRecord {
   const rec: BuildRecord = { id, slug: site.slug, status: "queued", baseCommit, log: "" };
   records.set(id, rec);
+  latestPreview.set(site.slug, id);
   const log = new Log();
   enqueue(site.slug, async () => {
+    // Newest wins (PRD D38): a preview that a newer one overtook in the queue never runs.
+    if (latestPreview.get(site.slug) !== id) {
+      rec.status = "superseded";
+      rec.finishedAt = new Date().toISOString();
+      rec.log = "A newer preview of this site arrived before this one started.";
+      await saveRecord(rec).catch(() => undefined);
+      records.delete(id);
+      return;
+    }
     rec.status = "running";
     rec.startedAt = new Date().toISOString();
     const d = dirs(site.slug);
@@ -222,7 +305,7 @@ export function startPreview(site: SiteRef, id: string, ops: ChangeOp[], baseCom
         await npmCiIfNeeded(site.slug, d.repo, log);
         log.add("Building (astro build)");
         await rm(path.join(d.repo, "dist"), { recursive: true, force: true });
-        await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(), log, timeoutMs: 300_000 });
+        await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(site.timeZone), log, timeoutMs: 300_000 });
         await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
       } finally {
         await resetTree(d.repo, env).catch(() => undefined);
@@ -340,4 +423,113 @@ async function prune(slug: string) {
   for (const { e } of dated.slice(RETAIN)) {
     if (!keep.has(e)) await rm(path.join(d.builds, e), { recursive: true, force: true });
   }
+}
+
+// ---------------------------------------------------------------------------
+// The nightly rebuild (PRD D42). A static page shows what is current on its
+// build date, so an announcement that starts or ends overnight changes only
+// when something rebuilds. Each site's published build is rebuilt from its
+// branch at the site's local midnight. The portal sends each site's time zone
+// with every content read, which registers it here; the schedule lives on the
+// volume so it survives a restart.
+
+interface Scheduled {
+  slug: string;
+  repoUrl: string;
+  branch: string;
+  timeZone: string;
+  /** The local date (YYYY-MM-DD) of the last nightly rebuild, or of registration. */
+  lastNightly: string;
+}
+
+const SCHEDULE_FILE = path.join(SITES_ROOT, "schedule.json");
+let schedule: Record<string, Scheduled> | null = null;
+
+function validTimeZone(tz: unknown): tz is string {
+  if (typeof tz !== "string" || !tz || tz.length > 60) return false;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Today's date in a time zone, as YYYY-MM-DD. */
+export function localDate(timeZone: string, at = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+async function loadSchedule(): Promise<Record<string, Scheduled>> {
+  if (!schedule) schedule = JSON.parse(await readFile(SCHEDULE_FILE, "utf8").catch(() => "{}")) as Record<string, Scheduled>;
+  return schedule;
+}
+
+async function saveSchedule() {
+  await writeFile(SCHEDULE_FILE, JSON.stringify(schedule ?? {}, null, 2));
+}
+
+/** Records a site for the nightly rebuild, or updates its repo, branch, or time zone. */
+export async function scheduleSite(site: SiteRef) {
+  if (!validTimeZone(site.timeZone)) return;
+  const all = await loadSchedule();
+  const cur = all[site.slug];
+  if (cur && cur.repoUrl === site.repoUrl && cur.branch === site.branch && cur.timeZone === site.timeZone) return;
+  all[site.slug] = {
+    slug: site.slug,
+    repoUrl: site.repoUrl,
+    branch: site.branch,
+    timeZone: site.timeZone,
+    lastNightly: cur?.lastNightly ?? localDate(site.timeZone),
+  };
+  await saveSchedule();
+}
+
+/**
+ * Rebuilds a site's branch and points `current` at the result, the published
+ * site on a new day. A site never published is left alone, and a failed
+ * build leaves `current` where it was.
+ */
+export function rebuildCurrent(site: SiteRef): Promise<string | null> {
+  return enqueue(site.slug, async () => {
+    const d = dirs(site.slug);
+    if (!(await linkTarget(d.current))) return null;
+    const id = `n${Date.now().toString(36)}${randomBytes(4).toString("hex")}`;
+    const log = new Log();
+    const { env } = await prepare(site, log);
+    try {
+      const check = await validateSite(d.repo);
+      if (!check.ok) throw new ContentError(check.issues);
+      await npmCiIfNeeded(site.slug, d.repo, log);
+      await rm(path.join(d.repo, "dist"), { recursive: true, force: true });
+      await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(site.timeZone), log, timeoutMs: 300_000 });
+      await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
+    } finally {
+      await resetTree(d.repo, env).catch(() => undefined);
+    }
+    await pointAt(d.current, path.join("builds", id));
+    await prune(site.slug);
+    return id;
+  });
+}
+
+async function nightlyTick() {
+  const all = await loadSchedule();
+  for (const entry of Object.values(all)) {
+    const today = localDate(entry.timeZone);
+    if (entry.lastNightly >= today) continue;
+    entry.lastNightly = today;
+    await saveSchedule();
+    rebuildCurrent(entry).then(
+      (id) => console.log(JSON.stringify({ event: "nightly_rebuild", slug: entry.slug, date: today, build: id })),
+      (err) => console.error(JSON.stringify({ event: "nightly_rebuild_failed", slug: entry.slug, date: today, message: (err as Error).message })),
+    );
+  }
+}
+
+/** Checks every minute for sites whose local date has turned over. */
+export function startNightlyRebuilds() {
+  const tick = () => nightlyTick().catch((err) => console.error(JSON.stringify({ event: "nightly_tick_failed", message: (err as Error).message })));
+  setTimeout(tick, 10_000).unref();
+  setInterval(tick, 60_000).unref();
 }
