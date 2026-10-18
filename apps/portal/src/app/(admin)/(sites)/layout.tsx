@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+
+export const metadata: Metadata = {
+  title: "CANOPY SITES",
+  description: "Canopy Sites portal",
+};
 
 /** Routes that exist only for accounts with Canopy Sites. */
 export default async function SitesLayout({
