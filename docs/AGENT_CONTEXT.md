@@ -175,7 +175,7 @@ Migrations apply via `prisma migrate deploy` in `scripts/start.sh` at container 
 Procedure:
 
 1. Edit `prisma/schema.prisma`.
-2. Run `npm run db:migrate -- --name descriptive_name`.
+2. Run `npm run db:migrate -- --name descriptive_name`, then `npm run db:generate`: Prisma 7's `migrate dev` no longer regenerates the client.
 3. **Read the generated SQL** and confirm it does what you intended, not just that it exists.
 4. Commit schema and migration together.
 5. Tell the user to check the Coolify logs for `Applied migration: <name>` followed by `Migrations complete. Starting application...`.
@@ -347,12 +347,13 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
-           maxBuildsRetained, isDemo), one per account, onDelete Restrict
+           maxBuildsRetained, isDemo, timeZone), one per account, onDelete Restrict
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
-       │             error?, publishedCommit?, publishedAt?)
-       └─ Build (changeSetId?, status:BuildStatus, baseCommit?, error?, log?,
-       │         startedAt?, finishedAt?)
+       │             version, error?, publishedCommit?, publishedAt?); the pending
+       │             one is the site's draft (PRD D38)
+       └─ Build (changeSetId?, status:BuildStatus, draftVersion?, baseCommit?,
+       │         error?, log?, startedAt?, finishedAt?)
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
                         cacheWriteTokens, costUsd)
 
@@ -372,7 +373,7 @@ Enums:
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
-- `ChangeSetSource`: `QUICK_EDIT | OPERATOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED`.
+- `ChangeSetSource`: `QUICK_EDIT | OPERATOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED | SUPERSEDED`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
 Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan; `HOSTING` and `UNLOCKED` were retired for that reason in v5.2.1.
