@@ -1,9 +1,19 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { collections, COLLECTION_NAMES, validateContent, type CollectionName, type ContentIssue, type RawContent, type ValidationResult } from "./index.js";
+import {
+  collections,
+  COLLECTION_NAMES,
+  migrateContent,
+  validateContent,
+  type CollectionName,
+  type ContentIssue,
+  type RawContent,
+  type ValidationResult,
+} from "./index.js";
 
 export const CONTENT_DIR = "src/content";
 export const ASSETS_DIR = "src/assets";
+export const SITE_GUIDE_FILE = "SITE_GUIDE.md";
 
 const exists = (p: string) =>
   access(p).then(
@@ -55,6 +65,26 @@ export async function validateSite(siteDir: string): Promise<ValidationResult> {
     }
   }
   return all.length ? { ok: false, issues: all } : (result as ValidationResult);
+}
+
+/** The site guide at the repo root (PRD D31), or null when the site has none. */
+export async function readSiteGuide(siteDir: string): Promise<string | null> {
+  const file = path.join(siteDir, SITE_GUIDE_FILE);
+  return (await exists(file)) ? readFile(file, "utf8") : null;
+}
+
+/**
+ * Migrates a site's content in place from an older contract version (see
+ * migrateContent) and returns the collections it rewrote. Run it in the same
+ * commit that bumps the site's `@canopy/site-contract`.
+ */
+export async function migrateSite(siteDir: string, fromVersion: string): Promise<CollectionName[]> {
+  const { content, issues } = await readContent(siteDir);
+  if (issues.length) throw new Error(formatIssues(issues));
+  const after = migrateContent(content, fromVersion);
+  const changed = COLLECTION_NAMES.filter((name) => name in after && JSON.stringify(after[name]) !== JSON.stringify(content[name]));
+  await writeContent(siteDir, after, changed);
+  return changed;
 }
 
 export function formatIssues(issues: readonly ContentIssue[]): string {

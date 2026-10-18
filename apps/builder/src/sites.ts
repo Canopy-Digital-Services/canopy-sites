@@ -5,6 +5,7 @@ import {
   applyChanges,
   CONTRACT_VERSION,
   isCollectionName,
+  opCollection,
   PatchError,
   validateContent,
   type ChangeOp,
@@ -131,7 +132,7 @@ async function applyOps(repoDir: string, ops: ChangeOp[]): Promise<CollectionNam
   }
   const result = validateContent(after);
   if (!result.ok) throw new ContentError(result.issues);
-  const touched = [...new Set(ops.map((o) => o.collection))].filter(isCollectionName);
+  const touched = [...new Set(ops.map(opCollection))].filter(isCollectionName);
   await writeContent(repoDir, after, touched);
   return touched;
 }

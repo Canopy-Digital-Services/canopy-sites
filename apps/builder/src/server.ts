@@ -59,9 +59,14 @@ function parseOps(value: unknown): ChangeOp[] {
   if (!Array.isArray(value) || value.length > 100) throw new StepError("ops must be a list of at most 100 changes");
   return value.map((o, i) => {
     if (!o || typeof o !== "object") throw new StepError(`Change ${i + 1} is not an object`);
-    const { collection, op, path: p, value: v, from } = o as Record<string, unknown>;
-    if (typeof collection !== "string" || typeof op !== "string" || !OPS.has(op) || typeof p !== "string") {
-      throw new StepError(`Change ${i + 1} needs collection, op (add, remove, replace, move), and path`);
+    const { collection, op, path: p, value: v, from, address, before } = o as Record<string, unknown>;
+    if (typeof op !== "string" || !OPS.has(op)) throw new StepError(`Change ${i + 1} needs an op (add, remove, replace, move)`);
+    if (typeof address === "string") {
+      if (before !== undefined && typeof before !== "string") throw new StepError(`Change ${i + 1}: before must be an id`);
+      return { op: op as ChangeOp["op"], address, value: v, before: before as string | undefined };
+    }
+    if (typeof collection !== "string" || typeof p !== "string") {
+      throw new StepError(`Change ${i + 1} needs an address, or a collection and a path`);
     }
     if (from !== undefined && typeof from !== "string") throw new StepError(`Change ${i + 1}: from must be a path`);
     return { collection, op: op as ChangeOp["op"], path: p, value: v, from: from as string | undefined };

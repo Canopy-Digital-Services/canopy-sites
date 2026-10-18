@@ -1,45 +1,26 @@
 import { z } from "zod";
-import {
-  AnnouncementsSchema,
-  GallerySchema,
-  PagesSchema,
-  ReviewsSchema,
-  ServicesSchema,
-  SiteSchema,
-  type Announcement,
-  type Category,
-  type GalleryItem,
-  type Page,
-  type Review,
-  type Service,
-  type Site,
-} from "./schemas.js";
+import { collections, isCollectionName, type CollectionName, type RawContent } from "./collections.js";
+import { limitIssues } from "./guide.js";
+import type { Announcement, Category, GalleryItem, Page, Review, Service, Site } from "./schemas.js";
 
 export * from "./schemas.js";
-export { applyChanges, PatchError, type ChangeOp } from "./patch.js";
+export * from "./collections.js";
+export { applyChanges, isAddressOp, opCollection, PatchError, type AddressOp, type ChangeOp, type PointerOp } from "./patch.js";
+export {
+  AddressError,
+  addressMatches,
+  field,
+  fieldInfo,
+  parseAddress,
+  resolveAddress,
+  stringValues,
+  type ResolvedAddress,
+} from "./address.js";
+export { FORMAT_KEYS, limitIssues, parseSiteGuide, SiteGuideError, type SiteGuide } from "./guide.js";
+export { migrateContent } from "./migrate.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.1.1";
-
-/**
- * Every collection a site may have. Each is one JSON document at
- * src/content/<file> in the site repo; a site has the subset it renders.
- */
-export const collections = {
-  site: { file: "site.json", schema: SiteSchema, label: "Business details" },
-  pages: { file: "pages.json", schema: PagesSchema, label: "Pages" },
-  services: { file: "services.json", schema: ServicesSchema, label: "Services and prices" },
-  reviews: { file: "reviews.json", schema: ReviewsSchema, label: "Reviews" },
-  gallery: { file: "gallery.json", schema: GallerySchema, label: "Gallery" },
-  announcements: { file: "announcements.json", schema: AnnouncementsSchema, label: "Announcements" },
-} as const;
-
-export type CollectionName = keyof typeof collections;
-export const COLLECTION_NAMES = Object.keys(collections) as CollectionName[];
-
-export function isCollectionName(v: unknown): v is CollectionName {
-  return typeof v === "string" && Object.hasOwn(collections, v);
-}
+export const CONTRACT_VERSION = "0.2.0";
 
 export interface SiteContent {
   site?: Site;
@@ -49,9 +30,6 @@ export interface SiteContent {
   gallery?: GalleryItem[];
   announcements?: Announcement[];
 }
-
-/** Content as read from disk or a request: shape not yet checked. */
-export type RawContent = Partial<Record<CollectionName, unknown>>;
 
 export interface ContentIssue {
   collection: CollectionName;
@@ -83,11 +61,35 @@ export function serviceIndex(categories: Category[]): Map<string, Service> {
 }
 
 /**
- * Validates every collection present in `raw` against the contract, then the
- * references between them. Unknown collections are an error, not ignored, so
- * a typo can't silently write a file nothing reads.
+ * The address (PRD D36) of every service on the menu, by service id, so a
+ * template rendering a featured service can mark the menu entry it came from.
  */
-export function validateContent(raw: RawContent): ValidationResult {
+export function serviceAddresses(categories: Category[]): Map<string, string> {
+  const out = new Map<string, string>();
+  const add = (prefix: string, list?: Service[]) => list?.forEach((s) => out.set(s.id, `${prefix}/services/${s.id}`));
+  for (const c of categories) {
+    const cat = `services/${c.id}`;
+    add(cat, c.services);
+    c.groups?.forEach((g) => add(`${cat}/groups/${g.id}`, g.services));
+    c.sections?.forEach((s) => {
+      add(`${cat}/sections/${s.id}`, s.services);
+      s.groups?.forEach((g) => add(`${cat}/sections/${s.id}/groups/${g.id}`, g.services));
+    });
+  }
+  return out;
+}
+
+export interface ValidateOptions {
+  /** A site guide's limits (PRD D40), applied once the content is otherwise valid. */
+  limits?: Record<string, number>;
+}
+
+/**
+ * Validates every collection present in `raw` against the contract, then the
+ * references between them, then any site guide limits. Unknown collections are
+ * an error, not ignored, so a typo can't silently write a file nothing reads.
+ */
+export function validateContent(raw: RawContent, options: ValidateOptions = {}): ValidationResult {
   const issues: ContentIssue[] = [];
   const content: SiteContent = {};
 
@@ -142,6 +144,10 @@ export function validateContent(raw: RawContent): ValidationResult {
         }),
       ),
     );
+  }
+
+  if (!issues.length && options.limits) {
+    for (const issue of limitIssues(content as RawContent, options.limits)) issues.push(issue as ContentIssue);
   }
 
   return issues.length ? { ok: false, issues } : { ok: true, content, issues: [] };
