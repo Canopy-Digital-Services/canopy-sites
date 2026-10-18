@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   AddressError,
+  addressAt,
   applyChanges,
+  toAddressOps,
   field,
   fieldInfo,
   jsonSchemaFor,
@@ -88,6 +90,30 @@ describe("address ops", () => {
     expect(() => applyChanges(c, [{ op: "add", address: "site/tagline", value: "x" }])).toThrow(/site\/tagline.*not a list/);
     expect(() => applyChanges(c, [{ op: "remove", address: "reviews/nobody" }])).toThrow(PatchError);
     expect(() => applyChanges(c, [{ op: "move", address: "reviews/ashley", before: "nobody" }])).toThrow(/No entry "nobody"/);
+  });
+
+  it("rewrites pointer ops as address ops that change the content the same way", async () => {
+    const c = await load();
+    const pointerOps = [
+      { collection: "services", op: "replace" as const, path: "/0/services/0/priceLabel", value: "$90" },
+      { collection: "announcements", op: "add" as const, path: "/-", value: { id: "holiday", message: "Closed for the holiday." } },
+      { collection: "announcements", op: "add" as const, path: "/0", value: { id: "first", message: "First." } },
+      { collection: "site", op: "add" as const, path: "/contact/phone", value: "530-555-0100" },
+      { collection: "services", op: "move" as const, from: "/0/services/1", path: "/0/services/0" },
+      { collection: "pages", op: "remove" as const, path: "/0/sections/1/body/0" },
+    ];
+    const addressOps = toAddressOps(c, pointerOps);
+    expect(addressOps).toEqual([
+      { op: "replace", address: "services/haircuts/services/haircut/priceLabel", value: "$90" },
+      { op: "add", address: "announcements", value: { id: "holiday", message: "Closed for the holiday." }, before: undefined },
+      { op: "add", address: "announcements", value: { id: "first", message: "First." }, before: "closed-monday" },
+      { op: "replace", address: "site/contact/phone", value: "530-555-0100" },
+      { op: "move", address: "services/haircuts/services/clipper-cut", before: "haircut" },
+      { op: "remove", address: "pages/home/sections/about/body/0" },
+    ]);
+    expect(applyChanges(c, addressOps)).toEqual(applyChanges(c, pointerOps));
+    expect(() => toAddressOps(c, [{ collection: "services", op: "move", from: "/0/services/0", path: "/1/sections/0/services/0" }])).toThrow(/one list/);
+    expect(addressAt(c, "pages", "/0/sections/0/heading")).toBe("pages/home/sections/featured/heading");
   });
 
   it("names the collection an op changes", () => {
