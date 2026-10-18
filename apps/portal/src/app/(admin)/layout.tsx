@@ -11,6 +11,7 @@ import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { prisma } from "@/lib/db";
 import { PlanResolutionDialog } from "@/components/plan/plan-resolution-dialog";
 import { SitesNav } from "@/components/sites/sites-nav";
+import { DraftStatus } from "@/components/sites/draft-status";
 import { homePathFor, requireHomeHost } from "@/lib/product";
 
 export default async function AdminLayout({
@@ -57,6 +58,7 @@ export default async function AdminLayout({
         navItems={product === "sites" ? <SitesNav /> : undefined}
         userMenu={
           <div className="flex items-center gap-3">
+            {product === "sites" ? <DraftStatus /> : null}
             <NotificationBell />
             <UserMenu
               email={session.user?.email}
