@@ -21,9 +21,11 @@ export {
   addressMatches,
   field,
   fieldInfo,
+  fieldLimit,
   parseAddress,
   resolveAddress,
   stringValues,
+  type FieldInfo,
   type ResolvedAddress,
 } from "./address.js";
 export { FORMAT_KEYS, limitIssues, parseSiteGuide, SiteGuideError, type SiteGuide } from "./guide.js";
