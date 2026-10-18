@@ -113,9 +113,16 @@ export interface QuickEditReply {
  * One owner message through the model, possibly several tool rounds, to a
  * reply. Persists the whole exchange, append-only, with usage and cost.
  */
+/** The field the owner clicked on the Editor's canvas, when quick edit opens from it (PRD D37). */
+export interface QuickEditScope {
+  address: string;
+  label: string;
+  value: string;
+}
+
 export async function runQuickEdit(
   ctx: ToolContext & { userId: string },
-  input: { conversationId?: string | null; message: string },
+  input: { conversationId?: string | null; message: string; scope?: QuickEditScope | null },
 ): Promise<QuickEditReply> {
   const message = input.message.trim();
   if (!message) throw new QuickEditError("Type what you'd like to change.");
@@ -133,7 +140,13 @@ export async function runQuickEdit(
     ? await prisma.conversation.findFirst({ where: { id: input.conversationId, siteId: site.id } })
     : null;
   const history = (existing?.messages as unknown as Anthropic.MessageParam[] | undefined) ?? [];
-  const messages: Anthropic.MessageParam[] = [...history, { role: "user", content: message }];
+  // A conversation opened from a field starts with which field it was; it goes in the
+  // conversation, not the system prompt, so the cached prefix stays shared (PRD D37).
+  const scope = input.scope && history.length === 0 ? input.scope : null;
+  const opening = scope
+    ? `[The owner clicked "${scope.label.slice(0, 80)}" on their site in the Editor (field ${scope.address.slice(0, 300)}), which currently reads: "${scope.value.slice(0, 1200)}". Their request is about that field unless they say otherwise.]\n\n${message}`
+    : message;
+  const messages: Anthropic.MessageParam[] = [...history, { role: "user", content: opening }];
 
   const names = view.collections;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: view.site.timeZone });
