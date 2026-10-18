@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.5] - 2026-10-17
+
+### Changed
+
+- Fonts for the admin UI and the curated font picker lists are self-hosted, so builds no longer depend on reaching Google Fonts
+- Embedded and hosted forms load catalog fonts from Canopy instead of Google; fonts outside the catalog still load from Google
+
 ## [5.4.4] - 2026-10-17
 
 ### Fixed
