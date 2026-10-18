@@ -5,7 +5,17 @@ import type { Announcement, Category, GalleryItem, Page, Review, Service, Site }
 
 export * from "./schemas.js";
 export * from "./collections.js";
-export { applyChanges, isAddressOp, opCollection, PatchError, type AddressOp, type ChangeOp, type PointerOp } from "./patch.js";
+export {
+  addressAt,
+  applyChanges,
+  isAddressOp,
+  opCollection,
+  PatchError,
+  toAddressOps,
+  type AddressOp,
+  type ChangeOp,
+  type PointerOp,
+} from "./patch.js";
 export {
   AddressError,
   addressMatches,
