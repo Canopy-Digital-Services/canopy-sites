@@ -150,8 +150,8 @@ export class CanopyForm {
     );
     applyTheme(this.container, theme);
 
-    // Load Google Fonts for any explicitly selected families (new format)
-    ensureFontsLoaded([theme.bodyFont, theme.headingFont]);
+    // Load any explicitly selected families (new format)
+    ensureFontsLoaded([theme.bodyFont, theme.headingFont], this.options.baseUrl || "");
 
     // Backward compat: load legacy fontUrl if new fields are absent
     if (!theme.bodyFont && !theme.headingFont) {

@@ -5,7 +5,7 @@ import { Popover } from "radix-ui";
 import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CURATED_FONTS, CURATED_HEADING_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";
-import { loadGoogleFonts } from "@/lib/load-google-fonts";
+import { loadFonts } from "@/lib/load-fonts";
 
 const INHERIT_VALUE = "inherit";
 const INHERIT_LABEL = "Inherit from host page";
@@ -77,14 +77,14 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
   // Load the currently selected font so the trigger renders in its own typeface
   useEffect(() => {
     if (value && value !== INHERIT_VALUE) {
-      loadGoogleFonts([value]);
+      loadFonts([value]);
     }
   }, [value]);
 
   // Load curated fonts so each option can render in its own typeface
   useEffect(() => {
     if (open) {
-      loadGoogleFonts(curatedList);
+      loadFonts(curatedList);
     }
   }, [open, curatedList]);
 
