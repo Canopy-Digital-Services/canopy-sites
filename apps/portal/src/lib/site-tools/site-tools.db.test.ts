@@ -273,8 +273,8 @@ describe("saveDraft (the canvas)", () => {
   it("drops an edit set back to the published value, and the draft when every edit is undone", async () => {
     const { ctx, site } = await siteAccount();
     const a = await tools.saveDraft(ctx, site.id, { ops: price("$90") });
-    const b = await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/name", value: "New Name" }] });
-    const c = await tools.saveDraft(ctx, site.id, { ops: price("$85") });
+    await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/name", value: "New Name" }] });
+    await tools.saveDraft(ctx, site.id, { ops: price("$85") });
     expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: a.changeSetId! } })).ops).toEqual([{ op: "replace", address: "site/name", value: "New Name" }]);
     const d = await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon" }] });
     expect(d).toMatchObject({ changeSetId: null, version: 0 });
