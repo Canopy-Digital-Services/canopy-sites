@@ -27,7 +27,7 @@ E30 is built first as the demo slice (PRD D23): the builder, preview and publish
 
 ### Visual editor next (decided 2026-10-17)
 
-E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild with `Site.timeZone` (D42) from E32. Photos on the canvas wait for E32's media pipeline (D41). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
+E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild with `Site.timeZone` (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -110,6 +110,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 - Gallery images stay in `src/assets`; gallery entries name them by path under `src/assets`
 - Pages render from collections; no business data in templates (the Toro Z `site.ts` rule, applied through collections)
 - Locked fields (phone, email, address) are set on the `Site` row (PRD D24)
+- Write H&H's `SITE_GUIDE.md` (PRD D31, D40). The demo site uses the same guide, as a copy in its repo, since it carries H&H's content and design (D23)
 - Acceptance: `validateSite` passes; `astro check` clean; visual parity
 
 ### H3 · H&H → tokens

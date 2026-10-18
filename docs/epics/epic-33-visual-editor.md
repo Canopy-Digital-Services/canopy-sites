@@ -3,7 +3,7 @@
 **Status:** Planned (2026-10-17)
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of E31 and E32 ("Visual editor next")
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
-**Successor:** E32 (quick edit's remainder, including photos on the canvas), then E31's remainder (restore)
+**Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
 > **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D25, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `docs/epics/epic-30-demo-slice.md` (sections 6 and 8), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
@@ -22,7 +22,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - **C3, contract v0.2** (ROADMAP C3): required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
 - **The draft** (PRD D38, from E31): `ChangeSet.version`, draft saves, per-field merging and conflicts, rebase on a branch move, sites resolved by id.
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
-- **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. The demo site gets its first site guide.
+- **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.
 - **The canvas** (PRD D43): bridge script, marked fields in the demo site's templates, breakpoint switcher, address bar.
 - **Editing**: the canvas's own editors, the quick edit popover (PRD D37), unpublished changes and Publish in the Sites chrome.
 - **Speed**: timings for the editor's paths, measured on production after the tunnel fix (section 3).
@@ -76,10 +76,10 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - Build status reaches the Editor without the browser polling: the portal subscribes to the builder (long-poll or a short internal poll) and pushes to the page over server-sent events.
 - Nightly rebuild: at local midnight in each site's time zone, rebuild the branch's HEAD and point `current` at it, then rebuild the draft if there is one. The portal registers each site's slug, repo, branch, and time zone with the builder, which keeps the schedule.
 
-### 4.4 Site guide for the demo site (`canopy-demo-site`)
+### 4.4 Demo site (`canopy-demo-site`)
 
-- A first `SITE_GUIDE.md`: front matter with limits measured from the rendered design at desktop and phone widths, and the phone and price formats; prose from the Site Build Checklist, seeded from the demo's current `runbookOverlay`. Drafted for Michael's review: Canopy writes site guides (PRD D31), agents only propose.
-- Retag `demo-baseline` after the content migration and the guide land, per the demo repo's `CLAUDE.md`.
+- No site guide in this epic (Michael, 2026-10-17): the demo will share H&H's, written in H2, and until then the contract's caps are the limits. Tests use a fixture guide.
+- Retag `demo-baseline` after the content migration and the template markers land, per the demo repo's `CLAUDE.md`.
 
 ### 4.5 The canvas
 
