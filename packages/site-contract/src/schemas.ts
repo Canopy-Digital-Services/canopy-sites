@@ -1,5 +1,37 @@
 import { z } from "zod";
 
+// ---------------------------------------------------------------------------
+// Field metadata (PRD D36). Every value an owner can see carries a kind (which
+// picks the visual editor's input), a label (what the editor and change
+// summaries call it), and optionally a description (what the model reads in
+// the JSON Schema; wording from QUICK_EDIT_GUIDANCE.md section 3).
+
+export const FIELD_KINDS = [
+  "text",
+  "paragraph",
+  "price",
+  "date",
+  "time",
+  "hours",
+  "link",
+  "url",
+  "email",
+  "phone",
+  "image",
+  "reference",
+  "choice",
+  "id",
+] as const;
+export type FieldKind = (typeof FIELD_KINDS)[number];
+
+export interface FieldMeta {
+  kind: FieldKind;
+  label: string;
+  description?: string;
+}
+
+const field = <T extends z.ZodType>(schema: T, meta: FieldMeta): T => schema.meta({ ...meta });
+
 // Every editable string is plain text: no markup, so no validator can be
 // defeated by a span inside a field, and nothing a client or a model writes
 // can become HTML on the page.
@@ -11,11 +43,17 @@ const plain = (max: number) =>
     .max(max, `Must be ${max} characters or fewer`)
     .refine((v) => !/[<>]/.test(v), "Plain text only: no < or >");
 
+const text = (max: number, label: string, description?: string) => field(plain(max), { kind: "text", label, description });
+const paragraph = (max: number, label: string, description?: string) => field(plain(max), { kind: "paragraph", label, description });
+
 /** Stable identifier for an entry: lowercase letters, digits, inner hyphens. */
-export const Id = z
-  .string()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, digits, and hyphens only")
-  .max(60);
+export const Id = field(
+  z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, digits, and hyphens only")
+    .max(60),
+  { kind: "id", label: "ID", description: "Stable once set; never renamed to match a new name." },
+);
 
 // A link is written into attributes and structured data, so it may not carry
 // the characters that end one (markup, quotes, whitespace), even though a
@@ -41,13 +79,31 @@ export const Href = z
     "Must be a path on this site (/services), an anchor (#contact), or an https:// link",
   );
 
-const Time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MM");
+const Time = field(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MM"), { kind: "time", label: "Time" });
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 export const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 export const SOCIAL_NETWORKS = ["instagram", "facebook", "tiktok", "google", "yelp", "x", "youtube", "pinterest", "other"] as const;
 
-const Cta = z.object({ label: plain(40), href: Href }).strict();
+const Cta = z
+  .object({ label: text(40, "Button label"), href: field(Href, { kind: "link", label: "Button link" }) })
+  .strict();
+
+/**
+ * A list whose entries carry ids, each unique within the list. Entries are
+ * addressed by id (PRD D36), so an id never repeats in its list.
+ */
+const uniqueIds = <T extends z.ZodType<{ id: string }>>(item: T, max: number) =>
+  z
+    .array(item)
+    .max(max)
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>();
+      items.forEach((it, i) => {
+        if (seen.has(it.id)) ctx.addIssue({ code: "custom", message: `Duplicate id "${it.id}"`, path: [i, "id"] });
+        seen.add(it.id);
+      });
+    });
 
 // ---------------------------------------------------------------------------
 // site: the business itself (singleton)
@@ -63,38 +119,49 @@ export const WeeklyHours = z
           .refine((d) => d.opens < d.closes, { message: "Closing time must be after opening time", path: ["closes"] }),
       )
       .max(14),
-    note: plain(200).optional(),
+    note: text(200, "Hours note").optional(),
   })
   .strict();
 
-export const FreeformHours = z.object({ kind: z.literal("freeform"), text: plain(300) }).strict();
+export const FreeformHours = z.object({ kind: z.literal("freeform"), text: paragraph(300, "Hours") }).strict();
+
+export const SocialSchema = z
+  .object({
+    id: Id,
+    network: field(z.enum(SOCIAL_NETWORKS), { kind: "choice", label: "Network" }),
+    url: field(HttpsUrl, { kind: "url", label: "Link" }),
+    handle: text(60, "Handle").optional(),
+  })
+  .strict();
 
 export const SiteSchema = z
   .object({
-    name: plain(80),
-    tagline: plain(200).optional(),
-    description: plain(300),
+    name: text(80, "Business name"),
+    tagline: text(200, "Tagline").optional(),
+    description: paragraph(300, "Description"),
     contact: z
       .object({
-        phone: plain(30).optional(),
-        email: z.email().max(254).optional(),
+        phone: field(plain(30), { kind: "phone", label: "Phone" }).optional(),
+        email: field(z.email().max(254), { kind: "email", label: "Email" }).optional(),
         address: z
           .object({
-            street: plain(120).optional(),
-            locality: plain(80),
-            region: plain(40),
-            postalCode: plain(20).optional(),
-            country: z.string().regex(/^[A-Z]{2}$/, "Two-letter country code, e.g. US"),
+            street: text(120, "Street").optional(),
+            locality: text(80, "City"),
+            region: text(40, "State"),
+            postalCode: text(20, "ZIP code").optional(),
+            country: field(z.string().regex(/^[A-Z]{2}$/, "Two-letter country code, e.g. US"), { kind: "text", label: "Country" }),
           })
           .strict()
           .optional(),
-        bookingUrl: HttpsUrl.optional(),
+        bookingUrl: field(HttpsUrl, { kind: "url", label: "Booking link" }).optional(),
       })
       .strict(),
-    hours: z.discriminatedUnion("kind", [WeeklyHours, FreeformHours]),
-    socials: z
-      .array(z.object({ network: z.enum(SOCIAL_NETWORKS), url: HttpsUrl, handle: plain(60).optional() }).strict())
-      .max(10),
+    hours: field(z.discriminatedUnion("kind", [WeeklyHours, FreeformHours]), {
+      kind: "hours",
+      label: "Hours",
+      description: "The regular week, 24-hour times. One-off closures and holiday hours are announcements.",
+    }),
+    socials: uniqueIds(SocialSchema, 10),
   })
   .strict();
 
@@ -104,13 +171,17 @@ export const SiteSchema = z
 export const SectionSchema = z
   .object({
     id: Id,
-    eyebrow: plain(60).optional(),
-    heading: plain(120).optional(),
-    body: z.array(plain(1200)).max(12).optional(),
-    quote: plain(400).optional(),
+    eyebrow: text(60, "Eyebrow").optional(),
+    heading: text(120, "Heading").optional(),
+    body: field(z.array(paragraph(1200, "Paragraph")).max(12), { kind: "paragraph", label: "Paragraphs" }).optional(),
+    quote: paragraph(400, "Quote").optional(),
     cta: Cta.optional(),
     /** Featured services, by service id; name and price come from the menu. */
-    serviceIds: z.array(Id).max(24).optional(),
+    serviceIds: field(z.array(Id).max(24), {
+      kind: "reference",
+      label: "Featured services",
+      description: "A featured service shows the menu's name and price. To change either, edit the menu.",
+    }).optional(),
   })
   .strict();
 
@@ -118,11 +189,11 @@ export const PageSchema = z
   .object({
     id: Id,
     path: z.string().regex(/^\/(?:[a-z0-9-]+\/?)*$/, "A path like / or /services"),
-    navLabel: plain(30).optional(),
-    title: plain(70),
-    description: plain(200),
+    navLabel: text(30, "Menu label").optional(),
+    title: text(70, "Page title"),
+    description: paragraph(200, "Search description"),
     hero: z
-      .object({ headline: plain(120).optional(), subheadline: plain(300).optional(), cta: Cta.optional() })
+      .object({ headline: text(120, "Headline").optional(), subheadline: text(300, "Subheadline").optional(), cta: Cta.optional() })
       .strict()
       .optional(),
     sections: z.array(SectionSchema).max(20),
@@ -139,26 +210,34 @@ export const PageSchema = z
 // ---------------------------------------------------------------------------
 // services: the menu (H&H's services.json is the reference shape)
 
+const PriceLabel = field(plain(40), {
+  kind: "price",
+  label: "Price",
+  description: 'Display text, written the way the menu writes it ("$90", "From $150").',
+});
+
+/** A service. Its id is unique across the whole menu, since pages feature services by id. */
 export const ServiceSchema = z
   .object({
-    id: Id.optional(),
-    name: plain(80),
-    priceLabel: plain(40),
-    duration: plain(30).nullable().optional(),
-    description: plain(200).optional(),
+    id: Id,
+    name: text(80, "Service name"),
+    priceLabel: PriceLabel,
+    duration: text(30, "Duration").nullable().optional(),
+    description: paragraph(200, "Description").optional(),
   })
   .strict();
 
-export const ServiceGroupSchema = z.object({ name: plain(80), services: z.array(ServiceSchema).min(1) }).strict();
+export const ServiceGroupSchema = z.object({ id: Id, name: text(80, "Group name"), services: z.array(ServiceSchema).min(1) }).strict();
 
 const hasItems = (v: { services?: unknown[]; groups?: unknown[]; sections?: unknown[] }) =>
   Boolean(v.services?.length || v.groups?.length || v.sections?.length);
 
 export const CategorySectionSchema = z
   .object({
-    name: plain(80),
+    id: Id,
+    name: text(80, "Section name"),
     services: z.array(ServiceSchema).optional(),
-    groups: z.array(ServiceGroupSchema).optional(),
+    groups: uniqueIds(ServiceGroupSchema, 50).optional(),
   })
   .strict()
   .refine(hasItems, "A section needs services or groups");
@@ -166,12 +245,12 @@ export const CategorySectionSchema = z
 export const CategorySchema = z
   .object({
     id: Id,
-    name: plain(60),
-    fromPriceLabel: plain(40).optional(),
-    description: plain(400).nullable().optional(),
+    name: text(60, "Category name"),
+    fromPriceLabel: field(plain(40), { kind: "price", label: "Starting price" }).optional(),
+    description: paragraph(400, "Description").nullable().optional(),
     services: z.array(ServiceSchema).optional(),
-    groups: z.array(ServiceGroupSchema).optional(),
-    sections: z.array(CategorySectionSchema).optional(),
+    groups: uniqueIds(ServiceGroupSchema, 50).optional(),
+    sections: uniqueIds(CategorySectionSchema, 50).optional(),
   })
   .strict()
   .refine(hasItems, "A category needs services, groups, or sections");
@@ -180,7 +259,12 @@ export const CategorySchema = z
 // reviews, gallery, announcements
 
 export const ReviewSchema = z
-  .object({ id: Id, quote: plain(500), author: plain(60), source: plain(60).optional() })
+  .object({
+    id: Id,
+    quote: paragraph(500, "Review", "A real customer's exact words, as the owner gives them."),
+    author: text(60, "Name"),
+    source: text(60, "Source").optional(),
+  })
   .strict();
 
 /** Path under the site's src/assets, e.g. images/gallery/gallery-1.jpg. */
@@ -190,14 +274,20 @@ export const AssetPath = z
   .regex(/^[a-z0-9][a-z0-9_\-/]*\.(?:jpe?g|png|webp|avif)$/i, "An image path under src/assets, like images/gallery/photo.jpg")
   .refine((v) => !v.split("/").includes(".."), "Must stay under src/assets");
 
-export const GalleryItemSchema = z.object({ id: Id, src: AssetPath, alt: plain(200) }).strict();
+export const GalleryItemSchema = z
+  .object({
+    id: Id,
+    src: field(AssetPath, { kind: "image", label: "Photo" }),
+    alt: text(200, "Alt text", "Describes what is in the photo for someone who can't see it; it does not sell."),
+  })
+  .strict();
 
 export const AnnouncementSchema = z
   .object({
     id: Id,
-    message: plain(160),
-    startsOn: IsoDate.optional(),
-    endsOn: IsoDate.optional(),
+    message: text(160, "Message", "160 characters or fewer."),
+    startsOn: field(IsoDate, { kind: "date", label: "Starts", description: "YYYY-MM-DD; set whenever the message is about a date." }).optional(),
+    endsOn: field(IsoDate, { kind: "date", label: "Ends", description: "YYYY-MM-DD; the banner hides itself after this day." }).optional(),
     link: Cta.optional(),
   })
   .strict()
@@ -206,25 +296,14 @@ export const AnnouncementSchema = z
     path: ["endsOn"],
   });
 
-const uniqueIds = <T extends z.ZodType<{ id: string }>>(item: T, max: number) =>
-  z
-    .array(item)
-    .max(max)
-    .superRefine((items, ctx) => {
-      const seen = new Set<string>();
-      items.forEach((it, i) => {
-        if (seen.has(it.id)) ctx.addIssue({ code: "custom", message: `Duplicate id "${it.id}"`, path: [i, "id"] });
-        seen.add(it.id);
-      });
-    });
-
 export const PagesSchema = uniqueIds(PageSchema, 30);
 export const ServicesSchema = uniqueIds(CategorySchema, 30);
 export const ReviewsSchema = uniqueIds(ReviewSchema, 30);
-export const GallerySchema = uniqueIds(GalleryItemSchema, 60);
+export const GallerySchema = field(uniqueIds(GalleryItemSchema, 60), { kind: "image", label: "Gallery", description: "Page order is list order." });
 export const AnnouncementsSchema = uniqueIds(AnnouncementSchema, 5);
 
 export type Site = z.infer<typeof SiteSchema>;
+export type Social = z.infer<typeof SocialSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Section = z.infer<typeof SectionSchema>;
 export type Category = z.infer<typeof CategorySchema>;

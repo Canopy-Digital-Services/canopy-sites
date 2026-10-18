@@ -1,10 +1,15 @@
+import { AddressError, entryIndex, parseAddress, resolveAddress } from "./address.js";
+import type { RawContent } from "./collections.js";
+
 /**
- * The ChangeSet op format: a JSON Patch operation (RFC 6902 subset) aimed at
- * one collection document. The portal applies ops to propose and check a
- * change; the builder applies the same ops to the working tree. Both use this
- * function, so the two can never disagree about what an op does.
+ * The ChangeSet op format, in two forms. The portal applies ops to propose and
+ * check a change; the builder applies the same ops to the working tree. Both
+ * use applyChanges, so the two can never disagree about what an op does.
+ *
+ * A pointer op is a JSON Patch operation (RFC 6902 subset) aimed at one
+ * collection document. Its positions are fixed when it is written.
  */
-export interface ChangeOp {
+export interface PointerOp {
   collection: string;
   op: "add" | "remove" | "replace" | "move";
   /** JSON Pointer into the collection document, e.g. /0/services/1/priceLabel */
@@ -12,6 +17,34 @@ export interface ChangeOp {
   value?: unknown;
   /** Source pointer for `move`. */
   from?: string;
+}
+
+/**
+ * An address op (PRD D36) names its target by address, resolved against the
+ * content as it is when the op applies, so it survives reordering and a
+ * rebase onto newer content.
+ * - `replace` sets the value at the address: a list entry, or an object key
+ *   whether or not it is set yet.
+ * - `add` adds `value` as an entry to the list at the address, at the end or
+ *   before the entry with id `before`.
+ * - `remove` removes the list entry or object key at the address.
+ * - `move` moves the list entry at the address to the end of its list, or
+ *   before the entry with id `before`.
+ */
+export interface AddressOp {
+  op: "add" | "remove" | "replace" | "move";
+  address: string;
+  value?: unknown;
+  before?: string;
+}
+
+export type ChangeOp = PointerOp | AddressOp;
+
+export const isAddressOp = (op: ChangeOp): op is AddressOp => typeof (op as AddressOp).address === "string";
+
+/** The collection an op changes. Throws AddressError on a malformed address. */
+export function opCollection(op: ChangeOp): string {
+  return isAddressOp(op) ? parseAddress(op.address).collection : op.collection;
 }
 
 export class PatchError extends Error {}
@@ -85,6 +118,43 @@ function replace(doc: unknown, pointer: string, value: unknown) {
   }
 }
 
+/** Turns an address op into the pointer op it means for `content` as it is now. */
+function toPointerOp(content: Record<string, unknown>, op: AddressOp): PointerOp {
+  const target = resolveAddress(content as RawContent, op.address);
+  const { collection, pointer } = target;
+  const parentOf = () => {
+    const segments = op.address.split("/");
+    const parent = resolveAddress(content as RawContent, segments.slice(0, -1).join("/"));
+    if (!Array.isArray(parent.node)) throw new PatchError(`"${op.address}" is not an entry in a list`);
+    return { list: parent.node, pointer: parent.pointer, id: segments[segments.length - 1] };
+  };
+  const positionBefore = (list: unknown[], before: string | undefined) => {
+    if (before === undefined) return "-";
+    const i = entryIndex(list, before);
+    if (i < 0) throw new PatchError(`No entry "${before}" to put it before`);
+    return String(i);
+  };
+  switch (op.op) {
+    case "replace":
+      if (op.value === undefined) throw new PatchError("replace needs a value");
+      return { collection, op: target.exists ? "replace" : "add", path: pointer, value: op.value };
+    case "remove":
+      if (!target.exists) throw new PatchError(`Nothing at "${op.address}" to remove`);
+      return { collection, op: "remove", path: pointer };
+    case "add":
+      if (!Array.isArray(target.node)) throw new PatchError(`"${op.address}" is not a list; use replace to set a value`);
+      if (op.value === undefined) throw new PatchError("add needs a value");
+      return { collection, op: "add", path: `${pointer}/${positionBefore(target.node, op.before)}`, value: op.value };
+    case "move": {
+      const parent = parentOf();
+      const rest = parent.list.filter((_, i) => i !== entryIndex(parent.list, parent.id));
+      return { collection, op: "move", from: pointer, path: `${parent.pointer}/${positionBefore(rest, op.before)}` };
+    }
+    default:
+      throw new PatchError(`Unknown op "${(op as { op: string }).op}"`);
+  }
+}
+
 /**
  * Applies ops in order to a deep copy of `content` (collection name → document)
  * and returns the copy. Throws PatchError with a readable reason on the first
@@ -92,8 +162,15 @@ function replace(doc: unknown, pointer: string, value: unknown) {
  */
 export function applyChanges<T extends Record<string, unknown>>(content: T, ops: readonly ChangeOp[]): T {
   const out = structuredClone(content) as Record<string, unknown>;
-  ops.forEach((op, n) => {
-    const where = `Change ${n + 1} (${op.collection} ${op.path})`;
+  ops.forEach((given, n) => {
+    let op: PointerOp;
+    try {
+      op = isAddressOp(given) ? toPointerOp(out, given) : given;
+    } catch (err) {
+      if (err instanceof PatchError || err instanceof AddressError) throw new PatchError(`Change ${n + 1} (${(given as AddressOp).address}): ${err.message}`);
+      throw err;
+    }
+    const where = `Change ${n + 1} (${isAddressOp(given) ? given.address : `${op.collection} ${op.path}`})`;
     if (!Object.hasOwn(out, op.collection)) throw new PatchError(`${where}: this site has no "${op.collection}" collection`);
     try {
       const doc = out[op.collection];
