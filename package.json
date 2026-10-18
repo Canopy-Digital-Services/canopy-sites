@@ -16,6 +16,7 @@
     "db:generate": "npm run db:generate -w @canopy/portal",
     "db:migrate": "npm run db:migrate -w @canopy/portal --",
     "db:seed": "npm run db:seed -w @canopy/portal",
+    "fonts:sync": "npm run fonts:sync -w @canopy/portal --",
     "contract:build": "npm run build -w @canopy/site-contract"
   },
   "overrides": {

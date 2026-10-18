@@ -229,21 +229,20 @@ function resolveFont(font?: string, legacyFontFamily?: string): string {
 }
 
 /**
- * Loads Google Fonts for the given family names in a single combined request.
- * Deduplicates — will not inject a stylesheet for a family already loaded.
- * Ignores "inherit" and empty values.
+ * Loads the given font families in a single combined request to the portal's
+ * /api/fonts, which serves self-hosted families and falls back to Google for
+ * the rest. Deduplicates — will not inject a stylesheet for a family already
+ * loaded. Ignores "inherit" and empty values.
  */
-export function ensureFontsLoaded(families: (string | undefined)[]) {
+export function ensureFontsLoaded(families: (string | undefined)[], baseUrl: string) {
   const toLoad = families.filter(
     (f): f is string => !!f && f !== "inherit" && !loadedFonts.has(f)
   );
 
   if (toLoad.length === 0) return;
 
-  const params = toLoad
-    .map((f) => `family=${encodeURIComponent(f)}:wght@300;400;700`)
-    .join("&");
-  const url = `https://fonts.googleapis.com/css2?${params}&display=swap`;
+  const params = toLoad.map((f) => `family=${encodeURIComponent(f)}`).join("&");
+  const url = `${baseUrl}/api/fonts?${params}`;
 
   const link = document.createElement("link");
   link.rel = "stylesheet";

@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Urbanist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const inter = Inter({
+// Self-hosted so builds never fetch from Google; files come from
+// scripts/sync-fonts.ts.
+const inter = localFont({
+  src: "./fonts/Inter-Variable.woff2",
   variable: "--font-inter",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
-const urbanist = Urbanist({
+const urbanist = localFont({
+  src: "./fonts/Urbanist-Variable.woff2",
   variable: "--font-urbanist",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {
