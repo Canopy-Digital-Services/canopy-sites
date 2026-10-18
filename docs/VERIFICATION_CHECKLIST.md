@@ -35,7 +35,7 @@ docker exec canopy-portal npm run build
 
 Must exit 0. Catches TypeScript errors, missing imports, broken server components, and compile-time assertions (like the `field-types.ts` coverage check).
 
-`next build` fetches Google Fonts and fails intermittently in the dev container with a `TLS-related` error; rerun it. To check types alone, without the network: `docker exec canopy-portal npx tsc --noEmit -p .`. Vitest does not type-check, so passing tests do not mean the build compiles.
+The build needs no network: fonts are self-hosted (verified 2026-10-17 with `--network none`). To check types alone: `docker exec canopy-portal npx tsc --noEmit -p .`. Vitest does not type-check, so passing tests do not mean the build compiles.
 
 **Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-portal env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache.
 
