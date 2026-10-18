@@ -223,9 +223,8 @@ Confirm `git status` is clean (committing anything outstanding as proper atomic 
 2. Push any unpushed commits to `origin/dev`.
 3. `gh pr create --base main`.
 4. Title summarizes the release, e.g. `v4.5.0: Field validation overhaul + embed theme fixes`.
-5. Body groups key changes by category (features, fixes, docs), written as a summary for review rather than a dump of commit messages.
-
-Do not merge unless explicitly asked.
+5. Body groups key changes by category (features, fixes, docs), written as a summary rather than a dump of commit messages.
+6. When the user asks to release or deploy prod, merge the PR (`gh pr merge --merge`). The user does not merge release PRs. Merging `main` triggers the prod deploy; confirm it landed before reporting done.
 
 ### After a merge to main
 
@@ -269,7 +268,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
-**This repo is public.** Never commit secrets, real credentials, or client data (Sites runbook overlays, business facts, content, media). Client data lives in the database or in the client's own private site repo; secrets live in Coolify env and gitignored `.env` files.
+**This repo is public.** Never commit secrets, real credentials, or client data (site guides, business facts, content, media). Client data lives in the database or in the client's own private site repo; secrets live in Coolify env and gitignored `.env` files.
 
 Verifying env inside a Coolify container: ask the runtime what the app actually sees (plain `printenv | grep` also works; verified 2026-08-14):
 

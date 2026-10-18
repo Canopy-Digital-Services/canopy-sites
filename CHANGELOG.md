@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.4] - 2026-10-17
+
+### Fixed
+
+- Sites-only pages (Stats, Editor, Quick Edit) show the Canopy Sites title and icon in the browser tab instead of Canopy Forms
+
 ## [5.4.3] - 2026-10-17
 
 ### Changed

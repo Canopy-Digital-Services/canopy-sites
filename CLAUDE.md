@@ -38,7 +38,7 @@ This repo is developed in **WSL2 on Windows** with Docker Desktop. Plain `docker
 1. **Commit atomically** → make logical, self-contained commits as you work on `dev`
 2. **Push** → push to `origin/dev` when the user asks
 3. **Release PR** → when the user asks to release, create a PR from `dev` → `main` with a summary of changes
-4. **Merge** → user reviews the PR and decides whether to merge
+4. **Merge** → when the user asks to release or deploy prod, merge the PR yourself; the user does not review or merge release PRs
 
 See `docs/AGENT_CONTEXT.md` section 6 for full git workflow details.
 
