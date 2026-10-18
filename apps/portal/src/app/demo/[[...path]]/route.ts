@@ -40,6 +40,10 @@ async function demoSite() {
   return site?.isDemo ? site : null;
 }
 
+async function hasDraft(siteId: string) {
+  return (await prisma.changeSet.count({ where: { siteId, status: { in: ["DRAFT", "PREVIEWED"] } } })) > 0;
+}
+
 async function mayPreview(siteId: string) {
   const session = await getSession();
   return Boolean(session && (await canPreviewSite(session.user.id, siteId)));
@@ -79,7 +83,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   const editor = url.searchParams.get(EDITOR_PARAM) === "1";
   if (editor && !(await mayPreview(site.id))) return new NextResponse("Not found", { status: 404 });
   const jar = await cookies();
-  const preview = editor || (Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id)));
+  const wantsPreview = editor || (Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id)));
+  // The preview build is the last one made; after a publish or a discard it shows
+  // changes that are no longer pending, so only a pending draft is previewed.
+  const preview = wantsPreview && (await hasDraft(site.id));
   const file = path.join("/");
   let upstream = await fetchSiteFile(site.slug, preview ? "preview" : "current", file);
   if (preview && isNotBuilt(upstream)) {

@@ -29,11 +29,14 @@ function get(path: string[] = [], query = "") {
   return GET(new Request(`https://sites.example.com/demo/${path.join("/")}${query}`), { params: Promise.resolve({ path }) });
 }
 
-async function demoAccount() {
+async function demoAccount({ draft = true }: { draft?: boolean } = {}) {
   const { account, user } = await createAccount({ planCode: "SITES" });
   const site = await createSite(account.id, { slug: "demo" });
   await prisma.site.update({ where: { id: site.id }, data: { isDemo: true } });
-  return { account, user };
+  if (draft) {
+    await prisma.changeSet.create({ data: { siteId: site.id, source: "EDITOR", summary: "Price", ops: [], baseCommit: "a".repeat(40) } });
+  }
+  return { account, user, site };
 }
 
 beforeEach(async () => {
@@ -119,6 +122,16 @@ describe("/demo", () => {
     expect((await seen({ userId: user.id, cookie: false })).body).toContain("<body>current");
     expect((await seen({ userId: outsider.id, cookie: true })).body).toContain("<body>current");
     expect((await seen({ cookie: true })).body).toContain("<body>current");
+  });
+
+  it("shows the published build, not a stale preview, once nothing is pending", async () => {
+    const { user, site } = await demoAccount();
+    await prisma.changeSet.updateMany({ where: { siteId: site.id }, data: { status: "DISCARDED" } });
+    await signInAs(user.id);
+    jar.set(PREVIEW_COOKIE, { name: PREVIEW_COOKIE, value: "1", options: {} });
+    expect(await (await get()).text()).toContain("<body>current");
+    expect(await (await get([], "?canopy_editor=1")).text()).toContain("<body>current");
+    expect(builder.calls).not.toContain("preview");
   });
 
   it("sends a non-member who asks for the preview to sign in, without the cookie", async () => {
