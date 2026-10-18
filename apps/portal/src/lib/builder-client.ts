@@ -10,11 +10,13 @@ export interface BuilderSite {
   slug: string;
   repoUrl: string;
   branch: string;
+  /** IANA zone; the builder rebuilds the site at its local midnight (PRD D42). */
+  timeZone?: string;
 }
 
 export interface BuilderBuild {
   id: string;
-  status: "queued" | "running" | "succeeded" | "failed";
+  status: "queued" | "running" | "succeeded" | "failed" | "superseded";
   baseCommit?: string;
   error?: string;
   issues?: ContentIssue[];
@@ -55,12 +57,17 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
   return body;
 }
 
-const siteBody = (site: BuilderSite) => ({ repoUrl: site.repoUrl, branch: site.branch });
+const siteBody = (site: BuilderSite) => ({ repoUrl: site.repoUrl, branch: site.branch, timeZone: site.timeZone });
 
-export function fetchContent(site: BuilderSite) {
-  return call<{ commit: string; content: RawContent; contractVersion: string | null }>(`/v1/sites/${site.slug}/content`, {
+/**
+ * The branch's content and site guide (null when the repo has none). The
+ * builder answers from its clone, fetching only when its copy is stale or
+ * `refresh` asks it to.
+ */
+export function fetchContent(site: BuilderSite, opts: { refresh?: boolean } = {}) {
+  return call<{ commit: string; content: RawContent; guide?: string | null; contractVersion: string | null }>(`/v1/sites/${site.slug}/content`, {
     method: "POST",
-    body: JSON.stringify(siteBody(site)),
+    body: JSON.stringify({ ...siteBody(site), refresh: opts.refresh === true }),
   });
 }
 

@@ -136,11 +136,14 @@ export async function runQuickEdit(
   const messages: Anthropic.MessageParam[] = [...history, { role: "user", content: message }];
 
   const names = view.collections;
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: view.site.timeZone });
   const system = systemPrompt({ name: site.name, overlay: site.runbookOverlay }, names, today);
   const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   let changeSetId: string | null = null;
   let reply = "";
+  // The draft version the model last read, so a proposal over a field the
+  // owner changed on the canvas meanwhile is refused (PRD D38).
+  const draft = { version: view.pending?.version ?? 0 };
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     let response: Anthropic.Message;
@@ -181,7 +184,7 @@ export async function runQuickEdit(
 
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const use of toolUses) {
-      results.push(await runTool(ctx, use, existing?.id ?? null, (id) => (changeSetId = id)));
+      results.push(await runTool(ctx, use, existing?.id ?? null, draft, (id) => (changeSetId = id)));
     }
     messages.push({ role: "user", content: results });
   }
@@ -224,6 +227,7 @@ async function runTool(
   ctx: ToolContext,
   use: Anthropic.ToolUseBlock,
   conversationId: string | null,
+  draft: { version: number },
   onProposed: (id: string) => void,
 ): Promise<Anthropic.ToolResultBlockParam> {
   const result = (content: string, isError = false): Anthropic.ToolResultBlockParam => ({
@@ -236,6 +240,7 @@ async function runTool(
   try {
     if (use.name === "get_content") {
       const view = await getContentView(ctx.accountId);
+      draft.version = view.pending?.version ?? 0;
       const name = input.collection as CollectionName;
       if (!view.collections.includes(name)) return result(`This site has no "${String(name)}" collection.`, true);
       const note = view.pending ? `\n\n(Includes the unpublished change: ${view.pending.summary})` : "";
@@ -246,7 +251,9 @@ async function runTool(
         summary: String(input.summary ?? ""),
         ops: input.ops,
         conversationId: conversationId ?? undefined,
+        baseVersion: draft.version,
       });
+      draft.version = proposed.version;
       onProposed(proposed.changeSetId);
       return result(`Proposed: ${proposed.summary}. The preview is building; the owner will see Preview and Publish buttons.`);
     }

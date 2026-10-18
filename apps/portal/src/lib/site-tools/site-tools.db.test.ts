@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { resetRateLimits } from "@/lib/rate-limit";
+import { isRateLimited, resetRateLimits } from "@/lib/rate-limit";
 import { createAccount, createMember, createSite, resetDatabase } from "../../../test/db";
 
 // The builder is another service; stand in for it. Prisma is real.
@@ -9,13 +9,14 @@ const builder = vi.hoisted(() => ({
   content: {} as Record<string, unknown>,
   previews: [] as Array<{ buildId: string; ops: unknown[]; baseCommit: string }>,
   publishes: [] as Array<{ buildId: string; baseCommit: string }>,
+  guide: null as string | null,
   buildStatus: "succeeded" as "queued" | "running" | "succeeded" | "failed",
 }));
 vi.mock("@/lib/builder-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
   return {
     ...actual,
-    fetchContent: vi.fn(async () => ({ commit: builder.commit, content: structuredClone(builder.content), contractVersion: "0.1.0" })),
+    fetchContent: vi.fn(async () => ({ commit: builder.commit, content: structuredClone(builder.content), guide: builder.guide, contractVersion: "0.2.0" })),
     requestPreview: vi.fn(async (_site, buildId: string, ops: unknown[], baseCommit: string) => {
       builder.previews.push({ buildId, ops, baseCommit });
       return { id: buildId, status: "queued" };
@@ -29,6 +30,8 @@ vi.mock("@/lib/builder-client", async () => {
 });
 
 const tools = await import("./index");
+
+type Menu = Array<{ services: Array<Record<string, string>> }>;
 const { ToolError } = tools;
 
 const CONTENT = {
@@ -45,6 +48,10 @@ const CONTENT = {
 
 const PRICE = [{ collection: "services", op: "replace", path: "/0/services/0/priceLabel", value: "$90" }];
 const ANNOUNCE = [{ collection: "announcements", op: "add", path: "/-", value: { id: "closed", message: "Closed Monday the 20th." } }];
+// The same changes as the draft stores them: by address (PRD D36).
+const PRICE_AT = "services/haircuts/services/haircut/priceLabel";
+const PRICE_OP = { op: "replace", address: PRICE_AT, value: "$90" };
+const ANNOUNCE_OP = { op: "add", address: "announcements", value: { id: "closed", message: "Closed Monday the 20th." } };
 
 async function siteAccount() {
   const { account, user } = await createAccount({ planCode: "SITES" });
@@ -63,6 +70,7 @@ beforeEach(async () => {
   builder.commit = "a".repeat(40);
   builder.previews = [];
   builder.publishes = [];
+  builder.guide = null;
   builder.buildStatus = "succeeded";
 });
 
@@ -71,9 +79,11 @@ describe("proposeChange", () => {
     const { ctx, site } = await siteAccount();
     const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId }, include: { builds: true } });
-    expect(cs).toMatchObject({ siteId: site.id, status: "DRAFT", baseCommit: builder.commit, source: "QUICK_EDIT" });
-    expect(cs.builds.map((b) => b.id)).toEqual([buildId]);
-    expect(builder.previews).toEqual([{ buildId, ops: PRICE, baseCommit: builder.commit }]);
+    expect(cs).toMatchObject({ siteId: site.id, status: "DRAFT", baseCommit: builder.commit, source: "QUICK_EDIT", version: 1 });
+    expect(cs.builds.map((b) => [b.id, b.draftVersion])).toEqual([[buildId, 1]]);
+    // The model's pointer ops are kept as addresses, so the draft survives reordering.
+    expect(cs.ops).toEqual([{ ...PRICE_OP, v: 1, summary: "Haircut to $90" }]);
+    expect(builder.previews).toEqual([{ buildId, ops: [PRICE_OP], baseCommit: builder.commit }]);
   });
 
   it("refuses a change to a locked field", async () => {
@@ -108,24 +118,46 @@ describe("proposeChange", () => {
     ).rejects.toThrow(/doesn't change anything/);
   });
 
-  it("builds on the pending change and supersedes it", async () => {
+  it("adds to the site's one draft, superseding the build of the version before", async () => {
     const { ctx } = await siteAccount();
+    builder.buildStatus = "running";
     const first = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     const second = await tools.proposeChange(ctx, { summary: "Closed Monday", ops: ANNOUNCE });
-    const old = await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId } });
-    const cur = await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId } });
-    expect(old.status).toBe("DISCARDED");
-    expect(cur.ops).toEqual([...PRICE, ...ANNOUNCE]);
-    expect(cur.summary).toBe("Haircut to $90; Closed Monday");
+    expect(second.changeSetId).toBe(first.changeSetId);
+    const cur = await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId }, include: { builds: { orderBy: { createdAt: "asc" } } } });
+    expect(cur).toMatchObject({ status: "DRAFT", version: 2, summary: "Haircut to $90; Closed Monday" });
+    expect(cur.ops).toEqual([
+      { ...PRICE_OP, v: 1, summary: "Haircut to $90" },
+      { ...ANNOUNCE_OP, v: 2, summary: "Closed Monday" },
+    ]);
+    expect(cur.builds.map((b) => [b.status, b.draftVersion])).toEqual([
+      ["SUPERSEDED", 1],
+      ["QUEUED", 2],
+    ]);
   });
 
-  it("does not build on a pending change whose base commit is gone", async () => {
+  it("rebases the draft onto a Canopy push when its changes still fit", async () => {
+    const { ctx } = await siteAccount();
+    const first = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    // Canopy adds a category ahead of haircuts: every position moves, the address doesn't.
+    builder.commit = "c".repeat(40);
+    builder.content.services = [{ id: "color", name: "Color", services: [{ id: "gloss", name: "Gloss", priceLabel: "$60" }] }, ...(builder.content.services as object[])];
+    const view = await tools.getContentView(ctx.accountId);
+    expect(view.pending).toMatchObject({ id: first.changeSetId, version: 2 });
+    expect((view.content.services as Menu)[1].services[0].priceLabel).toBe("$90");
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId } })).toMatchObject({ baseCommit: "c".repeat(40), status: "DRAFT" });
+    expect(builder.previews.at(-1)).toMatchObject({ baseCommit: "c".repeat(40), ops: [PRICE_OP] });
+  });
+
+  it("fails a draft that no longer fits after a Canopy push, and starts a new one", async () => {
     const { ctx } = await siteAccount();
     const first = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     builder.commit = "c".repeat(40);
+    (builder.content.services as Menu)[0].services = [{ id: "trim", name: "Trim", priceLabel: "$30" }];
     const second = await tools.proposeChange(ctx, { summary: "Closed Monday", ops: ANNOUNCE });
-    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId } })).status).toBe("FAILED");
-    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId } })).ops).toEqual(ANNOUNCE);
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId } })).toMatchObject({ status: "FAILED" });
+    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId } })).error).toMatch(/no longer fits/);
+    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId } })).ops).toEqual([{ ...ANNOUNCE_OP, v: 1, summary: "Closed Monday" }]);
   });
 
   it("is rate limited per account", async () => {
@@ -186,8 +218,9 @@ describe("refresh and publish", () => {
     await tools.refreshChange(ctx.accountId, changeSetId);
     await expect(tools.publishChange(ctx, changeSetId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
 
+    // A failed build keeps the draft, with the reason, so no edit is lost.
     builder.buildStatus = "failed";
-    expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "FAILED" });
+    expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: "boom" });
     await expect(tools.publishChange(ctx, changeSetId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
     expect(builder.publishes).toHaveLength(0);
   });
@@ -205,5 +238,109 @@ describe("refresh and publish", () => {
     const { changeSetId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     await tools.discardChange(ctx.accountId, changeSetId);
     await expect(tools.discardChange(ctx.accountId, changeSetId)).rejects.toThrow(/Only a pending change/);
+  });
+});
+
+describe("saveDraft (the canvas)", () => {
+  const price = (value: string) => [{ op: "replace", address: PRICE_AT, value }];
+
+  it("merges edits to one field and counts versions, a build per save", async () => {
+    const { ctx, site } = await siteAccount();
+    const first = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$88") });
+    const second = await tools.saveDraft(ctx, site.id, { version: first.version, ops: price("$90") });
+    expect(second).toMatchObject({ changeSetId: first.changeSetId, version: 2, summary: "Haircut price: $90", buildError: null });
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId! } });
+    expect(cs.ops).toEqual([{ ...PRICE_OP, v: 2 }]);
+    expect(builder.previews.map((p) => p.buildId)).toEqual([first.buildId, second.buildId]);
+  });
+
+  it("refuses a save over a field someone else changed since, and takes one to another field", async () => {
+    const { ctx, site } = await siteAccount();
+    const mine = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$88") });
+    // Quick edit changes the price after the canvas read version 1.
+    await tools.proposeChange(ctx, { summary: "Haircut to $95", ops: [{ ...PRICE[0], value: "$95" }], baseVersion: mine.version });
+    const stale = await tools.saveDraft(ctx, site.id, { version: mine.version, ops: price("$90") }).catch((e) => e);
+    expect(stale).toBeInstanceOf(ToolError);
+    expect(stale.code).toBe("STALE");
+    const other = await tools.saveDraft(ctx, site.id, { version: mine.version, ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+    expect(other.version).toBe(3);
+    const view = await tools.getDraftView(ctx.accountId, site.id);
+    expect((view.content.services as Menu)[0].services[0].priceLabel).toBe("$95");
+  });
+
+  it("drops an edit set back to the published value, and the draft when every edit is undone", async () => {
+    const { ctx, site } = await siteAccount();
+    const a = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$90") });
+    const b = await tools.saveDraft(ctx, site.id, { version: a.version, ops: [{ op: "replace", address: "site/name", value: "New Name" }] });
+    const c = await tools.saveDraft(ctx, site.id, { version: b.version, ops: price("$85") });
+    expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: a.changeSetId! } })).ops).toEqual([{ op: "replace", address: "site/name", value: "New Name", v: 2 }]);
+    const d = await tools.saveDraft(ctx, site.id, { version: c.version, ops: [{ op: "replace", address: "site/name", value: "Demo Salon" }] });
+    expect(d).toMatchObject({ changeSetId: null, version: 0 });
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: a.changeSetId! } })).toMatchObject({ status: "DISCARDED" });
+    // A save that changes nothing, with no draft, is not an error from the canvas.
+    expect(await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$85") })).toMatchObject({ changeSetId: null });
+  });
+
+  it("enforces the site guide's limits, naming the field", async () => {
+    const { ctx, site } = await siteAccount();
+    builder.guide = "---\nlimits:\n  services/*/services/*/priceLabel: 4\n---\nPrices are whole dollars.\n";
+    const err = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$1,000") }).catch((e) => e);
+    expect(err).toBeInstanceOf(ToolError);
+    expect(err.issues).toEqual([
+      { collection: "services", path: "/0/services/0/priceLabel", address: PRICE_AT, message: "Must be 4 characters or fewer on this site" },
+    ]);
+    expect(await prisma.changeSet.count()).toBe(0);
+    // A guide Canopy mistyped doesn't stop the owner; the contract's caps still hold.
+    builder.guide = "---\nlimit:\n  x: 1\n---\n";
+    expect((await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$1,000") })).version).toBe(1);
+  });
+
+  it("is the account's own site only, and keeps every guardrail", async () => {
+    const a = await siteAccount();
+    const b = await siteAccount();
+    await expect(tools.saveDraft(b.ctx, a.site.id, { version: 0, ops: price("$90") })).rejects.toThrow("No such site.");
+    await expect(tools.getDraftView(b.ctx.accountId, a.site.id)).rejects.toThrow("No such site.");
+    await expect(tools.saveDraft(a.ctx, a.site.id, { version: 0, ops: [{ op: "replace", address: "site/contact/phone", value: "555-9999" }] })).rejects.toThrow(
+      /locked/,
+    );
+    await expect(tools.saveDraft(a.ctx, a.site.id, { version: 0, ops: [{ op: "replace", address: "site/name", value: "<b>x</b>" }] })).rejects.toThrow(
+      /Plain text only/,
+    );
+    await expect(tools.saveDraft(a.ctx, a.site.id, { version: 0, ops: [{ collection: "site", op: "replace", path: "/name", value: "x" }] })).rejects.toThrow(
+      /right shape/,
+    );
+    expect(await prisma.changeSet.count()).toBe(0);
+  });
+
+  it("is rate limited per account, separately from proposals", async () => {
+    const { ctx, site } = await siteAccount();
+    for (let i = 0; i < tools.SAVES_PER_HOUR; i++) isRateLimited(`site-tools:save:${ctx.accountId}`, tools.SAVES_PER_HOUR, 60 * 60 * 1000);
+    await expect(tools.saveDraft(ctx, site.id, { version: 0, ops: price("$90") })).rejects.toThrow(/Too many changes/);
+    expect((await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE })).version).toBe(1);
+  });
+
+  it("publishes only a build of the draft's current version", async () => {
+    const { ctx, site } = await siteAccount();
+    const v1 = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$88") });
+    expect(await tools.refreshChange(ctx.accountId, v1.changeSetId!)).toMatchObject({ status: "PREVIEWED" });
+    builder.buildStatus = "running";
+    const v2 = await tools.saveDraft(ctx, site.id, { version: v1.version, ops: price("$90") });
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: v1.changeSetId! } })).toMatchObject({ status: "DRAFT", version: 2 });
+    await expect(tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    builder.buildStatus = "succeeded";
+    await tools.refreshChange(ctx.accountId, v1.changeSetId!);
+    await tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" });
+    expect(builder.publishes).toMatchObject([{ buildId: v2.buildId }]);
+  });
+
+  it("refuses to publish when the finished build is of an older version than the draft", async () => {
+    const { ctx, site } = await siteAccount();
+    const v1 = await tools.saveDraft(ctx, site.id, { version: 0, ops: price("$88") });
+    await tools.saveDraft(ctx, site.id, { version: v1.version, ops: price("$90") });
+    // A refresh that raced the second save: version 1's build, finished and latest.
+    await prisma.build.create({ data: { siteId: site.id, changeSetId: v1.changeSetId, status: "SUCCEEDED", draftVersion: 1 } });
+    await prisma.changeSet.update({ where: { id: v1.changeSetId! }, data: { status: "PREVIEWED" } });
+    await expect(tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    expect(builder.publishes).toHaveLength(0);
   });
 });
