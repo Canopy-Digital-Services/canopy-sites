@@ -83,7 +83,7 @@ Each new collection adds its descriptions when it enters the contract.
 ## 4. Tool descriptions and results
 
 - **Reading:** read a collection before changing it.
-- **Proposing:** everything for one request goes in one proposal. The result says a preview is building and that nothing is live until the owner publishes. A proposal lands in the site's draft, which the owner may be editing on the canvas at the same time (PRD D38); a refusal for a stale copy tells the model to read again and redo the change.
+- **Proposing:** everything for one request goes in one proposal. The result says a preview is building and that nothing is live until the owner publishes. A proposal lands in the site's draft, which the owner may also be editing on the canvas (PRD D38); the last write to a field wins.
 - **Errors** say how to fix them. A locked field returns the out-of-scope path below.
 - **Preflight warnings** carry the message to relay. Low resolution: *"This picture is low resolution and will look blurry on the page. Do you have a better version, or do you want to see what it looks like on the preview anyway?"* The model waits for the answer and uses the photo only if the owner says to.
 - **Alt text:** the upload result asks the model to suggest alt text from the photo; the owner accepts or edits it.

@@ -63,7 +63,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 - Migrations, each additive, SQL read before commit: `ChangeSet.version` (int, default 0); `Site.timeZone` (IANA name, default `America/Los_Angeles`, set for the demo site).
 - Every new tool function takes a `siteId` and checks it against the session's account (PRD D44). `siteFor(accountId)` stays only where existing callers need it.
-- `saveDraft(ctx, siteId, { version, ops })`: merges ops into the pending ChangeSet by address (a later `replace` of an address supersedes an earlier one); refuses, with the current value, when an op touches an address changed since `version`; validates the merged draft against published content, locked fields, the contract, and the site guide's limits; bumps `version`; requests a build. Draft saves have their own rate limit, well above `PROPOSALS_PER_HOUR`, which stays for model proposals.
+- `saveDraft(ctx, siteId, { ops })`: merges ops into the pending ChangeSet by address (a later `replace` of an address supersedes an earlier one, so the last write to a field wins); validates the merged draft against published content, locked fields, the contract, and the site guide's limits; bumps `version`; requests a build. Two writes that land together both apply, one after the other (the loser of the race reruns on top of the winner). Draft saves have their own rate limit, well above `PROPOSALS_PER_HOUR`, which stays for model proposals.
 - `proposeChange` (quick edit, later MCP) writes through the same path.
 - Rebase: when the branch has moved, the draft's ops are re-resolved against the new content and re-validated; the draft fails only if an op no longer applies or validates. This replaces `getContentView`'s fail-on-mismatch.
 - Change summaries for canvas edits come from field labels ("Haircut price: $85 to $90"); a model proposal keeps its own summary.
@@ -101,7 +101,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 ### 4.7 Tests
 
-Database tests for: a site resolved by id for another account is refused; a stale save to a changed field is refused and one to an untouched field merges; a site guide limit is refused server-side; a rebase keeps a draft whose ops still apply and fails one whose don't; publish refuses a build of an older draft version. Unit tests for `resolveAddress`, `parseSiteGuide`, the v0.1 migration, the builder's newest-first queue, and the bridge's message checks. Each guard's test fails with the guard removed.
+Database tests for: a site resolved by id for another account is refused; the last write to a field wins across sources, and simultaneous saves both land; a site guide limit is refused server-side; a rebase keeps a draft whose ops still apply and fails one whose don't; publish refuses a build of an older draft version. Unit tests for `resolveAddress`, `parseSiteGuide`, the v0.1 migration, the builder's newest-first queue, and the bridge's message checks. Each guard's test fails with the guard removed.
 
 ## 5. Acceptance
 
@@ -128,7 +128,6 @@ Recorded as PRD D35 to D45 and not repeated here. The ones that shaped this doc'
 
 ## 7. Open
 
-- **The tunnel after the next failover.** Michael chose automation (2026-10-18). `canopy-wan-tunnel-rehome` (a script, service, and 2-minute timer for webber) restarts cloudflared once the fibre has been back 10 minutes, only if cloudflared hasn't restarted since that failback and some connection's edge isn't `sjc` (from its metrics), and mails an alert. Every decision path was dry-run on webber; auto mode refused the install, so Michael runs it. Delete this item, and update the LTE Backup WAN page's Operations entry, once it's installed.
 - **Marker styling** (D35).
 
 ## 8. Completion report
@@ -138,5 +137,5 @@ Not started.
 ## 9. Progress log
 
 - 2026-10-17: Planned with Michael (PRD D35 to D45; ROADMAP "Visual editor next", C3, E33). Diagnosed the slow portal as the tunnel (section 3).
-- 2026-10-18: Tunnel restarted by Michael at 03:21 UTC: all four connections on `sjc`, portal `/login` 0.30 to 0.36 s from 0.9 s.
+- 2026-10-18: Tunnel restarted by Michael at 03:21 UTC: all four connections on `sjc`, portal `/login` 0.30 to 0.36 s from 0.9 s. `canopy-wan-tunnel-rehome` (restarts cloudflared 10 minutes after a stable failback when an edge isn't `sjc`) dry-run on webber and installed by Michael; the LTE Backup WAN page documents it.
 - 2026-10-18: Built 4.1 (`b994d62`, `4cf89fe`: contract v0.2 with addresses, field metadata, `field()`, site guide parsing, migration, pointer-to-address rewriting; 28 contract tests), 4.2 (`da2e50e` migrations, `1acbf77` the draft; tool layer 23 tests, every new guard checked to fail with it removed), 4.3 (`d81d623`: content reads from git objects in about 60 ms locally, newest-wins previews checked with four concurrent requests, `TZ` per site build, nightly schedule registering). Not yet: build status pushed over SSE (with the editor UI, 4.6), the nightly rebuild run end to end (needs the demo on v0.2 locally). The demo's real content migrates cleanly and passes v0.2.
