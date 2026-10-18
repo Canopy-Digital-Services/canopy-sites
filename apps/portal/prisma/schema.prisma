@@ -193,6 +193,7 @@ model ChangeSet {
 enum ChangeSetSource {
   QUICK_EDIT
   OPERATOR
+  EDITOR // The visual editor's canvas (PRD D35)
 }
 
 enum ChangeSetStatus {
