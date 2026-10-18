@@ -1,6 +1,6 @@
 # Epic 33: Visual Editor
 
-**Status:** Planned (2026-10-17)
+**Status:** In progress (2026-10-18): sections 4.1 to 4.3 built
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of E31 and E32 ("Visual editor next")
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
@@ -57,6 +57,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - `parseSiteGuide(markdown)` returns `{ limits, formats, prose }`; `validateContent(raw, { limits })` applies limits by address pattern (`*` matches one id). A malformed front matter block is an error, never silently empty.
 - `migrate(content, fromVersion)` adds the missing ids (slugs of the entry's name, made unique within the list).
 - Release `site-contract-v0.2.0`; the demo site installs it and migrates its content.
+- **Release order.** The portal and builder validate with the workspace contract, so once they run v0.2 the demo's v0.1 content fails (57 issues, checked 2026-10-18), and the v0.1 portal rejects migrated content. Merge the release and push the demo repo's upgrade commit together; quick edit on the demo fails in between.
 
 ### 4.2 The draft (`src/lib/site-tools`, migrations)
 
@@ -127,7 +128,7 @@ Recorded as PRD D35 to D45 and not repeated here. The ones that shaped this doc'
 
 ## 7. Open
 
-- **The tunnel after the next failover.** cloudflared stays on the edge it reached over LTE until restarted. Options: the WAN failover daemon restarts it once the fibre has been back and stable for a few minutes, or a check alerts when its connections register outside the US. Michael's call; the runbook is the Nextcloud **LTE Backup WAN** page.
+- **The tunnel after the next failover.** Michael chose automation (2026-10-18). `canopy-wan-tunnel-rehome` (a script, service, and 2-minute timer for webber) restarts cloudflared once the fibre has been back 10 minutes, only if cloudflared hasn't restarted since that failback and some connection's edge isn't `sjc` (from its metrics), and mails an alert. Every decision path was dry-run on webber; auto mode refused the install, so Michael runs it. Delete this item, and update the LTE Backup WAN page's Operations entry, once it's installed.
 - **Marker styling** (D35).
 
 ## 8. Completion report
@@ -137,3 +138,5 @@ Not started.
 ## 9. Progress log
 
 - 2026-10-17: Planned with Michael (PRD D35 to D45; ROADMAP "Visual editor next", C3, E33). Diagnosed the slow portal as the tunnel (section 3).
+- 2026-10-18: Tunnel restarted by Michael at 03:21 UTC: all four connections on `sjc`, portal `/login` 0.30 to 0.36 s from 0.9 s.
+- 2026-10-18: Built 4.1 (`b994d62`, `4cf89fe`: contract v0.2 with addresses, field metadata, `field()`, site guide parsing, migration, pointer-to-address rewriting; 28 contract tests), 4.2 (`da2e50e` migrations, `1acbf77` the draft; tool layer 23 tests, every new guard checked to fail with it removed), 4.3 (`d81d623`: content reads from git objects in about 60 ms locally, newest-wins previews checked with four concurrent requests, `TZ` per site build, nightly schedule registering). Not yet: build status pushed over SSE (with the editor UI, 4.6), the nightly rebuild run end to end (needs the demo on v0.2 locally). The demo's real content migrates cleanly and passes v0.2.
