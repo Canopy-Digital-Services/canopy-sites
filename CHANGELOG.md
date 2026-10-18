@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.1] - 2026-10-18
+
+### Fixed
+
+- A change made through Quick Edit from a field in the Editor shows on the page as soon as its preview is ready, with the panel still open and the page where it was, instead of reloading from the top once the panel closed
+- After Discard, the Editor and the demo preview show the published site instead of the discarded changes
+
 ## [5.5.0] - 2026-10-18
 
 ### Added

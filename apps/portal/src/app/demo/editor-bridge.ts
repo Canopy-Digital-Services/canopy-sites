@@ -10,7 +10,10 @@
  * - when the Editor asks, a field's text is edited in place, kept within the
  *   limit the Editor sends, and every keystroke is reported and copied to the
  *   field's other appearances on the page;
- * - every other click behaves as on the live site (menus, accordions).
+ * - every other click behaves as on the live site (menus, accordions);
+ * - it reports the scroll position, and when the Editor swaps in a newer
+ *   build of the page it restores the scroll and the selection there, so an
+ *   update lands under the open panel instead of reloading the page.
  *
  * Nothing the page sends can write: the Editor saves through server actions,
  * which check everything again.
@@ -66,7 +69,9 @@ export const EDITOR_BRIDGE = `<style>
       e.stopPropagation();
       if (editing) return;
       select(field);
-      post({ type: "select", address: field.getAttribute("data-canopy-field"), value: field.textContent, rect: rectOf(field) });
+      var address = field.getAttribute("data-canopy-field");
+      var index = Array.prototype.indexOf.call(fieldsAt(address), field);
+      post({ type: "select", address: address, index: index, value: field.textContent, rect: rectOf(field) });
       return;
     }
     var a = t.closest("a[href]");
@@ -117,6 +122,7 @@ export const EDITOR_BRIDGE = `<style>
     queued = false;
     var el = editing ? editing.el : selected;
     if (el) post({ type: "rect", rect: rectOf(el) });
+    post({ type: "scroll", y: window.scrollY });
   }
   function queue() { if (!queued) { queued = true; requestAnimationFrame(report); } }
   window.addEventListener("scroll", queue, { passive: true });
@@ -145,6 +151,31 @@ export const EDITOR_BRIDGE = `<style>
     } else if (m.type === "scroll-to") {
       var to = fieldsAt(m.address)[0];
       if (to) to.scrollIntoView({ block: "center" });
+    } else if (m.type === "restore") {
+      // A newer build of the same page, about to replace the one on screen.
+      var done = false;
+      var apply = function () {
+        if (done) return;
+        done = true;
+        window.scrollTo(0, m.y || 0);
+        var rect = null;
+        if (typeof m.address === "string") {
+          var all = fieldsAt(m.address);
+          var el = all[m.index || 0] || all[0];
+          if (el) {
+            select(el);
+            // Keep the field where the owner last saw it, whatever changed above it.
+            if (typeof m.top === "number") window.scrollBy(0, el.getBoundingClientRect().top - m.top);
+            rect = rectOf(el);
+          }
+        }
+        post({ type: "restored", rect: rect });
+      };
+      if (document.readyState === "complete") apply();
+      else {
+        window.addEventListener("load", apply, { once: true });
+        setTimeout(apply, 1500);
+      }
     } else if (m.type === "scroll-hash" && typeof m.hash === "string") {
       var anchor = document.getElementById(decodeURIComponent(m.hash));
       if (anchor) anchor.scrollIntoView({ block: "start" });
