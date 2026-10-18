@@ -111,7 +111,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 ### H3 · H&H → tokens
 
 - `tokens.json` → generated CSS custom properties imported by `global.css` `@theme`. Current palette/fonts become the token values; zero visual change
-- Fonts limited to Fontsource-hosted families (Q4)
+- Fonts limited to Fontsource-hosted families (no external font requests, per Toro Z). Tokens are Canopy's to edit in the repo; no client-facing token editing (PRD D29)
 - Acceptance: changing a token value and rebuilding changes the site; visual parity at default values
 
 (Toro Z's `DESIGN.md` and accessibility invariants are the reference for how a site repo documents itself. H&H gets a trimmed equivalent as part of H2/H3.)
@@ -152,7 +152,7 @@ Goal: a ChangeSet against H&H produces a viewable preview without touching produ
 Goal: every edit, from any source, is a ChangeSet created through one set of tools.
 
 - `ChangeSet` lifecycle per PRD §4.5. Ops are JSON patch against collection documents plus staged media references
-- Tool layer (`packages/site-tools` or `apps/portal/src/lib/site-tools`): typed functions, one per operation — `getCollection`, `getDocument`, `proposeChange`, `uploadMedia`, `requestPreview`, `publish`, `rollback`, `listBuilds`, `getTokens`, `setTokens`. Each enforces: account ownership, locked fields, contract validation, rate limit. **These are the guardrails (D9).** The MCP server and the chat both call these; nothing else writes content
+- Tool layer (`packages/site-tools` or `apps/portal/src/lib/site-tools`): typed functions, one per operation — `getCollection`, `getDocument`, `proposeChange`, `uploadMedia`, `requestPreview`, `publish`, `rollback`, `listBuilds`, `requestHelp`, `getSiteGuide`. Content collections only; no token operations (PRD D29). Each enforces: account ownership, locked fields, contract validation, rate limit. **These are the guardrails (D9).** The MCP server and the chat both call these; nothing else writes content
 - `publish` requires `status = PREVIEWED` and the preview build to have succeeded. Publish = commit + push to `main` in this phase (Coolify rebuilds prod until E36)
 - Editor UI: pending ChangeSets list with Preview / Publish / Discard; build history with Rollback (rollback is a no-op on prod until E36; UI can ship, action gated behind a feature flag)
 - Acceptance: a ChangeSet created via an internal test route goes draft → previewed → published and the commit lands on GitHub
@@ -162,23 +162,27 @@ Goal: every edit, from any source, is a ChangeSet created through one set of too
 Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 
 - Claude API, tool use, tools = E31 layer in-process. Model names and per-model roles (classify vs edit) in env, not code
-- Prompt assembly: base runbook (repo file, `docs/canopy-sites/runbook/base.md`, cached as a system block) + `Site.runbookOverlay` + JSON Schema for the collections the request touches. Base runbook v1 covers: hours, announcement, event, schedule, services/prices, gallery add/remove/reorder, copy block, tokens, "I don't know which page"
-- Preflight before LLM: file type, dimensions, HEIC conversion, size. LLM sees results, not raw files, except for moderation (Q3)
+- Definitions module shared with E34 (PRD D30): tool names, descriptions, schemas, core guidance, quick edit persona, wording from `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md`. Replace `runbook.ts`; cut the guidance doc to its placement rules and numbers. Tool definitions identical across sites so the shared prefix caches product-wide
+- Prompt assembly: core guidance + persona (cached, shared) + `SITE_GUIDE.md` read through the builder from the published commit (PRD D31) + JSON Schema for every collection. Drop `Site.runbookOverlay` and its operator textarea; add `Site.timeZone` for date resolution
+- Contract `.describe()` on every field per the guidance doc section 3; alt text limit 125
+- Verbatim copy (PRD D32): the guidance and the scripted edits cover asking for quoted text, typo corrections reported back, and site-rule conflicts. Update the demo's suggested prompts to quote their text
+- Tool-result checks per the guidance doc section 2: stale mentions, date and weekday mismatches, duplicates, link reachability, expired-announcement pruning
+- Media: `uploadMedia` with preflight per the guidance doc (formats, normalization, size per slot with the refuse and warn levels). The model gets a downscaled copy for alt text, placement, and moderation (PRD D33); alt text is suggested and the owner accepts or edits it
+- `requestHelp` and a `HelpRequest` table; operator view lists open requests (PRD D34)
 - `Conversation` persisted with tokens in/out and cost estimate. Add `Plan.monthlyAiBudgetCents` (meaning in PRD D21), with the `SITES` value set from the cost per edit this epic measures; soft-stop at 100% with operator notification
 - UI: global chat on Editor home; page-scoped chat from a tile (scopes schema + overlay excerpt to that page). Each assistant turn that produces a ChangeSet shows Preview / Publish inline
 - Operator: token usage per account/site/month; "edit as client" opens the same chat with operator identity recorded on the ChangeSet
-- Acceptance: five scripted edits on H&H (hours, announcement, price change, gallery add with HEIC, hero copy) each produce a correct preview; cost per edit recorded and reported
+- Acceptance: scripted edits on H&H (hours, announcement with quoted text, announcement without, price change, gallery add with HEIC, low-resolution photo, hero copy with a typo, a design request) each produce the right preview or reply; cost per edit recorded and reported. The script is the regression suite for any change to the guidance
 
-### E33 · Page tiles and tokens panel
+### E33 · Page tiles
 
 - Editor home: tiles from `pages` collection with thumbnail (builder renders a screenshot per build via headless Chromium, or falls back to a placeholder), title, last published
-- Tokens panel: colors, typefaces (Fontsource allow-list), heading scale, radii. Editing produces a ChangeSet on `tokens`; Preview / Publish as usual
 - Page view: structured read view of that page's blocks with "edit with quick edit" entry points; no inline editing in v1
-- Acceptance: token change → preview reflects it; tiles update after publish
+- Acceptance: tiles update after publish
 
 ### E34 · Public MCP endpoint and API keys
 
-- Streamable HTTP MCP server at `/mcp` exposing the E31 tools. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
+- Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools, server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
 - Operator and account UI: create/revoke keys, copy once
 - Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, that publish always requires a preview
 - Acceptance: Claude Desktop with the key can list collections, propose a change, request preview, and publish on H&H; a key for site A cannot read site B

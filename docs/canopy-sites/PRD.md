@@ -6,6 +6,8 @@
 
 **Revision note (2026-10-16, demo planning):** D23 to D27 added; Q1 and Q9 answered; §2, §4.1, §4.4, §4.8 revised. The sales demo is its own site and account, with H&H's content standing in for a dedicated demo site; `canopy.json` is gone; preview hostnames sit one level under the zone.
 
+**Revision note (2026-10-17, quick edit guidance):** D29 to D34 added; D9 and D10 revised; Q3 and Q4 answered; §1, §2, §4.4 to §4.7, §5, §6 revised. Editing is content only; quick edit and MCP share one set of definitions; each site's guide lives in its repo; owners supply copy verbatim. The guidance itself is `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md`.
+
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
@@ -26,8 +28,8 @@
 | Channel | Who drives | v1 |
 |---|---|---|
 | Text Michael | Michael, using operator tooling (Claude Code + MCP on his subscription) | Yes — human process, no SMS automation |
-| **Quick edit** (chat on the portal) | Client ↔ Claude API, running a per-client runbook | Yes — primary product surface |
-| Portal editor view | Client, page tiles + design tokens + publish/rollback | Yes — "moderately featured", not WYSIWYG |
+| **Quick edit** (chat on the portal) | Client ↔ Claude API, running the shared guidance and the site's guide (D30, D31) | Yes — primary product surface |
+| Portal editor view | Client, page tiles + publish/rollback, content only (D29) | Yes — "moderately featured", not WYSIWYG |
 | Public MCP endpoint | Client's own LLM, per-account API key | Yes — same tools, guardrails enforced server-side |
 
 "Quick edit" is the user-facing name. Do not market it as an AI chatbot or assistant.
@@ -43,8 +45,8 @@
 - Site model, build pipeline (builder + Caddy), preview per change, publish by atomic swap, rollback to last N builds
 - Content contract: versioned Zod schemas shared by portal and site repos
 - Change pipeline: ChangeSet → validate → preflight → preview build → publish (commit + swap)
-- Quick edit chat (Claude API, base runbook + client overlay, token metering per account)
-- Page tiles view; global design-token editing (colors, typefaces, heading sizes, radii); publish/rollback UI
+- Quick edit chat (Claude API, shared guidance + site guide, token metering per account)
+- Page tiles view; publish/rollback UI
 - Public MCP endpoint with per-account API keys
 - Stats: white-boxed Umami dashboard for all accounts
 - Operator: accounts, sites, build log, token usage, edit-as-client
@@ -56,6 +58,7 @@
 | Not building | Why / when |
 |---|---|
 | Full visual editor ("Figma meets WordPress") | Push users to quick edit instead |
+| Design editing: tokens, colors, typefaces, layout | Content only (D29). Canopy changes design in the repo |
 | SMS automation | Text channel is Michael, by hand |
 | Stripe / in-portal billing | FreshBooks (and PayPal) by hand; portal stores plan + status only |
 | Invite flow / multi-user UI | Model supports it; UI shows one owner |
@@ -81,8 +84,8 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D6 | **Builder owns all builds** (preview and publish). One Caddy container serves every site from `/srv/sites/<slug>/current`. Coolify hosts the portal stack, not per-site builds. Fallback written into ROADMAP | R |
 | D7 | Quick edit runs on a **Claude Platform API key**, pay-as-you-go. Subscription credits do not cover shared production use (support.claude.com article 15036540, checked 2026-10-15). Measure cost in practice before optimizing | R |
 | D8 | Site-edit tools are an **MCP server**. Portal chat, operator Claude Code, and client LLMs all use the same tools | M |
-| D9 | **Guardrails live in the tool layer**, not the runbook. A client's LLM never sees the runbook. Schema validation, locked fields, preflight, preview-before-publish, rate limits, scoped keys are enforced server-side | R |
-| D10 | Runbook = **base** (per update type, product-wide, prompt-cached) + **client overlay** (schema, business facts, voice, constraints). Deterministic checks (dimensions, HEIC, type) run in code before the LLM | M/R |
+| D9 | **Guardrails live in the tool layer**, not the guidance. A client's LLM gets the guidance (D30) but may ignore it. Schema validation, locked fields, preflight, preview-before-publish, rate limits, scoped keys are enforced server-side | R |
+| D10 | Guidance = **shared** (product-wide, prompt-cached, D30) + **site guide** (one business's rules, D31). Deterministic checks (dimensions, HEIC, type) run in code before the LLM. Where each rule lives: `QUICK_EDIT_GUIDANCE.md` section 1 | M/R |
 | D11 | Membership table now, single-owner UI now. Avoids touching every data-access function later | R |
 | D12 | Billing: portal stores `planCode`, `status`, free-text `billingRef`. Operator sets them. No invoice UI | M/R |
 | D13 | Template pinned to **Astro 7**. H&H upgraded as part of migration | M |
@@ -101,6 +104,12 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D26 | **`site-contract` ships from this repo** (was Q1): `packages/site-contract` is packed into a tarball attached to a GitHub release `site-contract-vX.Y.Z` on this repo, which site repos install by URL (npm cannot install a subdirectory of a git repo). The portal and builder use the workspace copy | R |
 | D27 | **D6 stands** (was Q9). Cloudflare Pages would replace only the serving half; a builder that applies ChangeSets and runs `astro build` is needed either way, and the positioning is "we run our own stack" | R |
 | D28 | **Sites nav: Quick Edit · Editor · Forms · Stats, with Quick Edit as home.** Editor is, for now, a static concept of in-place editing for sales: the demo site framed with editable fields outlined (hover highlights them, nothing saves) beside a static inspector. Building it for real is the option-2 visual editor (click a field, edit it in place, a ChangeSet through the tool layer) and reopens section 2's "full visual editor" line, which excludes layout editing, not in-place content editing | M |
+| D29 | **Editing is content only; design is Canopy's.** Portal, quick edit, and MCP change content collections and nothing else: no tokens panel, no token tools, no colors, typefaces, layout, or components. Canopy changes design in the repo. Owners aren't designers, and design control is how a site ends up a Wix-style mess. The model is a decoupled CMS: we build the front end, they update the content. Answers Q4 | M |
+| D30 | **Quick edit and the MCP endpoint render from one definitions module**: tool names, descriptions, schemas, the core guidance, and the site guide. MCP serves them as tools, server instructions, and `get_site_guide`; quick edit renders the same text as its system prompt plus its own persona, and calls the tool layer in-process (not through `/mcp`). Guidance goes where every client sees it: tool results first, then tool descriptions, then instructions. Tool definitions are identical across sites so the cached prefix is shared product-wide | R |
+| D31 | **The site guide lives in the site repo** as `SITE_GUIDE.md`, the one home for a client's rules (Copy Guidelines bucket 3, Nextcloud). Canopy writes it during the build and adds to it as we learn customizations we're confident about; agents never write it (the tool layer writes only `src/content`). The portal reads it from the published commit. It is not shown in the portal, and holds nothing the client shouldn't see, since their own assistant can read it over MCP. Replaces `Site.runbookOverlay`. What it must cover: Site Build Checklist (Nextcloud) | M/R |
+| D32 | **Copy is the owner's, word for word.** The model never writes copy; without exact text it asks for it in quotation marks. It corrects typos and says so, asking whether one was intentional; it asks before using text that breaks a site guide convention. Canopy's own copy mechanics (no em dashes and the rest of Copy Guidelines bucket 2) don't apply to owner text unless the site guide adopts them. Facts (prices, times, dates) aren't copy. Alt text is the exception: suggested on upload, the owner accepts or edits it | M |
+| D33 | **The model sees uploaded photos** (a downscaled copy) for alt text, placement, and moderation. Answers Q3: moderation is that vision pass, with the operator notified on reject. A photo below its slot's recommended size is used only if the owner says so after the warning | M |
+| D34 | **Out-of-scope requests are filed, not refused.** A `request_help` tool files design, layout, locked-field, and other non-content requests for the operator view, and the reply keeps the personal line: "I put that request in. You can text Michael if you need it right away." | M |
 
 ---
 
@@ -158,7 +167,9 @@ Collections (v1), from what H&H and Toro Z actually contain:
 | `team` | people, role, photo optional, bio | Toro Z `coaches` |
 | `reviews` | quote, attribution, source | H&H reviews section |
 | `text` | long-form markdown pages | H&H policies, bios |
-| `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme` |
+| `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme`. Canopy edits it in the repo; the tool layer never exposes it (D29) |
+
+What ships in each contract version is in `packages/site-contract`; collections land with the first site that renders them (ROADMAP C1). Adding one is a minor version, and its field descriptions carry its guidance (`QUICK_EDIT_GUIDANCE.md` section 3).
 
 File layout in a site repo: one JSON document per collection at `src/content/<collection>.json`, parsed with the contract's schemas at build time so a violation fails the build; `src/assets/` for media; `tokens.json` at root. No `canopy.json` (D24).
 
@@ -168,7 +179,7 @@ File layout in a site repo: one JSON document per collection at `src/content/<co
 source (chat | editor UI | MCP | operator)
   → ChangeSet { ops: JSON patch on collections, media: staged uploads }
   → validate against contract            (reject, with reasons)
-  → preflight media                      (resize ≤ max edge, strip EXIF, HEIC→JPEG, size cap, moderation)
+  → preflight media                      (normalize, strip EXIF, HEIC→JPEG, size per slot, vision: alt text + moderation)
   → builder: apply to working clone → astro build → /builds/<id>
   → preview symlink → client reviews at preview hostname
   → publish: commit + push to repo main → current symlink → prune to last N
@@ -179,16 +190,16 @@ Locked fields reject at validation regardless of source. Preview is auth-gated (
 
 ### 4.6 Quick edit
 
-- Claude API with tool use; tools are the same implementations the MCP endpoint exposes, called in-process
-- System prompt = base runbook (cached) + client overlay (stored on `Site`, operator-editable) + contract excerpt for the collections in play
-- Preflight runs before tool calls reach the LLM; the LLM handles judgment only (intent, voice, which block, appropriateness)
+- Claude API with tool use; tools are the same implementations the MCP endpoint exposes, called in-process (D30)
+- System prompt = core guidance + quick edit persona (cached, shared by every site) + the site guide from the published commit (D31) + the contract's JSON Schema. Content in `QUICK_EDIT_GUIDANCE.md`
+- Preflight runs before tool calls reach the LLM; the LLM handles judgment only (intent, which block, typos and site rules in the owner's copy, alt text, appropriateness). It never writes copy (D32)
 - Cheaper model for classification/moderation, stronger model for edits; configurable per deployment
 - Every conversation stores messages, tool calls, tokens in/out, model. Per-account monthly token budget; operator sees usage
 - Entry points: one global chat on the site's editor home, and the same chat scoped to a page from its tile
 
 ### 4.7 Public MCP endpoint
 
-Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scoped to one site, revocable, last-used tracked), in the portal's own `ApiKey` table like its sessions (D16). OAuth later. Rate-limited per key. Same tools, same guardrails. Tools never publish without an explicit `publish` call, and `publish` requires a previewed ChangeSet.
+Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scoped to one site, revocable, last-used tracked), in the portal's own `ApiKey` table like its sessions (D16). OAuth later. Rate-limited per key. Same tools, same guardrails, same guidance: server instructions carry the core guidance and the site guide, and `get_site_guide` serves the guide to clients that drop instructions (D30). Tools never publish without an explicit `publish` call, and `publish` requires a previewed ChangeSet.
 
 ### 4.8 Hostnames and DNS
 
@@ -204,11 +215,12 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | `Membership` | userId, accountId, role (`OWNER` \| `MEMBER`), createdAt | Replaces `User.accountId` 1:1. `@@unique([userId, accountId])` |
 | `Plan` (extend) | + `sitesEnabled Boolean` (E29); + `monthlyAiBudgetCents Int?` (E32) | Typed columns per existing pattern; seed `SITES` plan code. No `analyticsTier` in v1 (D21) |
 | `Account` (extend) | + `status` (`ACTIVE` \| `PAST_DUE` \| `CANCELLED`), + `billingRef String?` | |
-| `Site` | accountId (unique), slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, umamiWebsiteId, runbookOverlay (text), lockedFields[], maxBuildsRetained; + status (E36) | One site per account (D19) |
+| `Site` | accountId (unique), slug, name, repoUrl, defaultBranch, productionHostnames[], contractVersion, umamiWebsiteId, lockedFields[], maxBuildsRetained; + timeZone (E32); + status (E36). E32 drops runbookOverlay (D31) | One site per account (D19) |
 | `Build` | siteId, kind (`PREVIEW` \| `PUBLISH`), status, commitSha, outputPath, log, startedAt, finishedAt, changeSetId | Draft; E30 settles it with `ChangeSet` (one FK direction between them) |
 | `ChangeSet` | siteId, source, createdByUserId?, apiKeyId?, summary, ops (JSON), status (`DRAFT` \| `PREVIEWED` \| `PUBLISHED` \| `DISCARDED` \| `FAILED`), previewBuildId, publishedBuildId | |
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
+| `HelpRequest` | siteId, conversationId?, apiKeyId?, createdByUserId?, message, status | Draft; E32 settles it (D34) |
 
 Ownership enforcement stays in `src/lib/data-access/*` by `accountId`, now resolved through Membership. `getCurrentAccountId()` becomes `getCurrentAccountId()` for the single membership in v1, with the many-membership path stubbed.
 
@@ -220,12 +232,11 @@ Nav: **Quick Edit · Editor · Forms · Stats** (+ Account) (D28). Branding patt
 
 | Screen | Content |
 |---|---|
-| Editor home | Page tiles (thumbnail, title, last published). Global quick-edit chat. Design tokens panel. Pending ChangeSets with Preview / Publish / Discard. Build history with Rollback |
+| Editor home | Page tiles (thumbnail, title, last published). Global quick-edit chat. Pending ChangeSets with Preview / Publish / Discard. Build history with Rollback |
 | Page view | Tile expanded: quick-edit chat scoped to that page; structured view of its blocks (read-mostly in v1) |
-| Tokens panel | Colors, typefaces (from an allowed font list), heading scale, radii. Changes are a ChangeSet like any other |
 | Stats | Umami: visitors, pageviews, top pages, referrers, date range. Read via Umami API with the site's `umamiWebsiteId` |
 | Forms | Existing Forms UI under Sites chrome |
-| Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, overlay editor, locked fields, API keys), build log, token usage, "edit as client" |
+| Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, locked fields, API keys), help requests (D34), build log, token usage, "edit as client" |
 
 Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts see the Sites chrome at sites.canopyds.com (D22).
 
@@ -251,8 +262,6 @@ Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts s
 | # | Question | Default if unanswered |
 |---|---|---|
 | Q2 | Preview auth on a client's preview hostname: signed URL per build, or previewing at the production hostname behind a signed cookie (the demo previews at its own URL for signed-in members, D23) | Signed URL per build, 7-day expiry |
-| Q3 | Image moderation: vision call per upload, or defer to operator review for v1 | Vision call via cheaper model; operator notified on reject |
-| Q4 | Allowed font list for the tokens panel | Fontsource-hosted families only (no external font requests, per Toro Z pattern) |
 | Q5 | Does the portal ever write to the site repo other than through the builder | No |
 | Q6 | Client access to the GitHub repo: read-only collaborator, or transfer on exit | Read-only collaborator |
 
