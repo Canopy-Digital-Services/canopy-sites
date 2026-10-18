@@ -28,6 +28,8 @@ const IN_PLACE = new Set(["text", "paragraph", "price"]);
 
 interface Selected {
   address: string;
+  /** Which of the field's appearances on the page was clicked (a price shows in two places). */
+  index: number;
   original: string;
   value: string;
   rect: Rect;
@@ -64,41 +66,82 @@ export function CanvasEditor({
   announcements: AnnouncementDates[];
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLIFrameElement>(null);
+  // Two frames: the one on screen, and one a newer build of the same page loads into
+  // behind it, so an update swaps in at the same place instead of reloading the page.
+  const frames = useRef<Array<HTMLIFrameElement | null>>([null, null]);
   const [wrapWidth, setWrapWidth] = useState(1000);
   const [viewport, setViewport] = useState<"desktop" | "phone">("desktop");
   const [history, setHistory] = useState<{ stack: string[]; at: number }>({ stack: [pages[0]?.path ?? "/demo/"], at: 0 });
   const path = history.stack[history.at];
-  const [html, setHtml] = useState<string | null>(null);
+  const [slots, setSlots] = useState<Array<{ html: string; key: number } | null>>([null, null]);
+  const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "updating" | "error">("idle");
   const [dates, setDates] = useState<{ startsOn: string; endsOn: string } | null>(null);
   const selectedRef = useRef<Selected | null>(null);
   const hashRef = useRef<string | null>(null);
-  const reloadRef = useRef(false);
+  const activeRef = useRef(0);
+  const scrollYRef = useRef(0);
+  const swapRef = useRef<{ slot: number; y: number; address?: string; index?: number; top?: number } | null>(null);
+  const refreshWaitingRef = useRef(false);
+  const slotKey = useRef(0);
   const saveChain = useRef<Promise<void>>(Promise.resolve());
 
   selectedRef.current = selected;
+  activeRef.current = active;
 
   const post = useCallback((msg: Record<string, unknown>) => {
-    frameRef.current?.contentWindow?.postMessage(msg, "*");
+    frames.current[activeRef.current]?.contentWindow?.postMessage(msg, "*");
   }, []);
 
-  const load = useCallback(async (target: string) => {
-    setLoading(true);
-    setLoadError(false);
-    try {
-      const res = await fetch(`${target}?canopy_editor=1`, { cache: "no-store" });
-      if (!res.ok) throw new Error(String(res.status));
-      setHtml(await res.text());
-    } catch {
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
+  const fetchPage = useCallback(async (target: string) => {
+    const res = await fetch(`${target}?canopy_editor=1`, { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    return res.text();
   }, []);
+
+  /** Loads a page into the frame on screen: navigation, from the top. */
+  const load = useCallback(
+    async (target: string) => {
+      swapRef.current = null;
+      setLoading(true);
+      setLoadError(false);
+      try {
+        const html = await fetchPage(target);
+        const at = activeRef.current;
+        setSlots((s) => s.map((slot, i) => (i === at ? { html, key: ++slotKey.current } : slot)));
+      } catch {
+        setLoadError(true);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPage],
+  );
+
+  /**
+   * Shows the newest build of the page without losing the owner's place: it
+   * loads behind the frame on screen, scrolls to the same spot, reselects the
+   * same field, and only then swaps in. Waits while the owner is typing in a field.
+   */
+  const refreshInPlace = useCallback(async () => {
+    if (selectedRef.current?.mode === "edit") {
+      refreshWaitingRef.current = true;
+      return;
+    }
+    refreshWaitingRef.current = false;
+    try {
+      const html = await fetchPage(pagePath(history.stack[history.at]));
+      const slot = 1 - activeRef.current;
+      const s = selectedRef.current;
+      swapRef.current = { slot, y: scrollYRef.current, address: s?.address, index: s?.index, top: s?.rect.y };
+      setSlots((all) => all.map((x, i) => (i === slot ? { html, key: ++slotKey.current } : x)));
+    } catch {
+      setSaveState("error");
+    }
+  }, [fetchPage, history]);
 
   useEffect(() => {
     load(path);
@@ -119,12 +162,9 @@ export function CanvasEditor({
       post({ type: "deselect" });
       setSelected(null);
       setDates(null);
-      if (reloadRef.current) {
-        reloadRef.current = false;
-        load(path);
-      }
+      if (refreshWaitingRef.current) refreshInPlace();
     },
-    [post, load, path],
+    [post, refreshInPlace],
   );
 
   const navigate = useCallback(
@@ -145,22 +185,26 @@ export function CanvasEditor({
     [load],
   );
 
-  /** Reloads the canvas once the draft's build has the change, unless the owner is mid-edit. */
+  /** Brings the canvas up to date once the draft's build has the change. */
   const reloadWhenBuilt = useCallback(
     async (changeSetId: string) => {
+      setSaveState("updating");
       for (let i = 0; i < 80; i++) {
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1000));
         const r = await refreshPendingChange(changeSetId);
-        if ("error" in r || r.status === "FAILED" || r.buildStatus === "FAILED") return;
+        if ("error" in r || r.status === "FAILED" || r.buildStatus === "FAILED") {
+          setSaveState("error");
+          return;
+        }
         if (r.status === "PREVIEWED") {
           window.dispatchEvent(new Event(DRAFT_CHANGED));
-          if (selectedRef.current) reloadRef.current = true;
-          else load(pagePath(path));
+          await refreshInPlace();
           return;
         }
       }
+      setSaveState("idle");
     },
-    [load, path],
+    [refreshInPlace],
   );
 
   const save = useCallback(
@@ -218,11 +262,11 @@ export function CanvasEditor({
   doneRef.current = done;
 
   const select = useCallback(
-    (address: string, value: string, rect: Rect) => {
+    (address: string, index: number, value: string, rect: Rect) => {
       const info = fieldInfo(address);
       const inPlace = Boolean(info && IN_PLACE.has(info.kind));
       const limit = fieldLimit(address, limits);
-      setSelected({ address, original: value, value, rect, info, limit, mode: inPlace ? "edit" : "ask" });
+      setSelected({ address, index, original: value, value, rect, info, limit, mode: inPlace ? "edit" : "ask" });
       const announcement = announcementOf(address);
       setDates(announcement ? { startsOn: announcement.startsOn, endsOn: announcement.endsOn } : null);
       if (inPlace) post({ type: "edit", address, limit });
@@ -232,16 +276,32 @@ export function CanvasEditor({
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      if (e.source !== frameRef.current?.contentWindow) return;
       const m = e.data as { source?: string; type?: string; [k: string]: unknown };
       if (!m || m.source !== "canopy-canvas") return;
+      // The frame loading behind: restore the owner's place in it, then swap it in.
+      const swap = swapRef.current;
+      if (swap && e.source === frames.current[swap.slot]?.contentWindow) {
+        if (m.type === "ready") {
+          frames.current[swap.slot]?.contentWindow?.postMessage({ type: "restore", y: swap.y, address: swap.address, index: swap.index, top: swap.top }, "*");
+        } else if (m.type === "restored") {
+          swapRef.current = null;
+          setActive(swap.slot);
+          setSaveState("saved");
+          if (m.rect) setSelected((s) => (s ? { ...s, rect: m.rect as Rect } : s));
+        }
+        return;
+      }
+      if (e.source !== frames.current[activeRef.current]?.contentWindow) return;
       switch (m.type) {
         case "ready":
           if (hashRef.current) post({ type: "scroll-hash", hash: hashRef.current });
           hashRef.current = null;
           break;
         case "select":
-          select(String(m.address), String(m.value ?? ""), m.rect as Rect);
+          select(String(m.address), Number(m.index) || 0, String(m.value ?? ""), m.rect as Rect);
+          break;
+        case "scroll":
+          scrollYRef.current = Number(m.y) || 0;
           break;
         case "input":
           setSelected((s) => (s && s.address === m.address ? { ...s, value: String(m.value ?? ""), rect: m.rect as Rect, error: undefined } : s));
@@ -269,10 +329,10 @@ export function CanvasEditor({
   }, [close, navigate, post, select]);
 
   useEffect(() => {
-    const reload = () => load(pagePath(path));
-    window.addEventListener(DRAFT_PUBLISHED, reload);
-    return () => window.removeEventListener(DRAFT_PUBLISHED, reload);
-  }, [load, path]);
+    const refresh = () => refreshInPlace();
+    window.addEventListener(DRAFT_PUBLISHED, refresh);
+    return () => window.removeEventListener(DRAFT_PUBLISHED, refresh);
+  }, [refreshInPlace]);
 
   // Desktop shows the site at full width, scaled to fit; phone at its real size.
   const frameWidth = viewport === "desktop" ? DESKTOP_WIDTH : PHONE_WIDTH;
@@ -334,6 +394,11 @@ export function CanvasEditor({
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Saving
             </span>
+          ) : saveState === "updating" ? (
+            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Updating preview
+            </span>
           ) : saveState === "saved" ? (
             <span className="text-sm text-muted-foreground">Saved</span>
           ) : saveState === "error" ? (
@@ -361,16 +426,30 @@ export function CanvasEditor({
       </div>
 
       <div ref={wrapRef} className="relative w-full overflow-hidden rounded-lg border bg-muted" style={{ height: canvasHeight }}>
-        {html !== null ? (
-          <iframe
-            ref={frameRef}
-            srcDoc={html}
-            sandbox="allow-scripts"
-            title="Your site in the editor"
-            className="absolute top-0 origin-top-left border-0 bg-white"
-            style={{ left: frameLeft, width: frameWidth, height: canvasHeight / scale, transform: `scale(${scale})` }}
-          />
-        ) : null}
+        {slots.map((slot, i) =>
+          slot ? (
+            <iframe
+              key={slot.key}
+              ref={(el) => {
+                frames.current[i] = el;
+              }}
+              srcDoc={slot.html}
+              sandbox="allow-scripts"
+              title={i === active ? "Your site in the editor" : "Updating"}
+              aria-hidden={i === active ? undefined : true}
+              tabIndex={i === active ? undefined : -1}
+              className="absolute top-0 origin-top-left border-0 bg-white"
+              style={{
+                left: frameLeft,
+                width: frameWidth,
+                height: canvasHeight / scale,
+                transform: `scale(${scale})`,
+                visibility: i === active ? "visible" : "hidden",
+                pointerEvents: i === active ? "auto" : "none",
+              }}
+            />
+          ) : null,
+        )}
         {loading ? (
           <div className="absolute right-3 top-3 flex items-center gap-2 rounded-md bg-card px-2 py-1 text-sm text-muted-foreground shadow-sm">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
