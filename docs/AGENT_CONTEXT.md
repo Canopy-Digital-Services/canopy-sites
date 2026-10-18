@@ -94,7 +94,7 @@ Payload cap: 64KB. Length caps are three-tier (default applies when the field se
 - **Single-field submit** (`/api/submit/[formId]/[fieldName]`): does **not** use the shared module. It reimplements only origin, rate limit, and honeypot, validates nothing but required-presence on the one field, and has no type, published, `stopAt`, or `maxSubmissions` gate. Treat its stored values as unvalidated: `src/lib/submission-email.ts` re-runs `isValidEmail()` before using a submitted address as `Reply-To`, which is what blocks CRLF header injection. Any new gate added to `public-submit.ts` has to be added here separately or it does not apply to this route.
 - Origin: `validateOrigin(origin, form.allowedOrigins, referer)`. Localhost is always allowed.
 - **Framing.** `next.config.ts` sends `X-Frame-Options: DENY` and `frame-ancestors 'none'` on every path except `/f/*`, `/api/embed/*`, `/api/submit/*`, and `/embed.js`, which other sites use, and `/demo`, which sends its own. A new route meant to be loaded by other sites must be added to that exclusion; everything else stays unframeable (clickjacking). A config header replaces a route's header of the same name, so a route that needs its own CSP must be excluded there too.
-- **`/demo`** (`src/app/demo/[[...path]]/route.ts`) serves the demo site (PRD D23) from the builder. It is client-editable content on the portal's origin, so every response carries `Content-Security-Policy: sandbox ...` (an opaque origin that can't use the portal session) plus CORS for its fonts and module scripts. Never drop the sandbox or add `allow-same-origin`. With `?canopy_editor_mockup=1` it serves the Editor's concept: overlays injected from `src/app/demo/editor-mockup.ts`, clicks swallowed, framing allowed from the portal's own origin only.
+- **`/demo`** (`src/app/demo/[[...path]]/route.ts`) serves the demo site (PRD D23) from the builder. It is client-editable content on the portal's origin, so every response carries `Content-Security-Policy: sandbox ...` (an opaque origin that can't use the portal session) plus CORS for its fonts and module scripts. Never drop the sandbox or add `allow-same-origin`. With `?canopy_editor=1` it serves the Editor's canvas to members of the demo account only (404 for anyone else): the draft's build with a `<base>`, the `data-canopy-editor` flag, and the bridge from `src/app/demo/editor-bridge.ts` injected. The Editor fetches that HTML with the session and shows it in a `sandbox="allow-scripts"` srcdoc frame, so the canvas's own requests carry no session; a fingerprinted `_astro/` asset missing from one build is served from the other for that reason. The bridge only reports and edits text in place; every write is a server action through the tool layer.
 - **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`; `type === "HOSTED"` returns `code: "FORM_HOSTED_ONLY"`. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
 - A filled honeypot **does not reject**. It stores the submission with `isSpam: true`, which is why `maxSubmissions` counts non-spam rows only and spam skips the notification email.
 - Submission limits return 403 and raise a `LIMIT_DEADLINE_REACHED` or `LIMIT_MAX_REACHED` notification.
@@ -123,7 +123,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is a static concept of the visual editor (PRD D28), not a working editor. `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the demo site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); other sites see an empty state until client preview hostnames (PRD D43). `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -175,7 +175,7 @@ Migrations apply via `prisma migrate deploy` in `scripts/start.sh` at container 
 Procedure:
 
 1. Edit `prisma/schema.prisma`.
-2. Run `npm run db:migrate -- --name descriptive_name`.
+2. Run `npm run db:migrate -- --name descriptive_name`, then `npm run db:generate`: Prisma 7's `migrate dev` no longer regenerates the client.
 3. **Read the generated SQL** and confirm it does what you intended, not just that it exists.
 4. Commit schema and migration together.
 5. Tell the user to check the Coolify logs for `Applied migration: <name>` followed by `Migrations complete. Starting application...`.
@@ -347,12 +347,13 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
-           maxBuildsRetained, isDemo), one per account, onDelete Restrict
+           maxBuildsRetained, isDemo, timeZone), one per account, onDelete Restrict
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
-       │             error?, publishedCommit?, publishedAt?)
-       └─ Build (changeSetId?, status:BuildStatus, baseCommit?, error?, log?,
-       │         startedAt?, finishedAt?)
+       │             version, error?, publishedCommit?, publishedAt?); the pending
+       │             one is the site's draft (PRD D38)
+       └─ Build (changeSetId?, status:BuildStatus, draftVersion?, baseCommit?,
+       │         error?, log?, startedAt?, finishedAt?)
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
                         cacheWriteTokens, costUsd)
 
@@ -372,7 +373,7 @@ Enums:
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
-- `ChangeSetSource`: `QUICK_EDIT | OPERATOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED`.
+- `ChangeSetSource`: `QUICK_EDIT | OPERATOR | EDITOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED | SUPERSEDED`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
 Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan; `HOSTING` and `UNLOCKED` were retired for that reason in v5.2.1.

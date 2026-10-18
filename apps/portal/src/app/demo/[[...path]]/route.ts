@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { fetchSiteFile } from "@/lib/builder-client";
 import { canPreviewSite } from "@/lib/site-tools";
-import { EDITOR_MOCKUP } from "../editor-mockup";
+import { EDITOR_BRIDGE } from "../editor-bridge";
 
 /**
  * The demo site at /demo (PRD D23), served from the builder's output. A
@@ -16,6 +16,12 @@ import { EDITOR_MOCKUP } from "../editor-mockup";
  * are served sandboxed: an opaque origin, which can't read or act with the
  * portal session even if a page carried script. Module scripts and fonts then
  * load cross-origin, hence the CORS header on these public files.
+ *
+ * The Editor's canvas (Epic 33) fetches pages with ?canopy_editor=1: a member
+ * of the demo account gets the draft's build, with the editor bridge and a
+ * <base> injected, which the Editor shows in a sandboxed srcdoc frame. The
+ * canvas's own requests carry no session, so a fingerprinted asset (_astro/)
+ * missing from the view asked for is served from the other view.
  */
 
 const DEMO_SLUG = "demo";
@@ -25,8 +31,9 @@ const SECURE = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 // The whole CSP for /demo: next.config leaves this path to the route.
 const SANDBOX = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms";
 const CSP = `${SANDBOX}; frame-ancestors 'none'`;
-// The Editor's static concept frames the demo from the portal itself.
-const MOCKUP_CSP = `${SANDBOX}; frame-ancestors 'self'`;
+const EDITOR_PARAM = "canopy_editor";
+const EDITOR_FLAG = `<script>document.documentElement.setAttribute("data-canopy-editor","")</script>`;
+const isNotBuilt = (res: Response) => res.status === 404 && Boolean(res.headers.get("content-type")?.includes("application/json"));
 
 async function demoSite() {
   const site = await prisma.site.findUnique({ where: { slug: DEMO_SLUG }, select: { id: true, slug: true, isDemo: true } });
@@ -68,31 +75,41 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
     return res;
   }
 
+  const url = new URL(request.url);
+  const editor = url.searchParams.get(EDITOR_PARAM) === "1";
+  if (editor && !(await mayPreview(site.id))) return new NextResponse("Not found", { status: 404 });
   const jar = await cookies();
-  const mockup = new URL(request.url).searchParams.get("canopy_editor_mockup") === "1";
-  const preview = !mockup && Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id));
-  let upstream = await fetchSiteFile(site.slug, preview ? "preview" : "current", path.join("/"));
-  if (preview && upstream.status === 404 && upstream.headers.get("content-type")?.includes("application/json")) {
+  const preview = editor || (Boolean(jar.get(PREVIEW_COOKIE)?.value) && (await mayPreview(site.id)));
+  const file = path.join("/");
+  let upstream = await fetchSiteFile(site.slug, preview ? "preview" : "current", file);
+  if (preview && isNotBuilt(upstream)) {
     // No preview build yet: show the live site.
-    upstream = await fetchSiteFile(site.slug, "current", path.join("/"));
+    upstream = await fetchSiteFile(site.slug, "current", file);
+  } else if (upstream.status === 404 && path[0] === "_astro") {
+    // A fingerprinted asset only the other build has: the canvas's requests carry no session.
+    const other = await fetchSiteFile(site.slug, preview ? "current" : "preview", file);
+    if (other.ok) upstream = other;
   }
 
   const headers = new Headers({
     "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream",
-    "Content-Security-Policy": mockup ? MOCKUP_CSP : CSP,
-    "X-Frame-Options": mockup ? "SAMEORIGIN" : "DENY",
+    "Content-Security-Policy": CSP,
+    "X-Frame-Options": "DENY",
     "Access-Control-Allow-Origin": "*",
     "X-Robots-Tag": "noindex, nofollow",
     "Cache-Control": preview ? "no-store" : (upstream.headers.get("cache-control") ?? "no-cache"),
   });
-  if (upstream.status === 404 && upstream.headers.get("content-type")?.includes("application/json")) {
+  if (isNotBuilt(upstream)) {
     headers.set("Content-Type", "text/plain; charset=utf-8");
     return new NextResponse("This demo site hasn't been published yet.", { status: 404, headers });
   }
-  if (mockup && headers.get("Content-Type")?.startsWith("text/html")) {
-    const html = await upstream.text();
-    const withMockup = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${EDITOR_MOCKUP}</body>`) : html + EDITOR_MOCKUP;
-    return new NextResponse(withMockup, { status: upstream.status, headers });
+  if (editor && headers.get("Content-Type")?.startsWith("text/html")) {
+    // Relative URLs resolve against the page's real address, not the Editor's.
+    const head = `<base href="${url.pathname.replace(/"/g, "")}">${EDITOR_FLAG}`;
+    let html = await upstream.text();
+    html = /<head(\s[^>]*)?>/i.test(html) ? html.replace(/<head(\s[^>]*)?>/i, (m) => m + head) : head + html;
+    html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${EDITOR_BRIDGE}</body>`) : html + EDITOR_BRIDGE;
+    return new NextResponse(html, { status: upstream.status, headers });
   }
   if (preview && headers.get("Content-Type")?.startsWith("text/html")) {
     const html = await upstream.text();

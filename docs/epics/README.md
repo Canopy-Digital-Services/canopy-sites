@@ -1,5 +1,9 @@
 Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
 
+## Planned
+
+- [Epic 33: Visual Editor](epic-33-visual-editor.md), built next (ROADMAP "Visual editor next"). Move it to the table below when it ships.
+
 ## Completed Epics
 
 | Epic | Version | Date | Status |
