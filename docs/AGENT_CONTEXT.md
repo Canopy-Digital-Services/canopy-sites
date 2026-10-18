@@ -269,7 +269,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
-**This repo is public.** Never commit secrets, real credentials, or client data (Sites runbook overlays, business facts, content, media). Client data lives in the database or in the client's own private site repo; secrets live in Coolify env and gitignored `.env` files.
+**This repo is public.** Never commit secrets, real credentials, or client data (site guides, business facts, content, media). Client data lives in the database or in the client's own private site repo; secrets live in Coolify env and gitignored `.env` files.
 
 Verifying env inside a Coolify container: ask the runtime what the app actually sees (plain `printenv | grep` also works; verified 2026-08-14):
 
