@@ -7,9 +7,9 @@
  * else writes content.
  *
  * Every source writes one draft per site (PRD D38): the pending ChangeSet.
- * Its ops are address ops (D36), each stamped with the draft version that
- * wrote it (`v`), so the draft survives a rebase onto a Canopy push, and a
- * write based on an older copy of a field someone else changed is refused.
+ * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
+ * push. The last write to a field wins; writes that arrive together are
+ * applied one after the other, never refused.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -45,12 +45,9 @@ export type ToolIssue = ContentIssue & { address?: string };
 
 export class ToolError extends Error {
   issues?: ToolIssue[];
-  /** STALE: the write was based on an older copy of a field someone else has changed since. */
-  code?: "STALE";
-  constructor(message: string, issues?: ToolIssue[], code?: "STALE") {
+  constructor(message: string, issues?: ToolIssue[]) {
     super(message);
     this.issues = issues;
-    this.code = code;
   }
 }
 
@@ -88,8 +85,8 @@ const AddressOpSchema = z
 const ProposalOpsSchema = z.array(PointerOpSchema).min(1, "A change needs at least one op").max(50);
 const SaveOpsSchema = z.array(AddressOpSchema).min(1, "A change needs at least one op").max(50);
 
-/** A draft op as stored: an address op, the draft version that wrote it, and the proposal's summary if any. */
-type DraftOp = AddressOp & { v: number; summary?: string };
+/** A draft op as stored: an address op, and the summary of the proposal it came in, if any. */
+type DraftOp = AddressOp & { summary?: string };
 
 const shapeError = (error: z.ZodError) =>
   new ToolError(`The change isn't in the right shape: ${error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
@@ -249,13 +246,11 @@ async function syncDraft(site: Site, read: SiteRead): Promise<Pending | null> {
   return null;
 }
 
-const related = (a: string, b: string) => a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
-
 /** Adds ops to a draft; a replace of an address already replaced takes the earlier one's place. */
-function merge(existing: DraftOp[], incoming: AddressOp[], version: number, summary?: string): DraftOp[] {
+function merge(existing: DraftOp[], incoming: AddressOp[], summary?: string): DraftOp[] {
   const out = [...existing];
   for (const op of incoming) {
-    const stamped: DraftOp = { ...op, v: version, ...(summary ? { summary } : {}) };
+    const stamped: DraftOp = { ...op, ...(summary ? { summary } : {}) };
     const i = op.op === "replace" ? out.findIndex((o) => o.op === "replace" && o.address === op.address) : -1;
     if (i >= 0) out[i] = stamped;
     else out.push(stamped);
@@ -323,8 +318,6 @@ function describeDraft(published: RawContent, after: RawContent, ops: DraftOp[])
 interface DraftWrite {
   /** The ops to add, or a function that makes them from the draft's content as it stands. */
   ops: AddressOp[] | ((draftContent: RawContent) => AddressOp[]);
-  /** The draft version the writer last read; omitted means write over whatever is there. */
-  baseVersion?: number;
   summary?: string;
   conversationId?: string;
   /** A save that changes nothing is fine from the canvas, an error from a proposal. */
@@ -341,14 +334,28 @@ export interface DraftWriteResult {
   buildError: string | null;
 }
 
+/** Two writes that land together: the one that loses the race runs again on top of the winner. */
+class WriteRace extends Error {}
+
 async function writeDraft(site: Site, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await writeDraftOnce(site, ctx, read, w);
+    } catch (err) {
+      if (!(err instanceof WriteRace)) throw err;
+      if (attempt === 5) throw new ToolError("The site is busy with other changes. Try again in a moment.");
+    }
+  }
+}
+
+async function writeDraftOnce(site: Site, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
   const pending = await syncDraft(site, read);
   let existing: DraftOp[] = [];
   if (pending) {
     const ops = asOps(pending.ops);
     try {
       // A draft from before addresses holds pointer ops; rewrite them on its first new write.
-      existing = isDraftOps(ops) ? ops : toAddressOps(read.published as Record<string, unknown>, ops).map((o) => ({ ...o, v: pending.version }));
+      existing = isDraftOps(ops) ? ops : toAddressOps(read.published as Record<string, unknown>, ops);
     } catch (err) {
       if (err instanceof PatchError) throw new ToolError(err.message);
       throw err;
@@ -370,15 +377,8 @@ async function writeDraft(site: Site, ctx: ToolContext, read: SiteRead, w: Draft
     throw err;
   }
 
-  if (pending && w.baseVersion !== undefined && w.baseVersion < pending.version) {
-    const changed = existing.filter((o) => o.v > w.baseVersion!);
-    if (incoming.some((op) => changed.some((o) => related(o.address, op.address)))) {
-      throw new ToolError("Someone else changed this while you were editing. Here's the latest; make your change again.", undefined, "STALE");
-    }
-  }
-
   const version = (pending?.version ?? 0) + 1;
-  const merged = dropReverts(read.published, merge(existing, incoming, version, w.summary));
+  const merged = dropReverts(read.published, merge(existing, incoming, w.summary));
   if (merged.length > MAX_DRAFT_OPS) throw new ToolError("This draft holds too many changes. Publish or discard it first.");
   const after = merged.length ? check(site, read.published, merged, read.guide) : read.published;
 
@@ -405,7 +405,7 @@ async function writeDraft(site: Site, ctx: ToolContext, read: SiteRead, w: Draft
         where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
         data: { ops, version, summary, status: "DRAFT", error: null, ...(conversationId && !pending.conversationId ? { conversationId } : {}) },
       });
-      if (saved.count === 0) throw new ToolError("Someone else just changed this. Here's the latest; make your change again.", undefined, "STALE");
+      if (saved.count === 0) throw new WriteRace();
       await supersedeBuilds(tx, pending.id);
       changeSetId = pending.id;
     } else {
@@ -474,7 +474,7 @@ export async function getDraftView(accountId: string, siteId: string) {
  * added to the site's draft, checked against the published content, and a
  * preview build starts.
  */
-export async function proposeChange(ctx: ToolContext, input: { summary: string; ops: unknown; conversationId?: string; baseVersion?: number }) {
+export async function proposeChange(ctx: ToolContext, input: { summary: string; ops: unknown; conversationId?: string }) {
   const site = await siteFor(ctx.accountId);
   if (isRateLimited(`site-tools:propose:${ctx.accountId}`, PROPOSALS_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
@@ -487,7 +487,6 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
   const read = await readSite(site);
   const result = await writeDraft(site, ctx, read, {
     ops: (draftContent) => toAddressOps(draftContent as Record<string, unknown>, parsed.data as ChangeOp[]),
-    baseVersion: input.baseVersion,
     summary,
     conversationId: input.conversationId,
   });
@@ -496,21 +495,19 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
 }
 
 /**
- * Saves canvas edits to the site's draft (PRD D38). `version` is the draft
- * version the canvas last read: a save that touches a field someone else has
- * changed since is refused with code STALE. Saving a field back to its
- * published value drops that edit; undoing every edit drops the draft.
+ * Saves canvas edits to the site's draft (PRD D38). The last write to a
+ * field wins. Saving a field back to its published value drops that edit;
+ * undoing every edit drops the draft.
  */
-export async function saveDraft(ctx: ToolContext, siteId: string, input: { version: number; ops: unknown }): Promise<DraftWriteResult> {
+export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: unknown }): Promise<DraftWriteResult> {
   const site = await ownedSite(ctx.accountId, siteId);
   if (isRateLimited(`site-tools:save:${ctx.accountId}`, SAVES_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
   const parsed = SaveOpsSchema.safeParse(input.ops);
   if (!parsed.success) throw shapeError(parsed.error);
-  const version = Number.isInteger(input.version) && input.version >= 0 ? input.version : 0;
   const read = await readSite(site);
-  return writeDraft(site, ctx, read, { ops: parsed.data as AddressOp[], baseVersion: version, allowNoop: true });
+  return writeDraft(site, ctx, read, { ops: parsed.data as AddressOp[], allowNoop: true });
 }
 
 /** A change the account owns, or a ToolError that reveals nothing else. */

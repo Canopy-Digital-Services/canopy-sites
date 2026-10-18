@@ -162,8 +162,7 @@ model Site {
 // ops are @canopy/site-contract ChangeOps against the branch at baseCommit.
 // A site has at most one pending (DRAFT or PREVIEWED) change at a time: the
 // site's draft (PRD D38), which every source writes. version counts its
-// saves; each op records the version that wrote it (`v`), which is how a
-// stale write to a field someone else changed is refused.
+// saves, and publish needs a build of the current one.
 model ChangeSet {
   id              String          @id @default(cuid())
   siteId          String
