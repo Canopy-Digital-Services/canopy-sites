@@ -22,6 +22,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Self-hosted fonts load from customer sites via /api/fonts, and
+        // cross-origin @font-face requires CORS.
+        source: "/fonts/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Cache-Control", value: "public, max-age=2592000" },
+        ],
+      },
+      {
         // Nothing may frame the admin, operator, or sign-in pages
         // (clickjacking). Hosted forms (/f/*), the embed script, and the
         // public submission endpoints are meant to be used from other sites.

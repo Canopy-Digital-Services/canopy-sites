@@ -175,7 +175,7 @@ Entry rises from below (3rem) at 0.94 scale and decelerates. Exit accelerates aw
 
 ## 4. Typography
 
-Three families: **Urbanist** headings, **Inter** body and UI, **Geist Mono** code. Loaded via `next/font/google` in [layout.tsx](src/app/layout.tsx), mapped in `@theme inline`:
+Three families: **Urbanist** headings, **Inter** body and UI, **Geist Mono** code. Self-hosted variable fonts loaded via `next/font/local` in [layout.tsx](src/app/layout.tsx) (files from `npm run fonts:sync`; never reintroduce `next/font/google`, whose build-time fetch broke builds), mapped in `@theme inline`:
 
 ```css
 --font-sans: var(--font-inter);      /* default on <body> */
@@ -622,6 +622,8 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 **Watermark**: every rendered embed carries a `.canopy-watermark` footer reading "Powered by Canopy Forms (Beta)" plus a `Report an issue` mailto link, with subject and body pre-filled with the form's title and id. Rendered in `render()`, `renderError()`, and `renderInactive()`, skipped in the loading skeleton. Uses `--canopy-primary` and `--canopy-border` to stay theme-aware. The address is a constant (`FEEDBACK_EMAIL` in `embed/src/form.ts`) because the esbuild bundle has no runtime env access.
 
+**Font loading**: the embed's `ensureFontsLoaded` and the picker both request `${baseUrl}/api/fonts?family=A&family=B`. The route (`src/lib/font-css.ts`) emits `@font-face` rules pointing at `/fonts/*` for families in `self-hosted-fonts.json`, and a single Google Fonts `@import` for any other family, so the full picker catalogue still works while catalog fonts never touch Google. `/fonts/*` carries `Access-Control-Allow-Origin: *` (next.config.ts) because embeds load them cross-origin. The legacy `fontUrl` theme field still loads its stored URL directly.
+
 ### Appearance editor
 
 [appearance-section.tsx](src/components/forms/appearance-section.tsx) is an always-open Card with five collapsible SubSection peers, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
@@ -640,7 +642,7 @@ Appearance  (always-open Card)
 - The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform is label-specific; title size is title-specific, since labels always render at body size.
 - Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
 
-**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Body uses `variant="body"` (default) showing `CURATED_FONTS`; Headings uses `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-google-fonts.ts`, which injects one combined `css2` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
+**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Body uses `variant="body"` (default) showing `CURATED_FONTS`; Headings uses `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
 
 ---
 

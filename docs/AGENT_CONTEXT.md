@@ -142,9 +142,10 @@ When writing a plan, task list, or subagent brief, include the line "Before star
 
 ## 4. Commands & verification
 
-Root `package.json` scripts delegate to the portal workspace (`npm run build`, `lint`, `test`, `embed:build`, `db:generate`, `db:migrate -- --name x`, `db:seed`); the portal's own scripts are in `apps/portal/package.json`. Dependencies are added to the workspace that uses them (`npm install <pkg> -w @canopy/portal`); npm `overrides` only work in the root `package.json`. The two non-obvious scripts:
+Root `package.json` scripts delegate to the portal workspace (`npm run build`, `lint`, `test`, `embed:build`, `db:generate`, `db:migrate -- --name x`, `db:seed`); the portal's own scripts are in `apps/portal/package.json`. Dependencies are added to the workspace that uses them (`npm install <pkg> -w @canopy/portal`); npm `overrides` only work in the root `package.json`. The non-obvious scripts:
 
 - `npm run embed:build` rebuilds `public/embed.js` from `embed/src/*`. Required after any embed change.
+- `npm run fonts:sync` downloads the self-hosted font set from Fontsource (`npm pack`, not installed) into `public/fonts/`, `src/lib/self-hosted-fonts.json`, and the admin fonts in `src/app/fonts/`. Output is committed. The catalog is the curated picker lists plus `EXTRA_FAMILIES` in `scripts/sync-fonts.ts`; to self-host a new font, add it there and rerun. `-- --update` refetches everything.
 - `npm run db:push` exists. **Never run it.** It mutates the database without creating a migration, so the change never reaches deployed environments.
 
 `npm run build`, `npm run lint`, and `npm test` must pass before committing. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which further checks apply to which change type.
