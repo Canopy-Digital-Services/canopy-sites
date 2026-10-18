@@ -223,9 +223,8 @@ Confirm `git status` is clean (committing anything outstanding as proper atomic 
 2. Push any unpushed commits to `origin/dev`.
 3. `gh pr create --base main`.
 4. Title summarizes the release, e.g. `v4.5.0: Field validation overhaul + embed theme fixes`.
-5. Body groups key changes by category (features, fixes, docs), written as a summary for review rather than a dump of commit messages.
-
-Do not merge unless explicitly asked.
+5. Body groups key changes by category (features, fixes, docs), written as a summary rather than a dump of commit messages.
+6. When the user asks to release or deploy prod, merge the PR (`gh pr merge --merge`). The user does not merge release PRs. Merging `main` triggers the prod deploy; confirm it landed before reporting done.
 
 ### After a merge to main
 
