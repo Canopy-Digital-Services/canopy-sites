@@ -8,6 +8,7 @@ import {
   toAddressOps,
   field,
   fieldInfo,
+  fieldLimit,
   jsonSchemaFor,
   limitIssues,
   migrateContent,
@@ -132,6 +133,14 @@ describe("field metadata", () => {
     expect(fieldInfo("site/hours")?.kind).toBe("hours");
     expect(fieldInfo("site/contact")).toBeNull();
     expect(fieldInfo("site/nope")).toBeNull();
+  });
+
+  it("gives each text field's length cap, tightened by a site guide limit", () => {
+    expect(fieldInfo("services/any/services/any/priceLabel")?.maxLength).toBe(40);
+    expect(fieldInfo("site/hours")?.maxLength).toBeUndefined();
+    expect(fieldLimit("services/a/services/b/priceLabel")).toBe(40);
+    expect(fieldLimit("services/a/services/b/priceLabel", { "services/*/services/*/priceLabel": 8, "pages/*/title": 3 })).toBe(8);
+    expect(fieldLimit("services/a/services/b/priceLabel", { "services/*/services/*/priceLabel": 99 })).toBe(40);
   });
 
   it("reaches the model through the JSON Schema", () => {

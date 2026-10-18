@@ -126,12 +126,18 @@ function metaOf(schema: AnySchema): FieldMeta | null {
   }
 }
 
+export interface FieldInfo extends FieldMeta {
+  /** The contract's cap on a text field's length, shared by every site. */
+  maxLength?: number;
+}
+
 /**
- * The kind, label, and description of the field at an address, from the
- * contract's schemas (PRD D36); null for a value with none, such as an object
- * that only groups fields. Content is not consulted: list segments may be any id.
+ * The kind, label, description, and length cap of the field at an address,
+ * from the contract's schemas (PRD D36); null for a value with none, such as
+ * an object that only groups fields. Content is not consulted: list segments
+ * may be any id. A site guide may set a tighter limit (fieldLimit).
  */
-export function fieldInfo(address: string): FieldMeta | null {
+export function fieldInfo(address: string): FieldInfo | null {
   const { collection, segments } = parseAddress(address);
   let schema: AnySchema | undefined = collections[collection].schema;
   for (const seg of segments) {
@@ -141,7 +147,20 @@ export function fieldInfo(address: string): FieldMeta | null {
     else return null;
     if (!schema) return null;
   }
-  return metaOf(schema);
+  const meta = metaOf(schema);
+  if (!meta) return null;
+  const inner = unwrap(schema);
+  const maxLength = inner instanceof z.ZodString && typeof inner.maxLength === "number" ? inner.maxLength : undefined;
+  return maxLength === undefined ? { ...meta } : { ...meta, maxLength };
+}
+
+/** The most characters a field may hold on this site: the tighter of a site guide limit and the contract's cap. */
+export function fieldLimit(address: string, limits: Record<string, number> = {}): number | undefined {
+  let max = fieldInfo(address)?.maxLength;
+  for (const [pattern, limit] of Object.entries(limits)) {
+    if (addressMatches(pattern, address) && (max === undefined || limit < max)) max = limit;
+  }
+  return max;
 }
 
 /**
