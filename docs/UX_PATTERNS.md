@@ -515,6 +515,11 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 - **Advancing is animation-driven**: Continue sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
 - Forward exits left, back exits right.
 - Section cards are plain `Card`s with no accent bar (see rule 22).
+- On Header with both fields empty, the forward button reads **No Header** instead of Continue.
+
+**Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
+
+**Focus mark.** Focusing a Header input sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. The canvas sits inside the embed container at `z-index: -1` (the container is `relative isolate`), so the stroke passes under neighboring text rather than over it.
 
 Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 

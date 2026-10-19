@@ -38,6 +38,8 @@ The **Header** section is the first step in the Edit tab. Both fields are option
 
 Both are rendered on the hosted page and by the embed. If your container already has its own heading, you'll usually leave these blank for the embed and rely on them for the hosted page.
 
+Until you type, the preview shows faded sample text where the title and description go. It isn't saved: leave both blank and click **No Header**, and the form has no header.
+
 ## Fields
 
 The **Fields** section is where you add and arrange inputs. Use **Add field**, then pick a type in the modal.

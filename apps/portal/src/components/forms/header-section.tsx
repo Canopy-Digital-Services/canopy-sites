@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Save, Check, ChevronDown, ChevronRight } from "lucide-react";
-import { useFormContext } from "@/components/forms/form-context";
+import { useFormContext, HEADER_PLACEHOLDERS } from "@/components/forms/form-context";
 
 type HeaderSectionProps = {
   /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
@@ -20,7 +20,7 @@ type HeaderSectionProps = {
 };
 
 export function HeaderSection({ variant = "accordion", open = false, onOpenChange }: HeaderSectionProps) {
-  const { state, saveStatus, updateHeader } = useFormContext();
+  const { state, saveStatus, updateHeader, setPreviewFocus } = useFormContext();
   const isFlow = variant === "flow";
 
   const headerInner = (
@@ -67,7 +67,9 @@ export function HeaderSection({ variant = "accordion", open = false, onOpenChang
           id="form-title"
           value={state.title ?? ""}
           onChange={(e) => updateHeader({ title: e.target.value || null })}
-          placeholder="e.g. Contact Us"
+          placeholder={HEADER_PLACEHOLDERS.title}
+          onFocus={() => setPreviewFocus("title")}
+          onBlur={() => setPreviewFocus(null)}
           maxLength={120}
         />
       </div>
@@ -77,7 +79,9 @@ export function HeaderSection({ variant = "accordion", open = false, onOpenChang
           id="form-description"
           value={state.description ?? ""}
           onChange={(e) => updateHeader({ description: e.target.value || null })}
-          placeholder="e.g. Fill out the form below and we'll get back to you."
+          placeholder={HEADER_PLACEHOLDERS.description}
+          onFocus={() => setPreviewFocus("description")}
+          onBlur={() => setPreviewFocus(null)}
           maxLength={400}
           rows={3}
         />

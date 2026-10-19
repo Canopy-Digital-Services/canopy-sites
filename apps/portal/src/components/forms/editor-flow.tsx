@@ -7,7 +7,7 @@
 // from below and swoop out sideways when the user continues (left = forward,
 // right = back). Keyframes live in globals.css (editor-swoop-*).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useFormContext } from "@/components/forms/form-context";
 import { HeaderSection } from "@/components/forms/header-section";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { AppearanceSection } from "@/components/forms/appearance-section";
@@ -38,6 +39,14 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
 
   const isDone = step === STEPS.length;
   const current = isDone ? "done" : STEPS[step];
+  const { state, setEditorStep } = useFormContext();
+  const headerEmpty = !state.title && !state.description;
+
+  // The preview picks its stand-ins by step.
+  useEffect(() => {
+    setEditorStep(current);
+    return () => setEditorStep(null);
+  }, [current, setEditorStep]);
 
   const go = (direction: "forward" | "back") => {
     if (exiting) return;
@@ -130,7 +139,7 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
           </Button>
         ) : (
           <Button onClick={() => go("forward")} disabled={exiting !== null}>
-            Continue
+            {current === "header" && headerEmpty ? "No Header" : "Continue"}
             <ArrowRight className="h-4 w-4" />
           </Button>
         )}
