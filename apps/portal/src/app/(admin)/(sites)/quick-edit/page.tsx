@@ -34,7 +34,8 @@ export default async function QuickEditPage() {
   }
 
   // The demo is the only site the portal serves today (PRD D23); client
-  // sites get their live address with E36.
+  // sites get their live address, and every site the preview page, with
+  // Epic 37 (PRD D47).
   const liveUrl = site.isDemo ? "/demo" : null;
   const changes = await getEditorChanges(accountId);
   // Not awaited: reading content fetches from GitHub, so the page renders

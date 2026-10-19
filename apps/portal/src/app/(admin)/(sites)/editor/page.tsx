@@ -15,7 +15,8 @@ export const dynamic = "force-dynamic";
  * The visual editor (Epic 33, PRD D35 to D45): the site on a canvas, its
  * marked fields edited in place, everything saved to the site's one draft.
  * The canvas loads pages through /demo, so only the demo site has one until
- * client sites get preview hostnames (PRD D43).
+ * Epic 37 gives client sites a canvas that loads assets from their live
+ * address (PRD D47).
  */
 export default async function EditorPage() {
   const accountId = await getCurrentAccountId();
