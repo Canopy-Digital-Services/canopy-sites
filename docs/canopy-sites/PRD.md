@@ -10,6 +10,8 @@
 
 **Revision note (2026-10-17, visual editor):** D35 to D45 added; D28 revised; Q2 answered by D43; §1, §2, §4.4 to §4.6, §6, §7 revised. The Editor becomes a working in-place editor for content, with quick edit as the fallback for fields it can't edit yet; every source writes one draft per site; tools such as Gallery and Calendar are build-time tabs; per-site limits live in the site guide's front matter.
 
+**Revision note (2026-10-19, canopyds.com on Sites):** D46 added; §2 revised. canopyds.com moves onto Sites as the first site that isn't the demo, and D13's Astro stands after a framework review.
+
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
@@ -54,6 +56,7 @@
 - Operator: accounts, sites, build log, token usage, edit-as-client
 - Hair & Harvest migrated to the template as testbed
 - A demo site at `sites.canopyds.com/demo` on its own account, for sales calls and partner sandboxes (D23)
+- canopyds.com on Sites under Michael's account, the first site that isn't the demo (D46)
 
 ### Out of v1 (explicit)
 
@@ -125,6 +128,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D43 | **The canvas.** A breakpoint switcher (desktop and phone). The site's own navigation, locked, moves the canvas between pages, and an address bar reaches any page, so there are no page tabs. Unmarked clicks behave as on the live site; a marked link or button selects, and its editor offers to follow it. The canvas and the page talk only through postMessage, so where the page is served can change without touching the editor: the demo stays on `/demo`, and client sites move to their preview hostnames (D25) with the first real client, signed in by a short-lived signed token that the preview host exchanges for its own cookie (answers Q2) | M/R |
 | D44 | **A Canopy person drives or watches every demo**; prospects don't get a self-serve sandbox, which would need per-visitor isolation and an AI spend cap. H&H as served at `/demo` is the visual editor's customer zero. Several demo sites (salon, gym) come later, behind a demo-account home with a site switcher; to keep that cheap, new code resolves a site by id with an ownership check, never as "the account's one site", and D19 relaxes for demo sites when the switcher lands | M/R |
 | D45 | **SEO is Canopy's** (titles, descriptions, structured data), never an owner edit. **Rich text is deferred**: copy stays plain text until a site needs inline links | M |
+| D46 | **canopyds.com is the first site on Sites that isn't the demo**, on Michael's account: Canopy runs its own site the way a client would. It moves from Next.js to Astro. D13 stands after a framework review on 2026-10-19: Next.js static export, Eleventy (the runner-up), Hugo, SvelteKit or Nuxt static, a portal-rendered theme engine, and a headless CMS were weighed against static output, JSON content under the contract, a canvas that edits plain HTML, and build-time images. The platform's tie to Astro is the builder's `dist/` output and `_astro/` fingerprint path; new code keeps it there. Client preview hostnames (D25, D43) are built with it (Epic 37) | M |
 
 ---
 

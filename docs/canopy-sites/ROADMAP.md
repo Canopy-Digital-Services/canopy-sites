@@ -29,6 +29,10 @@ E30 is built first as the demo slice (PRD D23): the builder, preview and publish
 
 E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild with `Site.timeZone` (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
 
+### canopyds.com on Sites (decided 2026-10-19)
+
+E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, client preview hostnames with their sign-in (D25, D43), and the canvas for client sites. It takes the preview hostnames from E30's remainder. Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
+
 ### Fallback (decision D6 chicken-out)
 
 If the builder/Caddy model has to be abandoned: keep Coolify building each site from GitHub on push; keep the builder + Caddy for **preview only**; publish stays commit-to-main. Everything in E30–E35 remains valid; only E36 is dropped. Document the choice in the PRD if taken.
@@ -142,7 +146,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### E30 · Builder service + Caddy + preview hostname
 
-Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), preview hostnames and their auth (PRD D25, D43), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
+Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
 
 
 Goal: a ChangeSet against H&H produces a viewable preview without touching production.
@@ -246,7 +250,6 @@ Same as H1–H3 plus E36 steps 1–5 for `torozmuaythai.com`. Specifics: `site.t
 
 - Tool tabs, build-time (PRD D39): Gallery (D41), Calendar for announcements and events (D42), blog, newsletter
 - A demo-account home with a switcher between several demo sites (PRD D44)
-- Client preview hostnames for the canvas, with the first real client or the second demo site (PRD D43)
 - Invite flow and member roles UI (Membership exists from E28)
 - New-site onboarding automation (repo from template, DNS, Umami website, Caddy entry)
 - Stripe or FreshBooks sync

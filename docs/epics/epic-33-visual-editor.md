@@ -34,7 +34,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 | Photos on the canvas | They stay unmarked until E32's media pipeline gives the popover an attach button (D41): a photo that opens a chat unable to replace it is the disappointment D35 exists to prevent |
 | Section headings, eyebrows, button labels | Not marked in this epic: the Invisible CMS page puts facts and prose before chrome, which owners rarely ask to change and which is most likely to break a layout |
 | Tool tabs (Gallery, Calendar) | D39; not scheduled |
-| Client preview hostnames | D43: with the first real client or the second demo site |
+| Client preview hostnames | D43; built in E37 with canopyds.com |
 | Demo switcher | D44 |
 | Marker styling beyond a working default | D35: decided later with Michael |
 | Restore UI | E31 remainder |
