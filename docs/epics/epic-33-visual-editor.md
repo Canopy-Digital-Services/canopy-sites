@@ -24,7 +24,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
 - **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.
 - **The canvas** (PRD D43): bridge script, marked fields in the demo site's templates, breakpoint switcher, address bar.
-- **Editing**: the canvas's own editors, the quick edit popover (PRD D37), unpublished changes and Publish in the Sites chrome.
+- **Editing**: the canvas's own editors, the quick edit popover (PRD D37), unpublished changes and Publish in the Sites chrome (E37 moves Publish to the preview page, PRD D47).
 - **Speed**: timings for the editor's paths, measured on production after the tunnel fix (section 3).
 
 ### Out
@@ -96,7 +96,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - Text and paragraph edits patch the canvas as typed; the save goes out in the background (section 4.2). Edits whose rendering is derived (hours, dates) rebuild instead, with the affected field shown as updating.
 - Every other marked field opens quick edit in the popover: the existing loop in `src/lib/quick-edit`, opened with the field's address and value in the first user turn, writing the same draft (PRD D37).
 - Undo within the session: back to the field's previous value, saved as a new edit.
-- Sites chrome: unpublished changes, Publish (enabled per section 4.2), Discard. The Quick Edit tab's pending change is the same draft.
+- Sites chrome: unpublished changes, Publish (enabled per section 4.2), Discard. The Quick Edit tab's pending change is the same draft. E37 moves Publish to the preview page, its only home (PRD D47).
 - Tool-result warnings (QUICK_EDIT_GUIDANCE section 2) arrive as data and show beside the field.
 
 ### 4.7 Tests
