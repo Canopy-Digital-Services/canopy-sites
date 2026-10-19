@@ -11,9 +11,9 @@
 
 ## 1. Goal
 
-Michael runs canopyds.com through Canopy Sites the way a client would. Signed in at `sites.canopyds.com` as himself, he edits the site in Quick Edit and on the Editor's canvas, sees each change on the canvas, and publishes, and the change reaches `www.canopyds.com`.
+Michael runs canopyds.com through Canopy Sites the way a client would. Signed in at `sites.canopyds.com` as himself, he edits the site in Quick Edit and on the Editor's canvas, opens Preview to see the draft full-window in a new tab, and publishes, and the change reaches `www.canopyds.com`.
 
-It is the first site on Sites that isn't the demo, so the canvas is built for client sites here: it loads a site's styles, fonts, and scripts from where the site is live, and it is the preview (PRD D47). It is also the second site whose repo token sits on the builder. The site moves from Next.js to Astro, the stack of every other Sites repo (PRD D46).
+It is the first site on Sites that isn't the demo, so the canvas is built for client sites here, loading a site's styles, fonts, and scripts from where the site is live, along with the preview page every site uses (PRD D47). Its run produces the runbook for putting any site onto Sites. It is also the second site whose repo token sits on the builder. The site moves from Next.js to Astro, the stack of every other Sites repo (PRD D46).
 
 ## 2. Scope
 
@@ -21,14 +21,15 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 - **Builder isolation (4.1)**: site build steps run as their own user.
 - **The site (4.2, in `canopy-website`)**: Astro 7 port with visual parity; facts and prose in contract 0.2.0 collections, marked for the canvas; `SITE_GUIDE.md`; a static image for the existing Coolify app; the repo's own docs.
-- **Client sites on the canvas (4.3)**: the Editor for any site an account owns, with assets from the site's live address; Quick Edit's Preview opens it.
+- **Client sites on the canvas, and the preview page (4.3)**: the Editor for any site an account owns, with assets from the site's live address; Preview opens the draft in a new tab without the Sites chrome, for every site, the demo included.
 - **Wiring (4.4)**: the site on Michael's account, the builder's repo access, redirects.
+- **The onboarding runbook (4.5, Nextcloud)**: every step of this run, written for any site, ending in acceptance.
 
 ### Out
 
 | Not here | Why / where |
 |---|---|
-| Preview hostnames | None, by D47: the canvas is the preview |
+| Preview hostnames | None, by D47: the canvas and the preview page cover them |
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
 | Production on Caddy, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys (ROADMAP Phase 3 fallback) |
 | Contract changes: team, FAQs, long-form text, a `linkedin` social network | Each needs a contract release with the demo's upgrade in the same window (site-contract README, "Upgrading"). Those parts stay in templates (section 7) |
@@ -62,8 +63,8 @@ Each section is about one session; 4.2 may take two.
 - Components become `.astro` files with plain `<script>` for behavior, like the demo, H&H, and Toro Z, so the site can feed the template (C2). A component whose behavior doesn't port cleanly may stay React as an island (`@astrojs/react`, `client:visible`); nothing inside an island is a marked field, since hydration owns that DOM. CSS modules and Tailwind v4 (`@tailwindcss/vite`) carry over.
 - Next-only features: `next/font/google` becomes Fontsource packages (no external font requests, ROADMAP H3); `next/image` becomes `astro:assets` for images moved to `src/assets` (PDFs, SVG art, and the OG card stay in `public/`); `next/link` becomes `<a>`; the Metadata API becomes the layout's head (title template, description, Open Graph, canonical); `robots.ts` and `sitemap.ts` become static output. The JSON-LD is unchanged apart from reading its facts from content.
 - `/services` → `/websites` and `/cookie-settings` → `/cookie-policy` become Cloudflare redirect rules (301) beside the apex → www rule, so they outlive the Coolify app (E36). Create them before the Astro build goes live.
-- Umami loads with `data-domains="www.canopyds.com"`, so canvas views aren't counted.
-- Under the canvas's `data-canopy-editor` flag (E33 section 4.5), intro animations are skipped and the contact form renders a placeholder: the Forms embed refuses the sandboxed canvas's `null` origin.
+- Umami loads with `data-domains="www.canopyds.com"`, so canvas and preview views aren't counted.
+- The canvas sets `data-canopy-editor` on `<html>` (E33 section 4.5) and the preview page sets `data-canopy-preview` (4.3). Under either, the contact form renders a placeholder: the Forms embed refuses a sandboxed page's `null` origin. Under the editor flag, intro animations are skipped.
 - Visual parity: every routed page at 1440 and 390 px, screenshots before and after with headless Chromium; each difference fixed or accepted by Michael.
 
 **Content**
@@ -87,23 +88,34 @@ Each section is about one session; 4.2 may take two.
 - The canvas document comes from a route on the Sites host, generalized from `/demo`'s `?canopy_editor=1` path, for members only (`canPreviewSite`; 404 otherwise):
   - with a draft pending, the draft's build from the builder
   - with none, the live page, fetched from the production hostname, since the builder's `current` can lag a Canopy push that www has already deployed
-- Before it goes out, the route injects three things:
+- Before it goes out, the route injects:
   - a `<base>` set to the page's address on the production hostname (`https://` plus the first production hostname plus the path), so the page's URLs, root-relative ones included, load assets from the live site
-  - the editor flag
-  - the bridge
+  - for the canvas, the editor flag and the bridge; for the preview page (below), the preview flag and the bridge in view mode
 - Every response sends `/demo`'s sandbox CSP and `frame-ancestors 'none'`, so a direct visit never renders site HTML with the portal's origin.
 - The bridge, the srcdoc frame, and in-place text patching are unchanged (D43). `canvas-editor.tsx`'s `/demo` path handling generalizes to the site's own paths; navigation reports arrive as URLs on the production hostname.
 - In development the production hostname takes no port, so a development-only setting gives a client site's asset origin: a static server of the site's build.
 
+**The preview page (every site, the demo included)**
+
+- A route on the Sites host, outside `(admin)`, so it renders without the Sites chrome, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as AGENT_CONTEXT section 2 requires of a signed-in layout outside `(admin)`.
+- The page document from the route above fills the window in a sandboxed srcdoc frame. A thin bar says "Previewing unpublished changes", or "No unpublished changes" when there is no draft.
+- While a newer build of the draft runs, the bar says it's updating, and the page swaps in place when the build lands (the Editor's build-status stream).
+- The bridge in view mode reports navigation only: no marks and no selection. The site's own links move between pages, and the tab's address follows with `history`, so reload and back work.
+- No actions: Publish stays in the Sites chrome (D38), in the tab the owner came from.
+- The demo's Preview opens this page too. `/demo`'s own preview mode (`/demo/__canopy/preview`, its cookie, and its bar) is deleted, so `/demo` serves the published build and the Editor's canvas only.
+
 **Quick Edit**
 
 - For a client site, View site and the pages list use the first production hostname. Both are null for client sites today (`liveUrl` in `src/app/(admin)/(sites)/quick-edit/page.tsx`).
-- The pending change's Preview opens the Editor at the page the change touches. An op under `pages/<id>` opens that page; any other op opens the home page.
-- Every preview link uses that one Editor URL (D47), so E34's tools will return it too.
+- The pending change's Preview opens the preview page in a new tab (`target="_blank"`), at the page the change touches. An op under `pages/<id>` opens that page; any other op opens the home page. Quick Edit never opens the Editor to preview (D47).
+- Every preview link is that preview page's URL, so E34's tools will return it too.
 
 **Docs**
 
-- `docs/AGENT_CONTEXT.md`: section 2 (the canvas route's rules beside `/demo`'s), section 3 (`/editor` for every Sites account with a site), section 7 if the development setting is a variable.
+- `docs/AGENT_CONTEXT.md`:
+  - section 2: the canvas route's and the preview page's rules beside `/demo`'s, and `/demo` without its preview mode
+  - section 3: `/editor` for every Sites account with a site, and the preview route
+  - section 7: the development setting, if it is a variable
 - No Sites help pages exist yet (E30 section 8).
 
 ### 4.4 Wiring (production)
@@ -126,11 +138,35 @@ Agent, each production change confirmed first:
 - **Branch protection:** confirm `main` on `canopy-website` doesn't refuse the builder's push.
 - **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It still deploys `feat/new-tabs`, which merged in `canopy-website@45580f9`.
 
-### 4.5 Tests
+### 4.5 The onboarding runbook (Nextcloud)
+
+No page covers putting a site onto Sites end to end (checked 2026-10-19). Two pages each cover part of it:
+- **Site Build Checklist** (Canopy Sites collective): content completeness and `SITE_GUIDE.md`.
+- **New Client Checklist** (Engineering, Runbooks): go-live infrastructure (Coolify, DNS, tunnel ingress, load balancing, health, analytics).
+
+Write **Sites Onboarding Runbook** in the Canopy Sites collective as this epic runs. Each step is written as done for canopyds.com and stated for any site:
+- **The site repo:**
+  - the contract installed by release tarball
+  - content in `src/content` with one source per fact
+  - field marks and `SITE_GUIDE.md` (pointing to the Site Build Checklist, not repeating it)
+  - build parity with the builder (Node 24, `npm ci --ignore-scripts`, base `/`, `dist/`)
+  - CORS on static files
+  - Umami's `data-domains`
+- **Sites:**
+  - the operator Site row (slug, repo, branch, production hostname, Umami id, locked fields)
+  - the builder token, with its expiry in the Engineering **Expirables Register**
+  - the builder redeploy and the first Build and publish
+- **Infrastructure:** a link to the New Client Checklist and the step it runs at, not a copy.
+- **Acceptance:** this epic's section 5, generalized to any site, as the runbook's last step.
+
+Link the runbook from the collective's landing page, from both checklists, and from `CLAUDE.md`'s list of Nextcloud runbooks. The first new client site after canopyds.com runs it as written and corrects it.
+
+### 4.6 Tests
 
 Database tests:
 - The canvas route refuses another account's site and a signed-out request.
 - It serves the draft's build only while a draft is pending.
+- The preview page refuses another account's site and a signed-out request.
 - Quick Edit's Preview link names the page an op touches.
 
 Unit test: the canvas route's `<base>` is the site's production hostname, never the request's host.
@@ -144,9 +180,11 @@ Each guard's test fails with the guard removed.
 - [ ] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
 - [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and only facts and prose marked. An in-place edit shows as typed and lands in the draft
-- [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens the Editor at the changed page showing it. Signed out, or as another account, the canvas route returns 404
+- [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page full-window and no Sites chrome. The site's navigation moves between pages there, and the build swaps in place
+- [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
 - [ ] Publish commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
-- [ ] The demo's Editor, Quick Edit, and `/demo` work as before
+- [ ] On the demo, Preview opens the same page, `/demo/__canopy/preview` is gone, and the Editor, Quick Edit, and `/demo` otherwise work as before
+- [ ] Sites Onboarding Runbook exists in Nextcloud, linked from the landing page, both checklists, and `CLAUDE.md`, and every step this epic took is in it
 - [ ] `npm run build`, `lint`, `test` pass; every guard's test fails with the guard removed
 
 ## 6. Decisions
@@ -163,12 +201,16 @@ Each guard's test fails with the guard removed.
   - an off-the-shelf headless CMS
 
   The platform's tie to Astro is the builder's `dist/` output and the `_astro/` fingerprint path (as of 2026-10-19). New code keeps it to those.
-- **No preview hostnames: the canvas is the preview** (PRD D47), loading a client site's assets from its live address; Preview opens the Editor. This supersedes D25 and D43's preview hostnames, and with them a sign-in handoff, preview cookies, and a DNS record and Coolify domain per site.
-- **Scope covers builder isolation and the canvas for client sites**, beside the port.
+- **No preview hostnames** (PRD D47). A client site's canvas loads its assets from the site's live address. This supersedes D25 and D43's preview hostnames, and with them a sign-in handoff, preview cookies, and a DNS record and Coolify domain per site.
+- **Preview opens in a new tab without the Sites chrome**, not in the Editor (D47): Quick Edit shouldn't look like it drops the owner into the visual editor.
+- **A runbook comes out of this run** (4.5), so the next site onto Sites repeats it smoothly.
+- **Scope covers builder isolation, the canvas for client sites, and the preview page**, beside the port.
 
 ### Agent calls inside scope
 
-- **One epic in four sections**, each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`.
+- **One epic in five sections**, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others.
+- **The demo previews through the same page**, and `/demo`'s own preview mode is deleted: one preview path for every site.
+- **The preview page has no actions.** Publish stays in the Sites chrome (D38), in the tab the owner came from.
 - **Slug `canopyds`.**
 - **Content moved now: facts, and the prose sections that fit `pages`.** Structured sections wait for contract collections.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
@@ -189,6 +231,7 @@ Not started.
 
 - 2026-10-19: Planned with Michael: framework review (Astro stays) and scope. Verified on production that day:
   - Michael's account is on `SITES` with no site.
-  - The `canopy-website` Coolify app deploys on push through the GitHub App webhook (a webhook deploy for each push on 2026-10-18 in Coolify's deployment history), though the repo's docs say there is no webhook.
+  - The `canopy-website` Coolify app deploys on push through the GitHub App webhook (a webhook deploy for each push on 2026-10-18 in Coolify's deployment history). The repo's docs said there was no webhook; corrected the same day.
   - `canopy-website-dev` still deploys `feat/new-tabs`.
-- 2026-10-19 (later): Michael dropped preview hostnames: the canvas is the preview, with a client site's assets from its live address (PRD D47). Sections 1 to 7 revised; the portal-versus-Caddy question for preview hosts went with them.
+- 2026-10-19 (later): Michael dropped preview hostnames: a client site's canvas loads its assets from its live address (PRD D47). The portal-versus-Caddy question for preview hosts went with them.
+- 2026-10-19 (later): Michael: Preview opens a page of its own in a new tab, without the Sites chrome, never the Editor (D47 revised); this run produces the onboarding runbook (4.5). Nextcloud checked: no page covers putting a site onto Sites.

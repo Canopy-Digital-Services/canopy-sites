@@ -19,7 +19,7 @@ Phase 4  H&H production cutover       [webber]             E36                  
 Phase 5  Toro Z migration             [toroz]              T1                         (needs E36 stable a week)
 ```
 
-Production H&H keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 is previewed on the canvas (PRD D47). During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
+Production H&H keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -31,7 +31,7 @@ E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/d
 
 ### canopyds.com on Sites (decided 2026-10-19)
 
-E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, and the canvas for client sites, which loads a site's assets from its live address and is the preview, so there are no preview hostnames (D47). Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
+E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, the canvas for client sites, which loads a site's assets from its live address, and a preview page that opens a draft full-window in a new tab, without the Sites chrome, for every site, so there are no preview hostnames (D47). Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -155,7 +155,7 @@ Goal: a ChangeSet against H&H produces a viewable preview without touching produ
 
 - `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (repo-scoped token, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
-- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`) and reloads. No preview hostnames: the canvas is the preview (PRD D47)
+- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`) and reloads. No preview hostnames (PRD D47)
 - Shared volume between builder and caddy. Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
 - Operator: build log per site with status, duration, stdout tail
 - Acceptance: operator triggers a no-op ChangeSet on H&H → the canvas shows the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
