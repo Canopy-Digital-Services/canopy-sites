@@ -97,17 +97,28 @@ Each section is about one session; 4.2 may take two.
 
 **The preview page (every site, the demo included)**
 
-- A route on the Sites host, outside `(admin)`, so it renders without the Sites chrome, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as AGENT_CONTEXT section 2 requires of a signed-in layout outside `(admin)`.
-- The page document from the route above fills the window in a sandboxed srcdoc frame. A thin bar says "Previewing unpublished changes", or "No unpublished changes" when there is no draft.
-- While a newer build of the draft runs, the bar says it's updating, and the page swaps in place when the build lands (the Editor's build-status stream).
+- A route on the Sites host, outside `(admin)`, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as AGENT_CONTEXT section 2 requires of a signed-in layout outside `(admin)`.
+- The site fills the tab: the page document from the route above, in a full-window sandboxed srcdoc frame, with no portal around it. The frame is what keeps the site's scripts away from the portal session while the bar below stays the portal's.
+- **The preview bar** along the bottom looks like `/demo`'s today: the teal bar reading "Previewing unpublished changes". It carries the only Publish (D47):
+  - Publish names the build the page is showing, and the tool layer refuses it unless that is the latest succeeded build of the draft's current version (D38). So an edit made in another tab after the page loaded can't go live unseen.
+  - While a newer build of the draft runs, the bar says it's updating and Publish waits. The page swaps in place when the build lands (the Editor's build-status stream).
+  - After publishing, the bar says it's published and how soon it's live: at once for the demo; after the site's deploy for a site published by a push (canopyds.com until E36).
+  - With no draft, the bar reads "No unpublished changes" and has no Publish.
 - The bridge in view mode reports navigation only: no marks and no selection. The site's own links move between pages, and the tab's address follows with `history`, so reload and back work.
-- No actions: Publish stays in the Sites chrome (D38), in the tab the owner came from.
 - The demo's Preview opens this page too. `/demo`'s own preview mode (`/demo/__canopy/preview`, its cookie, and its bar) is deleted, so `/demo` serves the published build and the Editor's canvas only.
+
+**Where Publish was**
+
+- The Sites chrome's draft status (`src/components/sites/draft-status.tsx`) keeps unpublished changes and Discard, and its Publish becomes Preview, which opens the preview page in a new tab.
+- Quick Edit's pending change (`quick-edit-workspace.tsx`) shows Preview and Discard; its Publish goes.
+- The Editor and the quick edit popover have no Publish.
+- Quick edit's model-facing text (`src/lib/quick-edit`: the `propose_change` result and `runbook.ts`) says the owner previews and publishes from the preview page, matching `QUICK_EDIT_GUIDANCE.md`.
+- The operator's Build and publish stays, for a site's first build and the demo's reset.
 
 **Quick Edit**
 
 - For a client site, View site and the pages list use the first production hostname. Both are null for client sites today (`liveUrl` in `src/app/(admin)/(sites)/quick-edit/page.tsx`).
-- The pending change's Preview opens the preview page in a new tab (`target="_blank"`), at the page the change touches. An op under `pages/<id>` opens that page; any other op opens the home page. Quick Edit never opens the Editor to preview (D47).
+- Preview opens the preview page in a new tab (`target="_blank"`), at the page the change touches. An op under `pages/<id>` opens that page; any other op opens the home page. Quick Edit never opens the Editor to preview (D47).
 - Every preview link is that preview page's URL, so E34's tools will return it too.
 
 **Docs**
@@ -167,6 +178,7 @@ Database tests:
 - The canvas route refuses another account's site and a signed-out request.
 - It serves the draft's build only while a draft is pending.
 - The preview page refuses another account's site and a signed-out request.
+- Publish from the preview page is refused for a build that isn't the latest succeeded build of the draft's current version.
 - Quick Edit's Preview link names the page an op touches.
 
 Unit test: the canvas route's `<base>` is the site's production hostname, never the request's host.
@@ -180,9 +192,10 @@ Each guard's test fails with the guard removed.
 - [ ] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
 - [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and only facts and prose marked. An in-place edit shows as typed and lands in the draft
-- [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page full-window and no Sites chrome. The site's navigation moves between pages there, and the build swaps in place
+- [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page filling the window and the preview bar at the bottom. The site's navigation moves between pages there, and the build swaps in place
+- [ ] Publish appears only on the preview bar: Quick Edit, the Sites chrome, and the Editor show Preview instead
 - [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
-- [ ] Publish commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
+- [ ] Publish on the preview bar commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
 - [ ] On the demo, Preview opens the same page, `/demo/__canopy/preview` is gone, and the Editor, Quick Edit, and `/demo` otherwise work as before
 - [ ] Sites Onboarding Runbook exists in Nextcloud, linked from the landing page, both checklists, and `CLAUDE.md`, and every step this epic took is in it
 - [ ] `npm run build`, `lint`, `test` pass; every guard's test fails with the guard removed
@@ -201,16 +214,16 @@ Each guard's test fails with the guard removed.
   - an off-the-shelf headless CMS
 
   The platform's tie to Astro is the builder's `dist/` output and the `_astro/` fingerprint path (as of 2026-10-19). New code keeps it to those.
-- **No preview hostnames** (PRD D47). A client site's canvas loads its assets from the site's live address. This supersedes D25 and D43's preview hostnames, and with them a sign-in handoff, preview cookies, and a DNS record and Coolify domain per site.
-- **Preview opens in a new tab without the Sites chrome**, not in the Editor (D47): Quick Edit shouldn't look like it drops the owner into the visual editor.
+- **No preview hostnames** (PRD D47). A client site's canvas loads its assets from the site's live address, so a site needs no sign-in handoff, preview cookie, DNS record, or Coolify domain for previews.
+- **Preview opens in a new tab, the site filling it with the preview bar at the bottom**, not embedded in the portal and not in the Editor (D47): Quick Edit shouldn't look like it drops the owner into the visual editor.
+- **Publish lives on the preview bar and nowhere else** (D47), which makes checking the preview the only way to publish.
+- **The demo previews through the same page**, and `/demo`'s own preview mode is deleted: one preview path for every site.
 - **A runbook comes out of this run** (4.5), so the next site onto Sites repeats it smoothly.
 - **Scope covers builder isolation, the canvas for client sites, and the preview page**, beside the port.
 
 ### Agent calls inside scope
 
 - **One epic in five sections**, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others.
-- **The demo previews through the same page**, and `/demo`'s own preview mode is deleted: one preview path for every site.
-- **The preview page has no actions.** Publish stays in the Sites chrome (D38), in the tab the owner came from.
 - **Slug `canopyds`.**
 - **Content moved now: facts, and the prose sections that fit `pages`.** Structured sections wait for contract collections.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
@@ -235,3 +248,4 @@ Not started.
   - `canopy-website-dev` still deploys `feat/new-tabs`.
 - 2026-10-19 (later): Michael dropped preview hostnames: a client site's canvas loads its assets from its live address (PRD D47). The portal-versus-Caddy question for preview hosts went with them.
 - 2026-10-19 (later): Michael: Preview opens a page of its own in a new tab, without the Sites chrome, never the Editor (D47 revised); this run produces the onboarding runbook (4.5). Nextcloud checked: no page covers putting a site onto Sites.
+- 2026-10-19 (later): Michael: the demo previews through the same page; Publish moves to the preview bar and off Quick Edit, the Sites chrome, and the Editor (D38, D47 revised). "No Sites chrome" means not embedded in the portal; the bottom bar stays.

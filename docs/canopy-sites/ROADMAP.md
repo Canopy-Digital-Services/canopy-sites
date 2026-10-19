@@ -187,7 +187,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 - Media: `uploadMedia` with preflight per the guidance doc (formats, normalization, size per slot with the refuse and warn levels). The model gets a downscaled copy for alt text, placement, and moderation (PRD D33); alt text is suggested and the owner accepts or edits it. The canvas popover gets an attach button, so a photo on the canvas is replaced through it (PRD D41)
 - `requestHelp` and a `HelpRequest` table; operator view lists open requests (PRD D34)
 - `Conversation` persisted with tokens in/out and cost estimate. Add `Plan.monthlyAiBudgetCents` (meaning in PRD D21), with the `SITES` value set from the cost per edit this epic measures; soft-stop at 100% with operator notification
-- UI: the Quick Edit tab, and the canvas popover from E33 (the same chat scoped to one field, PRD D37). Each assistant turn that produces a change shows Preview / Publish inline
+- UI: the Quick Edit tab, and the canvas popover from E33 (the same chat scoped to one field, PRD D37). Each assistant turn that produces a change shows Preview inline; Publish is on the preview page (PRD D47)
 - Operator: token usage per account/site/month; "edit as client" opens the same chat with operator identity recorded on the ChangeSet
 - Acceptance: scripted edits on H&H (hours, announcement with quoted text, announcement without, price change, gallery add with HEIC, low-resolution photo, hero copy with a typo, a design request) each produce the right preview or reply; cost per edit recorded and reported. The script is the regression suite for any change to the guidance
 
@@ -200,16 +200,16 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 - Canvas: the site in a frame with a breakpoint switcher; the site's nav moves between pages and an address bar reaches any page (D43)
 - Marked fields only (D35), through C3's `field()` in the site's templates. A bridge script (replacing `src/app/demo/editor-mockup.ts`) reports the marked fields, applies text edits to every element with the edited address, and reports navigation, over postMessage only
 - Editors on the canvas for plain text, prices, and an announcement's message and dates; every other marked field opens the quick edit popover scoped to it (D37)
-- The draft (D38, from E31): saved as the owner edits, merged per field, versioned, rebased on a Canopy push. The builder answers content reads from its clone and builds newest first; build status is pushed to the page; Publish and unpublished changes sit in the Sites chrome
+- The draft (D38, from E31): saved as the owner edits, merged per field, versioned, rebased on a Canopy push. The builder answers content reads from its clone and builds newest first; build status is pushed to the page; unpublished changes sit in the Sites chrome, and E37 moves Publish from there to the preview page (PRD D47)
 - Site guide front matter enforced in the tool layer, with counters on the canvas (D40); the nightly rebuild at `Site.timeZone` midnight (D42)
 - New code resolves the site by id with an ownership check (D44)
 
 ### E34 · Public MCP endpoint and API keys
 
-- Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools, server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
+- Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools except `publish`, which only the preview page calls (PRD D47), server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
 - Operator and account UI: create/revoke keys, copy once
-- Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, that publish always requires a preview
-- Acceptance: Claude Desktop with the key can list collections, propose a change, request preview, and publish on H&H; a key for site A cannot read site B
+- Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, and that a change is published from its preview page
+- Acceptance: Claude Desktop with the key can list collections, propose a change, and return the preview page's link, where the owner publishes; a key for site A cannot read site B
 
 ### E35 · Stats
 

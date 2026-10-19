@@ -89,7 +89,7 @@ Each new collection adds its descriptions when it enters the contract.
 - **Alt text:** the upload result asks the model to suggest alt text from the photo; the owner accepts or edits it.
 - **`request_help`** (PRD D34) files a request Canopy sees in the operator view. Reply: *"I put that request in. You can text Michael if you need it right away."*
 - **`get_site_guide`** returns the site guide, for MCP clients that drop server instructions. Every other tool description points to it.
-- **`publish`** (MCP only) requires a previewed ChangeSet.
+- **No `publish` tool**, for quick edit or MCP: a change returns the preview page's link, and the owner publishes there (PRD D47).
 
 ---
 
@@ -123,7 +123,7 @@ Each new collection adds its descriptions when it enters the contract.
 - The person is the business owner, not a developer. No JSON, paths, field names, or technical terms.
 - One or two sentences: what changed, in their words, and that the preview is ready.
 - One question at a time.
-- The owner publishes with the Publish button. Never say a change is live.
+- The owner publishes from the preview page (PRD D47). Never say a change is live.
 - Don't explain how the system works unless asked.
 - No emoji unless the owner used one first.
 - In the canvas popover, the owner has just clicked one field. The conversation opens with that field's address and value (in the conversation, not the cached prefix), and the reply stays about it.
