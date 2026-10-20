@@ -139,7 +139,7 @@ Agent, each production change confirmed first:
 
 - **Launching the Astro build**, after Michael has reviewed it on dev.canopyds.com:
   - the two Cloudflare 301 rules (`/services` to `/websites`, `/cookie-settings` to `/cookie-policy`), before the merge
-  - the `canopy-website` app's exposed port from 3000 to 80, with its health check on (`GET /`), on webber and on Fox's copy of the same app. canopy-website is Tier 1: Fox runs it too and redeploys it from `main` every night (`canopy-tier1-redeploy`, checked 2026-10-19), so a copy left on port 3000 would serve nothing the first time traffic fails over
+  - the `canopy-website` app's exposed port from 3000 to 80, with its health check on (`GET /`), on webber and on Fox's copy of the same app. The port lives in two places: `ports_exposes` and the Traefik `loadbalancer.server.port` in the app's stored `custom_labels`, which a change to `ports_exposes` leaves alone (dev.canopyds.com served 502 until its label was changed too, 2026-10-19). canopy-website is Tier 1: Fox runs it too and redeploys it from `main` every night (`canopy-tier1-redeploy`, checked 2026-10-19), so a copy left on port 3000 would serve nothing the first time traffic fails over
   - the merge of `feat/astro` into `main`, which deploys webber; then Fox's copy redeployed at once rather than that night
   - www checked at 1440 and 390 px, both redirects answering 301
 - **Builder:** redeploy it once the token is in.
@@ -268,4 +268,4 @@ Not started.
   - The canvas showed the site styled with its own fonts. An in-place edit showed in the preview, and the site's links moved between pages there, with Back working.
   - Publish reported "live on www.canopyds.com in a few minutes" and pushed a commit authored by the publisher.
   - Two preview bugs fixed on the way (`e401bd0`).
-- 2026-10-19 (later): `feat/astro` pushed. dev.canopyds.com repointed to it (port 80, health check on) and deployed.
+- 2026-10-19 (later): `feat/astro` pushed. dev.canopyds.com repointed to it (port 80, health check on) and deployed. It served 502 until the Traefik port in its stored labels went from 3000 to 80 as well; then every page answered 200, a missing path 404, assets with CORS and immutable caching, and no console errors at 1440 or 390 px.
