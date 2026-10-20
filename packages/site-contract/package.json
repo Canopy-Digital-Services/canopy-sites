@@ -1,6 +1,6 @@
 {
   "name": "@canopy/site-contract",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Versioned Zod schemas for Canopy Sites content, shared by the portal, the builder, and every site repo.",
   "license": "MIT",
   "type": "module",

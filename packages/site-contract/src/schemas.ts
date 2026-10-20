@@ -168,6 +168,17 @@ export const SiteSchema = z
 // ---------------------------------------------------------------------------
 // pages: one entry per page; each section renders once, in one place
 
+/** One of a section's cards: a step, a reason, a value, a question and its answer. */
+export const CardSchema = z
+  .object({
+    id: Id,
+    eyebrow: text(60, "Card eyebrow").optional(),
+    title: text(120, "Card title").optional(),
+    body: paragraph(800, "Card text").optional(),
+    cta: Cta.optional(),
+  })
+  .strict();
+
 export const SectionSchema = z
   .object({
     id: Id,
@@ -176,6 +187,8 @@ export const SectionSchema = z
     body: field(z.array(paragraph(1200, "Paragraph")).max(12), { kind: "paragraph", label: "Paragraphs" }).optional(),
     quote: paragraph(400, "Quote").optional(),
     cta: Cta.optional(),
+    /** The section's cards, in page order. */
+    cards: uniqueIds(CardSchema, 24).optional(),
     /** Featured services, by service id; name and price come from the menu. */
     serviceIds: field(z.array(Id).max(24), {
       kind: "reference",
@@ -306,6 +319,7 @@ export type Site = z.infer<typeof SiteSchema>;
 export type Social = z.infer<typeof SocialSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Section = z.infer<typeof SectionSchema>;
+export type Card = z.infer<typeof CardSchema>;
 export type Category = z.infer<typeof CategorySchema>;
 export type Service = z.infer<typeof ServiceSchema>;
 export type Review = z.infer<typeof ReviewSchema>;
