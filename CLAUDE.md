@@ -52,6 +52,7 @@ Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both 
 - `/.Collectives/Engineering/Servers/Readme.md` (SSH access section) — access model, tunnel and key setup
 - `/.Collectives/Engineering/Servers/Webber.md` — host inventory and what else runs there
 - `/.Collectives/Engineering/Quality Assurance.md`: testing and verification rules shared by every Canopy repo
+- `/.Collectives/Canopy Sites/Sites Onboarding Runbook.md`: putting a site onto Canopy Sites, from its repo to the owner editing it, ending in acceptance
 
 ## Documentation Maintenance
 
