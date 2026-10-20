@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.0] - 2026-10-20
+
+### Added
+
+- The Editor can mark headings and cards: a section's steps, reasons, values, or questions, each with a title and text (content contract 0.3.0). canopyds.com is the first site to use it (Epic 37)
+
 ## [5.6.0] - 2026-10-19
 
 ### Added
