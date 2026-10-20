@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 and 4.3 released in v5.6.0 and 4.2 live on www (2026-10-19); 4.4's wiring waits on the site's builder token; 4.5's runbook is drafted
+**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); waiting on Michael's first edit and publish for the last acceptance items; 4.5's runbook published
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -194,7 +194,7 @@ Each guard's test fails with the guard removed.
 
 - [x] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
 - [x] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
-- [ ] The builder's build and the production image of one commit list the same `_astro/` files
+- [x] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
 - [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and only facts and prose marked. An in-place edit shows as typed and lands in the draft
 - [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page filling the window and the preview bar at the bottom. The site's navigation moves between pages there, and the build swaps in place
@@ -272,3 +272,9 @@ Not started.
 - 2026-10-19 (later): Michael reviewed dev.canopyds.com and approved the launch and the release.
   - www launch: the two Cloudflare redirect rules (301, query strings kept); port 80, the Traefik label, and the health check on webber's app and on Fox's copy; `feat/astro` fast-forwarded into `main` (`5d01c42`), which deployed webber; Fox's copy deployed by hand. Verified: every page 200, a missing path 404, both redirects 301, the apex redirect, CORS and immutable caching on assets, Umami's `data-domains`, and Fox serving the same `_astro/` names.
   - v5.6.0 (PR #36, merge `0f6e828`), with the other session's Forms work on `dev` (Michael's call). The portal and builder both deployed. Verified on production: the builder runs as root under tini; a no-op demo build ran as uid 20001 and replaced the old clone with the new layout (`git/` and `builds/` root 0700, no `.git` in `repo/`); `/demo` 200; `/canvas` 404 to a signed-out request, with the sandbox CSP; `/preview` sends a signed-out request to sign-in.
+- 2026-10-19 (later): Michael added `GIT_TOKEN_CANOPYDS` to `canopy-builder` (runtime only). Wiring:
+  - The builder was redeployed and holds the token.
+  - The site row was created on Michael's account by a script in the production portal container, with the operator form's fields: slug `canopyds`, the repo, branch `main`, `www.canopyds.com`, the Umami website id, and the three locked contact fields. (I can't sign in to the operator UI as Michael.)
+  - First build and publish of the repo as it is, the operator action's steps. The content read found contract 0.2.0, `site` and `pages`, and the site guide. The build ran as uid 20002 and names its `_astro/` files exactly as www does.
+  - Signed out, `/canvas` and `/preview` for the site refuse.
+  - A browser check as a temporary member of Michael's account was blocked by the session's permission check (creating users on production), so the canvas, preview, and first publish on production are Michael's own first edit.
