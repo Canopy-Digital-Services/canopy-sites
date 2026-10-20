@@ -1,190 +1,208 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { FieldList } from "@/components/field-list";
-import type { FieldState } from "@/components/forms/form-context";
-import {
-  FieldDraft,
-  FieldEditorModal,
-  FieldValidation,
-} from "@/components/field-editor-modal";
-import {
-  createField,
-  deleteField,
-  reorderFields,
-  updateField,
-} from "@/actions/forms";
+// UI: see docs/UX_PATTERNS.md ("Inline field rows").
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FieldType } from "@prisma/client";
+import { SortableList } from "@/components/ui/sortable-list";
+import { createField, deleteField, reorderFields, updateField } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteFieldDialog } from "@/components/delete-field-dialog";
-import { useFormContext } from "@/components/forms/form-context";
+import { useFormContext, type FieldState } from "@/components/forms/form-context";
+import {
+  AddFieldRow,
+  FieldRow,
+  defaultLabel,
+  fieldProblem,
+  isOptionsType,
+  newFieldDefaults,
+} from "@/components/forms/field-row";
+
+/** Quiet time after the last edit before a field saves. */
+const SAVE_DELAY_MS = 600;
 
 type FormFieldsManagerProps = {
   formId: string;
 };
 
+const toFieldState = (f: FieldState): FieldState => ({
+  id: f.id,
+  name: f.name,
+  label: f.label,
+  type: f.type,
+  required: f.required,
+  order: f.order,
+  placeholder: f.placeholder,
+  helpText: f.helpText,
+  options: f.options,
+  validation: f.validation,
+});
+
+/** The field as the server action takes it. A blank label saves as the default. */
+const toFieldInput = (f: FieldState) => ({
+  type: f.type,
+  label: f.label.trim() || defaultLabel(f.type),
+  placeholder: f.placeholder,
+  required: f.required,
+  helpText: f.helpText,
+  options: isOptionsType(f.type) ? f.options : null,
+  validation: isOptionsType(f.type) ? null : f.validation,
+});
+
+/**
+ * The Fields list: one row per field, at most one open, edits autosaving a
+ * beat after the user stops (and at once when the row closes or the step
+ * changes). Adding happens in the list's last row.
+ */
 export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
-  const { state, setFields, updateField: updateFieldInContext, addField, removeField } = useFormContext();
-  const fieldList = state.fields;
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deletingField, setDeletingField] = useState<{
-    id: string;
-    name: string;
-    label: string;
-  } | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const { state, setFields, updateField: patchField, addField, removeField, setPreviewFocus } =
+    useFormContext();
+  const fields = useMemo(() => [...state.fields].sort((a, b) => a.order - b.order), [state.fields]);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(0);
+  const [deletingField, setDeletingField] = useState<FieldState | null>(null);
   const { toast } = useToast();
 
-  const editingField = useMemo(
-    () => fieldList.find((field) => field.id === editingFieldId) || null,
-    [fieldList, editingFieldId]
-  );
+  // Saves read the latest fields, not the render that scheduled them.
+  const latest = useRef(state.fields);
+  useEffect(() => {
+    latest.current = state.fields;
+  }, [state.fields]);
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  const openCreate = () => {
-    setEditingFieldId(null);
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (fieldId: string) => {
-    setEditingFieldId(fieldId);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (data: FieldDraft) => {
-    startTransition(() => {
-      void (async () => {
-        try {
-          if (editingFieldId) {
-            const updated = await updateField(formId, editingFieldId, {
-              ...data,
-              type: data.type as typeof data.type,
-            });
-            updateFieldInContext(updated.id, {
-              id: updated.id,
-              name: updated.name,
-              label: updated.label,
-              type: updated.type,
-              required: updated.required,
-              order: updated.order,
-              placeholder: updated.placeholder,
-              helpText: updated.helpText,
-              options: updated.options,
-              validation: updated.validation,
-            });
-          } else {
-            const created = await createField(formId, {
-              ...data,
-              type: data.type as typeof data.type,
-            });
-            addField({
-              id: created.id,
-              name: created.name,
-              label: created.label,
-              type: created.type,
-              required: created.required,
-              order: created.order,
-              placeholder: created.placeholder,
-              helpText: created.helpText,
-              options: created.options,
-              validation: created.validation,
-            });
-          }
-          setIsModalOpen(false);
-        } catch (saveError) {
-          console.error(saveError);
-          toast.error("Unable to save field. Please try again.");
-        }
-      })();
-    });
-  };
-
-  const handleDelete = (fieldId: string) => {
-    const field = fieldList.find((f) => f.id === fieldId);
-    if (field) {
-      setDeletingField({ id: field.id, name: field.name, label: field.label });
+  const save = async (fieldId: string) => {
+    timers.current.delete(fieldId);
+    const field = latest.current.find((f) => f.id === fieldId);
+    if (!field || fieldProblem(field)) return;
+    setSaving((n) => n + 1);
+    try {
+      await updateField(formId, fieldId, toFieldInput(field));
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to save field. Please try again.");
+    } finally {
+      setSaving((n) => n - 1);
     }
   };
 
-  const handleDeleteConfirm = (purgeData: boolean) => {
+  const flush = (fieldId: string | null) => {
+    if (!fieldId) return;
+    const timer = timers.current.get(fieldId);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    void save(fieldId);
+  };
+
+  // Leaving the step (or the page) saves whatever is still waiting.
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      for (const fieldId of [...pending.keys()]) {
+        clearTimeout(pending.get(fieldId));
+        void save(fieldId);
+      }
+    };
+    // save reads refs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The open field is the one the preview marks.
+  const openName = fields.find((f) => f.id === openId)?.name ?? null;
+  useEffect(() => {
+    setPreviewFocus(openName ? `field:${openName}` : null);
+    return () => setPreviewFocus(null);
+  }, [openName, setPreviewFocus]);
+
+  const change = (fieldId: string, patch: Partial<FieldState>) => {
+    patchField(fieldId, patch);
+    clearTimeout(timers.current.get(fieldId));
+    timers.current.set(fieldId, setTimeout(() => void save(fieldId), SAVE_DELAY_MS));
+  };
+
+  const toggle = (fieldId: string) => {
+    flush(openId);
+    setOpenId(openId === fieldId ? null : fieldId);
+  };
+
+  const closeOpen = () => {
+    flush(openId);
+    setOpenId(null);
+  };
+
+  const create = async (type: FieldType) => {
+    setCreating(true);
+    try {
+      const created = await createField(formId, newFieldDefaults(type));
+      addField(toFieldState(created));
+      setOpenId(created.id);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to add field. Please try again.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteConfirm = async (purgeData: boolean) => {
     if (!deletingField) return;
-    const { id: fieldId } = deletingField;
+    const fieldId = deletingField.id;
     setDeletingField(null);
-
-    startTransition(() => {
-      void (async () => {
-        const previous = [...fieldList];
-        removeField(fieldId);
-        try {
-          await deleteField(formId, fieldId, purgeData);
-        } catch (deleteError) {
-          console.error(deleteError);
-          toast.error("Unable to delete field. Please try again.");
-          setFields(previous);
-        }
-      })();
-    });
+    clearTimeout(timers.current.get(fieldId));
+    timers.current.delete(fieldId);
+    if (openId === fieldId) setOpenId(null);
+    const previous = [...state.fields];
+    removeField(fieldId);
+    try {
+      await deleteField(formId, fieldId, purgeData);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to delete field. Please try again.");
+      setFields(previous);
+    }
   };
 
-  const handleReorder = (fieldIds: string[]) => {
-    const previous = [...fieldList];
-    // Reconstruct the field list in the new order
+  const handleReorder = async (fieldIds: string[]) => {
+    const previous = [...state.fields];
     const reordered = fieldIds
-      .map((id) => fieldList.find((field) => field.id === id))
+      .map((id) => state.fields.find((field) => field.id === id))
       .filter((field): field is FieldState => field !== undefined)
-      .map((field, orderIndex) => ({
-        ...field,
-        order: orderIndex + 1,
-      }));
-
-    // Optimistic update
+      .map((field, index) => ({ ...field, order: index + 1 }));
     setFields(reordered);
-
-    // Persist to server
-    startTransition(() => {
-      void (async () => {
-        try {
-          await reorderFields(formId, fieldIds);
-        } catch (reorderError) {
-          console.error(reorderError);
-          toast.error("Unable to reorder fields. Please try again.");
-          setFields(previous);
-        }
-      })();
-    });
+    try {
+      await reorderFields(formId, fieldIds);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to reorder fields. Please try again.");
+      setFields(previous);
+    }
   };
-
-  const draftField = useMemo<FieldDraft | null>(
-    () =>
-      editingField
-        ? {
-            name: editingField.name,
-            type: editingField.type,
-            label: editingField.label,
-            placeholder: editingField.placeholder ?? "",
-            required: editingField.required,
-            helpText: editingField.helpText ?? "",
-            options: editingField.options,
-            validation: editingField.validation as FieldValidation | undefined,
-          }
-        : null,
-    [editingField]
-  );
 
   return (
-    <div className="space-y-4">
-      <FieldList
-        fields={[...fieldList].sort((a, b) => a.order - b.order)}
-        onAddField={openCreate}
-        onEditField={openEdit}
-        onDeleteField={handleDelete}
-        onReorder={handleReorder}
-      />
-      <FieldEditorModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onSave={handleSave}
-        field={draftField}
-      />
+    <div className="space-y-2">
+      <div className="border rounded-md overflow-hidden">
+        {fields.length > 0 && (
+          <SortableList
+            items={fields}
+            onReorder={(ids) => void handleReorder(ids)}
+            className="space-y-0"
+            renderItem={({ item: field, dragHandleProps }) => (
+              <FieldRow
+                field={field}
+                open={openId === field.id}
+                problem={openId === field.id ? fieldProblem(field) : null}
+                dragHandleProps={dragHandleProps}
+                onToggle={() => toggle(field.id)}
+                onChange={(patch) => change(field.id, patch)}
+                onDelete={() => setDeletingField(field)}
+              />
+            )}
+          />
+        )}
+        <div className={fields.length > 0 ? "border-t border-border/50" : undefined}>
+          <AddFieldRow busy={creating} onOpen={closeOpen} onPick={(type) => void create(type)} />
+        </div>
+      </div>
       {deletingField && (
         <DeleteFieldDialog
           open={!!deletingField}
@@ -194,12 +212,10 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
           formId={formId}
           fieldName={deletingField.name}
           fieldLabel={deletingField.label}
-          onConfirm={handleDeleteConfirm}
+          onConfirm={(purge) => void handleDeleteConfirm(purge)}
         />
       )}
-      {isPending ? (
-        <p className="text-xs text-muted-foreground">Saving changes...</p>
-      ) : null}
+      {saving > 0 && <p className="text-xs text-muted-foreground">Saving changes...</p>}
     </div>
   );
 }

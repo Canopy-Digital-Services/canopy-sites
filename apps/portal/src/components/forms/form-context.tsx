@@ -43,9 +43,9 @@ export type FormState = {
 
 export type SaveStatus = "idle" | "saving" | "saved";
 
-/** The part of the form an editor input is focused on, which the live
-    preview marks. */
-export type PreviewFocus = "title" | "description" | null;
+/** The part of the form being edited, which the live preview marks: a
+    focused header input, or the open field (by name). */
+export type PreviewFocus = "title" | "description" | `field:${string}` | null;
 
 /** What the live preview shows for an empty header, so the editor starts
     from a header the user can see and overwrite. Preview only, and only
