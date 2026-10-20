@@ -558,18 +558,20 @@ export async function refreshChange(accountId: string, changeSetId: string) {
 }
 
 /**
- * Publishes a previewed change (PRD D3: the client publishes, after a
- * preview). Only a PREVIEWED change whose latest build succeeded, and is a
- * build of the draft's current version, can go live; the builder refuses if
- * the site moved since that preview.
+ * Publishes a previewed change from the preview page, the only place Publish
+ * lives (PRD D3, D47). `buildId` is the build the page showed: only that
+ * build, when it is the change's latest, succeeded, and of the draft's
+ * current version, can go live, so an edit made after the page loaded can't
+ * be published unseen. The builder refuses if the site moved since.
  */
-export async function publishChange(ctx: ToolContext, changeSetId: string, author: { name: string; email: string }) {
+export async function publishChange(ctx: ToolContext, changeSetId: string, buildId: string, author: { name: string; email: string }) {
   const changeSet = await ownedChange(ctx.accountId, changeSetId);
   const build = changeSet.builds[0];
   const current = build && (build.draftVersion === null || build.draftVersion === changeSet.version);
   if (changeSet.status !== "PREVIEWED" || build?.status !== "SUCCEEDED" || !current) {
     throw new ToolError("Only a change with a finished preview can be published.");
   }
+  if (build.id !== buildId) throw new ToolError("The preview changed since this page loaded. Look it over again, then publish.");
   let commit: string | null;
   try {
     ({ commit } = await requestPublish(builderSite(changeSet.site), {
@@ -634,4 +636,71 @@ export async function canPreviewSite(userId: string, siteId: string): Promise<bo
   if (!site) return false;
   const membership = await prisma.membership.findFirst({ where: { userId, accountId: site.accountId }, select: { id: true } });
   return Boolean(membership);
+}
+
+/**
+ * The site for the canvas and the preview page (PRD D47), when this user is a
+ * member of its account; else null, which callers answer with a 404.
+ */
+export async function previewableSite(userId: string, siteId: string) {
+  if (!(await canPreviewSite(userId, String(siteId)))) return null;
+  return prisma.site.findUnique({
+    where: { id: String(siteId) },
+    select: { id: true, accountId: true, name: true, slug: true, isDemo: true, productionHostnames: true, repoUrl: true },
+  });
+}
+
+/** The builds of the site's draft, newest first, or null when it has no draft. */
+export async function draftBuildIds(siteId: string): Promise<string[] | null> {
+  const pending = await prisma.changeSet.findFirst({
+    where: { siteId, status: { in: [...PENDING] } },
+    orderBy: { createdAt: "desc" },
+    select: { builds: { orderBy: { createdAt: "desc" }, select: { id: true } } },
+  });
+  return pending ? pending.builds.map((b) => b.id) : null;
+}
+
+/**
+ * The page a site's draft changes, where Preview opens: the page of the first
+ * op under `pages/<id>`, or the home page for a change elsewhere (business
+ * details, services) or for no draft.
+ */
+export async function previewStartPath(accountId: string, siteId: string): Promise<string> {
+  const site = await ownedSite(accountId, siteId);
+  const pending = await pendingChange(site.id);
+  const pageId = asOps(pending?.ops ?? [])
+    .map((op) => (isAddressOp(op) ? /^pages\/([^/]+)/.exec(op.address)?.[1] : undefined))
+    .find(Boolean);
+  if (!pageId) return "/";
+  const { published } = await readSite(site);
+  const page = (Array.isArray(published.pages) ? published.pages : []).find((p: { id?: unknown }) => p?.id === pageId) as { path?: unknown } | undefined;
+  return typeof page?.path === "string" ? page.path.replace(/\/$/, "") || "/" : "/";
+}
+
+/**
+ * The preview page's view of the site's draft: whether there is one, its
+ * build, and whether it can be published. Brings a running build's status up
+ * to date from the builder first.
+ */
+export async function getPreviewState(accountId: string, siteId: string) {
+  const site = await ownedSite(accountId, siteId);
+  let pending = await pendingChange(site.id);
+  if (pending && (pending.builds[0]?.status === "QUEUED" || pending.builds[0]?.status === "RUNNING")) {
+    await refreshChange(accountId, pending.id);
+    pending = await pendingChange(site.id);
+  }
+  if (!pending) return { pending: null };
+  const build = pending.builds[0];
+  return {
+    pending: {
+      id: pending.id,
+      summary: pending.summary,
+      status: pending.status,
+      error: pending.error,
+      buildId: build?.id ?? null,
+      buildStatus: build?.status ?? null,
+      /** The build Publish would put live, when there is one. */
+      publishable: pending.status === "PREVIEWED" && build?.status === "SUCCEEDED" && (build.draftVersion === null || build.draftVersion === pending.version) ? build.id : null,
+    },
+  };
 }
