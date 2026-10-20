@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); waiting on Michael's first edit and publish for the last acceptance items; 4.5's runbook published
+**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); waiting on Michael's first edit and publish for the last acceptance items; 4.5's runbook published in Nextcloud
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -202,7 +202,7 @@ Each guard's test fails with the guard removed.
 - [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
 - [ ] Publish on the preview bar commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
 - [ ] On the demo, Preview opens the same page, `/demo/__canopy/preview` is gone, and the Editor, Quick Edit, and `/demo` otherwise work as before
-- [ ] Sites Onboarding Runbook exists in Nextcloud, linked from the landing page, both checklists, and `CLAUDE.md`, and every step this epic took is in it
+- [x] Sites Onboarding Runbook exists in Nextcloud, linked from the landing page, both checklists, and `CLAUDE.md`, and every step this epic took is in it
 - [ ] `npm run build`, `lint`, `test` pass; every guard's test fails with the guard removed
 
 ## 6. Decisions
