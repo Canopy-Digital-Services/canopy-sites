@@ -276,6 +276,45 @@
   animation: editor-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Inline field rows (src/components/forms/field-row.tsx): the open row's
+ * settings slide down open and back up closed. Radix Collapsible keeps the
+ * content mounted through the close animation and sets
+ * --radix-collapsible-content-height. Opening uses the no-overshoot curve of
+ * editor-reveal; closing uses the flow exit tokens. */
+@keyframes field-row-open {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes field-row-close {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.field-row-body {
+  overflow: hidden;
+}
+
+.field-row-body[data-state="open"] {
+  animation: field-row-open 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.field-row-body[data-state="closed"] {
+  animation: field-row-close var(--duration-flow-out) var(--ease-flow-out);
+}
+
 /* Live preview stand-ins: placeholders shown in place of an empty title,
  * description or field list (src/components/forms/form-preview.tsx). Faded text
  * with a skeleton shimmer running through it, so it reads as "goes here",
@@ -322,7 +361,8 @@
   .editor-swoop-in,
   .editor-swoop-out-left,
   .editor-swoop-out-right,
-  .editor-reveal {
+  .editor-reveal,
+  .field-row-body {
     animation-duration: 1ms;
   }
 

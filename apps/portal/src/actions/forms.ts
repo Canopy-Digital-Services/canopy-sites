@@ -118,7 +118,8 @@ export async function updateField(
     throw new Error("Field not found");
   }
 
-  // Note: name is immutable after creation (not updated)
+  // Note: name is immutable after creation (not updated). Options and
+  // validation are written whole: a field whose rules were cleared stores none.
   const updated = await prisma.field.update({
     where: { id: fieldId },
     data: {
@@ -127,8 +128,8 @@ export async function updateField(
       placeholder: data.placeholder?.trim() || null,
       required: Boolean(data.required),
       helpText: data.helpText?.trim() || null,
-      options: data.options || undefined,
-      validation: data.validation || undefined,
+      options: (data.options as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
+      validation: (data.validation as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
     },
   });
 
