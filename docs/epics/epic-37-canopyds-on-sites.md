@@ -152,7 +152,7 @@ Agent, each production change confirmed first:
 
   Then run Build and publish once, so `current` exists.
 - **Branch protection:** confirm `main` on `canopy-website` doesn't refuse the builder's push.
-- **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It served `feat/astro` for Michael's review (repointed 2026-10-19, port 80, health check on), and is due for retirement now that the port is live.
+- **`dev.canopyds.com`:** kept for now (Michael, 2026-10-19). It served `feat/astro` for his review (repointed 2026-10-19, port 80, health check on); that branch merged at launch, so it shows the site as launched.
 
 ### 4.5 The onboarding runbook (Nextcloud)
 
