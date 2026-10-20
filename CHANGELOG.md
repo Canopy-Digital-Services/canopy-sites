@@ -5,6 +5,25 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.6.0] - 2026-10-19
+
+### Added
+
+- Preview opens in a tab of its own: your site fills the window, and the bar along the bottom holds Publish, now the only place to publish. Publish puts live exactly the version you're looking at (Epic 37)
+- The Editor and Preview work for any Canopy Sites site with a live address, not only the demo: the page loads its styles, fonts, and scripts from the live site
+- Forms editor: while the header and fields are empty, the live preview shows a sample ("Contact Us", Name, Email, Message), faded so it doesn't read as saved, and focusing the title or description draws a marker box around it in the preview
+- Forms editor: fields are added and edited in place in the Fields list, one open at a time, with autosave; the open field is outlined in the live preview
+
+### Changed
+
+- Quick Edit and the Canopy Sites top bar offer Preview (a new tab) and Discard instead of Publish
+- `/demo` shows only the published demo; drafts are seen in the Editor and on the preview page
+- The site builder runs each site's install and build as a separate user with access to that site's files only
+
+### Fixed
+
+- Removing a field's options or input rules in the Forms editor now removes them instead of keeping the old values
+
 ## [5.5.1] - 2026-10-18
 
 ### Fixed
