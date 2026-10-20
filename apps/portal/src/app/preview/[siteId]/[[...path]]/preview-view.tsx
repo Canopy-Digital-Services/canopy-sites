@@ -112,10 +112,12 @@ export function PreviewView({
   // The tab's address follows the site's own navigation, so reload and back work.
   useEffect(() => {
     const url = `/preview/${siteId}${path === "/" ? "" : encodePath(path)}`;
-    if (window.location.pathname === url) return;
-    if (firstPath.current) window.history.replaceState(null, "", url);
-    else window.history.pushState(null, "", url);
+    const first = firstPath.current;
     firstPath.current = false;
+    if (window.location.pathname === url) return;
+    // The page as opened (no path) becomes the changed page's address; later moves add history.
+    if (first) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
   }, [path, siteId]);
   useEffect(() => {
     const onPop = () => {
@@ -173,8 +175,10 @@ export function PreviewView({
 
   // A newer finished build than the one on screen: bring it in. A draft gone
   // elsewhere (published or discarded): show the live page.
+  const onScreen = Boolean(slots[active]);
   useEffect(() => {
-    if (published || pending === undefined || swapping.current) return;
+    // Until a page is on screen there is nothing to compare: the first load shows the newest build anyway.
+    if (published || pending === undefined || !onScreen || swapping.current) return;
     if (pending === null) {
       if (shownBuild && attempted.current !== "live") {
         attempted.current = "live";
@@ -186,7 +190,7 @@ export function PreviewView({
     if (!want || want === shownBuild || want === attempted.current) return;
     attempted.current = want;
     refreshInPlace();
-  }, [pending, shownBuild, published, refreshInPlace]);
+  }, [pending, shownBuild, onScreen, published, refreshInPlace]);
 
   function publish() {
     if (!pending || !shownBuild) return;
