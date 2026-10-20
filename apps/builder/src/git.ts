@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { Log, run, StepError } from "./run.ts";
 
@@ -34,18 +34,40 @@ export function resolveRepo(slug: string, repoUrl: string, branch: string): Repo
   throw new StepError(`"${repoUrl}" is not a GitHub repository URL (https://github.com/owner/repo)`);
 }
 
-export function gitEnv(ref: RepoRef): Record<string, string> {
+/**
+ * A site's clone: git's own directory kept apart from the working tree, so
+ * nothing written into the tree can change what git reads or runs. Every git
+ * command names both, and no `.git` is left in the tree.
+ */
+export interface Clone {
+  gitDir: string;
+  workTree: string;
+}
+
+export function gitEnv(ref: RepoRef, clone?: Clone): Record<string, string> {
   const env: Record<string, string> = {
     PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
     HOME: process.env.HOME ?? "/tmp",
     GIT_TERMINAL_PROMPT: "0",
   };
+  // Config through the environment: the token never appears in argv, in the
+  // remote URL, in git's config file, or in a log line. Hooks and fsmonitor
+  // are off. (Ownership checks are off in the image's system config.)
+  const config: Array<[string, string]> = [
+    ["core.hooksPath", "/dev/null"],
+    ["core.fsmonitor", "false"],
+  ];
   if (ref.token) {
-    // Config through the environment: the token never appears in argv, in
-    // the remote URL, in .git/config, or in a log line.
-    env.GIT_CONFIG_COUNT = "1";
-    env.GIT_CONFIG_KEY_0 = "http.https://github.com/.extraheader";
-    env.GIT_CONFIG_VALUE_0 = `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${ref.token}`).toString("base64")}`;
+    config.push(["http.https://github.com/.extraheader", `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${ref.token}`).toString("base64")}`]);
+  }
+  env.GIT_CONFIG_COUNT = String(config.length);
+  config.forEach(([key, value], i) => {
+    env[`GIT_CONFIG_KEY_${i}`] = key;
+    env[`GIT_CONFIG_VALUE_${i}`] = value;
+  });
+  if (clone) {
+    env.GIT_DIR = clone.gitDir;
+    env.GIT_WORK_TREE = clone.workTree;
   }
   return env;
 }
@@ -59,23 +81,28 @@ export function git(repoDir: string, env: Record<string, string>, args: string[]
  * leftover edits. Ignored files (node_modules) survive, which is what keeps
  * repeat builds fast.
  */
-export async function syncClone(repoDir: string, ref: RepoRef, env: Record<string, string>, log: Log): Promise<string> {
-  const parent = path.dirname(repoDir);
+export async function syncClone(clone: Clone, ref: RepoRef, env: Record<string, string>, log: Log): Promise<string> {
+  const parent = path.dirname(clone.workTree);
   await mkdir(parent, { recursive: true });
-  const fresh = !(await git(parent, env, ["-C", repoDir, "rev-parse", "--git-dir"]).then(
+  const fresh = !(await access(path.join(clone.gitDir, "HEAD")).then(
     () => true,
     () => false,
   ));
   if (fresh) {
-    await git(parent, env, ["clone", "--branch", ref.branch, "--single-branch", ref.remote, repoDir], log);
+    // Also replaces a clone from before git's directory moved out of the tree.
+    await rm(clone.workTree, { recursive: true, force: true });
+    await rm(clone.gitDir, { recursive: true, force: true });
+    const { GIT_DIR: _dir, GIT_WORK_TREE: _tree, ...cloneEnv } = env;
+    await git(parent, cloneEnv, ["clone", "--separate-git-dir", clone.gitDir, "--branch", ref.branch, "--single-branch", ref.remote, clone.workTree], log);
+    await rm(path.join(clone.workTree, ".git"), { force: true });
   } else {
-    await git(repoDir, env, ["remote", "set-url", "origin", ref.remote]);
-    await git(repoDir, env, ["fetch", "--prune", "origin", `+refs/heads/${ref.branch}:refs/remotes/origin/${ref.branch}`], log);
-    await git(repoDir, env, ["checkout", "-q", "-B", ref.branch, `origin/${ref.branch}`], log);
-    await git(repoDir, env, ["reset", "-q", "--hard", `origin/${ref.branch}`], log);
-    await git(repoDir, env, ["clean", "-q", "-fd"], log);
+    await git(clone.workTree, env, ["remote", "set-url", "origin", ref.remote]);
+    await git(clone.workTree, env, ["fetch", "--prune", "origin", `+refs/heads/${ref.branch}:refs/remotes/origin/${ref.branch}`], log);
+    await git(clone.workTree, env, ["checkout", "-q", "-B", ref.branch, `origin/${ref.branch}`], log);
+    await git(clone.workTree, env, ["reset", "-q", "--hard", `origin/${ref.branch}`], log);
+    await git(clone.workTree, env, ["clean", "-q", "-fd"], log);
   }
-  return (await git(repoDir, env, ["rev-parse", "HEAD"])).trim();
+  return (await git(clone.workTree, env, ["rev-parse", "HEAD"])).trim();
 }
 
 /** Updates refs/remotes/origin/<branch> from the remote, leaving the working tree alone. */

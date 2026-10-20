@@ -24,15 +24,16 @@ export class StepError extends Error {}
 /**
  * Runs a program with an argument array (never a shell, so nothing in a
  * request can become shell syntax) and an explicit environment (so the
- * builder's own secrets never reach a site's build scripts).
+ * builder's own secrets never reach a site's build scripts). `user` runs it
+ * as a site's build user (sandbox.ts).
  */
 export function run(
   cmd: string,
   args: string[],
-  opts: { cwd: string; env: Record<string, string>; log?: Log; timeoutMs?: number },
+  opts: { cwd: string; env: Record<string, string>; log?: Log; timeoutMs?: number; user?: { uid: number; gid: number } },
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd: opts.cwd, env: opts.env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(cmd, args, { cwd: opts.cwd, env: opts.env, stdio: ["ignore", "pipe", "pipe"], uid: opts.user?.uid, gid: opts.user?.gid });
     let out = "";
     const onData = (chunk: Buffer) => {
       const text = chunk.toString();
@@ -55,14 +56,17 @@ export function run(
 }
 
 /**
- * Environment for a site's npm and astro steps: no builder secrets. TZ is the
- * site's time zone, so a page that shows what's current on the build date
+ * Environment for a site's npm and astro steps: no builder secrets, and a
+ * home, temp directory, and npm cache of the site's own. TZ is the site's
+ * time zone, so a page that shows what's current on the build date
  * (announcements) uses the site's calendar, not the container's UTC.
  */
-export function buildEnv(timeZone?: string): Record<string, string> {
+export function buildEnv(home: string, timeZone?: string): Record<string, string> {
   return {
     PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-    HOME: process.env.HOME ?? "/tmp",
+    HOME: home,
+    TMPDIR: `${home}/tmp`,
+    npm_config_cache: `${home}/.npm`,
     CI: "1",
     ASTRO_TELEMETRY_DISABLED: "1",
     npm_config_update_notifier: "false",

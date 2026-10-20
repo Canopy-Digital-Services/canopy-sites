@@ -4,6 +4,7 @@ import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
 import { getDraftView, ToolError } from "@/lib/site-tools";
+import { liveSite } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
@@ -14,15 +15,17 @@ export const dynamic = "force-dynamic";
 /**
  * The visual editor (Epic 33, PRD D35 to D45): the site on a canvas, its
  * marked fields edited in place, everything saved to the site's one draft.
- * The canvas loads pages through /demo, so only the demo site has one until
- * client sites get preview hostnames (PRD D43).
+ * The canvas's pages come from /canvas with the session and load their
+ * assets from where the site is live (PRD D47), so a site needs a live
+ * address (the demo's /demo, a client's production hostname) to have one.
  */
 export default async function EditorPage() {
   const accountId = await getCurrentAccountId();
   const site = await getAccountSite(accountId);
   const header = <PageHeader title="Editor" description="Change the marked text right on your site." />;
 
-  if (!site?.isDemo || !builderConfigured()) {
+  const live = site ? liveSite(site) : null;
+  if (!site || !live || !builderConfigured()) {
     return (
       <PageContent>
         <div className="space-y-6">
@@ -50,7 +53,7 @@ export default async function EditorPage() {
 
   const content = view.content as { pages?: Page[]; announcements?: Announcement[] };
   const pages: CanvasPage[] = (content.pages ?? []).map((p) => ({
-    path: p.path === "/" ? "/demo/" : `/demo${p.path.replace(/\/$/, "")}`,
+    path: p.path.replace(/\/$/, "") || "/",
     title: p.id === "home" ? "Home" : (p.navLabel ?? p.title),
   }));
 
@@ -60,6 +63,7 @@ export default async function EditorPage() {
         {header}
         <CanvasEditor
           siteId={site.id}
+          live={live}
           pages={pages}
           limits={view.guide.limits}
           announcements={(content.announcements ?? []).map((a) => ({ id: a.id, startsOn: a.startsOn ?? "", endsOn: a.endsOn ?? "" }))}

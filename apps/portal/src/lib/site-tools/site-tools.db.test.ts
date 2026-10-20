@@ -180,10 +180,10 @@ describe("ownership", () => {
   it("never lets one account refresh, publish, or discard another account's change", async () => {
     const a = await siteAccount();
     const b = await siteAccount();
-    const { changeSetId } = await tools.proposeChange(a.ctx, { summary: "Haircut to $90", ops: PRICE });
+    const { changeSetId, buildId } = await tools.proposeChange(a.ctx, { summary: "Haircut to $90", ops: PRICE });
     await tools.refreshChange(a.ctx.accountId, changeSetId);
     await expect(tools.refreshChange(b.ctx.accountId, changeSetId)).rejects.toThrow("No such change.");
-    await expect(tools.publishChange(b.ctx, changeSetId, { name: "B", email: "b@test.invalid" })).rejects.toThrow("No such change.");
+    await expect(tools.publishChange(b.ctx, changeSetId, buildId, { name: "B", email: "b@test.invalid" })).rejects.toThrow("No such change.");
     await expect(tools.discardChange(b.ctx.accountId, changeSetId)).rejects.toThrow("No such change.");
     expect(builder.publishes).toHaveLength(0);
     expect((await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } })).status).toBe("PREVIEWED");
@@ -204,7 +204,7 @@ describe("refresh and publish", () => {
     const { ctx } = await siteAccount();
     const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "PREVIEWED", buildStatus: "SUCCEEDED" });
-    const { commit } = await tools.publishChange(ctx, changeSetId, { name: "Owner", email: "owner@test.invalid" });
+    const { commit } = await tools.publishChange(ctx, changeSetId, buildId, { name: "Owner", email: "owner@test.invalid" });
     expect(commit).toBe("b".repeat(40));
     expect(builder.publishes).toMatchObject([{ buildId, baseCommit: builder.commit }]);
     const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } });
@@ -214,14 +214,14 @@ describe("refresh and publish", () => {
   it("refuses to publish a change whose preview hasn't finished or failed", async () => {
     const { ctx } = await siteAccount();
     builder.buildStatus = "running";
-    const { changeSetId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     await tools.refreshChange(ctx.accountId, changeSetId);
-    await expect(tools.publishChange(ctx, changeSetId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
 
     // A failed build keeps the draft, with the reason, so no edit is lost.
     builder.buildStatus = "failed";
     expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: "boom" });
-    await expect(tools.publishChange(ctx, changeSetId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
     expect(builder.publishes).toHaveLength(0);
   });
 
@@ -229,8 +229,19 @@ describe("refresh and publish", () => {
     const { ctx, site } = await siteAccount();
     const { changeSetId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
     await tools.refreshChange(ctx.accountId, changeSetId);
-    await prisma.build.create({ data: { siteId: site.id, changeSetId, status: "FAILED" } });
-    await expect(tools.publishChange(ctx, changeSetId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    const failed = await prisma.build.create({ data: { siteId: site.id, changeSetId, status: "FAILED" } });
+    await expect(tools.publishChange(ctx, changeSetId, failed.id, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+  });
+
+  it("publishes only the build the preview page showed", async () => {
+    const { ctx } = await siteAccount();
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(ctx.accountId, changeSetId);
+    // The page loaded an earlier build (or none): an edit since then must be seen first.
+    await expect(tools.publishChange(ctx, changeSetId, "an-older-build", { name: "O", email: "o@test.invalid" })).rejects.toThrow(/changed since this page loaded/);
+    expect(builder.publishes).toHaveLength(0);
+    await tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" });
+    expect(builder.publishes).toMatchObject([{ buildId }]);
   });
 
   it("discards only a pending change", async () => {
@@ -328,10 +339,10 @@ describe("saveDraft (the canvas)", () => {
     builder.buildStatus = "running";
     const v2 = await tools.saveDraft(ctx, site.id, { ops: price("$90") });
     expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: v1.changeSetId! } })).toMatchObject({ status: "DRAFT", version: 2 });
-    await expect(tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    await expect(tools.publishChange(ctx, v1.changeSetId!, v2.buildId!, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
     builder.buildStatus = "succeeded";
     await tools.refreshChange(ctx.accountId, v1.changeSetId!);
-    await tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" });
+    await tools.publishChange(ctx, v1.changeSetId!, v2.buildId!, { name: "O", email: "o@test.invalid" });
     expect(builder.publishes).toMatchObject([{ buildId: v2.buildId }]);
   });
 
@@ -340,9 +351,52 @@ describe("saveDraft (the canvas)", () => {
     const v1 = await tools.saveDraft(ctx, site.id, { ops: price("$88") });
     await tools.saveDraft(ctx, site.id, { ops: price("$90") });
     // A refresh that raced the second save: version 1's build, finished and latest.
-    await prisma.build.create({ data: { siteId: site.id, changeSetId: v1.changeSetId, status: "SUCCEEDED", draftVersion: 1 } });
+    const stale = await prisma.build.create({ data: { siteId: site.id, changeSetId: v1.changeSetId, status: "SUCCEEDED", draftVersion: 1 } });
     await prisma.changeSet.update({ where: { id: v1.changeSetId! }, data: { status: "PREVIEWED" } });
-    await expect(tools.publishChange(ctx, v1.changeSetId!, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
+    await expect(tools.publishChange(ctx, v1.changeSetId!, stale.id, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
     expect(builder.publishes).toHaveLength(0);
   });
 });
+
+describe("the canvas and the preview page (PRD D47)", () => {
+  const PAGES = [
+    { id: "home", path: "/", title: "Home", description: "The home page.", sections: [] },
+    { id: "about", path: "/about", title: "About", description: "About us.", sections: [] },
+  ];
+
+  it("opens only for members of the site's account", async () => {
+    const a = await siteAccount();
+    const member = await createMember(a.account.id, "MEMBER");
+    const b = await siteAccount();
+    expect(await tools.previewableSite(a.user.id, a.site.id)).toMatchObject({ id: a.site.id, slug: a.site.slug });
+    expect(await tools.previewableSite(member.id, a.site.id)).toMatchObject({ id: a.site.id });
+    expect(await tools.previewableSite(b.user.id, a.site.id)).toBeNull();
+    expect(await tools.previewableSite(a.user.id, "no-such-site")).toBeNull();
+    await expect(tools.getPreviewState(b.ctx.accountId, a.site.id)).rejects.toThrow("No such site.");
+    await expect(tools.previewStartPath(b.ctx.accountId, a.site.id)).rejects.toThrow("No such site.");
+  });
+
+  it("knows the draft's builds and which one Publish would put live", async () => {
+    const { ctx, site } = await siteAccount();
+    expect(await tools.draftBuildIds(site.id)).toBeNull();
+    expect(await tools.getPreviewState(ctx.accountId, site.id)).toEqual({ pending: null });
+    builder.buildStatus = "running";
+    const { buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    expect(await tools.draftBuildIds(site.id)).toEqual([buildId]);
+    expect((await tools.getPreviewState(ctx.accountId, site.id)).pending).toMatchObject({ buildId, buildStatus: "RUNNING", publishable: null });
+    builder.buildStatus = "succeeded";
+    expect((await tools.getPreviewState(ctx.accountId, site.id)).pending).toMatchObject({ buildId, buildStatus: "SUCCEEDED", status: "PREVIEWED", publishable: buildId });
+  });
+
+  it("opens Preview on the page a change touches, else the home page", async () => {
+    const { ctx, site } = await siteAccount();
+    builder.content.pages = PAGES;
+    expect(await tools.previewStartPath(ctx.accountId, site.id)).toBe("/");
+    await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "pages/about/title", value: "About us" }] });
+    expect(await tools.previewStartPath(ctx.accountId, site.id)).toBe("/about");
+    await tools.discardChange(ctx.accountId, (await tools.getEditorChanges(ctx.accountId)).pending!.id);
+    await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: PRICE_AT, value: "$90" }] });
+    expect(await tools.previewStartPath(ctx.accountId, site.id)).toBe("/");
+  });
+});
+

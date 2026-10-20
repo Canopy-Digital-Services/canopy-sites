@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/site-editor";
-import { DRAFT_CHANGED, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
+import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
+import { sitePath, type LiveSite } from "@/lib/site-live";
 
 export type CanvasPage = { path: string; title: string };
 type AnnouncementDates = { id: string; startsOn: string; endsOn: string };
@@ -39,28 +40,27 @@ interface Selected {
   error?: string;
 }
 
-/** "/demo/services/" and "/demo/services#x" are the same page: "/demo/services". */
-function pagePath(path: string) {
-  const bare = path.split("#")[0].replace(/\/+$/, "");
-  return bare === "/demo" || bare === "" ? "/demo/" : bare;
-}
+const encodePath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
 
 const oneLine = (v: string) => v.replace(/\s+/g, " ").trim();
 
 /**
- * The visual editor's canvas (PRD D35, D43). The page's HTML comes from /demo
- * in editor mode, fetched here with the session, and shows in a sandboxed
- * srcdoc frame; the bridge inside it reports clicks on marked fields and
- * asks to navigate, and edits text in place. Saves go to the site's draft
- * one at a time; Publish lives in the Sites chrome.
+ * The visual editor's canvas (PRD D35, D43, D47). The page's HTML comes from
+ * /canvas, fetched here with the session, and shows in a sandboxed srcdoc
+ * frame that loads the site's assets from where it is live; the bridge
+ * inside it reports clicks on marked fields and asks to navigate, and edits
+ * text in place. Saves go to the site's draft one at a time; Publish lives
+ * on the preview page.
  */
 export function CanvasEditor({
   siteId,
+  live,
   pages,
   limits,
   announcements,
 }: {
   siteId: string;
+  live: LiveSite;
   pages: CanvasPage[];
   limits: Record<string, number>;
   announcements: AnnouncementDates[];
@@ -71,7 +71,7 @@ export function CanvasEditor({
   const frames = useRef<Array<HTMLIFrameElement | null>>([null, null]);
   const [wrapWidth, setWrapWidth] = useState(1000);
   const [viewport, setViewport] = useState<"desktop" | "phone">("desktop");
-  const [history, setHistory] = useState<{ stack: string[]; at: number }>({ stack: [pages[0]?.path ?? "/demo/"], at: 0 });
+  const [history, setHistory] = useState<{ stack: string[]; at: number }>({ stack: [pages[0]?.path ?? "/"], at: 0 });
   const path = history.stack[history.at];
   const [slots, setSlots] = useState<Array<{ html: string; key: number } | null>>([null, null]);
   const [active, setActive] = useState(0);
@@ -96,11 +96,14 @@ export function CanvasEditor({
     frames.current[activeRef.current]?.contentWindow?.postMessage(msg, "*");
   }, []);
 
-  const fetchPage = useCallback(async (target: string) => {
-    const res = await fetch(`${target}?canopy_editor=1`, { cache: "no-store" });
-    if (!res.ok) throw new Error(String(res.status));
-    return res.text();
-  }, []);
+  const fetchPage = useCallback(
+    async (target: string) => {
+      const res = await fetch(`/canvas/${siteId}${encodePath(target)}`, { cache: "no-store" });
+      if (!res.ok && res.status !== 404) throw new Error(String(res.status));
+      return res.text();
+    },
+    [siteId],
+  );
 
   /** Loads a page into the frame on screen: navigation, from the top. */
   const load = useCallback(
@@ -133,7 +136,7 @@ export function CanvasEditor({
     }
     refreshWaitingRef.current = false;
     try {
-      const html = await fetchPage(pagePath(history.stack[history.at]));
+      const html = await fetchPage(history.stack[history.at]);
       const slot = 1 - activeRef.current;
       const s = selectedRef.current;
       swapRef.current = { slot, y: scrollYRef.current, address: s?.address, index: s?.index, top: s?.rect.y };
@@ -171,7 +174,7 @@ export function CanvasEditor({
     (to: string) => {
       const [, hash] = to.split("#");
       hashRef.current = hash ?? null;
-      const next = pagePath(to);
+      const next = sitePath(live, to);
       setSelected(null);
       setDates(null);
       setHistory((h) => {
@@ -182,7 +185,7 @@ export function CanvasEditor({
         return { stack: [...h.stack.slice(0, h.at + 1), next], at: h.at + 1 };
       });
     },
-    [load],
+    [live, load],
   );
 
   /** Brings the canvas up to date once the draft's build has the change. */
@@ -197,7 +200,7 @@ export function CanvasEditor({
           return;
         }
         if (r.status === "PREVIEWED") {
-          window.dispatchEvent(new Event(DRAFT_CHANGED));
+          announceDraft("changed");
           await refreshInPlace();
           return;
         }
@@ -220,7 +223,7 @@ export function CanvasEditor({
         }
         setSaveState("saved");
         if (result.buildError) toast.error(result.buildError);
-        window.dispatchEvent(new Event(DRAFT_CHANGED));
+        announceDraft("changed");
       });
     },
     [siteId],
@@ -589,7 +592,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
     setConversationId(result.conversationId);
     setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply }]);
     if (result.changeSetId) {
-      window.dispatchEvent(new Event(DRAFT_CHANGED));
+      announceDraft("changed");
       onChanged(result.changeSetId);
     }
   }

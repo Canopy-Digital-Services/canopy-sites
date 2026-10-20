@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { discardPendingChange, publishPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
+import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 
 type Pending = { id: string; summary: string; status: string; error: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
@@ -17,14 +17,14 @@ type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
 const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
 
 export function QuickEditWorkspace({
+  siteId,
   pagesCard,
-  liveUrl,
   pending,
   recent,
 }: {
+  siteId: string;
   /** Streamed by the server: listing pages waits on the site's content. */
   pagesCard: React.ReactNode;
-  liveUrl: string | null;
   pending: Pending | null;
   recent: Recent[];
 }) {
@@ -32,7 +32,7 @@ export function QuickEditWorkspace({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <QuickEdit />
       <div className="space-y-6">
-        {pending ? <PendingChange key={pending.id} pending={pending} liveUrl={liveUrl} /> : null}
+        {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         {pagesCard}
         <RecentChanges recent={recent} />
       </div>
@@ -166,7 +166,8 @@ function StatusLine({ status, error }: { status: string; error: string | null })
   );
 }
 
-function PendingChange({ pending, liveUrl }: { pending: Pending; liveUrl: string | null }) {
+/** The draft, with Preview (a new tab, where Publish lives, PRD D47) and Discard. */
+function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }) {
   const router = useRouter();
   const [state, setState] = useState({ status: pending.status, error: pending.error });
   const [isPending, startTransition] = useTransition();
@@ -184,8 +185,6 @@ function PendingChange({ pending, liveUrl }: { pending: Pending; liveUrl: string
     return () => clearInterval(timer);
   }, [pending.id, state.status, router]);
 
-  const previewHref = liveUrl ? `${liveUrl}/__canopy/preview?state=on` : null;
-
   return (
     <Card>
       <CardHeader>
@@ -196,30 +195,12 @@ function PendingChange({ pending, liveUrl }: { pending: Pending; liveUrl: string
         <StatusLine status={state.status} error={state.error} />
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        {state.status === "PREVIEWED" && previewHref ? (
-          <Button variant="outline" asChild>
-            <a href={previewHref} target="_blank" rel="noopener">
-              Preview
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
-        ) : null}
-        {state.status === "PREVIEWED" ? (
-          <Button
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await publishPendingChange(pending.id);
-                if ("error" in result) toast.error(result.error);
-                else toast.success("Published. Your site is updated.");
-                router.refresh();
-              })
-            }
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Publish
-          </Button>
-        ) : null}
+        <Button asChild>
+          <a href={`/preview/${siteId}`} target="_blank" rel="noopener">
+            Preview
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </Button>
         <Button
           variant="ghost"
           disabled={isPending}

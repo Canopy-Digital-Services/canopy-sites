@@ -19,7 +19,7 @@ Phase 4  H&H production cutover       [webber]             E36                  
 Phase 5  Toro Z migration             [toroz]              T1                         (needs E36 stable a week)
 ```
 
-Production H&H keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 targets the preview hostname only. During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
+Production H&H keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -28,6 +28,10 @@ E30 is built first as the demo slice (PRD D23): the builder, preview and publish
 ### Visual editor next (decided 2026-10-17)
 
 E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild with `Site.timeZone` (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
+
+### canopyds.com on Sites (decided 2026-10-19)
+
+E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, the canvas for client sites, which loads a site's assets from its live address, and a preview page that opens a draft full-window in a new tab, without the Sites chrome, for every site, so there are no preview hostnames (D47). Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -140,9 +144,9 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ## Phase 2 — Builder and Caddy, preview only
 
-### E30 · Builder service + Caddy + preview hostname
+### E30 · Builder service + Caddy + preview
 
-Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), preview hostnames and their auth (PRD D25, D43), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
+Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
 
 
 Goal: a ChangeSet against H&H produces a viewable preview without touching production.
@@ -151,12 +155,10 @@ Goal: a ChangeSet against H&H produces a viewable preview without touching produ
 
 - `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (repo-scoped token, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
-- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`, `<slug>-preview.canopyds.com` → `preview`, PRD D25) and reloads. In this phase only preview hostnames are configured
-- Preview auth per PRD D43: a short-lived signed token from the portal, exchanged for a cookie on the preview host
-- DNS: a proxied CNAME to the tunnel per preview hostname (PRD D25)
+- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`) and reloads. No preview hostnames (PRD D47)
 - Shared volume between builder and caddy. Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
 - Operator: build log per site with status, duration, stdout tail
-- Acceptance: operator triggers a no-op ChangeSet on H&H → preview hostname serves the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
+- Acceptance: operator triggers a no-op ChangeSet on H&H → the canvas shows the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
 
 ---
 
@@ -185,7 +187,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 - Media: `uploadMedia` with preflight per the guidance doc (formats, normalization, size per slot with the refuse and warn levels). The model gets a downscaled copy for alt text, placement, and moderation (PRD D33); alt text is suggested and the owner accepts or edits it. The canvas popover gets an attach button, so a photo on the canvas is replaced through it (PRD D41)
 - `requestHelp` and a `HelpRequest` table; operator view lists open requests (PRD D34)
 - `Conversation` persisted with tokens in/out and cost estimate. Add `Plan.monthlyAiBudgetCents` (meaning in PRD D21), with the `SITES` value set from the cost per edit this epic measures; soft-stop at 100% with operator notification
-- UI: the Quick Edit tab, and the canvas popover from E33 (the same chat scoped to one field, PRD D37). Each assistant turn that produces a change shows Preview / Publish inline
+- UI: the Quick Edit tab, and the canvas popover from E33 (the same chat scoped to one field, PRD D37). Each assistant turn that produces a change shows Preview inline; Publish is on the preview page (PRD D47)
 - Operator: token usage per account/site/month; "edit as client" opens the same chat with operator identity recorded on the ChangeSet
 - Acceptance: scripted edits on H&H (hours, announcement with quoted text, announcement without, price change, gallery add with HEIC, low-resolution photo, hero copy with a typo, a design request) each produce the right preview or reply; cost per edit recorded and reported. The script is the regression suite for any change to the guidance
 
@@ -198,16 +200,16 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 - Canvas: the site in a frame with a breakpoint switcher; the site's nav moves between pages and an address bar reaches any page (D43)
 - Marked fields only (D35), through C3's `field()` in the site's templates. A bridge script (replacing `src/app/demo/editor-mockup.ts`) reports the marked fields, applies text edits to every element with the edited address, and reports navigation, over postMessage only
 - Editors on the canvas for plain text, prices, and an announcement's message and dates; every other marked field opens the quick edit popover scoped to it (D37)
-- The draft (D38, from E31): saved as the owner edits, merged per field, versioned, rebased on a Canopy push. The builder answers content reads from its clone and builds newest first; build status is pushed to the page; Publish and unpublished changes sit in the Sites chrome
+- The draft (D38, from E31): saved as the owner edits, merged per field, versioned, rebased on a Canopy push. The builder answers content reads from its clone and builds newest first; build status is pushed to the page; unpublished changes sit in the Sites chrome, and E37 moves Publish from there to the preview page (PRD D47)
 - Site guide front matter enforced in the tool layer, with counters on the canvas (D40); the nightly rebuild at `Site.timeZone` midnight (D42)
 - New code resolves the site by id with an ownership check (D44)
 
 ### E34 · Public MCP endpoint and API keys
 
-- Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools, server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
+- Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools except `publish`, which only the preview page calls (PRD D47), server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
 - Operator and account UI: create/revoke keys, copy once
-- Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, that publish always requires a preview
-- Acceptance: Claude Desktop with the key can list collections, propose a change, request preview, and publish on H&H; a key for site A cannot read site B
+- Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, and that a change is published from its preview page
+- Acceptance: Claude Desktop with the key can list collections, propose a change, and return the preview page's link, where the owner publishes; a key for site A cannot read site B
 
 ### E35 · Stats
 
@@ -246,7 +248,6 @@ Same as H1–H3 plus E36 steps 1–5 for `torozmuaythai.com`. Specifics: `site.t
 
 - Tool tabs, build-time (PRD D39): Gallery (D41), Calendar for announcements and events (D42), blog, newsletter
 - A demo-account home with a switcher between several demo sites (PRD D44)
-- Client preview hostnames for the canvas, with the first real client or the second demo site (PRD D43)
 - Invite flow and member roles UI (Membership exists from E28)
 - New-site onboarding automation (repo from template, DNS, Umami website, Caddy entry)
 - Stripe or FreshBooks sync

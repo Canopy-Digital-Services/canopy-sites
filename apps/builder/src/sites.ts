@@ -16,8 +16,9 @@ import {
   type RawContent,
 } from "@canopy/site-contract";
 import { formatIssues, readContent, validateSite, writeContent } from "@canopy/site-contract/node";
-import { fetchBranch, git, gitEnv, resetTree, resolveRepo, showFile, syncClone, type RepoRef } from "./git.ts";
+import { fetchBranch, git, gitEnv, resetTree, resolveRepo, showFile, syncClone, type Clone, type RepoRef } from "./git.ts";
 import { buildEnv, Log, run, StepError } from "./run.ts";
+import { claimOutput, handOver, insideBuilds, keepPrivate, sealBuild, siteUser, stopAll, type SiteUser } from "./sandbox.ts";
 
 export const SITES_ROOT = process.env.SITES_ROOT ?? "/srv/sites";
 const RETAIN = Number(process.env.BUILDS_RETAINED ?? 5);
@@ -53,12 +54,19 @@ const dirs = (slug: string) => {
   return {
     root,
     repo: path.join(root, "repo"),
+    git: path.join(root, "git"),
+    home: path.join(root, "home"),
     builds: path.join(root, "builds"),
     meta: path.join(root, "meta"),
     preview: path.join(root, "preview"),
     current: path.join(root, "current"),
     lockHash: path.join(root, "lockhash"),
   };
+};
+
+const cloneOf = (slug: string): Clone => {
+  const d = dirs(slug);
+  return { gitDir: d.git, workTree: d.repo };
 };
 
 // ---------------------------------------------------------------------------
@@ -107,11 +115,13 @@ const FETCH_TTL_MS = Number(process.env.FETCH_TTL_SECONDS ?? 60) * 1000;
 async function prepare(site: SiteRef, log: Log): Promise<{ ref: RepoRef; env: Record<string, string>; head: string }> {
   if (!SLUG.test(site.slug) || site.slug.length > 40) throw new StepError(`"${site.slug}" is not a site slug`);
   const d = dirs(site.slug);
-  await mkdir(d.builds, { recursive: true });
-  await mkdir(d.meta, { recursive: true });
+  await mkdir(d.root, { recursive: true });
+  await keepPrivate(d.builds);
+  await keepPrivate(d.meta);
   const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
-  const env = gitEnv(ref);
-  const head = await withGitLock(site.slug, () => syncClone(d.repo, ref, env, log));
+  const env = gitEnv(ref, cloneOf(site.slug));
+  const head = await withGitLock(site.slug, () => syncClone(cloneOf(site.slug), ref, env, log));
+  await keepPrivate(d.git);
   lastFetch.set(site.slug, Date.now());
   return { ref, env, head };
 }
@@ -133,12 +143,12 @@ export interface SiteContent {
 export async function readSiteContent(site: SiteRef, opts: { refresh?: boolean } = {}): Promise<SiteContent> {
   await scheduleSite(site);
   const d = dirs(site.slug);
-  const cloned = await access(path.join(d.repo, ".git")).then(
+  const cloned = await access(path.join(d.git, "HEAD")).then(
     () => true,
     () => false,
   );
   const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
-  const env = gitEnv(ref);
+  const env = gitEnv(ref, cloneOf(site.slug));
   if (!cloned) {
     await enqueue(site.slug, async () => {
       await prepare(site, new Log());
@@ -215,7 +225,7 @@ export class ContentError extends StepError {
   }
 }
 
-async function npmCiIfNeeded(slug: string, repoDir: string, log: Log) {
+async function npmCiIfNeeded(slug: string, repoDir: string, user: SiteUser, log: Log) {
   const d = dirs(slug);
   const lock = await readFile(path.join(repoDir, "package-lock.json"));
   const hash = createHash("sha256").update(lock).digest("hex");
@@ -229,10 +239,31 @@ async function npmCiIfNeeded(slug: string, repoDir: string, log: Log) {
     return;
   }
   log.add("Installing dependencies (npm ci)");
-  // No install scripts: a dependency's install script would otherwise run
-  // with the builder's own user, and a site's build doesn't need one.
-  await run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: repoDir, env: buildEnv(), log, timeoutMs: 600_000 });
+  // No install scripts: a site's build doesn't need one.
+  await run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: repoDir, env: buildEnv(d.home), log, timeoutMs: 600_000, user });
   await writeFile(d.lockHash, hash);
+}
+
+/**
+ * The site's install and build, as its own user (sandbox.ts), then its output
+ * taken into builds/<id>. Whatever the steps leave running is stopped before
+ * the builder touches the tree again.
+ */
+async function buildAs(site: SiteRef, id: string, log: Log) {
+  const d = dirs(site.slug);
+  const user = await siteUser(SITES_ROOT, site.slug);
+  await handOver(user, d.root, d.repo, d.home);
+  try {
+    await npmCiIfNeeded(site.slug, d.repo, user, log);
+    log.add("Building (astro build)");
+    await rm(path.join(d.repo, "dist"), { recursive: true, force: true });
+    await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(d.home, site.timeZone), log, timeoutMs: 300_000, user });
+  } finally {
+    await stopAll(user);
+  }
+  await claimOutput(path.join(d.repo, "dist"));
+  await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
+  await sealBuild(path.join(d.builds, id));
 }
 
 async function pointAt(link: string, target: string) {
@@ -302,11 +333,7 @@ export function startPreview(site: SiteRef, id: string, ops: ChangeOp[], baseCom
         log.add(touched.length ? `Applied changes to ${touched.join(", ")}` : "No content changes");
         const check = await validateSite(d.repo);
         if (!check.ok) throw new ContentError(check.issues);
-        await npmCiIfNeeded(site.slug, d.repo, log);
-        log.add("Building (astro build)");
-        await rm(path.join(d.repo, "dist"), { recursive: true, force: true });
-        await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(site.timeZone), log, timeoutMs: 300_000 });
-        await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
+        await buildAs(site, id, log);
       } finally {
         await resetTree(d.repo, env).catch(() => undefined);
       }
@@ -410,7 +437,7 @@ export async function siteStatus(slug: string) {
 export async function viewRoot(slug: string, view: "current" | "preview"): Promise<string | null> {
   const d = dirs(slug);
   const target = await linkTarget(view === "current" ? d.current : d.preview);
-  return target ? path.join(d.builds, target) : null;
+  return target ? insideBuilds(d.builds, path.join(d.builds, target)) : null;
 }
 
 /** Keeps the newest builds plus whatever current and preview point at. */
@@ -500,10 +527,7 @@ export function rebuildCurrent(site: SiteRef): Promise<string | null> {
     try {
       const check = await validateSite(d.repo);
       if (!check.ok) throw new ContentError(check.issues);
-      await npmCiIfNeeded(site.slug, d.repo, log);
-      await rm(path.join(d.repo, "dist"), { recursive: true, force: true });
-      await run("npm", ["run", "build"], { cwd: d.repo, env: buildEnv(site.timeZone), log, timeoutMs: 300_000 });
-      await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
+      await buildAs(site, id, log);
     } finally {
       await resetTree(d.repo, env).catch(() => undefined);
     }
