@@ -70,7 +70,7 @@ model Role {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  password  String // bcrypt hashed
+  password  String // scrypt, or bcrypt from before Epic 28 (re-hashed on sign-in); src/lib/password.ts
   createdAt DateTime @default(now())
   roleCode  String   @default("USER")
 
@@ -133,7 +133,7 @@ enum AccountStatus {
 model Site {
   id                  String   @id @default(cuid())
   accountId           String   @unique
-  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and <slug>-preview.canopyds.com
+  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and the builder's GIT_TOKEN_<SLUG>
   name                String
   repoUrl             String?
   defaultBranch       String   @default("main")
