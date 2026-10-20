@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** Planned (2026-10-19)
+**Status:** In progress: 4.1 and 4.3 built and checked locally on branch `epic-37` (2026-10-19); 4.2 in progress on `canopy-website` branch `feat/astro`
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -42,7 +42,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 - **4.1 deploys before the site is registered with the builder (4.4).** Michael's decision of 2026-10-17; the plan and its checks are in the Claude Code project memory `builder-build-user-gate-h1`.
 - 4.1 and 4.2 run in parallel. 4.2 goes live on www through the existing deploy on its own, before any Sites wiring.
-- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote (`~/repos/.canopy-local-remotes`), with a static server of its build as the asset origin (4.3).
+- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, AGENT_CONTEXT section 7).
 - After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link; 4.3 adds Preview and the canvas (section 7).
 
 Each section is about one session; 4.2 may take two.
@@ -51,7 +51,7 @@ Each section is about one session; 4.2 may take two.
 
 ### 4.1 Builder: site build steps as their own user (`apps/builder`)
 
-- `npm ci` and `npm run build` run as a dedicated unprivileged user; git and the builder's own process don't. A build step can write only what a build needs (the working tree, `node_modules`, `dist`, its own cache); the clone's git directory and other sites' directories are out of its reach.
+- `npm ci` and `npm run build` run as an unprivileged user of the site's own; git and the builder's own process don't. A build step can write only what a build needs (the working tree, `node_modules`, `dist`, its own cache); the clone's git directory and other sites' directories are out of its reach. How it works: `apps/builder/README.md`.
 - The Dockerfile's "Site builds run as the unprivileged node user" comment and the README's security sentence describe the new model.
 - The checks in the project memory pass locally, and on production the demo builds and publishes after the deploy.
 
@@ -225,6 +225,8 @@ Each guard's test fails with the guard removed.
 
 - **One epic in five sections**, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others.
 - **Slug `canopyds`.**
+- **One build user per site, not one shared by every site (4.1).** Each site's steps reach only that site's directories, and the builder can stop everything a site's step left running without touching another site's build in progress.
+- **One canvas route for every site, the demo included** (`/canvas/[siteId]`), which replaced `/demo`'s editor and preview modes; `/demo` serves only the published demo.
 - **Content moved now: facts, and the prose sections that fit `pages`.** Structured sections wait for contract collections.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
 - **Preview opens the page a change touches**, with the home page for changes outside `pages`.
@@ -249,3 +251,6 @@ Not started.
 - 2026-10-19 (later): Michael dropped preview hostnames: a client site's canvas loads its assets from its live address (PRD D47). The portal-versus-Caddy question for preview hosts went with them.
 - 2026-10-19 (later): Michael: Preview opens a page of its own in a new tab, without the Sites chrome, never the Editor (D47 revised); this run produces the onboarding runbook (4.5). Nextcloud checked: no page covers putting a site onto Sites.
 - 2026-10-19 (later): Michael: the demo previews through the same page; Publish moves to the preview bar and off Quick Edit, the Sites chrome, and the Editor (D38, D47 revised). "No Sites chrome" means not embedded in the portal; the bottom bar stays.
+- 2026-10-19 (later): Built on branch `epic-37` (worktree `~/repos/canopy-sites-e37`, its own local stack on port 3016).
+  - 4.1 (`7e2d862`): checked with a deliberately hostile site build: every check in the project memory passed, a `dist` symlink failed the build with the preview left where it was, a symlink inside the output served 404, and the demo built and published (a commit pushed to the local remote).
+  - 4.3: end to end on the local demo with headless Chromium. The canvas loaded the demo with 24 marked fields; an in-place edit saved; Quick Edit and the Sites chrome showed Preview and no Publish; the preview page opened in a new tab with the bar reading "Previewing unpublished changes", the edit visible, and no marks; Publish there made the change live at `/demo`.
