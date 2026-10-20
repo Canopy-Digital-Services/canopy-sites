@@ -7,8 +7,8 @@ import { buildMark, loadBrush, measure, seeded, shapes, type Mark } from "@/lib/
 const PEN = 4;
 
 type PreviewMarkProps = {
-  /** The element the embed renders into. Must be positioned and isolated
-      (`relative isolate`), so the mark can sit behind its text. */
+  /** The element the embed renders into. Must be positioned, since the
+      mark is placed inside it. */
   containerRef: React.RefObject<HTMLDivElement | null>;
   /** CSS selector, inside the container, of the element to box. Null clears the mark. */
   target: string | null;
@@ -21,32 +21,35 @@ type PreviewMarkProps = {
  * hand when the target changes, redrawn finished when the preview re-renders
  * under it (the user typing).
  *
- * The canvas lives inside the embed's container, behind its content
- * (z-index -1 in the container's stacking context), so the stroke shows over
- * the form's background but never over text it grazes: the header's title
- * and description sit closer together than the pen is wide. The embed wipes
- * the container on every render, so the canvas is made here, outside React,
- * and put back before each draw.
+ * The canvas lives inside the embed's container, on top of the form, as ink
+ * on the page would: it may cross a field's edge or graze neighboring text.
+ * The embed wipes the container on every render, so the canvas is made here,
+ * outside React, and put back before each draw.
  */
 export function PreviewMark({ containerRef, target, renderKey }: PreviewMarkProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /** The target as of the last render, and the one the canvas shows. */
+  const wanted = useRef<string | null>(null);
   const drawn = useRef<string | null>(null);
+  /** Bumped by every draw, so an older one stops before touching the canvas. */
+  const run = useRef(0);
   // The hand-drawing animation, shared so a redraw can cut it short.
   const raf = useRef(0);
 
-  // Build the box round `selector` as laid out now. Null if it isn't rendered.
-  const build = async (selector: string): Promise<Mark | null> => {
+  // Build the box round `selector` as laid out now. Null if it isn't rendered
+  // yet, or if draw `id` has been overtaken.
+  const build = async (selector: string, id: number): Promise<Mark | null> => {
     const [brush] = await Promise.all([loadBrush(), document.fonts?.ready]);
     const host = containerRef.current;
     const el = host?.querySelector<HTMLElement>(selector);
-    if (!host || !el) return null;
+    if (id !== run.current || !host || !el) return null;
     let canvas = canvasRef.current;
     if (!canvas) {
       canvas = canvasRef.current = document.createElement("canvas");
       canvas.setAttribute("aria-hidden", "true");
       Object.assign(canvas.style, {
         position: "absolute",
-        zIndex: "-1",
+        zIndex: "1",
         maxWidth: "none",
         pointerEvents: "none",
         transition: "opacity 200ms",
@@ -67,59 +70,58 @@ export function PreviewMark({ containerRef, target, renderKey }: PreviewMarkProp
     });
   };
 
-  // A new target: draw it in by hand. No target: lift the mark off.
+  // Box `selector`: by hand when it is new, finished when it is already drawn
+  // and the preview re-rendered under it. A target the preview hasn't
+  // rendered yet (a field just added) is drawn on the render that adds it.
+  const draw = async (selector: string) => {
+    const id = ++run.current;
+    const mark = await build(selector, id);
+    const canvas = canvasRef.current;
+    if (!mark || !canvas || id !== run.current) return;
+    cancelAnimationFrame(raf.current);
+    canvas.style.opacity = "1";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const fresh = drawn.current !== selector;
+    drawn.current = selector;
+    if (!fresh || reduced) return mark.paint(1);
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / mark.duration);
+      mark.paint(t);
+      if (t < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+  };
+
+  // A new target draws in; no target lifts the mark off.
   useEffect(() => {
-    if (!target) {
-      drawn.current = null;
-      if (canvasRef.current) canvasRef.current.style.opacity = "0";
+    wanted.current = target;
+    if (target) {
+      void draw(target).catch(() => {});
       return;
     }
-    let cancelled = false;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    build(target)
-      .then((mark) => {
-        const canvas = canvasRef.current;
-        if (cancelled || !mark || !canvas) return;
-        drawn.current = target;
-        canvas.style.opacity = "1";
-        if (reduced) return mark.paint(1);
-        const t0 = performance.now();
-        const tick = (now: number) => {
-          const t = Math.min(1, (now - t0) / mark.duration);
-          mark.paint(t);
-          if (t < 1) raf.current = requestAnimationFrame(tick);
-        };
-        raf.current = requestAnimationFrame(tick);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf.current);
-    };
-    // build reads refs only
+    run.current++;
+    drawn.current = null;
+    cancelAnimationFrame(raf.current);
+    if (canvasRef.current) canvasRef.current.style.opacity = "0";
+    // draw reads refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
 
-  // The preview re-rendered under the mark: redraw it, finished, to fit.
+  // The preview re-rendered: follow the new layout.
   useEffect(() => {
-    const selector = drawn.current;
-    if (!selector) return;
-    let cancelled = false;
-    build(selector)
-      .then((mark) => {
-        if (cancelled || drawn.current !== selector || !mark) return;
-        cancelAnimationFrame(raf.current);
-        mark.paint(1);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    if (wanted.current) void draw(wanted.current).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderKey]);
 
   // Unmounted: take the canvas out of the embed's container.
-  useEffect(() => () => canvasRef.current?.remove(), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(raf.current);
+      canvasRef.current?.remove();
+    },
+    []
+  );
 
   return null;
 }

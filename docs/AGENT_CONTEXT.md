@@ -195,7 +195,7 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 ### Adding a field type
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
-2. Update `src/lib/field-types.ts`: both `FIELD_TYPE_OPTIONS` and `FIELD_TYPE_LABEL_PLACEHOLDERS`. The build fails if you skip the second.
+2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/components/forms/field-row.tsx`).
 3. Render it in `embed/src/form.ts`.
 4. Add client validation in `embed/src/validation.ts` if it has input constraints.
 5. Add server validation and any length cap in `src/lib/public-submit.ts`.

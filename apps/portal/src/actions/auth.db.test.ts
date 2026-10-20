@@ -62,7 +62,7 @@ describe("throttling", () => {
       error: THROTTLED_MESSAGE,
     });
     expect(await prisma.session.count()).toBe(0);
-  });
+  }, SPRAY_TIMEOUT_MS);
 
   it("counts only failures toward the email limit: a success resets it", async () => {
     const { user, password } = await accountWithPassword();
@@ -75,7 +75,7 @@ describe("throttling", () => {
         error: "Invalid email or password",
       });
     }
-  });
+  }, SPRAY_TIMEOUT_MS);
 
   it("limits one IP across many emails, and not other IPs", async () => {
     for (let i = 0; i < AUTH_LIMITS.signInPerIP.max; i++) {

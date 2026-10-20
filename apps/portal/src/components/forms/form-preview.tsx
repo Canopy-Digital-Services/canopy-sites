@@ -5,6 +5,7 @@ import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition, type EmbedFormInput } from "@/lib/embed-preview";
 import { useOptionalFormContext, HEADER_PLACEHOLDERS, FIELD_PLACEHOLDERS } from "@/components/forms/form-context";
 import { PreviewMark } from "@/components/forms/preview-mark";
+import { defaultLabel } from "@/components/forms/field-row";
 import { cn } from "@/lib/utils";
 import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 
@@ -33,12 +34,15 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
 
   // Bumped after each live render, so the marker box can follow the layout.
   const [renderKey, setRenderKey] = useState(0);
+  const focus = live ? (ctx?.previewFocus ?? null) : null;
   const markTarget =
-    live && ctx?.previewFocus === "title"
+    focus === "title"
       ? ".canopy-title"
-      : live && ctx?.previewFocus === "description"
+      : focus === "description"
         ? ".canopy-description"
-        : null;
+        : focus?.startsWith("field:")
+          ? `.canopy-field[data-field-name="${CSS.escape(focus.slice(6))}"]`
+          : null;
 
   // Render from static form prop (no debounce)
   useEffect(() => {
@@ -60,7 +64,10 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       ...(source as EmbedFormInput),
       title: source.title || (headerStandIn ? HEADER_PLACEHOLDERS.title : null),
       description: source.description || (headerStandIn ? HEADER_PLACEHOLDERS.description : null),
-      fields: fieldStandIns ? FIELD_PLACEHOLDERS : source.fields,
+      // A blank label shows as the default it will save as.
+      fields: fieldStandIns
+        ? FIELD_PLACEHOLDERS
+        : source.fields.map((f) => ({ ...f, label: f.label.trim() || defaultLabel(f.type) })),
     });
     const timer = setTimeout(() => {
       formInstanceRef.current?.renderFromDefinition(definition);
@@ -79,8 +86,8 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
 
   const preview = (
     <>
-      {/* Positioned and isolated so PreviewMark can draw behind the text. */}
-      <div ref={containerRef} className="relative isolate">
+      {/* Positioned for PreviewMark, which draws inside it. */}
+      <div ref={containerRef} className="relative">
         {!ready && (
           <div className="text-muted-foreground text-sm p-4">
             Loading preview...
