@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import type { ChangeSetSource } from "@prisma/client";
-import { discardChange, getEditorChanges, publishChange, refreshChange, saveDraft, ToolError, type ToolContext } from "@/lib/site-tools";
+import { getAccountSite } from "@/lib/data-access/sites";
+import { discardChange, getEditorChanges, getPreviewState, publishChange, refreshChange, saveDraft, ToolError, type ToolContext } from "@/lib/site-tools";
 import { QuickEditError, runQuickEdit, type QuickEditScope } from "@/lib/quick-edit";
 
 /**
@@ -61,12 +62,26 @@ export async function refreshPendingChange(
   }
 }
 
-export async function publishPendingChange(changeSetId: string): Promise<Result<{ commit: string | null }>> {
+/**
+ * Publish, from the preview page only (PRD D47): the build the page showed,
+ * which the tool layer refuses unless it is the draft's current build.
+ */
+export async function publishPreview(input: { changeSetId: string; buildId: string }): Promise<Result<{ commit: string | null }>> {
   try {
     const ctx = await context();
-    const result = await publishChange(ctx, String(changeSetId), { name: ctx.email.split("@")[0], email: ctx.email });
+    const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), { name: ctx.email.split("@")[0], email: ctx.email });
     revalidatePath("/quick-edit");
     return { success: true, ...result };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** The draft as the preview page shows it, for a site named by id (PRD D44). */
+export async function getSitePreviewState(siteId: string): Promise<Result<Awaited<ReturnType<typeof getPreviewState>>>> {
+  try {
+    const ctx = await context();
+    return { success: true, ...(await getPreviewState(ctx.accountId, String(siteId))) };
   } catch (err) {
     return failure(err);
   }
@@ -107,17 +122,21 @@ export async function saveCanvasEdits(input: {
   }
 }
 
-/** The site's draft for the Sites chrome: whether there is one, and whether it can be published. */
-export async function getDraftState(): Promise<Result<{ pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null }>> {
+/** The site's draft for the Sites chrome: whether there is one, and its build, with the site's id for Preview. */
+export async function getDraftState(): Promise<
+  Result<{ siteId: string | null; pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null }>
+> {
   try {
     const ctx = await context();
+    const siteId = (await getAccountSite(ctx.accountId))?.id ?? null;
     const { pending } = await getEditorChanges(ctx.accountId);
     if (pending && pending.status === "DRAFT" && (pending.buildStatus === "QUEUED" || pending.buildStatus === "RUNNING")) {
       const refreshed = await refreshChange(ctx.accountId, pending.id);
-      return { success: true, pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error } };
+      return { success: true, siteId, pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error } };
     }
     return {
       success: true,
+      siteId,
       pending: pending ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error } : null,
     };
   } catch (err) {

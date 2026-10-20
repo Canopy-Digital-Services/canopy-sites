@@ -1,33 +1,38 @@
 /**
- * The visual editor's bridge (Epic 33, PRD D35, D43), injected into a page of
- * the site when the Editor's canvas loads it. It runs inside the sandboxed
- * canvas (an opaque origin) and talks to the Editor only by postMessage:
+ * The canvas bridge (Epic 33, PRD D35, D43, D47), injected into a page of the
+ * site when the Editor's canvas or the preview page loads it. It runs inside
+ * a sandboxed srcdoc frame (an opaque origin) and talks to the portal only by
+ * postMessage:
  *
- * - every element carrying `data-canopy-field` is marked, and a click on one
- *   is reported as a selection;
- * - a link click becomes a navigation request, so the Editor owns navigation
+ * - a link click becomes a navigation request, so the portal owns navigation
  *   (an in-page anchor scrolls here instead);
- * - when the Editor asks, a field's text is edited in place, kept within the
- *   limit the Editor sends, and every keystroke is reported and copied to the
- *   field's other appearances on the page;
- * - every other click behaves as on the live site (menus, accordions);
- * - it reports the scroll position, and when the Editor swaps in a newer
- *   build of the page it restores the scroll and the selection there, so an
- *   update lands under the open panel instead of reloading the page.
+ * - it reports the scroll position, and when the portal swaps in a newer
+ *   build of the page it restores the scroll (and on the canvas the
+ *   selection) there, so an update lands in place instead of reloading;
+ * - every other click behaves as on the live site (menus, accordions).
  *
- * Nothing the page sends can write: the Editor saves through server actions,
- * which check everything again.
+ * In "edit" mode (the canvas) it also marks every element carrying
+ * `data-canopy-field`, reports a click on one as a selection, and edits its
+ * text in place when the Editor asks, kept within the limit the Editor sends,
+ * copying each keystroke to the field's other appearances on the page. In
+ * "view" mode (the preview page) nothing is marked or selectable.
+ *
+ * Nothing the page sends can write: the portal saves and publishes through
+ * server actions, which check everything again.
  */
-export const EDITOR_BRIDGE = `<style>
+const MARKS = `<style>
 [data-canopy-field]{cursor:pointer!important;text-decoration:underline dotted rgba(95,212,140,.95)!important;text-decoration-thickness:2px!important;text-underline-offset:4px!important;border-radius:2px;transition:background-color .15s ease,outline-color .15s ease}
 [data-canopy-field]:hover{outline:2px solid #005f6a;outline-offset:3px;background-color:rgba(95,212,140,.16)}
 [data-canopy-field].canopy-selected,[data-canopy-field].canopy-editing{outline:2px solid #005f6a;outline-offset:3px;background-color:rgba(95,212,140,.12);text-decoration:none!important}
 [data-canopy-field].canopy-editing{cursor:text!important}
 @media (prefers-reduced-motion:reduce){[data-canopy-field]{transition:none}}
-</style>
-<script>
+</style>`;
+
+export function canvasBridge(mode: "edit" | "view"): string {
+  return `${mode === "edit" ? MARKS : ""}<script>
 (function () {
   if (window.parent === window) return;
+  var VIEW = ${mode === "view"};
   var FIELD = "[data-canopy-field]";
   var selected = null;
   var editing = null;
@@ -63,7 +68,7 @@ export const EDITOR_BRIDGE = `<style>
     var t = e.target instanceof Element ? e.target : null;
     if (!t) return;
     if (editing && editing.el.contains(t)) return;
-    var field = t.closest(FIELD);
+    var field = VIEW ? null : t.closest(FIELD);
     if (field) {
       e.preventDefault();
       e.stopPropagation();
@@ -131,7 +136,7 @@ export const EDITOR_BRIDGE = `<style>
   window.addEventListener("message", function (e) {
     if (e.source !== window.parent || !e.data || typeof e.data !== "object") return;
     var m = e.data;
-    if (m.type === "edit" && selected && selected.getAttribute("data-canopy-field") === m.address) {
+    if (m.type === "edit" && !VIEW && selected && selected.getAttribute("data-canopy-field") === m.address) {
       editing = { el: selected, address: m.address, original: selected.textContent, limit: m.limit || 0 };
       selected.setAttribute("contenteditable", "plaintext-only");
       selected.classList.add("canopy-editing");
@@ -185,3 +190,4 @@ export const EDITOR_BRIDGE = `<style>
   post({ type: "ready", path: new URL(document.baseURI).pathname, title: document.title, fields: document.querySelectorAll(FIELD).length });
 })();
 </script>`;
+}

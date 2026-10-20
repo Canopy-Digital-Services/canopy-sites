@@ -5,7 +5,7 @@
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D25, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `docs/epics/epic-30-demo-slice.md` (sections 6 and 8), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `docs/epics/epic-30-demo-slice.md` (sections 6 and 8), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
 ---
 
@@ -24,7 +24,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
 - **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.
 - **The canvas** (PRD D43): bridge script, marked fields in the demo site's templates, breakpoint switcher, address bar.
-- **Editing**: the canvas's own editors, the quick edit popover (PRD D37), unpublished changes and Publish in the Sites chrome.
+- **Editing**: the canvas's own editors, the quick edit popover (PRD D37), unpublished changes and Publish in the Sites chrome (E37 moves Publish to the preview page, PRD D47).
 - **Speed**: timings for the editor's paths, measured on production after the tunnel fix (section 3).
 
 ### Out
@@ -34,7 +34,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 | Photos on the canvas | They stay unmarked until E32's media pipeline gives the popover an attach button (D41): a photo that opens a chat unable to replace it is the disappointment D35 exists to prevent |
 | Section headings, eyebrows, button labels | Not marked in this epic: the Invisible CMS page puts facts and prose before chrome, which owners rarely ask to change and which is most likely to break a layout |
 | Tool tabs (Gallery, Calendar) | D39; not scheduled |
-| Client preview hostnames | D43: with the first real client or the second demo site |
+| Client sites on the canvas | E37, with assets from each site's live address (D47) |
 | Demo switcher | D44 |
 | Marker styling beyond a working default | D35: decided later with Michael |
 | Restore UI | E31 remainder |
@@ -96,7 +96,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - Text and paragraph edits patch the canvas as typed; the save goes out in the background (section 4.2). Edits whose rendering is derived (hours, dates) rebuild instead, with the affected field shown as updating.
 - Every other marked field opens quick edit in the popover: the existing loop in `src/lib/quick-edit`, opened with the field's address and value in the first user turn, writing the same draft (PRD D37).
 - Undo within the session: back to the field's previous value, saved as a new edit.
-- Sites chrome: unpublished changes, Publish (enabled per section 4.2), Discard. The Quick Edit tab's pending change is the same draft.
+- Sites chrome: unpublished changes, Publish (enabled per section 4.2), Discard. The Quick Edit tab's pending change is the same draft. E37 moves Publish to the preview page, its only home (PRD D47).
 - Tool-result warnings (QUICK_EDIT_GUIDANCE section 2) arrive as data and show beside the field.
 
 ### 4.7 Tests

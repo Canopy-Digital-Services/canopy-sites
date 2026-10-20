@@ -30,11 +30,6 @@ type FormOptions = {
    * native tooltip explaining this.
    */
   preview?: boolean;
-  /**
-   * Admin single-field preview (field editor modal). Renders only the fields:
-   * no header, submit button, or watermark.
-   */
-  fieldsOnly?: boolean;
 };
 
 type FieldElement = {
@@ -174,7 +169,7 @@ export class CanopyForm {
     }
 
     // Render header block if title or description present
-    if (!this.options.fieldsOnly && (definition.title || definition.description)) {
+    if (definition.title || definition.description) {
       const header = document.createElement("div");
       header.className = "canopy-header";
 
@@ -213,11 +208,6 @@ export class CanopyForm {
       }
       this.fieldElements.set(field.name, { input, errorEl });
     });
-
-    if (this.options.fieldsOnly) {
-      this.container.appendChild(form);
-      return;
-    }
 
     const submit = document.createElement("button");
     submit.type = "submit";
@@ -306,6 +296,8 @@ export class CanopyForm {
 
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field";
+    // Lets the admin preview find a field to mark it (PreviewMark).
+    wrapper.dataset.fieldName = field.name;
 
     const label = document.createElement("label");
     label.className = "canopy-label";

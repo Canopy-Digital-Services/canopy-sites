@@ -5,8 +5,12 @@
 FROM node:24-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
+  && apt-get install -y --no-install-recommends git ca-certificates tini \
   && rm -rf /var/lib/apt/lists/*
+# Only the builder runs git, on directories it names, so ownership checks
+# would only get in its way (a local bare remote in development is owned by
+# another user). Git 2.39 honors safe.directory from system config only.
+RUN git config --system --add safe.directory '*'
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -19,10 +23,12 @@ COPY packages/site-contract ./packages/site-contract
 COPY apps/builder ./apps/builder
 RUN npm run build -w @canopy/site-contract
 
-# Site builds run as the unprivileged node user; /srv/sites is the volume.
-RUN mkdir -p /srv/sites && chown node:node /srv/sites
-USER node
+# The builder runs as root so it can give each site's install and build a
+# user of their own (src/sandbox.ts); /srv/sites is the volume.
+RUN mkdir -p /srv/sites && chmod 755 /srv/sites
 ENV SITES_ROOT=/srv/sites PORT=4100
 WORKDIR /app/apps/builder
 EXPOSE 4100
+# tini reaps what a site's build leaves behind once the builder stops it.
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "src/server.ts"]

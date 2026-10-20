@@ -81,11 +81,17 @@
 - Should invalidate any existing sessions or prompt re-login after confirmed change
 - Guard against email enumeration during the verification step
 
+## Click Anywhere to Activate
+
+**Future enhancement:** Rows and cards that open, expand, or edit something should respond to a click anywhere on them, not only on a small icon. The Fields list does this (clicking a collapsed field row opens it); the rest of the app still mostly relies on pencil and chevron icons. Audit list rows, settings rows, and collapsible cards and apply the same rule, keeping drag handles and destructive actions as their own targets.
+
 ## Preview Halo (Inspect-Style Highlight)
 
 **Future enhancement:** When the user focuses or hovers an appearance control (e.g. "Field Background", "Border Radius"), highlight the corresponding element(s) in the live preview—similar to browser DevTools "inspect element" highlighting.
 
 **Use case:** Makes it obvious which part of the form each setting affects, especially for colors and typography.
+
+**Partly built:** the editor marks the focused header input and the open field row with a hand-drawn box (`PreviewMark`, see `docs/UX_PATTERNS.md`); appearance controls don't yet.
 
 **Technical considerations:**
 - Preview and editor are same document; no iframe, so we can query the preview container DOM from the admin app.

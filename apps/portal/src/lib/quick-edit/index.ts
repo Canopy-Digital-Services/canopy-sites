@@ -261,7 +261,7 @@ async function runTool(
         conversationId: conversationId ?? undefined,
       });
       onProposed(proposed.changeSetId);
-      return result(`Proposed: ${proposed.summary}. The preview is building; the owner will see Preview and Publish buttons.`);
+      return result(`Proposed: ${proposed.summary}. The preview is building; the owner opens it with Preview and publishes from there.`);
     }
     return result(`Unknown tool ${use.name}`, true);
   } catch (err) {
