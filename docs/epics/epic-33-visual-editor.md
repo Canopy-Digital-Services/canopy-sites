@@ -32,7 +32,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 | Not here | Why / where |
 |---|---|
 | Photos on the canvas | They stay unmarked until E32's media pipeline gives the popover an attach button (D41): a photo that opens a chat unable to replace it is the disappointment D35 exists to prevent |
-| Section headings, eyebrows, button labels | Not marked in this epic: the Invisible CMS page puts facts and prose before chrome, which owners rarely ask to change and which is most likely to break a layout |
+| Section headings, eyebrows, button labels | Not marked in this epic, which marked facts and prose first. Headings and card text are marked from E37 on (D35); eyebrows and button labels stay unmarked |
 | Tool tabs (Gallery, Calendar) | D39; not scheduled |
 | Client sites on the canvas | E37, with assets from each site's live address (D47) |
 | Demo switcher | D44 |
