@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 and 4.3 built and checked locally on branch `epic-37` (2026-10-19); 4.2 in progress on `canopy-website` branch `feat/astro`
+**Status:** In progress: 4.1 and 4.3 built and checked locally on branch `epic-37`; 4.2 built on `canopy-website` branch `feat/astro`, on dev.canopyds.com for Michael's review (2026-10-19)
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -137,6 +137,11 @@ Michael:
 
 Agent, each production change confirmed first:
 
+- **Launching the Astro build**, after Michael has reviewed it on dev.canopyds.com:
+  - the two Cloudflare 301 rules (`/services` to `/websites`, `/cookie-settings` to `/cookie-policy`), before the merge
+  - the `canopy-website` app's exposed port from 3000 to 80, with its health check on (`GET /`), on webber and on Fox's copy of the same app. canopy-website is Tier 1: Fox runs it too and redeploys it from `main` every night (`canopy-tier1-redeploy`, checked 2026-10-19), so a copy left on port 3000 would serve nothing the first time traffic fails over
+  - the merge of `feat/astro` into `main`, which deploys webber; then Fox's copy redeployed at once rather than that night
+  - www checked at 1440 and 390 px, both redirects answering 301
 - **Builder:** redeploy it once the token is in.
 - **The site, in Operator → Sites, on Michael's account** (on `SITES` with no site, checked 2026-10-19):
   - slug `canopyds`; repo URL; branch `main`
@@ -147,7 +152,7 @@ Agent, each production change confirmed first:
 
   Then run Build and publish once, so `current` exists.
 - **Branch protection:** confirm `main` on `canopy-website` doesn't refuse the builder's push.
-- **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It still deploys `feat/new-tabs`, which merged in `canopy-website@45580f9`.
+- **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It deploys `feat/astro` for Michael's review (repointed 2026-10-19, port 80, health check on).
 
 ### 4.5 The onboarding runbook (Nextcloud)
 
@@ -254,3 +259,13 @@ Not started.
 - 2026-10-19 (later): Built on branch `epic-37` (worktree `~/repos/canopy-sites-e37`, its own local stack on port 3016).
   - 4.1 (`7e2d862`): checked with a deliberately hostile site build: every check in the project memory passed, a `dist` symlink failed the build with the preview left where it was, a symlink inside the output served 404, and the demo built and published (a commit pushed to the local remote).
   - 4.3: end to end on the local demo with headless Chromium. The canvas loaded the demo with 24 marked fields; an in-place edit saved; Quick Edit and the Sites chrome showed Preview and no Publish; the preview page opened in a new tab with the bar reading "Previewing unpublished changes", the edit visible, and no marks; Publish there made the change live at `/demo`.
+- 2026-10-19 (later): 4.2 built by a subagent on `canopy-website` branch `feat/astro`:
+  - The port: no React islands. A clean `npm ci --ignore-scripts && npm run build` passes, and two separate builds name every `dist/_astro/` file alike. A contract violation fails the build.
+  - The image sends CORS and the cache headers. All 8 pages match the live site's height at 1440 and 390 px.
+  - Left over: WebP encoding and font hinting differ by a few pixels; the homepage's 43 px sideways scroll at 390 px is already on the live site.
+  - Content files reformatted the way the builder writes them, so a publish is a one-line diff.
+- 2026-10-19 (later): canopyds.com end to end on the local stack, from a local remote of `feat/astro`, its image serving assets through `SITE_ASSET_ORIGIN_CANOPYDS`:
+  - The canvas showed the site styled with its own fonts. An in-place edit showed in the preview, and the site's links moved between pages there, with Back working.
+  - Publish reported "live on www.canopyds.com in a few minutes" and pushed a commit authored by the publisher.
+  - Two preview bugs fixed on the way (`e401bd0`).
+- 2026-10-19 (later): `feat/astro` pushed. dev.canopyds.com repointed to it (port 80, health check on) and deployed.
