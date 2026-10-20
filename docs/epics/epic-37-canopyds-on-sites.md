@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 and 4.3 built and checked locally on branch `epic-37`; 4.2 built on `canopy-website` branch `feat/astro`, on dev.canopyds.com for Michael's review (2026-10-19)
+**Status:** In progress: 4.1 and 4.3 released in v5.6.0 and 4.2 live on www (2026-10-19); 4.4's wiring waits on the site's builder token; 4.5's runbook is drafted
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -40,7 +40,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 ## 3. Order
 
-- **4.1 deploys before the site is registered with the builder (4.4).** Michael's decision of 2026-10-17; the plan and its checks are in the Claude Code project memory `builder-build-user-gate-h1`.
+- **4.1 deploys before the site is registered with the builder (4.4).** Michael's decision of 2026-10-17; shipped in v5.6.0 ahead of the token.
 - 4.1 and 4.2 run in parallel. 4.2 goes live on www through the existing deploy on its own, before any Sites wiring.
 - 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, AGENT_CONTEXT section 7).
 - After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link; 4.3 adds Preview and the canvas (section 7).
@@ -53,7 +53,7 @@ Each section is about one session; 4.2 may take two.
 
 - `npm ci` and `npm run build` run as an unprivileged user of the site's own; git and the builder's own process don't. A build step can write only what a build needs (the working tree, `node_modules`, `dist`, its own cache); the clone's git directory and other sites' directories are out of its reach. How it works: `apps/builder/README.md`.
 - The Dockerfile's "Site builds run as the unprivileged node user" comment and the README's security sentence describe the new model.
-- The checks in the project memory pass locally, and on production the demo builds and publishes after the deploy.
+- Checked locally against a deliberately hostile site build, and on production after the deploy (section 9).
 
 ### 4.2 The site (`canopy-website`)
 
@@ -152,7 +152,7 @@ Agent, each production change confirmed first:
 
   Then run Build and publish once, so `current` exists.
 - **Branch protection:** confirm `main` on `canopy-website` doesn't refuse the builder's push.
-- **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It deploys `feat/astro` for Michael's review (repointed 2026-10-19, port 80, health check on).
+- **`dev.canopyds.com`:** retire it once the Astro build is live, after Michael confirms: the Coolify app `canopy-website-dev` and its DNS record. It served `feat/astro` for Michael's review (repointed 2026-10-19, port 80, health check on), and is due for retirement now that the port is live.
 
 ### 4.5 The onboarding runbook (Nextcloud)
 
@@ -192,8 +192,8 @@ Each guard's test fails with the guard removed.
 
 ## 5. Acceptance
 
-- [ ] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
-- [ ] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
+- [x] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
+- [x] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
 - [ ] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
 - [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and only facts and prose marked. An in-place edit shows as typed and lands in the draft
@@ -269,3 +269,6 @@ Not started.
   - Publish reported "live on www.canopyds.com in a few minutes" and pushed a commit authored by the publisher.
   - Two preview bugs fixed on the way (`e401bd0`).
 - 2026-10-19 (later): `feat/astro` pushed. dev.canopyds.com repointed to it (port 80, health check on) and deployed. It served 502 until the Traefik port in its stored labels went from 3000 to 80 as well; then every page answered 200, a missing path 404, assets with CORS and immutable caching, and no console errors at 1440 or 390 px.
+- 2026-10-19 (later): Michael reviewed dev.canopyds.com and approved the launch and the release.
+  - www launch: the two Cloudflare redirect rules (301, query strings kept); port 80, the Traefik label, and the health check on webber's app and on Fox's copy; `feat/astro` fast-forwarded into `main` (`5d01c42`), which deployed webber; Fox's copy deployed by hand. Verified: every page 200, a missing path 404, both redirects 301, the apex redirect, CORS and immutable caching on assets, Umami's `data-domains`, and Fox serving the same `_astro/` names.
+  - v5.6.0 (PR #36, merge `0f6e828`), with the other session's Forms work on `dev` (Michael's call). The portal and builder both deployed. Verified on production: the builder runs as root under tini; a no-op demo build ran as uid 20001 and replaced the old clone with the new layout (`git/` and `builds/` root 0700, no `.git` in `repo/`); `/demo` 200; `/canvas` 404 to a signed-out request, with the sandbox CSP; `/preview` sends a signed-out request to sign-in.
