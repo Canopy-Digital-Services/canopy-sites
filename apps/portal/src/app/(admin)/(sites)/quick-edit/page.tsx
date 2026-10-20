@@ -6,6 +6,7 @@ import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
 import { getContentView, getEditorChanges, ToolError } from "@/lib/site-tools";
+import { liveSite, liveUrl as liveAddress } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
@@ -33,10 +34,9 @@ export default async function QuickEditPage() {
     );
   }
 
-  // The demo is the only site the portal serves today (PRD D23); client
-  // sites get their live address, and every site the preview page, with
-  // Epic 37 (PRD D47).
-  const liveUrl = site.isDemo ? "/demo" : null;
+  // Where the site is live: /demo for the demo, a client site's production hostname (PRD D47).
+  const live = liveSite(site);
+  const liveUrl = live ? liveAddress(live, "/").replace(/\/$/, "") : null;
   const changes = await getEditorChanges(accountId);
   // Not awaited: reading content fetches from GitHub, so the page renders
   // at once and the pages list streams in.
@@ -84,12 +84,12 @@ export default async function QuickEditPage() {
             className="absolute right-full top-0 mr-6 hidden h-auto w-44 min-[1720px]:block"
           />
           <QuickEditWorkspace
+            siteId={site.id}
             pagesCard={
               <Suspense fallback={<PagesCardSkeleton />}>
                 <PagesCard pages={pages} liveUrl={liveUrl} />
               </Suspense>
             }
-            liveUrl={liveUrl}
             pending={
               changes.pending
                 ? {
