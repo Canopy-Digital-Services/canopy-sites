@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); waiting on Michael's first edit and publish for the last acceptance items; 4.5's runbook published in Nextcloud
+**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; 4.7 (headings and cards on the canvas) built and checked locally, waiting on its release; then Michael's first edit and publish for the last acceptance items
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -21,6 +21,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 - **Builder isolation (4.1)**: site build steps run as their own user.
 - **The site (4.2, in `canopy-website`)**: Astro 7 port with visual parity; facts and prose in contract 0.2.0 collections, marked for the canvas; `SITE_GUIDE.md`; a static image for the existing Coolify app; the repo's own docs.
+- **Headings and cards on the canvas (4.7)**: contract 0.3.0's section cards; the site's headings and card lists in content, marked.
 - **Client sites on the canvas, and the preview page (4.3)**: the Editor for any site an account owns, with assets from the site's live address; Preview opens the draft in a new tab without the Sites chrome, for every site, the demo included.
 - **Wiring (4.4)**: the site on Michael's account, the builder's repo access, redirects.
 - **The onboarding runbook (4.5, Nextcloud)**: every step of this run, written for any site, ending in acceptance.
@@ -32,10 +33,11 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 | Preview hostnames | None, by D47: the canvas and the preview page cover them |
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
 | Production on Caddy, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys (ROADMAP Phase 3 fallback) |
-| Contract changes: team, FAQs, long-form text, a `linkedin` social network | Each needs a contract release with the demo's upgrade in the same window (site-contract README, "Upgrading"). Those parts stay in templates (section 7) |
+| Contract changes beyond cards: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
 | Photos | E32's media pipeline |
 | Dated announcements on canopyds.com | The nightly rebuild (D42) moves the builder's `current`, which nothing serves for this site until E36; www rebuilds only on a push |
-| Headings, eyebrows, buttons, SEO fields, nav and footer chrome | Unmarked, as in E33 (D35, D45) |
+| Eyebrows, buttons, SEO fields, nav and footer chrome | Unmarked (D35, D45) |
+| The demo marking its headings | The demo stays on contract 0.2.0, which 0.3.0 accepts unchanged; its own upgrade is a follow-up |
 | The blog | Off the live site since `canopy-website@1eb208a`; its MDX stays in the repo, unrouted |
 
 ## 3. Order
@@ -70,9 +72,9 @@ Each section is about one session; 4.2 may take two.
 **Content**
 
 - `src/content/site.json`: name, description, contact (phone, email, locality, region, country), hours (Michael supplies the value: the contract requires one and the site needn't render it), socials (empty; LinkedIn stays in the footer template until the contract has the network). Each fact has one source: the footer, the contact page, and the JSON-LD all render it from this file (Invisible CMS, "The template layer is load-bearing").
-- `src/content/pages.json`: one entry per routed page (home, websites, government, about, work, contact) with title and description (SEO, unmarked), hero, and the sections made of a heading, paragraphs, a quote, or a CTA. Sections with structure of their own (bid facts, NAICS codes, certifications, roles, process steps, team, values, FAQs, showcases) and the privacy and cookie policies stay in templates.
+- `src/content/pages.json`: one entry per routed page (home, websites, government, about, work, contact) with title and description (SEO, unmarked), hero, and the sections made of a heading, paragraphs, a quote, a CTA, or cards (4.7). Sections with structure of their own (bid facts, NAICS codes, certifications, roles, team, showcases) and the privacy and cookie policies stay in templates.
 - Templates read content through one module that runs `validateContent` at build, as the demo's `src/lib/content.ts` does, so a violation fails the build.
-- `field()` marks facts and prose only: hero subheadlines, section paragraphs, quotes, contact facts.
+- `field()` marks facts, prose, headings, and card text (4.7): headlines, headings, hero subheadlines, section paragraphs, quotes, card titles and text, contact facts.
 - `SITE_GUIDE.md` (D31, D40). Front matter: limits per address, measured from the rendered layout, and the phone display format. Prose: the Voice & Messaging rules; Canopy's own copy mechanics, adopted (D32 lets a guide adopt them); and the positioning rules in the repo's `docs/site-architecture.md` that a copy edit could break (where DVBE may appear, certifications not yet held, the veteran-owned framing).
 
 **Deploy and docs**
@@ -190,13 +192,33 @@ Unit test: the canvas route's `<base>` is the site's production hostname, never 
 
 Each guard's test fails with the guard removed.
 
+### 4.7 Headings and cards on the canvas (Michael, 2026-10-20)
+
+Michael asked, editing the site, for headings and card content to be editable in the visual editor (his example: "How it works" and the /websites steps).
+
+**Contract 0.3.0 (`packages/site-contract`)**
+
+- A section may hold `cards`, each with an id and an optional eyebrow, title, text, and button (`CardSchema`): one shape for steps, reasons, values, and questions with their answers. Cards are addressed by id; the title and text carry a kind and label ("Card title", "Card text"), so the canvas marks them like any field.
+- Additive: 0.2.0 content is valid 0.3.0 content and needs no migration, so the demo stays on 0.2.0 until it wants cards. The portal's pin moves to `^0.3.0`.
+- Released as the contract's tarball (site-contract README, "Releasing") before the site installs it, and deployed with the portal and builder before the site's commit reaches `main`: the builder validates with its own contract, so a 0.2.0 builder would refuse the site's content.
+
+**The site (`canopy-website`)**
+
+- Every heading and headline renders from content and is marked: the hero headlines, section headings, and the headings that were typed into templates ("How it works", "See it live", "Bid facts", "Why work with Canopy", "What we do", "Software as a service").
+- The card lists move into content as section cards and are marked: the homepage doors, the /websites steps and its six reasons, the /government reasons, the /about values, and the FAQs (the FAQPage structured data renders from the same cards). The team and the case studies stay in templates: each pairs its text with a portrait or a live site, which cards don't hold.
+- Eyebrows and button labels stay unmarked; the doors' eyebrows and buttons move into content with their cards.
+- A hand-drawn mark on a word of a marked value renders through `src/components/Marked.astro`: the mark goes wherever its word is, and an edit that drops the word drops the mark. `SITE_GUIDE.md` lists the words.
+- `SITE_GUIDE.md` limits for every new field, measured at 1440 and 390 px: a heading may run one line longer than today's; a card one line longer than the longest card in its list, with one limit per list.
+- On the canvas, every FAQ answer is open and stays open, so a question selects rather than toggles.
+
 ## 5. Acceptance
 
 - [x] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
 - [x] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
+- [ ] With 4.7, the site validates against contract 0.3.0 on www and on the builder, and its pages read and look as before
 - [x] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
-- [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and only facts and prose marked. An in-place edit shows as typed and lands in the draft
+- [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and facts, prose, headings, and card text marked, nothing else. An in-place edit shows as typed and lands in the draft
 - [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page filling the window and the preview bar at the bottom. The site's navigation moves between pages there, and the build swaps in place
 - [ ] Publish appears only on the preview bar: Quick Edit, the Sites chrome, and the Editor show Preview instead
 - [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
@@ -226,13 +248,20 @@ Each guard's test fails with the guard removed.
 - **A runbook comes out of this run** (4.5), so the next site onto Sites repeats it smoothly.
 - **Scope covers builder isolation, the canvas for client sites, and the preview page**, beside the port.
 
+### Michael (2026-10-20)
+
+- **Headings and card content are editable in the visual editor** (4.7).
+
 ### Agent calls inside scope
 
-- **One epic in five sections**, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others.
+- **One epic, sections 4.1 to 4.5** planned at the start, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others. 4.7 joined at Michael's request on 2026-10-20.
 - **Slug `canopyds`.**
 - **One build user per site, not one shared by every site (4.1).** Each site's steps reach only that site's directories, and the builder can stop everything a site's step left running without touching another site's build in progress.
 - **One canvas route for every site, the demo included** (`/canvas/[siteId]`), which replaced `/demo`'s editor and preview modes; `/demo` serves only the published demo.
-- **Content moved now: facts, and the prose sections that fit `pages`.** Structured sections wait for contract collections.
+- **Content moved at the port: facts, and the prose sections that fit `pages`.** Card lists followed with contract 0.3.0 (4.7); the other structured sections wait for contract collections.
+- **One card shape on sections (4.7)**, not a collection per kind (steps, values, FAQs): every card list on the site is a title and text with an optional eyebrow and button, and a section already gives each list its place on a page.
+- **A hand-drawn mark follows its word (4.7)** rather than keeping marked headings in templates, so every heading on the site is editable.
+- **Eyebrows and button labels stay unmarked (4.7).** Michael asked for headings and card content; the other chrome stays Canopy's until he asks.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
 - **Preview opens the page a change touches**, with the home page for changes outside `pages`.
 
@@ -241,7 +270,7 @@ Each guard's test fails with the guard removed.
 - **Dogfood before 4.3?** After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link, and a publish reaches www after the Coolify build. Michael's call.
 - **Sites before launch.** The canvas needs a live address to load assets from, so a new client site needs a production hostname from its first draft. The likely answer is a `<slug>.canopyds.com` name until its domain moves (D25's one-level limit). Decide with the first new client.
 - **canopyds.com first on Caddy (E36)** in place of H&H, as the lower-stakes site. Michael's call when E36 starts.
-- **Contract additions the site wants** (team, FAQs, long-form text, `linkedin`), for the next contract release, shipped with the demo's upgrade.
+- **Contract additions the site wants** (team, long-form text, `linkedin`), for a later contract release.
 
 ## 8. Completion report
 
@@ -278,3 +307,7 @@ Not started.
   - First build and publish of the repo as it is, the operator action's steps. The content read found contract 0.2.0, `site` and `pages`, and the site guide. The build ran as uid 20002 and names its `_astro/` files exactly as www does.
   - Signed out, `/canvas` and `/preview` for the site refuse.
   - A browser check as a temporary member of Michael's account was blocked by the session's permission check (creating users on production), so the canvas, preview, and first publish on production are Michael's own first edit.
+- 2026-10-20: Michael asked for headings and card content on the canvas (4.7). Built: contract 0.3.0 on `dev` (`2b3c269`), and `canopy-website` branch `feat/editable-headings` (`9457d7f`). Checked:
+  - Every marked element's text equals its content value (115 fields); the visible text of all six pages matches `main`; screenshots at 1440 and 390 px differ only by anti-aliasing.
+  - The site's content fits all 62 guide limits.
+  - On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017, the branch through a local remote): the canvas marks the headings and cards with their labels and limits; in-place edits of a heading, a card title, and a card text saved and built; the preview showed them with the dial still on "together". FAQ answers stay open on the canvas; a door's title selects instead of following its link.
