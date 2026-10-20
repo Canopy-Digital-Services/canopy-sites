@@ -33,7 +33,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 17. Helper text next to a labelled Add button in an empty list. The button says it.
 18. A description that paraphrases its own title. Delete it.
 19. `position="item-aligned"` on `SelectContent`. The shared component defaults to `position="popper"` / `align="start"` deliberately; item-aligned overlays the trigger and makes long lists expand upward with scroll chevrons.
-20. A preselected default type in a picker-gated configuration modal.
+20. A preselected default type in a type picker.
 21. A hand-converted oklch value for a brand color. Point the token at `var(--canopy-teal)` and friends.
 22. A decorative colored accent bar to signal importance (`border-l-4 border-l-primary` and similar).
 23. Bounce or rotation in motion. Increase travel distance or duration instead.
@@ -299,29 +299,19 @@ When a state transition leaves the account somewhere piecemeal admin actions wou
 
 Reference: [plan-resolution-dialog.tsx](src/components/plan/plan-resolution-dialog.tsx), mounted when `Account.requiresPlanResolution`.
 
-### Type-first configuration modals
+### Inline field rows
 
-When available controls depend on a type choice, **do not preselect a type**. Preselecting creates a path-of-least-resistance trap: users accept a generic `Text` field where `Email`, `Phone`, or `Address` would give better validation and input affordances.
+Fields are added and edited in the Fields list itself, not in a modal: the live preview beside the editor already shows the field, so a modal with its own preview was a second copy of it.
 
-- Open with only the type selector visible, placeholder "Choose a field type…".
-- **Hide** downstream controls until a type is chosen. Not disabled, hidden, so the modal reads as "type first".
-- Animate the reveal so the dialog grows instead of snapping:
+- **One row open at a time**, accordion-style, so settings panels never stack into a long scroll. Clicking anywhere on a collapsed row opens it; clicking its summary again closes it. The grip alone drags, and an open row has no grip. The settings slide down open and back up closed (Radix `Collapsible`, `.field-row-body` in `globals.css`).
+- **Add field is the list's last row.** It drops down the field types as a list. No type is preselected: a default type is a path-of-least-resistance trap (a generic Text where Email or Phone would validate better). Picking one creates the field and opens it.
+- **Type is not a setting.** In an open row the type beside the label is the trigger for the same list. A change that would discard Input Rules the user set asks first ("If you change the field type, the current configuration will be lost. Proceed?"); one that loses nothing, or only the type's own defaults, just happens.
+- **New fields start complete**: the label defaults to the type's name and Dropdown and Checkboxes get two options (`newFieldDefaults`), so nothing blocks the first save. A cleared label saves as the default.
+- **Autosave**, like the rest of the editor: each change saves 600ms after the last, and at once when the row closes or the step changes. A field that can't save yet (an empty option, a Name with no parts) holds its last saved state and says why under its settings (`fieldProblem`).
+- Changing type keeps what still applies (validation between plain types, options between Dropdown and Checkboxes) and resets the rest; a label still at its default follows the type.
+- The open field is the preview's focus (`field:<name>`), so `PreviewMark` outlines it. The embed tags each field wrapper with `data-field-name` for this. A field just added isn't in the preview until its next render, so the mark draws on the render that brings it in.
 
-  ```tsx
-  {type && (
-    <div className="editor-reveal">
-      <div className="space-y-4 overflow-hidden -mx-1 px-1">{/* label, config, help text */}</div>
-    </div>
-  )}
-  ```
-
-  `-mx-1 px-1` keeps focus rings from being clipped by the `overflow-hidden` the height animation needs. The reveal only animates on first selection; switching between chosen types leaves the block mounted.
-- Primary action stays disabled until the type and any required downstream fields are filled.
-- **Edit mode renders the full form immediately.** Picker-gating is for add/create only.
-- Preserve structurally compatible state across type switches (label, help text); clear only what doesn't apply (options when leaving `DROPDOWN`).
-- Types in `FIELD_PREVIEW_TYPES` ([field-preview.tsx](src/components/forms/field-preview.tsx)), currently only `NAME`, get an always-on live preview of the field being edited. On `lg+` the dialog widens and the preview is a sticky right column; below `lg` it stacks under the type selector. The field renders through the embed with `fieldsOnly` (no header, Submit, or watermark), with the form's live theme, at the width it gets on the live form, because the auto-fit name-part grid wraps by width.
-
-Reference: [field-editor-modal.tsx](src/components/field-editor-modal.tsx), see `handleTypeChange`.
+Reference: [field-row.tsx](src/components/forms/field-row.tsx), [form-fields-manager.tsx](src/components/form-fields-manager.tsx).
 
 ---
 
@@ -445,8 +435,8 @@ Variant depends on whether the list is the primary thing on screen:
 
 | Context | Variant |
 |---------|---------|
-| Primary list (Add Field in the editor) | `Button` default variant, Plus icon + text |
-| Sub-list inside a container with its own CTA (Add option inside the field dialog) | `Button variant="ghost" size="sm"` with `text-primary` |
+| Primary list in its own container (Add field as the Fields list's last row) | Full-width row button, `text-primary`, Plus icon + text |
+| Sub-list inside a container with its own CTA (Add option inside a field row) | `Button variant="ghost" size="sm"` with `text-primary` |
 
 ```tsx
 <Button type="button" variant="ghost" size="sm" onClick={handleAddOption}
@@ -519,7 +509,7 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 
 **Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
 
-**Focus mark.** Focusing a Header input sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. The canvas sits inside the embed container at `z-index: -1` (the container is `relative isolate`), so the stroke passes under neighboring text rather than over it.
+**Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. The canvas sits inside the embed container (`relative`), on top of the form: it is ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, it vanished behind inputs' backgrounds.
 
 Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 

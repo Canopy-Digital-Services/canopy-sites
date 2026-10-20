@@ -42,38 +42,12 @@ const FIELD_TYPE_LABELS: Record<FieldType, string> = FIELD_TYPE_OPTIONS.reduce(
 );
 
 /**
- * Example label placeholders for the field editor (Label input hint per type)
- */
-export const FIELD_TYPE_LABEL_PLACEHOLDERS: Record<FieldType, string> = {
-  TEXT: "e.g. Company Name",
-  EMAIL: "e.g. Email Address",
-  TEXTAREA: "e.g. Your message",
-  PHONE: "e.g. Phone number",
-  DATE: "e.g. Date of birth",
-  NAME: "e.g. Full name",
-  DROPDOWN: "e.g. Country",
-  CHECKBOX: "e.g. I agree to the terms",
-  CHECKBOXES: "e.g. Which services interest you?",
-  NUMBER: "e.g. 42",
-  ADDRESS: "e.g. Mailing address",
-};
-
-/**
  * Get the human-readable label for a field type
  * @param type - The FieldType enum value or string
  * @returns The display label (e.g., "Paragraph" for "TEXTAREA")
  */
 export function getFieldTypeLabel(type: FieldType | string): string {
   return FIELD_TYPE_LABELS[type as FieldType] || type;
-}
-
-/**
- * Get the example label placeholder for the field editor (Label input)
- * @param type - The FieldType enum value or string
- * @returns Placeholder string (e.g., "e.g. Email Address" for EMAIL)
- */
-export function getLabelPlaceholder(type: FieldType | string): string {
-  return FIELD_TYPE_LABEL_PLACEHOLDERS[type as FieldType] ?? "e.g. Label";
 }
 
 // Compile-time assertion: All FieldType values must be in FIELD_TYPE_OPTIONS

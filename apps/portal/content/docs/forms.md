@@ -42,7 +42,7 @@ Until you type, the preview shows faded sample text where the title and descript
 
 ## Fields
 
-The **Fields** section is where you add and arrange inputs. Use **Add field**, then pick a type in the modal.
+The **Fields** section is where you add and arrange inputs. Click **Add field** at the bottom of the list and pick a type. The new field opens in the list with its settings, and the field you're editing is outlined in the preview. Click any field to open its settings; opening one closes the other. To change an open field's type, click the type beside its name. Changes save as you go.
 
 ### Field types
 
@@ -66,7 +66,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Core options:**
 
-- **Label** (required): what the user sees. An internal key is derived from the label on first save; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
+- **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
 - **Placeholder**: optional hint text inside the empty input.
 - **Required**: toggles whether the field must be filled before the form can submit.
 - **Help text**: optional muted text shown below the field to guide the user.
@@ -82,14 +82,14 @@ Every field type has the same core options, plus type-specific ones.
 
 ### Internal key behavior
 
-When a field's label is saved, an internal key is generated (for example, `Email Address` becomes `email_address`). Submissions store values under this key, not the label.
+When a field is created, an internal key is generated from its label (for example, `Email` becomes `email`). Submissions store values under this key, not the label.
 
 - Renaming a field's label does **not** change the key. Existing submissions keep their data under the original key.
 - Deleting a field and re-adding one with the same label gives it the same key. New submissions will land under that key; the ones collected while the field was missing simply won't have that key; older submissions from before the deletion are untouched.
 
 ### Reordering
 
-Each field row has Up and Down buttons. The order here is the order fields render in the embed, the hosted page, and submissions.
+Drag a field by its grip to move it. The order here is the order fields render in the embed, the hosted page, and submissions.
 
 ## Submission Settings
 
