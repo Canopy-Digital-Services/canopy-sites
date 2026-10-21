@@ -43,6 +43,34 @@ describe("ids", () => {
   });
 });
 
+describe("cards", () => {
+  const withCards = async (cards: unknown[]) => {
+    const c = await load();
+    c.pages[0].sections[1].cards = cards;
+    return c;
+  };
+
+  it("are addressed by id, with a kind and label for each field", async () => {
+    const c = await withCards([
+      { id: "listen", title: "Listen first", body: "We ask before we build." },
+      { id: "ship", eyebrow: "Step two", title: "Ship it", cta: { label: "See how", href: "/process" } },
+    ]);
+    expect(validateContent(c).issues).toEqual([]);
+    expect(resolveAddress(c, "pages/home/sections/about/cards/ship/title")).toMatchObject({ pointer: "/0/sections/1/cards/1/title", node: "Ship it" });
+    expect(fieldInfo("pages/home/sections/about/cards/any/title")).toMatchObject({ kind: "text", label: "Card title", maxLength: 120 });
+    expect(fieldInfo("pages/home/sections/about/cards/any/body")).toMatchObject({ kind: "paragraph", label: "Card text", maxLength: 800 });
+  });
+
+  it("need ids, unique in their section, and plain text", async () => {
+    const issues = async (cards: unknown[]) => validateContent(await withCards(cards)).issues.map((i) => `${i.path}: ${i.message}`);
+    expect(await issues([{ id: "a", title: "One" }, { id: "a", title: "Two" }])).toEqual(['/0/sections/1/cards/1/id: Duplicate id "a"']);
+    expect(await issues([{ title: "No id" }, { id: "b", body: "<b>bold</b>" }])).toEqual([
+      expect.stringMatching(/^\/0\/sections\/1\/cards\/0\/id: /),
+      "/0/sections/1/cards/1/body: Plain text only: no < or >",
+    ]);
+  });
+});
+
 describe("resolveAddress", () => {
   it("turns ids and keys into a pointer, and paragraphs by position", async () => {
     const c = await load();

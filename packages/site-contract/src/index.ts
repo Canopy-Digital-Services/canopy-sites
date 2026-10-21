@@ -32,7 +32,7 @@ export { FORMAT_KEYS, limitIssues, parseSiteGuide, SiteGuideError, type SiteGuid
 export { migrateContent } from "./migrate.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.3.0";
 
 export interface SiteContent {
   site?: Site;
