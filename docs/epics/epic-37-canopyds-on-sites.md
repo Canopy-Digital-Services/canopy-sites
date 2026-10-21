@@ -253,6 +253,10 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - **Headings and card content are editable in the visual editor** (4.7).
 
+### Michael (2026-10-21)
+
+- **Every fact on the /government bid-fact cards is editable** (4.7), so he can change them himself.
+
 ### Agent calls inside scope
 
 - **One epic, sections 4.1 to 4.5** planned at the start, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others. 4.7 joined at Michael's request on 2026-10-20.
@@ -262,6 +266,7 @@ Michael asked, editing the site, for headings and card content to be editable in
 - **Content moved at the port: facts, and the prose sections that fit `pages`.** Card lists followed with contract 0.3.0 (4.7); the other structured sections wait for contract collections.
 - **One card shape on sections (4.7)**, not a collection per kind (steps, values, FAQs): every card list on the site is a title and text with an optional eyebrow and button, and a section already gives each list its place on a page.
 - **A hand-drawn mark follows its word (4.7)** rather than keeping marked headings in templates, so every heading on the site is editable.
+- **The bid facts are card text, not structured facts (4.7).** They appear on /government only and no second site needs credentials or NAICS codes, so a contract collection for them waits for one.
 - **Eyebrows and button labels stay unmarked (4.7).** Michael asked for headings and card content; the other chrome stays Canopy's until he asks.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
 - **Preview opens the page a change touches**, with the home page for changes outside `pages`.
@@ -318,4 +323,5 @@ Not started.
   - The builder reads `01fdaa0` with contract 0.3.0 and no issues; no draft is pending.
   - The deployed portal carries the card field labels; signed out, `/canvas` 404s and `/preview` sends to sign-in.
   - Not checked: the Editor signed in as Michael (no session I can use). The operator list shows the site's contract as 0.2.0 until the next operator Build and publish sets it.
+- 2026-10-21: Michael made the bid facts editable (4.7). `canopy-website@97e079e`, on top of three more edits of his published from Sites (the /government headline, an /about heading and paragraph). Pixel for pixel the same at 1440 and 390 px; deployed healthy; on www all 118 marked elements hold their content values; the production builder reads the commit with no issues.
 
