@@ -206,7 +206,8 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - Every heading and headline renders from content and is marked: the hero headlines, section headings, and the headings that were typed into templates ("How it works", "See it live", "Bid facts", "Why work with Canopy", "What we do", "Software as a service").
 - The card lists move into content as section cards and are marked: the homepage doors, the /websites steps and its six reasons, the /government reasons, the /about values, and the FAQs (the FAQPage structured data renders from the same cards). The team and the case studies stay in templates: each pairs its text with a portrait or a live site, which cards don't hold.
-- Eyebrows and button labels stay unmarked; the doors' eyebrows and buttons move into content with their cards.
+- The /government bid facts follow as the `bid-facts` section's cards (Michael, 2026-10-21): the certifications' designations and their note (certification number, where to verify it) and the NAICS codes are marked; the capability statement card is an eyebrow and its download button. The cert number keeps its monospace and the codes their spacing wherever an edit leaves them; the site guide tells the owner when an edit leaves the capability statement PDF behind.
+- Eyebrows and button labels stay unmarked; the doors' and bid facts' eyebrows and buttons move into content with their cards.
 - A hand-drawn mark on a word of a marked value renders through `src/components/Marked.astro`: the mark goes wherever its word is, and an edit that drops the word drops the mark. `SITE_GUIDE.md` lists the words.
 - `SITE_GUIDE.md` limits for every new field, measured at 1440 and 390 px: a heading may run one line longer than today's; a card one line longer than the longest card in its list, with one limit per list.
 - On the canvas, every FAQ answer is open and stays open, so a question selects rather than toggles.
