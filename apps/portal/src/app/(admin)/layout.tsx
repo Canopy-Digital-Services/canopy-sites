@@ -1,18 +1,22 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import { Suspense } from "react";
-import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
+import type { Metadata } from "next";
+import { requireAuth, getCurrentAccountId, getCurrentEntitlements } from "@/lib/auth-utils";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 import { NotificationBell } from "@/components/notification-bell";
 import { HelpBubble } from "@/components/help-bubble";
-import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { prisma } from "@/lib/db";
 import { PlanResolutionDialog } from "@/components/plan/plan-resolution-dialog";
 import { SitesNav } from "@/components/sites/sites-nav";
 import { DraftStatus } from "@/components/sites/draft-status";
-import { homePathFor, requireHomeHost } from "@/lib/product";
+import { homePathFor, productFor, productMetadata, requireHomeHost } from "@/lib/product";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return productMetadata(productFor(await getCurrentEntitlements()));
+}
 
 export default async function AdminLayout({
   children,
@@ -21,11 +25,11 @@ export default async function AdminLayout({
 }) {
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
-  const entitlements = await getAccountEntitlements(accountId);
+  const entitlements = await getCurrentEntitlements();
   // Each account lives on its own product's host (PRD D22).
   await requireHomeHost(entitlements);
-  // The account's products pick the chrome; the hostname plays no part.
-  const product = entitlements.sitesEnabled ? "sites" : "forms";
+  // The account's products pick the chrome and the title; the hostname plays no part.
+  const product = productFor(entitlements);
 
   // When a downgrade has unpublished all of the account's forms, block every
   // admin route with the resolution dialog. The user picks which forms stay

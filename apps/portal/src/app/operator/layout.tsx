@@ -1,6 +1,6 @@
-import { requireGlobalAdmin, getCurrentAccountId } from "@/lib/auth-utils";
-import { homePathFor, requireHomeHost } from "@/lib/product";
-import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import type { Metadata } from "next";
+import { requireGlobalAdmin, getCurrentEntitlements } from "@/lib/auth-utils";
+import { homePathFor, productFor, productMetadata, requireHomeHost } from "@/lib/product";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -8,13 +8,17 @@ import { Globe, Users, House } from "lucide-react";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 
+export async function generateMetadata(): Promise<Metadata> {
+  return productMetadata(productFor(await getCurrentEntitlements()));
+}
+
 export default async function OperatorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await requireGlobalAdmin();
-  const entitlements = await getAccountEntitlements(await getCurrentAccountId());
+  const entitlements = await getCurrentEntitlements();
   await requireHomeHost(entitlements);
   const homePath = homePathFor(entitlements);
   const homeLabel = homePath === "/quick-edit" ? "Back to Quick Edit" : "Back to forms";

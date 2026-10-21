@@ -1,12 +1,5 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCurrentAccountId } from "@/lib/auth-utils";
-import { getAccountEntitlements } from "@/lib/data-access/entitlements";
-
-export const metadata: Metadata = {
-  title: "CANOPY SITES",
-  description: "Canopy Sites portal",
-};
+import { getCurrentEntitlements } from "@/lib/auth-utils";
 
 /** Routes that exist only for accounts with Canopy Sites. */
 export default async function SitesLayout({
@@ -14,7 +7,7 @@ export default async function SitesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { sitesEnabled } = await getAccountEntitlements(await getCurrentAccountId());
+  const { sitesEnabled } = await getCurrentEntitlements();
   if (!sitesEnabled) notFound();
 
   return children;
