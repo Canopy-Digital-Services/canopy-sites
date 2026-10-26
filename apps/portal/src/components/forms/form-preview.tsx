@@ -18,6 +18,11 @@ import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/pag
 const INPUTS = ".canopy-input, .canopy-select, .canopy-textarea";
 const BODY_TEXT =
   ".canopy-description, .canopy-help-text, .canopy-checkbox, .canopy-name-part-label, .canopy-address-part-label";
+/** Body text as marked and outlined: a field's checkbox options as one list,
+    not each option. */
+const BODY_TEXT_GROUPS =
+  ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label";
+const OPTION_LIST = ".canopy-checkboxes";
 const CARD = "[data-preview-card]";
 
 /** Which styling group each part of the preview picks. The first match wins;
@@ -37,7 +42,7 @@ const groupTargets = (mode: "embed" | "page"): Record<StyleGroup, string> => ({
   page: MARK_HOST,
   form: mode === "page" ? CARD : ".canopy-root",
   title: ".canopy-title",
-  text: BODY_TEXT,
+  text: BODY_TEXT_GROUPS,
   labels: ".canopy-label",
   fields: INPUTS,
   button: ".canopy-submit",
@@ -96,7 +101,14 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     const el = node instanceof Element ? node : null;
     for (const zone of ZONES) {
       const hit = el?.closest<HTMLElement>(zone.match);
-      if (hit) return { group: zone.group, target: zone.group === "form" ? targets.form : hit };
+      if (!hit) continue;
+      const target =
+        zone.group === "form"
+          ? targets.form
+          : zone.group === "text"
+            ? (hit.closest<HTMLElement>(OPTION_LIST) ?? hit)
+            : hit;
+      return { group: zone.group, target };
     }
     return mode === "page" ? { group: "page", target: MARK_HOST } : { group: "form", target: targets.form };
   };

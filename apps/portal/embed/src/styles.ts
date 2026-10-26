@@ -134,7 +134,7 @@ export const baseStyles = `
 
 .canopy-help-text {
   font-size: calc(var(--canopy-font-size, 14px) - 1px);
-  color: #71717a;
+  color: var(--canopy-text, #18181b);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -398,7 +398,6 @@ export const baseStyles = `
 .canopy-description {
   font-size: var(--canopy-font-size, 14px);
   color: var(--canopy-text, #18181b);
-  opacity: 0.75;
   margin: 0;
   line-height: 1.5;
 }
