@@ -43,19 +43,20 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
 29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's marker boxes, a pressed button) carry it.
+30. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
 
 **Always:**
 
-30. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-31. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-32. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
-33. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-34. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-35. `GripVertical` visible in a sortable row, even when the whole row drags.
-36. `PageHeader` for page titles. Never an inline `<h1>`.
-37. `PageContent` on admin pages, except the form editor.
-38. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-39. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+31. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+32. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+33. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+34. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+35. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+36. `GripVertical` visible in a sortable row, even when the whole row drags.
+37. `PageHeader` for page titles. Never an inline `<h1>`.
+38. `PageContent` on admin pages, except the form editor.
+39. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+40. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -665,6 +666,6 @@ For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components
 
 Accessibility: decorative images get `alt=""`, meaningful ones get a descriptive `alt`, and color is never the only carrier of meaning.
 
-Favicons use App Router icon files, not manual `<link rel="icon">` tags. `src/app/icon.svg` is the only one present; add `src/app/favicon.ico` beside it if legacy-browser fallback is ever needed.
+Favicons are `public/brand/<product>-icon.svg`, set by `productMetadata` in [product.ts](src/lib/product.ts) so every layout that brands its title brands its icon too. Never add an App Router icon file (`src/app/**/icon.*`, `favicon.ico`): it brands by route, so a Sites account on `/forms` got the Forms icon, and it overrides the metadata icon.
 
 If dark mode is ever enabled, brand assets must stay legible: prefer logos that work on both grounds or ship variants, and avoid hardcoded background rectangles behind them.

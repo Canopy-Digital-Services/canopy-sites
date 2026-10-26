@@ -83,23 +83,25 @@ function pickReplyTo(
  *
  * `submissionsUrl` is null for recipients with no account on this form's
  * account — they can't sign in, so a dashboard link would only dead-end them.
+ * `productName` is the form's account's product, for the footer.
  */
 export function renderNotificationEmail(input: {
   formName: string;
   submittedAt: Date;
   submissionsUrl: string | null;
   responses?: ResponseLine[] | null;
+  productName: string;
 }): { text: string; html?: string } {
-  const { formName, submittedAt, submissionsUrl, responses } = input;
+  const { formName, submittedAt, submissionsUrl, responses, productName } = input;
   const timestamp = submittedAt.toLocaleString();
 
   if (!responses || responses.length === 0) {
-    return { text: renderText(formName, timestamp, submissionsUrl, null) };
+    return { text: renderText(formName, timestamp, submissionsUrl, null, productName) };
   }
 
   return {
-    text: renderText(formName, timestamp, submissionsUrl, responses),
-    html: renderHtml(formName, timestamp, submissionsUrl, responses),
+    text: renderText(formName, timestamp, submissionsUrl, responses, productName),
+    html: renderHtml(formName, timestamp, submissionsUrl, responses, productName),
   };
 }
 
@@ -107,7 +109,8 @@ function renderText(
   formName: string,
   timestamp: string,
   submissionsUrl: string | null,
-  responses: ResponseLine[] | null
+  responses: ResponseLine[] | null,
+  productName: string
 ): string {
   const blocks = [
     "New form submission received.",
@@ -127,7 +130,7 @@ function renderText(
     blocks.push(`View submissions: ${submissionsUrl}`);
   }
 
-  blocks.push("---\nThis is an automated notification from Canopy Forms.");
+  blocks.push(`---\nThis is an automated notification from ${productName}.`);
 
   return blocks.join("\n\n");
 }
@@ -136,7 +139,8 @@ function renderHtml(
   formName: string,
   timestamp: string,
   submissionsUrl: string | null,
-  responses: ResponseLine[]
+  responses: ResponseLine[],
+  productName: string
 ): string {
   const rows = responses
     .map(
@@ -168,7 +172,7 @@ function renderHtml(
     </tr>${rows}${linkRow}
   </table>
   <div style="max-width:600px;margin:16px auto 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
-    This is an automated notification from Canopy Forms.
+    This is an automated notification from ${escapeHtml(productName)}.
   </div>
 </div>`;
 }
