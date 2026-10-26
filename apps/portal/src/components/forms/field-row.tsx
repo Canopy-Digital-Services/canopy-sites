@@ -261,8 +261,9 @@ export function FieldRow({ field, open, problem, dragHandleProps, onToggle, onCh
       </div>
 
       <CollapsibleContent className="field-row-body">
-        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. */}
-        <div className="-mx-1 px-1">
+        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
+            controls stand off the open row's tint. */}
+        <div className="-mx-1 px-1 [&_input]:bg-card [&_textarea]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
           <FieldSettings field={field} problem={problem} onChange={onChange} />
         </div>
       </CollapsibleContent>
