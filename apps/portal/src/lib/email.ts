@@ -83,6 +83,8 @@ export async function sendNewSubmissionNotification(options: {
   canUseDashboard?: boolean;
   /** Base URL for the dashboard link, from `appUrlFor` on the form's account. */
   appUrl: string;
+  /** Product the footer names, from `productNameFor` on the form's account. */
+  productName: string;
 }): Promise<boolean> {
 
   const { text, html } = renderNotificationEmail({
@@ -92,6 +94,7 @@ export async function sendNewSubmissionNotification(options: {
       ? `${options.appUrl}/forms/${options.formId}/submissions`
       : null,
     responses: options.responses,
+    productName: options.productName,
   });
 
   return sendEmail({
