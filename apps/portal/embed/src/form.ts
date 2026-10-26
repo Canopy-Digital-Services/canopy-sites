@@ -146,10 +146,10 @@ export class CanopyForm {
     applyTheme(this.container, theme);
 
     // Load any explicitly selected families (new format)
-    ensureFontsLoaded([theme.bodyFont, theme.headingFont], this.options.baseUrl || "");
+    ensureFontsLoaded([theme.bodyFont, theme.titleFont, theme.labelFont], this.options.baseUrl || "");
 
     // Backward compat: load legacy fontUrl if new fields are absent
-    if (!theme.bodyFont && !theme.headingFont) {
+    if (!theme.bodyFont && !theme.titleFont && !theme.labelFont) {
       ensureFontLoaded((theme as { fontUrl?: string }).fontUrl);
     }
 

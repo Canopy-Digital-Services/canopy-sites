@@ -10,36 +10,38 @@ import {
   type StyleGroup,
 } from "@/components/forms/form-context";
 import { PreviewMark, MARK_HOST } from "@/components/forms/preview-mark";
+import { PreviewOutline } from "@/components/forms/preview-outline";
 import { defaultLabel } from "@/components/forms/field-row";
 import { cn } from "@/lib/utils";
 import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 
-/** A part of the preview that picks a styling group, and the marks showing
-    everything that group changes. The first zone an element is in wins. */
-type Zone = { match: string; group: StyleGroup; marks: string };
-
 const INPUTS = ".canopy-input, .canopy-select, .canopy-textarea";
 const BODY_TEXT =
   ".canopy-description, .canopy-help-text, .canopy-checkbox, .canopy-name-part-label, .canopy-address-part-label";
-const FORM_ZONE: Zone = { match: ".canopy-root, [data-preview-card]", group: "form", marks: ".canopy-root" };
-const PAGE_ZONE: Zone = { match: MARK_HOST, group: "page", marks: MARK_HOST };
+const CARD = "[data-preview-card]";
 
-const ZONES: Zone[] = [
-  { match: ".canopy-submit", group: "button", marks: ".canopy-submit" },
-  { match: ".canopy-title, .canopy-label", group: "headings", marks: ".canopy-title, .canopy-label" },
-  { match: BODY_TEXT, group: "body", marks: BODY_TEXT },
-  { match: INPUTS, group: "form", marks: INPUTS },
-  FORM_ZONE,
+/** Which styling group each part of the preview picks. The first match wins;
+    anywhere else is the page (hosted) or the form (embedded). */
+const ZONES: { match: string; group: StyleGroup }[] = [
+  { match: ".canopy-submit", group: "button" },
+  { match: ".canopy-title", group: "title" },
+  { match: ".canopy-label", group: "labels" },
+  { match: BODY_TEXT, group: "text" },
+  { match: INPUTS, group: "fields" },
+  { match: `.canopy-root, ${CARD}`, group: "form" },
 ];
 
-/** The zone a group opened from the styling panel marks. */
-const GROUP_ZONES: Record<StyleGroup, Zone> = {
-  page: PAGE_ZONE,
-  form: FORM_ZONE,
-  headings: ZONES[1],
-  body: ZONES[2],
-  button: ZONES[0],
-};
+/** Everything a group styles: marked when it is picked, outlined when its
+    panel row is hovered. A hosted form's card is the form. */
+const groupTargets = (mode: "embed" | "page"): Record<StyleGroup, string> => ({
+  page: MARK_HOST,
+  form: mode === "page" ? CARD : ".canopy-root",
+  title: ".canopy-title",
+  text: BODY_TEXT,
+  labels: ".canopy-label",
+  fields: INPUTS,
+  button: ".canopy-submit",
+});
 
 type FormPreviewProps = {
   /** Static form data — used when live=false (default). */
@@ -79,24 +81,28 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
           ? `.canopy-field[data-field-name="${CSS.escape(focus.slice(6))}"]`
           : null;
 
-  // Styling mode: hovering marks what a click would style, finished; a click
-  // picks it and draws the marks by hand.
+  // Styling mode: hovering outlines the part of the form under the pointer
+  // (or every part a hovered panel row styles); a click picks its group and
+  // draws the marks round everything that group styles, by hand.
   const styling = live && !!ctx?.styling;
   const styleGroup = ctx?.styleGroup ?? null;
-  const [hovered, setHovered] = useState<Zone | null>(null);
-  const [picked, setPicked] = useState<{ zone: Zone; count: number }>({ zone: FORM_ZONE, count: 0 });
-  const selected = styleGroup
-    ? picked.zone.group === styleGroup ? picked.zone : GROUP_ZONES[styleGroup]
-    : null;
+  const targets = groupTargets(mode);
+  const [hovered, setHovered] = useState<HTMLElement | string | null>(null);
+  const [picks, setPicks] = useState(0);
 
-  const zoneAt = (el: EventTarget): Zone => {
-    const node = el instanceof Element ? el : null;
-    const zone = node && ZONES.find((z) => node.closest(z.match));
-    return zone ?? (mode === "page" ? PAGE_ZONE : FORM_ZONE);
+  // The group under `node`, and what to outline for it: the element itself,
+  // or the card, form or page as a whole.
+  const pickAt = (node: EventTarget): { group: StyleGroup; target: HTMLElement | string } => {
+    const el = node instanceof Element ? node : null;
+    for (const zone of ZONES) {
+      const hit = el?.closest<HTMLElement>(zone.match);
+      if (hit) return { group: zone.group, target: zone.group === "form" ? targets.form : hit };
+    }
+    return mode === "page" ? { group: "page", target: MARK_HOST } : { group: "form", target: targets.form };
   };
   const stylingHandlers = styling
     ? {
-        onPointerMove: (e: React.PointerEvent) => setHovered(zoneAt(e.target)),
+        onPointerMove: (e: React.PointerEvent) => setHovered(pickAt(e.target).target),
         onPointerLeave: () => setHovered(null),
         // Clicks pick a group and never reach the form: no typing, no
         // dropdowns, no focus.
@@ -104,16 +110,16 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
         onClickCapture: (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
-          const zone = zoneAt(e.target);
-          setPicked((p) => ({ zone, count: p.count + 1 }));
-          ctx?.setStyleGroup(zone.group);
+          setPicks((n) => n + 1);
+          ctx?.setStyleGroup(pickAt(e.target).group);
         },
       }
     : {};
 
-  const shown = styling ? (hovered ?? selected) : null;
-  const markTarget = styling ? (shown?.marks ?? null) : focusTarget;
-  const drawKey = !styling ? focusTarget : shown === selected ? `${styleGroup}:${picked.count}` : null;
+  const rowHover = styling ? (ctx?.styleHover ?? null) : null;
+  const outlineTarget = !styling ? null : rowHover ? targets[rowHover] : hovered;
+  const markTarget = styling ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
+  const drawKey = styling ? `${styleGroup}:${picks}` : (focusTarget ?? "");
 
   // Render from static form prop (no debounce)
   useEffect(() => {
@@ -172,7 +178,11 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     </>
   );
 
-  // Positioned for PreviewMark, which draws inside it.
+  const outline = live && (
+    <PreviewOutline hostRef={surfaceRef} target={outlineTarget} renderKey={renderKey} />
+  );
+
+  // Positioned for PreviewMark and PreviewOutline, which draw inside it.
   const surfaceProps = {
     ref: surfaceRef,
     ...stylingHandlers,
@@ -186,6 +196,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
         style={{ backgroundColor: page.formBackground }}
       >
         <div className="w-full max-w-lg">{preview}</div>
+        {outline}
       </div>
     );
   }
@@ -207,6 +218,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
           {preview}
         </div>
       </div>
+      {outline}
     </div>
   );
 }

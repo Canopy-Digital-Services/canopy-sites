@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { EditorFlow } from "@/components/forms/editor-flow";
-import { AppearanceSection } from "@/components/forms/appearance-section";
+import { StylingPanel } from "@/components/forms/styling-panel";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -286,7 +286,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                 </div>
                 {styling && (
                   <div className="space-y-4 editor-swoop-in">
-                    <AppearanceSection />
+                    <StylingPanel />
                     <div className="flex justify-end">
                       <Button onClick={() => setStyling(false)}>Done</Button>
                     </div>

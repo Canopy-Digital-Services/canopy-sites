@@ -42,7 +42,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 26. A larger radius to make something friendlier. Radius is not a design lever here.
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
-29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's marker boxes, a pressed button) carry it.
+29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
 30. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
 
 **Always:**
@@ -212,7 +212,7 @@ Failed the test and were removed: "Configure the field details and validation ru
 
 Passed, and why: "Domains allowed to embed and submit to this form. Localhost is always allowed for development" (a constraint you can't infer), "You'll be signed out of all sessions shortly after" (a consequence), "Leave empty for no limit. Spam submissions are not counted" (non-obvious behavior of a blank value).
 
-**The same goes for labels, tags, and instructions.** The editor's preview once sat under a "Preview" caption, which named the pane the user was looking at; it gave way to the Change styling button. Styling mode was built without hover tags naming each part of the form and without a "Select a form element" line: the marker boxes show what a click will style. Add an instruction only once testing shows people get lost without it.
+**The same goes for labels, tags, and instructions.** The editor's preview once sat under a "Preview" caption, which named the pane the user was looking at; it gave way to the Change styling button. Styling mode was built without hover tags naming each part of the form and without a "Select a form element" line: the hover outline shows what a click will pick. Add an instruction only once testing shows people get lost without it.
 
 **Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second survived alone.
 
@@ -515,12 +515,11 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 
 **Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. It boxes every match of a selector, one canvas each, drawn by hand only when its `drawKey` changes. The canvases sit in the preview surface (the `relative` wrapper round the page or embed background), on top of the form: they are ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, a box vanished behind inputs' backgrounds; drawn inside the card, the card's `overflow: hidden` clipped it. Canvases carry `data-preview-mark`, and thumbnail capture filters them out.
 
-**Styling mode.** Styling isn't a flow step: it applies to the whole form at any time, so a step forced users through header and fields first. **Change styling** sits in the preview's top bar (and above the flow below `lg`) and toggles `styling` in `FormContext`. The styling panel (`AppearanceSection`) then replaces the flow in the editor column, which stays mounted under it so **Done** returns to the same step. In the preview:
+**Styling mode.** Styling isn't a flow step: it applies to the whole form at any time, so a step forced users through header and fields first. **Change styling** sits in the preview's top bar (and above the flow below `lg`) and toggles `styling` in `FormContext`. The styling panel (`StylingPanel`, section 11) then replaces the flow in the editor column, which stays mounted under it so **Done** returns to the same step. Each panel row is a part of the form you can click in the preview (`StyleGroup`).
 
-- Hovering a part of the form boxes everything one styling group changes, painted finished: every label and the title (Headings), every input (Form), the button, the body text, the card (Form), or the page around it (Page). Hover marks never draw by hand; a mark that animated on every pointer move read as noise.
-- Clicking picks that group: it opens in the panel (closing the others, `styleGroup` in `FormContext`) and its boxes draw by hand once. Opening a group in the panel marks it the same way.
+- **Hover outlines; selection marks.** Hovering the preview draws a thin `border-primary` outline (`PreviewOutline`, [preview-outline.tsx](src/components/forms/preview-outline.tsx)) hugging the one element under the pointer at its own corner radius, as builders and the browser's inspector do; the card or the page outline as a whole. Hovering a panel row (`styleHover`) outlines every element its group styles. Clicking a part, or opening its row, sets `styleGroup` and draws the marker boxes by hand round everything that group styles. Marker boxes on hover were tried first and rejected: several hand-drawn shapes on every pointer move were chaotic, and a box round the whole card or page pointed at nothing.
 - Clicks never reach the form: capture handlers stop focus, typing, dropdowns, and links. `.preview-styling` in `globals.css` sets the pointer cursor, lets stand-in fields be picked, and hides the Submit button's preview tooltip.
-- The zones (selector to group) live in `ZONES` in [form-preview.tsx](src/components/forms/form-preview.tsx) and follow the embed's class names, so an embed markup change must keep them matching.
+- `ZONES` (what a click picks) and `groupTargets` (what a group marks and outlines) in [form-preview.tsx](src/components/forms/form-preview.tsx) follow the embed's class names, so an embed markup change must keep them matching.
 
 Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 
@@ -599,6 +598,8 @@ Embedded forms use their own theming system in `embed/src/theme.ts`, unrelated t
 
 - **`ThemeDefaults`**: tokens with a default. `DEFAULT_THEME` must provide all of them. Adding one means editing both.
 - **`ThemeOverrides`**: optional tokens with no default (`bodyFont`, `titleColor`, `pageBackground`). Adding one needs nothing else.
+
+**Title and labels are separate token sets**: `titleFont`, `titleWeight`, `titleColor`, `titleSize`, `titleTransform` and `labelFont`, `labelWeight`, `labelColor`, `labelSize`, `labelTransform`, each driving its own `--canopy-title-*` / `--canopy-label-*` variable. They shared one heading style until 2026-10; migration `20261026210000_split_title_label_theme` wrote that shared style out to both sets in every saved theme. The legacy `headingFont` survives only in `resolveTheme`, which reads it as both fonts where they are unset, because `data-theme` attributes on customers' sites may still carry it.
 - **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides`, the public type. All fields optional, since a stored theme only holds what the user set.
 
 ```typescript
@@ -632,23 +633,22 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 ### Styling panel
 
-[appearance-section.tsx](src/components/forms/appearance-section.tsx) is the styling-mode panel (section 10): an always-open "Styling" Card with five collapsible SubSection peers, one open at a time, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
+[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run in the order the parts appear on the form. A collapsed row shows its non-default values as muted words and color dots.
 
 ```
-Styling  (always-open Card)
-├─ Page        [swatch]                              ← hosted-only
-├─ Form        [swatch] [swatch] [swatch] · radius 8 ← surfaces, borders, spacing
-├─ Headings    Montserrat · Semibold · [swatch]      ← title + label shared style
-├─ Body        Lato · 14px · [swatch]
-└─ Button      Submit · [swatch]
+Page     Wide · [swatch]              ← hosted only
+Form     Radius 8 · [swatch]          ← background, corner radius, density
+Title    Lora · Bold · Size L · [swatch]
+Text     Inter · 15px · [swatch]       ← description, help text, input text
+Labels   Lora · Uppercase · [swatch]
+Fields   [swatch] [swatch]             ← field background, border
+Button   Send · [swatch]               ← text, color, width, alignment
 ```
 
-- **Page**: page background (hosted only). **Form**: background, field background, field border, radius, density, button width and alignment. **Headings**: font, weight, color, label transform, title size. **Body**: font, base size, text color. **Button**: text and color.
-- **SubSection titles are neutral `--foreground`, not `text-primary`.** As teal they made children look more important than the "Styling" card title above them. Hierarchy inside a card comes from size alone: 22px card title, 16px SubSection titles, same color.
-- The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform is label-specific; title size is title-specific, since labels always render at body size.
+- **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, size, and case (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
 - Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
 
-**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Body uses `variant="body"` (default) showing `CURATED_FONTS`; Headings uses `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
+**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Text uses `variant="body"` (default) showing `CURATED_FONTS`; Title and Labels use `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
 
 ---
 

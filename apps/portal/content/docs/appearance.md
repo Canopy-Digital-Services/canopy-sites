@@ -6,18 +6,17 @@ icon: Palette
 
 Click **Change styling** at the top of the preview on the Edit tab to style a form. You can do this at any point, before or after adding fields. The styling panel takes the place of the editor until you click **Done**, which returns you to where you were.
 
-While styling, hover over the preview to see what each part of the form is styled by, then click it to open its settings. Clicking a field label, for example, boxes every label and the title, and opens **Headings**. All changes autosave and show in the preview as you make them.
+The panel lists each part of the form you can style, in the order they appear on the form. Click a part of the preview, or its row in the panel, to open its settings. Hovering either one outlines that part in the preview, and the open row's parts stay marked while you change them. All changes autosave and show in the preview as you make them.
 
-The styling groups depend on the form type:
+Hosted forms list Page, Form, Title, Text, Labels, Fields, and Button. Embedded forms have no Page row.
 
-- **Hosted forms** see Page, Form, Headings, Body, Button.
-- **Embedded forms** see Form, Headings, Body, Button (no Page subsection).
+All colors accept hex input. The color swatch next to each input opens the native picker.
 
 ## Page (hosted forms only)
 
-Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`. This subsection is hidden for embedded forms.
+Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 
-- **Page Background Color**: the color behind the form card.
+- **Background**: the color behind the form card.
 - **Wrap form in a card**: toggle the rounded surface around the form. Turn it off for a flat look.
 - **Card Shadow**: None, Light, Medium, Heavy. Only shown when the card is enabled.
 - **Content Width**: Narrow (480px), Medium (640px), or Wide (768px).
@@ -25,41 +24,43 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`. This subs
 
 ## Form
 
-Applies to the form itself.
-
-- **Background**: the form's inner surface color.
-- **Field Background**: the color inside inputs, textareas, and selects.
-- **Field Border**: border color for inputs.
-- **Border Radius**: pixel radius for inputs and the submit button. 0 for square corners.
+- **Background**: the form's surface color.
+- **Corner Radius (px)**: rounds the corners of the card, the inputs, and the button. 0 for square corners.
 - **Density**: Compact, Normal, or Comfortable. Controls spacing between fields.
-- **Button Width**: Full Width or Auto.
-- **Button Alignment**: Left, Center, or Right. Only shown when Button Width is Auto.
 
-All colors accept hex input. The color swatch next to each input opens the native picker.
+## Title
 
-## Headings
+The form's title, in the header above the fields.
 
-Covers the form title and all field labels.
+- **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
+- **Weight**: Regular or Bold. Light is only offered when the selected font has a 300 weight.
+- **Color**: leave blank to use the text color.
+- **Size**: Small, Medium, Large, or Extra Large.
+- **Case**: Normal or Uppercase.
 
-- **Font**: pick a Google Font. Curated heading fonts are surfaced first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't show this option since there's no host page to inherit from.
-- **Weight**: Regular or Bold. Light is only shown when the selected font has a 300 weight.
-- **Color**: a color override for headings. Leave blank to inherit the body text color.
-- **Case**: Normal or Uppercase. Applies to field labels.
-- **Title Size**: Small, Medium, Large, or Extra Large.
-- **Label Size**: Small, Medium, Large, or Extra Large.
+## Text
 
-## Body
+The description, help text, option labels, and what people type into fields.
 
-Controls the rest of the form's typography.
+- **Font**: the body font. Embedded forms also offer **Inherit from host page**.
+- **Size (px)**: 10 to 24.
+- **Color**: placeholder text uses this color at reduced opacity.
 
-- **Font**: the body font. Used for input text, help text, and the description. Embedded forms also offer **Inherit from host page**.
-- **Base Font Size (px)**: 10 to 24.
-- **Text Color**: body copy and input text color. Placeholder text is rendered at reduced opacity of this color.
+## Labels
+
+The label above each field. Same settings as Title, set separately: a bold title can sit over regular labels.
+
+## Fields
+
+- **Background**: the color inside inputs, text areas, and dropdowns.
+- **Border**: the border color of those inputs.
 
 ## Button
 
-- **Button Text**: custom submit button label (for example, "Send Message" or "Subscribe"). Defaults to "Submit".
-- **Button Color**: the submit button background color. Button text color is derived automatically for contrast (white on dark backgrounds, dark on light).
+- **Text**: the submit button's label (for example, "Send Message" or "Subscribe"). Defaults to "Submit".
+- **Color**: the button's background. Its text color is picked automatically for contrast (white on dark colors, dark on light).
+- **Width**: Full Width or Auto.
+- **Alignment**: Left, Center, or Right. Only shown when Width is Auto.
 
 ## Live preview
 
@@ -85,10 +86,12 @@ You can override the saved theme for a single embed without changing the form's 
 
 Override properties are merged on top of the saved defaults, so you only need to specify what's changing.
 
+The title and labels are styled separately: `titleWeight`, `titleColor`, and `titleTransform` change only the title, and the `label` keys only the labels. An older `headingFont` key still works and sets both fonts.
+
 **Commonly overridden keys:**
 
-- Typography: `bodyFont`, `headingFont`, `fontSize`, `titleWeight`, `titleSize`, `labelSize`, `labelTransform`
-- Colors: `text`, `titleColor`, `background`, `fieldBackground`, `border`, `primary`
+- Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleTransform`, `labelFont`, `labelWeight`, `labelSize`, `labelTransform`
+- Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`
 - Layout: `radius`, `density`, `buttonWidth`, `buttonAlign`, `buttonText`
 - Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`, `verticalAlign`
 
