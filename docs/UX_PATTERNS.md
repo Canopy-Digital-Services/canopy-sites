@@ -633,7 +633,7 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 ### Styling panel
 
-[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run in the order the parts appear on the form. A collapsed row shows its non-default values as muted words and color dots.
+[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run in the order the parts appear on the form. A collapsed row shows its non-default values as muted words and color dots. Unlike a field row's label, a row title is a section heading (`font-heading font-semibold text-base`, neutral `--foreground`): at the field rows' `font-medium text-sm` the sections didn't read as places to go.
 
 ```
 Page     Wide · [swatch]              ← hosted only

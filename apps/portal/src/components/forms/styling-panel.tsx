@@ -194,7 +194,7 @@ function StyleRow({
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <button
             type="button"
-            className="shrink-0 text-left font-medium text-sm"
+            className="shrink-0 text-left font-heading font-semibold text-base"
             aria-expanded={open}
           >
             {title}
