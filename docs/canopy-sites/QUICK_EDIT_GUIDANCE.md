@@ -75,6 +75,8 @@ Written into the schemas as each field's description, beside its kind and label 
 - `gallery`: page order is list order. `alt` describes what is in the photo for someone who can't see it; it does not sell.
 - `id` fields: stable once set; never renamed to match a new name.
 - `reviews`: a real customer's exact words and name, as the owner gives them.
+- `site.credentials`: a certification's `name` is the full name (structured data and anyone spelling it out use it); `shortName` is for tight spaces such as a line of designations; `number` is written without a leading #; `verifyOn` is where a buyer can look it up. NAICS codes are six digits each, in the order shown.
+- `faqs`: a question as a customer would ask it; page order is list order.
 
 Each new collection adds its descriptions when it enters the contract.
 
