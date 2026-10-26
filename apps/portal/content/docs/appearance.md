@@ -23,8 +23,8 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 ## Form
 
 - **Background**: the form's surface color.
-- **Corner Radius (px)**: rounds the corners of the card, the inputs, and the button. 0 for square corners.
-- **Density**: Compact, Normal, or Comfortable. Controls spacing between fields.
+- **Corners**: Square, Slight, Round, or Rounder. Rounds the card, the inputs, and the button together.
+- **Spacing**: Compact, Normal, or Roomy. The space between fields.
 
 ## Title
 

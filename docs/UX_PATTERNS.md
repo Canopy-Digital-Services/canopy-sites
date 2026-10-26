@@ -639,7 +639,7 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 ```
 Page     Wide · [swatch]              ← hosted only
-Form     Radius 8 · [swatch]          ← background, corner radius, density
+Form     Round · Roomy · [swatch]     ← background, corners, spacing
 Title    Lora · Bold · Size L · [swatch]
 Text     Inter · 15px · [swatch]       ← description, help text, input text
 Labels   Lora · Uppercase · [swatch]
@@ -648,8 +648,9 @@ Button   Send · [swatch]               ← text, color, width, alignment
 ```
 
 - **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, size, and case (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
-- **One setting per line** (`SettingRow`): label on the left, control on the right, as in a design tool's inspector. It halves a row's height and the labels scan as a column; stacked labels suit text the user types. Page uses it; the other rows are moving to it one at a time.
+- **One setting per line** (`SettingRow`): label on the left, control on the right, as in a design tool's inspector. It halves a row's height and the labels scan as a column; stacked labels suit text the user types. Page and Form use it; the other rows are moving to it one at a time.
 - **Content width previews in proportion.** The pane is narrower than the Medium and Wide content widths, so at their real widths they rendered identically. `FormPreview` sizes a hosted form's content as a share of the pane instead: Wide fills it edge to edge, Medium and Narrow keep their ratio to Wide. Zooming the whole page out to a laptop's width was tried first and rejected. Vertical centering was removed in the same pass (migration `20261026230000_remove_vertical_align`): every hosted form sits at the top.
+- **Presets over numbers.** Form's corners are Square, Slight, Round, Rounder (`radius` 0, 4, 8, 16) rather than a pixel box: owners judge corners by eye, not px. A saved radius between presets presses no button and is kept until changed.
 - **One decision, one control.** A checkbox that reveals a dependent control is folded into one choice: Page's Card is No card, Flat, or a shadow strength, written to `cardEnabled` and `cardShadow` together.
 - Each color control is the native swatch alone (`ColorSwatch`, `<input type="color">` at 40 by 28px): every platform's picker takes hex, so a hex text box beside it only added clutter, and a full-width swatch was a slab of color. Once a color is set, a ghost reset button appears before the swatch (so the swatch keeps its place) and returns it to unset: the default, or for title and labels, following the text color.
 
