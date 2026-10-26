@@ -5,7 +5,7 @@
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D47, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-30-demo-slice.md` (section 6), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-30-demo-slice.md` (section 6), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
 
 ---
 
