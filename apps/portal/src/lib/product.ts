@@ -44,16 +44,19 @@ export function productFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEna
 }
 
 /**
- * Browser title and description for a product. Signed-out pages pass the
- * host's product (`getHostProduct`), signed-in layouts the account's
- * (`productFor`).
+ * Browser title, description, and favicon for a product. Signed-out pages
+ * pass the host's product (`getHostProduct`), signed-in layouts the
+ * account's (`productFor`). The favicon lives here rather than in an App
+ * Router icon file, which would brand by route and override this.
  */
 export function productMetadata(product: Product): Metadata {
+  const icons = { icon: { url: `/brand/${product}-icon.svg`, type: "image/svg+xml" } };
   return product === "sites"
-    ? { title: "CANOPY SITES", description: "Canopy Sites portal" }
+    ? { title: "CANOPY SITES", description: "Canopy Sites portal", icons }
     : {
         title: "CANOPY FORMS",
         description: "SaaS forms management platform with form builder UI for static sites",
+        icons,
       };
 }
 
