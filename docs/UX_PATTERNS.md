@@ -646,7 +646,7 @@ Button   Send · [swatch]               ← text, color, width, alignment
 ```
 
 - **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, size, and case (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
-- Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
+- Each color control is the native swatch alone (`<input type="color">`, full width): every platform's picker takes hex, so a hex text box beside it only added clutter. A color that follows another while unset (title and label colors follow the text color) gets a ghost reset button, shown once a color is picked.
 
 **Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Text uses `variant="body"` (default) showing `CURATED_FONTS`; Title and Labels use `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
 

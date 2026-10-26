@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronUp, Save, Check } from "lucide-react";
+import { ChevronUp, Save, Check, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
 import { useFormContext, type StyleGroup } from "@/components/forms/form-context";
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
@@ -121,38 +123,51 @@ function Summary({ words, colors = [] }: { words: (string | false)[]; colors?: [
   );
 }
 
+/** A color is the native swatch alone: every platform's picker takes hex.
+    `resetLabel` offers going back to unset, for a color that follows another
+    (the title's and labels' follow the text color). */
 function ColorField({
   id,
   label,
   value,
   fallback,
-  placeholder = fallback,
+  resetLabel,
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
   fallback: string;
-  placeholder?: string;
+  resetLabel?: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-1">
         <input
+          id={id}
           type="color"
           value={toColorInputValue(value, fallback)}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5"
+          className="h-9 w-full cursor-pointer rounded-md border border-input bg-card p-0.5"
         />
-        <Input
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={() => onChange(value ? normalizeHex(value) : "")}
-          placeholder={placeholder}
-        />
+        {resetLabel && value && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={resetLabel}
+                onClick={() => onChange("")}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{resetLabel}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -536,7 +551,7 @@ export function StylingPanel() {
                 label="Color"
                 value={titleColor}
                 fallback={toColorInputValue(text, "#18181b")}
-                placeholder="Text color"
+                resetLabel="Use text color"
                 onChange={(v) => set("titleColor", v)}
               />
               <ChoiceField
@@ -631,7 +646,7 @@ export function StylingPanel() {
                 label="Color"
                 value={labelColor}
                 fallback={toColorInputValue(text, "#18181b")}
-                placeholder="Text color"
+                resetLabel="Use text color"
                 onChange={(v) => set("labelColor", v)}
               />
               <ChoiceField

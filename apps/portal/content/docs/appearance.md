@@ -10,7 +10,7 @@ The panel lists each part of the form you can style, in the order they appear on
 
 Hosted forms list Page, Form, Title, Text, Labels, Fields, and Button. Embedded forms have no Page row.
 
-All colors accept hex input. The color swatch next to each input opens the native picker.
+Click a color swatch to open your computer's color picker, where you can also type a hex value.
 
 ## Page (hosted forms only)
 
@@ -34,7 +34,7 @@ The form's title, in the header above the fields.
 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
 - **Weight**: Regular or Bold. Light is only offered when the selected font has a 300 weight.
-- **Color**: leave blank to use the text color.
+- **Color**: follows the text color until you pick one. The reset button beside the swatch makes it follow the text color again.
 - **Size**: Small, Medium, Large, or Extra Large.
 - **Case**: Normal or Uppercase.
 
