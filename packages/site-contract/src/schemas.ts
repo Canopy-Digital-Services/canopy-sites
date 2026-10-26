@@ -134,6 +134,39 @@ export const SocialSchema = z
   })
   .strict();
 
+/** A certification the business holds, as its certifying body records it. */
+export const CertificationSchema = z
+  .object({
+    id: Id,
+    name: text(120, "Certification", "The full name, as structured data and anyone spelling it out use it."),
+    shortName: text(40, "Short name", "Where space is tight, such as a line of designations.").optional(),
+    number: field(
+      plain(40).regex(/^[A-Za-z0-9-]+$/, "Letters, digits, and hyphens only, without a leading #"),
+      { kind: "text", label: "Certification number" },
+    ).optional(),
+    verifyOn: text(80, "Where to verify", "Where a buyer can look the certification up, such as Cal eProcure.").optional(),
+  })
+  .strict();
+
+const NaicsCode = field(z.string().regex(/^\d{6}$/, "Six digits, like 541511"), { kind: "text", label: "NAICS code" });
+
+export const CredentialsSchema = z
+  .object({
+    certifications: uniqueIds(CertificationSchema, 12).optional(),
+    naics: field(
+      z
+        .array(NaicsCode)
+        .max(20)
+        .superRefine((codes, ctx) => {
+          codes.forEach((c, i) => {
+            if (codes.indexOf(c) !== i) ctx.addIssue({ code: "custom", message: `${c} is listed twice`, path: [i] });
+          });
+        }),
+      { kind: "text", label: "NAICS codes", description: "Six digits each, in the order shown." },
+    ).optional(),
+  })
+  .strict();
+
 export const SiteSchema = z
   .object({
     name: text(80, "Business name"),
@@ -162,13 +195,14 @@ export const SiteSchema = z
       description: "The regular week, 24-hour times. One-off closures and holiday hours are announcements.",
     }),
     socials: uniqueIds(SocialSchema, 10),
+    credentials: CredentialsSchema.optional(),
   })
   .strict();
 
 // ---------------------------------------------------------------------------
 // pages: one entry per page; each section renders once, in one place
 
-/** One of a section's cards: a step, a reason, a value, a question and its answer. */
+/** One of a section's cards: a step, a reason, a value; a grouping that means nothing outside its section (PRD D48). */
 export const CardSchema = z
   .object({
     id: Id,
@@ -309,7 +343,19 @@ export const AnnouncementSchema = z
     path: ["endsOn"],
   });
 
+// ---------------------------------------------------------------------------
+// faqs: questions and answers, in the order a page shows them
+
+export const FaqSchema = z
+  .object({
+    id: Id,
+    question: text(200, "Question", "As a customer would ask it."),
+    answer: paragraph(1200, "Answer"),
+  })
+  .strict();
+
 export const PagesSchema = uniqueIds(PageSchema, 30);
+export const FaqsSchema = uniqueIds(FaqSchema, 40);
 export const ServicesSchema = uniqueIds(CategorySchema, 30);
 export const ReviewsSchema = uniqueIds(ReviewSchema, 30);
 export const GallerySchema = field(uniqueIds(GalleryItemSchema, 60), { kind: "image", label: "Gallery", description: "Page order is list order." });
@@ -317,6 +363,9 @@ export const AnnouncementsSchema = uniqueIds(AnnouncementSchema, 5);
 
 export type Site = z.infer<typeof SiteSchema>;
 export type Social = z.infer<typeof SocialSchema>;
+export type Credentials = z.infer<typeof CredentialsSchema>;
+export type Certification = z.infer<typeof CertificationSchema>;
+export type Faq = z.infer<typeof FaqSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Section = z.infer<typeof SectionSchema>;
 export type Card = z.infer<typeof CardSchema>;

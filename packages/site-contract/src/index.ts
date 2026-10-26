@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { collections, isCollectionName, type CollectionName, type RawContent } from "./collections.js";
 import { limitIssues } from "./guide.js";
-import type { Announcement, Category, GalleryItem, Page, Review, Service, Site } from "./schemas.js";
+import type { Announcement, Category, Faq, GalleryItem, Page, Review, Service, Site } from "./schemas.js";
 
 export * from "./schemas.js";
 export * from "./collections.js";
@@ -32,13 +32,14 @@ export { FORMAT_KEYS, limitIssues, parseSiteGuide, SiteGuideError, type SiteGuid
 export { migrateContent } from "./migrate.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.3.0";
+export const CONTRACT_VERSION = "0.4.0";
 
 export interface SiteContent {
   site?: Site;
   pages?: Page[];
   services?: Category[];
   reviews?: Review[];
+  faqs?: Faq[];
   gallery?: GalleryItem[];
   announcements?: Announcement[];
 }

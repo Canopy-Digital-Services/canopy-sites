@@ -130,6 +130,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D45 | **SEO is Canopy's** (titles, descriptions, structured data), never an owner edit. **Rich text is deferred**: copy stays plain text until a site needs inline links | M |
 | D46 | **canopyds.com is the first site on Sites that isn't the demo**, on Michael's account: Canopy runs its own site the way a client would. It moves from Next.js to Astro. D13 stands after a framework review on 2026-10-19: Next.js static export, Eleventy (the runner-up), Hugo, SvelteKit or Nuxt static, a portal-rendered theme engine, and a headless CMS were weighed against static output, JSON content under the contract, a canvas that edits plain HTML, and build-time images. The platform's tie to Astro is the builder's `dist/` output and `_astro/` fingerprint path; new code keeps it there. The canvas for client sites and the preview page (D47) are built with it (Epic 37) | M |
 | D47 | **No preview hostnames.** The Editor shows a content edit on the page as it's made, the way a browser's developer tools do, with no build and no other address. A background build follows, for Publish and for edits the templates must render (hours, adding, removing, or reordering entries, dated banners, photos), and the canvas swaps it in. A client site's canvas loads its styles, fonts, and scripts from the site's first production hostname, which serves them with CORS; the demo's come from `/demo`. **Preview is a page of its own, and the only place to publish**: every preview link (the Sites chrome, Quick Edit, MCP) opens the draft's changed page in a new tab, the site itself filling the window rather than framed inside the portal, with the preview bar along the bottom carrying Publish. It is built from the same document as the canvas, with no marks and the site's own navigation working. Nothing publishes unseen: Quick Edit, the Editor, and MCP have no Publish of their own (D3), and Publish names the build the page showed. The page sits behind the portal session, so signing in on a phone shows the draft full-page there; there is no preview address, token, or cookie. The operator's Build and publish stays, for a site's first build and the demo's reset. Holds while the builder's build and the production build of one commit name their assets alike; E36 makes that certain by serving production from the builder | M/R |
+| D48 | **Content is modeled by what it is, not where it shows.** A fact is a structured value wherever it renders, a thing the business has is a collection of its own, page copy is `pages` sections, and cards are only for groupings that mean nothing outside their section; the rule is section 4.4. The visual editor needs only an address and a label, but an owner's own assistant (E34), tool tabs (D18), structured data, and the shared template (C2) find content by its kind, so a page-builder block model would serve the canvas and fail the rest. Every new request to make something editable is placed by this rule, not by the most convenient shape (Michael, 2026-10-26) | M |
 
 ---
 
@@ -172,12 +173,22 @@ The local `canopy-sites` folder that held only these docs is retired; the docs l
 
 Zod schemas → TypeScript types (sites), JSON Schema (MCP tool inputs), validation (builder). One definition, three consumers. Versioned; `Site.contractVersion` pins what each repo implements.
 
+**Where content goes (D48).** Every request to make something editable takes the first of these that fits:
+
+1. **Facts** are true wherever they appear: contact details, hours, prices, credentials. Each is a structured value in `site` or a typed collection, format-checked, lockable (D9), and rendered by templates wherever it's needed, inside wording the template owns ("Certification #2046976"). A display string a template splits or pattern-matches back into values is never how a fact is stored.
+2. **Things the business has** outlive any one page: services, team, FAQs, reviews, events, case studies. Each gets a collection with fields of its own, so structured data, tool tabs, an owner's assistant, and the shared template find it by what it is.
+3. **Page copy** is a page's headings, paragraphs, quotes, and buttons: `pages` sections.
+4. **Cards** are groupings that mean nothing outside their section: a process's steps, a page's reasons or values, a homepage's doors.
+5. **Templates** hold design: layout, art, the labels on facts, and the words around them. A template rule keyed to a content id or phrase is only for art (a hand-drawn mark on a word), and the site's guide lists each one.
+
+A collection or field lands with the first site that renders it, named for what it is, and holds only what that site renders; another site's needs are a later minor version.
+
 Collections (v1), from what H&H and Toro Z actually contain:
 
 | Collection | Shape | Notes |
 |---|---|---|
-| `site` | singleton: name, tagline, contact (phone, email, address, geo), hours (structured **or** freeform string), socials | Contact fields **locked by default** |
-| `pages` | per page: slug, title, hero (image, headline, sub), sections (heading, paragraphs, quote, button, cards), meta | Drives the canvas's address bar (D43). A card is a step, reason, value, or question: eyebrow, title, text, button |
+| `site` | singleton: name, tagline, contact (phone, email, address, geo), hours (structured **or** freeform string), socials, credentials (certifications with full and short names, number, where to verify; NAICS codes) | Contact fields **locked by default**. Credentials from canopyds.com (contract 0.4.0) |
+| `pages` | per page: slug, title, hero (image, headline, sub), sections (heading, paragraphs, quote, button, cards), meta | Drives the canvas's address bar (D43). A card is a step, reason, or value (D48): eyebrow, title, text, button |
 | `services` | nested categories → sections → groups → items, with price labels | H&H `services.json` is the reference shape |
 | `schedule` | recurring weekly sessions joined to `classes` by slug | Toro Z `sessions`; distinct from events |
 | `events` | dated, one-off | |
@@ -185,6 +196,7 @@ Collections (v1), from what H&H and Toro Z actually contain:
 | `gallery` | images with alt, width, height, order | |
 | `team` | people, role, photo optional, bio | Toro Z `coaches` |
 | `reviews` | quote, attribution, source | H&H reviews section |
+| `faqs` | question, answer, in page order | canopyds.com's contact page (contract 0.4.0); a page's section gives them a heading |
 | `text` | long-form markdown pages | H&H policies, bios |
 | `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme`. Canopy edits it in the repo; the tool layer never exposes it (D29) |
 

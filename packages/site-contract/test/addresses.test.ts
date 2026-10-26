@@ -71,6 +71,59 @@ describe("cards", () => {
   });
 });
 
+describe("credentials", () => {
+  const withCredentials = async (credentials: unknown) => {
+    const c = await load();
+    c.site.credentials = credentials;
+    return c;
+  };
+  const issues = async (credentials: unknown) => validateContent(await withCredentials(credentials)).issues.map((i) => `${i.path}: ${i.message}`);
+
+  it("hold certifications by id and NAICS codes by position, each with a kind and label", async () => {
+    const c = await withCredentials({
+      certifications: [
+        { id: "dvbe", name: "Disabled Veteran Business Enterprise (DVBE)", shortName: "DVBE", number: "2046976", verifyOn: "Cal eProcure" },
+        { id: "small-business", name: "California Certified Small Business (SB)" },
+      ],
+      naics: ["541511", "541512"],
+    });
+    expect(validateContent(c).issues).toEqual([]);
+    expect(resolveAddress(c, "site/credentials/certifications/dvbe/number")).toMatchObject({ pointer: "/credentials/certifications/0/number", node: "2046976" });
+    expect(resolveAddress(c, "site/credentials/naics/1")).toMatchObject({ pointer: "/credentials/naics/1", node: "541512" });
+    expect(fieldInfo("site/credentials/certifications/any/shortName")).toMatchObject({ kind: "text", label: "Short name", maxLength: 40 });
+    expect(fieldInfo("site/credentials/certifications/any/number")).toMatchObject({ kind: "text", label: "Certification number" });
+    expect(fieldInfo("site/credentials/naics/0")).toMatchObject({ kind: "text", label: "NAICS code" });
+  });
+
+  it("refuse a NAICS code that isn't six digits or is listed twice, and a number with a #", async () => {
+    expect(await issues({ naics: ["54151", "541511", "541511"] })).toEqual([
+      "/credentials/naics/0: Six digits, like 541511",
+      "/credentials/naics/2: 541511 is listed twice",
+    ]);
+    expect(await issues({ certifications: [{ id: "dvbe", name: "DVBE", number: "#2046976" }] })).toEqual([
+      "/credentials/certifications/0/number: Letters, digits, and hyphens only, without a leading #",
+    ]);
+  });
+});
+
+describe("faqs", () => {
+  it("are their own collection, addressed by id", async () => {
+    const c = await load();
+    c.faqs = [
+      { id: "parking", question: "Is there parking?", answer: "Yes, behind the building." },
+      { id: "walk-ins", question: "Do you take walk-ins?", answer: "When a chair is free." },
+    ];
+    expect(validateContent(c).issues).toEqual([]);
+    expect(resolveAddress(c, "faqs/walk-ins/answer")).toMatchObject({ pointer: "/1/answer", node: "When a chair is free." });
+    expect(fieldInfo("faqs/any/question")).toMatchObject({ kind: "text", label: "Question", maxLength: 200 });
+    expect(fieldInfo("faqs/any/answer")).toMatchObject({ kind: "paragraph", label: "Answer" });
+    expect(jsonSchemaFor("faqs")).toMatchObject({ type: "array" });
+
+    c.faqs.push({ id: "parking", question: "Again?", answer: "Twice." });
+    expect(validateContent(c).issues.map((i) => i.message)).toContain('Duplicate id "parking"');
+  });
+});
+
 describe("resolveAddress", () => {
   it("turns ids and keys into a pointer, and paragraphs by position", async () => {
     const c = await load();
