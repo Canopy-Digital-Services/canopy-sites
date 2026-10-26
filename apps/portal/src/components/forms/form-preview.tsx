@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition, type EmbedFormInput } from "@/lib/embed-preview";
 import {
@@ -24,6 +24,11 @@ const BODY_TEXT_GROUPS =
   ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label";
 const OPTION_LIST = ".canopy-checkboxes";
 const CARD = "[data-preview-card]";
+
+/** The browser width the zoomed-out page view shows: a laptop screen. The
+    preview pane is narrower than the widest content width, so at its own
+    scale Medium and Wide would look the same. */
+const PAGE_VIEW_WIDTH = 1280;
 
 /** Which styling group each part of the preview picks. The first match wins;
     anywhere else is the page (hosted) or the form (embedded). */
@@ -128,6 +133,21 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       }
     : {};
 
+  // With the Page row open, a hosted form shows the whole page zoomed out to
+  // a laptop's width, so content width and the page around the card show
+  // true to size.
+  const pageView = styling && mode === "page" && styleGroup === "page";
+  const [pageZoom, setPageZoom] = useState(1);
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!pageView || !surface) return;
+    const fit = () => setPageZoom(surface.clientWidth / PAGE_VIEW_WIDTH);
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, [pageView]);
+
   const rowHover = styling ? (ctx?.styleHover ?? null) : null;
   const outlineTarget = !styling ? null : rowHover ? targets[rowHover] : hovered;
   const markTarget = styling ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
@@ -218,16 +238,21 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     <div
       {...surfaceProps}
       className={cn(
-        "relative flex-1 flex justify-center p-10",
-        page.verticalAlign === "center" ? "items-center" : "items-start",
+        "relative flex-1",
         !page.pageBackground && "bg-muted/40",
         styling && "preview-styling",
       )}
       style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
     >
-      <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
-        <div data-preview-card style={cardWrapperStyle(page)}>
-          {preview}
+      {/* Zoomed out, the page keeps the hosted page's own padding. */}
+      <div
+        className={cn("flex items-start justify-center", pageView ? "px-4 py-12" : "p-10")}
+        style={pageView ? { width: PAGE_VIEW_WIDTH, zoom: pageZoom } : undefined}
+      >
+        <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
+          <div data-preview-card style={cardWrapperStyle(page)}>
+            {preview}
+          </div>
         </div>
       </div>
       {outline}

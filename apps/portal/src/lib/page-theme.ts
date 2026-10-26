@@ -18,7 +18,6 @@ export type PageTheme = {
   cardEnabled: boolean;
   cardShadow: keyof typeof CARD_SHADOW_MAP;
   contentWidth: keyof typeof CONTENT_WIDTH_MAP;
-  verticalAlign: "top" | "center";
   /** Form-level background color, used as the card's background. */
   formBackground: string;
   /** Form-level border radius, used as the card's border radius. */
@@ -34,7 +33,6 @@ export function extractPageTheme(
     cardEnabled: true,
     cardShadow: "md",
     contentWidth: "md",
-    verticalAlign: "top",
     formBackground: "#ffffff",
     formRadius: 8,
   };
@@ -59,9 +57,6 @@ export function extractPageTheme(
       ? (themeObj.contentWidth as PageTheme["contentWidth"])
       : "md";
 
-  const verticalAlign =
-    themeObj.verticalAlign === "center" ? "center" : "top";
-
   const formBackground =
     typeof themeObj.background === "string" ? themeObj.background : "#ffffff";
 
@@ -69,7 +64,7 @@ export function extractPageTheme(
     typeof themeObj.radius === "number" ? themeObj.radius : 8;
 
   return {
-    pageBackground, cardEnabled, cardShadow, contentWidth, verticalAlign,
+    pageBackground, cardEnabled, cardShadow, contentWidth,
     formBackground, formRadius,
   };
 }

@@ -18,8 +18,7 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 
 - **Background**: the color behind the form card.
 - **Card**: No card, Flat (a card with no shadow), or a Light, Medium, or Heavy shadow.
-- **Width**: Narrow (480px), Medium (640px), or Wide (768px).
-- **Alignment**: Top (the form sits near the top of the page) or Center (it's centered vertically).
+- **Width**: Narrow (480px), Medium (640px), or Wide (768px). While the Page row is open, the preview zooms out to show the whole page at a laptop's width, so you can compare them.
 
 ## Form
 
@@ -92,7 +91,7 @@ The title and labels are styled separately: `titleWeight`, `titleColor`, and `ti
 - Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleTransform`, `labelFont`, `labelWeight`, `labelSize`, `labelTransform`
 - Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`
 - Layout: `radius`, `density`, `buttonWidth`, `buttonAlign`, `buttonText`
-- Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`, `verticalAlign`
+- Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`
 
 Colors accept hex (`#005F6A`), RGB (`rgb(0, 95, 106)`), HSL, or CSS variables.
 

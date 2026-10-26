@@ -32,7 +32,6 @@ type ThemeOverrides = {
   cardEnabled?: boolean;
   cardShadow?: "none" | "sm" | "md" | "lg";
   contentWidth?: "sm" | "md" | "lg";
-  verticalAlign?: "top" | "center";
   /** @deprecated Sets titleFont and labelFont where they are unset. The title
       and labels shared one heading style until 2026-10. */
   headingFont?: string;

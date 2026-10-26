@@ -623,7 +623,6 @@ pageBackground?: string                   // falls back to bg-muted/40
 cardEnabled?: boolean                     // default true
 cardShadow?: "none" | "sm" | "md" | "lg"  // default "md"
 contentWidth?: "sm" | "md" | "lg"         // 480/640/768px, default "md"
-verticalAlign?: "top" | "center"          // default "top"
 ```
 
 Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, used by `hosted-form-page.tsx` and `form-preview.tsx`.
@@ -650,6 +649,7 @@ Button   Send · [swatch]               ← text, color, width, alignment
 
 - **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, size, and case (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
 - **One setting per line** (`SettingRow`): label on the left, control on the right, as in a design tool's inspector. It halves a row's height and the labels scan as a column; stacked labels suit text the user types. Page uses it; the other rows are moving to it one at a time.
+- **The Page row zooms the preview out.** The pane is narrower than the Medium and Wide content widths, so at its own scale they rendered identically. While Page is open on a hosted form, `FormPreview` renders the page at `PAGE_VIEW_WIDTH` (1280px, a laptop) with CSS `zoom` fitting it to the pane, and thumbnail capture pauses until it zooms back in. Vertical centering was removed in the same pass (migration `20261026230000_remove_vertical_align`): every hosted form sits at the top.
 - **One decision, one control.** A checkbox that reveals a dependent control is folded into one choice: Page's Card is No card, Flat, or a shadow strength, written to `cardEnabled` and `cardShadow` together.
 - Each color control is the native swatch alone (`ColorSwatch`, `<input type="color">` at 40 by 28px): every platform's picker takes hex, so a hex text box beside it only added clutter, and a full-width swatch was a slab of color. Once a color is set, a ghost reset button appears before the swatch (so the swatch keeps its place) and returns it to unset: the default, or for title and labels, following the text color.
 
