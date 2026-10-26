@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  AlignCenterHorizontal,
-  AlignStartHorizontal,
   Check,
   ChevronUp,
   RotateCcw,
@@ -365,7 +363,6 @@ export function StylingPanel() {
   const cardEnabled = theme.cardEnabled !== false; // default true
   const cardShadow = str("cardShadow", "md");
   const contentWidth = str("contentWidth", "md");
-  const verticalAlign = str("verticalAlign", "top");
   // Form
   const background = str("background");
   const radius = str("radius");
@@ -403,7 +400,7 @@ export function StylingPanel() {
   // Build a new theme object from all current values, applying any single field change
   const buildTheme = (overrides: Record<string, string | boolean>) => {
     const merged: Record<string, string | boolean> = {
-      pageBackground, cardEnabled, cardShadow, contentWidth, verticalAlign,
+      pageBackground, cardEnabled, cardShadow, contentWidth,
       background, radius, density,
       titleFont, titleWeight, titleColor, titleSize, titleTransform,
       bodyFont, fontSize, text,
@@ -427,7 +424,6 @@ export function StylingPanel() {
     if (merged.cardEnabled === false) newTheme.cardEnabled = false;
     choice("cardShadow", "md");
     choice("contentWidth", "md");
-    choice("verticalAlign", "top");
 
     color("background");
     if (s("radius")) newTheme.radius = parseInt(s("radius"), 10);
@@ -507,7 +503,6 @@ export function StylingPanel() {
                   words={[
                     card !== "md" && (CARD_OPTIONS.find(([v]) => v === card)?.[1] ?? false),
                     contentWidth !== "md" && WIDTH_LABELS[contentWidth],
-                    verticalAlign === "center" && "Centered",
                   ]}
                   colors={[[pageBackground, "#f4f4f5"]]}
                 />
@@ -542,17 +537,6 @@ export function StylingPanel() {
                     value={contentWidth}
                     options={[["sm", "Narrow"], ["md", "Medium"], ["lg", "Wide"]]}
                     onChange={(v) => set("contentWidth", v)}
-                  />
-                </SettingRow>
-                <SettingRow id="verticalAlign" label="Alignment">
-                  <Segmented
-                    id="verticalAlign"
-                    value={verticalAlign}
-                    options={[
-                      ["top", "Top", <AlignStartHorizontal key="i" />],
-                      ["center", "Center", <AlignCenterHorizontal key="i" />],
-                    ]}
-                    onChange={(v) => set("verticalAlign", v)}
                   />
                 </SettingRow>
               </div>

@@ -110,7 +110,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName, styling, setStyling } = useFormContext();
+  const { state, saveStatus, updateName, styling, setStyling, styleGroup } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -129,7 +129,9 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
     formId: form.id,
     saveStatus,
     previewRef: previewContainerRef,
-    enabled: editing,
+    // Not while the preview shows the whole page zoomed out (Page row open);
+    // capture resumes, and recaptures, when it zooms back in.
+    enabled: editing && !(styling && styleGroup === "page"),
   });
 
   const handlePublishToggle = () => {
