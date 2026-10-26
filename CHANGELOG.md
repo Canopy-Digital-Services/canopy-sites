@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.8.0] - 2026-10-26
+
+### Added
+
+- A site's credentials (certifications and NAICS codes) and its FAQs are content of their own, so the Editor and Quick Edit change them like any other fact, and a malformed NAICS code or certification number is refused with the reason (content contract 0.4.0). canopyds.com's bid facts and FAQs use them (Epic 37)
+
 ## [5.7.1] - 2026-10-26
 
 ### Fixed
