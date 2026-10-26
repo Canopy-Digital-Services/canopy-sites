@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
+import { productMetadata } from "@/lib/product";
 import "./globals.css";
 
 // Self-hosted so builds never fetch from Google; files come from
@@ -23,10 +24,9 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-export const metadata: Metadata = {
-  title: "CANOPY FORMS",
-  description: "SaaS forms management platform with form builder UI for static sites",
-};
+// Default for pages outside the (auth), (admin), and operator layouts, which
+// pick the product themselves.
+export const metadata: Metadata = productMetadata("forms");
 
 export default function RootLayout({
   children,

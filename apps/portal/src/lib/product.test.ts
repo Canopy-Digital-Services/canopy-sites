@@ -3,9 +3,16 @@ import { requestHeaders, resetRequest } from "../../test/next-request";
 
 vi.mock("next/headers", () => import("../../test/next-request"));
 
-const { appUrlFor, homeHostRedirect, homePathFor, productNameFor, requireHomeHost, signupHostRedirect } = await import(
-  "./product"
-);
+const {
+  appUrlFor,
+  homeHostRedirect,
+  homePathFor,
+  productFor,
+  productMetadata,
+  productNameFor,
+  requireHomeHost,
+  signupHostRedirect,
+} = await import("./product");
 
 const sites = { sitesEnabled: true };
 const forms = { sitesEnabled: false };
@@ -38,6 +45,13 @@ describe("productNameFor", () => {
   it("names the product the account has", () => {
     expect(productNameFor(sites)).toBe("Canopy Sites");
     expect(productNameFor(forms)).toBe("Canopy Forms");
+  });
+});
+
+describe("productMetadata", () => {
+  it("titles the account's product when signed in", () => {
+    expect(productMetadata(productFor(sites)).title).toBe("CANOPY SITES");
+    expect(productMetadata(productFor(forms)).title).toBe("CANOPY FORMS");
   });
 });
 

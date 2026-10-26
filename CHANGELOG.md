@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.1] - 2026-10-26
+
+### Fixed
+
+- The sign-in and password reset pages on the Canopy Sites address say Canopy Sites in the browser tab instead of Canopy Forms, and so does every page a Canopy Sites account opens, Forms and Account included
+
 ## [5.7.0] - 2026-10-20
 
 ### Added

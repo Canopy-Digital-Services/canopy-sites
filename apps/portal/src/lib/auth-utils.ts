@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "crypto";
 import { getHomePath } from "@/lib/product";
+import { getAccountEntitlements, type AccountEntitlements } from "@/lib/data-access/entitlements";
 import { MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { getSession, type SessionContext } from "@/lib/session";
 
@@ -65,6 +67,14 @@ export async function getCurrentMembership() {
 export async function getCurrentAccountId(): Promise<string> {
   return (await getCurrentMembership()).accountId;
 }
+
+/**
+ * The signed-in account's entitlements, looked up once per request so a
+ * signed-in layout's `generateMetadata` and the layout itself share it.
+ */
+export const getCurrentEntitlements = cache(
+  async (): Promise<AccountEntitlements> => getAccountEntitlements(await getCurrentAccountId())
+);
 
 /**
  * Home for a signed-in user, or null when signed out or the account cannot

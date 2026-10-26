@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSignedInHomePath } from "@/lib/auth-utils";
-import { getHostProduct } from "@/lib/product";
+import { getHostProduct, productMetadata } from "@/lib/product";
 import { HostProductProvider } from "@/components/auth-brand-mark";
+
+// Signed out, so the hostname brands the title as it brands the logo.
+export async function generateMetadata(): Promise<Metadata> {
+  return productMetadata(await getHostProduct());
+}
 
 export default async function AuthLayout({
   children,
