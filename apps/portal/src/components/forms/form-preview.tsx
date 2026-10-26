@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition, type EmbedFormInput } from "@/lib/embed-preview";
 import {
@@ -25,10 +25,12 @@ const BODY_TEXT_GROUPS =
 const OPTION_LIST = ".canopy-checkboxes";
 const CARD = "[data-preview-card]";
 
-/** The browser width the zoomed-out page view shows: a laptop screen. The
-    preview pane is narrower than the widest content width, so at its own
-    scale Medium and Wide would look the same. */
-const PAGE_VIEW_WIDTH = 1280;
+/** A hosted form's content width in the preview, as a share of the pane:
+    Wide fills it edge to edge, and the others keep their proportion to Wide.
+    The pane is narrower than Medium and Wide, so at their real widths they
+    would render the same. */
+const previewWidth = (width: keyof typeof CONTENT_WIDTH_MAP) =>
+  `${(parseInt(CONTENT_WIDTH_MAP[width], 10) / parseInt(CONTENT_WIDTH_MAP.lg, 10)) * 100}%`;
 
 /** Which styling group each part of the preview picks. The first match wins;
     anywhere else is the page (hosted) or the form (embedded). */
@@ -133,21 +135,6 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       }
     : {};
 
-  // With the Page row open, a hosted form shows the whole page zoomed out to
-  // a laptop's width, so content width and the page around the card show
-  // true to size.
-  const pageView = styling && mode === "page" && styleGroup === "page";
-  const [pageZoom, setPageZoom] = useState(1);
-  useLayoutEffect(() => {
-    const surface = surfaceRef.current;
-    if (!pageView || !surface) return;
-    const fit = () => setPageZoom(surface.clientWidth / PAGE_VIEW_WIDTH);
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(surface);
-    return () => observer.disconnect();
-  }, [pageView]);
-
   const rowHover = styling ? (ctx?.styleHover ?? null) : null;
   const outlineTarget = !styling ? null : rowHover ? targets[rowHover] : hovered;
   const markTarget = styling ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
@@ -244,12 +231,8 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       )}
       style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
     >
-      {/* Zoomed out, the page keeps the hosted page's own padding. */}
-      <div
-        className={cn("flex items-start justify-center", pageView ? "px-4 py-12" : "p-10")}
-        style={pageView ? { width: PAGE_VIEW_WIDTH, zoom: pageZoom } : undefined}
-      >
-        <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
+      <div className="flex items-start justify-center py-10">
+        <div className="w-full" style={{ maxWidth: previewWidth(page.contentWidth) }}>
           <div data-preview-card style={cardWrapperStyle(page)}>
             {preview}
           </div>

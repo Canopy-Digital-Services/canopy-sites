@@ -18,7 +18,7 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 
 - **Background**: the color behind the form card.
 - **Card**: No card, Flat (a card with no shadow), or a Light, Medium, or Heavy shadow.
-- **Width**: Narrow (480px), Medium (640px), or Wide (768px). While the Page row is open, the preview zooms out to show the whole page at a laptop's width, so you can compare them.
+- **Width**: Narrow (480px), Medium (640px), or Wide (768px). The preview is narrower than a real page, so it shows Wide filling the preview and the others in proportion.
 
 ## Form
 
