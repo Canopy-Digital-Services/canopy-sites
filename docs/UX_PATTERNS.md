@@ -43,20 +43,21 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
 29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
-30. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
+30. A dropdown for a choice of two to four short options in a settings panel. Use `ToggleGroup`, which shows every option.
+31. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
 
 **Always:**
 
-31. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-32. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-33. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
-34. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-35. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-36. `GripVertical` visible in a sortable row, even when the whole row drags.
-37. `PageHeader` for page titles. Never an inline `<h1>`.
-38. `PageContent` on admin pages, except the form editor.
-39. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-40. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+32. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+33. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+34. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+35. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+36. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+37. `GripVertical` visible in a sortable row, even when the whole row drags.
+38. `PageHeader` for page titles. Never an inline `<h1>`.
+39. `PageContent` on admin pages, except the form editor.
+40. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+41. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -234,6 +235,8 @@ Passed, and why: "Domains allowed to embed and submit to this form. Localhost is
 | `ghost` | Tertiary and icon-only in toolbars |
 | `secondary` | Alternative secondary styling; also active filter state |
 | `link` | Text actions. With `text-destructive`, de-emphasizes a dangerous option beside a safer primary. |
+
+**Small exclusive choices** (two to four short options, such as a width or an alignment) use `ToggleGroup` ([toggle-group.tsx](src/components/ui/toggle-group.tsx)), not a `Select`: every option shows and takes one click. The pressed option gets the soft `secondary` highlight, like an active filter. Five or more options, or long labels, stay a `Select`.
 
 Sizes step on a tight scale: `sm` 28px, `default` 32px (deliberately compact), `lg` 40px, plus `icon-sm` 28px (**use for action icons in lists**), `icon` 32px, `icon-lg` 40px. Corners are the workhorse radius. Filled variants carry no shadow; `outline` carries `shadow-xs`. Ghost hover lands on `hover:bg-muted`.
 
@@ -646,7 +649,9 @@ Button   Send · [swatch]               ← text, color, width, alignment
 ```
 
 - **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, size, and case (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
-- Each color control is the native swatch alone (`<input type="color">`, full width): every platform's picker takes hex, so a hex text box beside it only added clutter. A color that follows another while unset (title and label colors follow the text color) gets a ghost reset button, shown once a color is picked.
+- **One setting per line** (`SettingRow`): label on the left, control on the right, as in a design tool's inspector. It halves a row's height and the labels scan as a column; stacked labels suit text the user types. Page uses it; the other rows are moving to it one at a time.
+- **One decision, one control.** A checkbox that reveals a dependent control is folded into one choice: Page's Card is No card, Flat, or a shadow strength, written to `cardEnabled` and `cardShadow` together.
+- Each color control is the native swatch alone (`ColorSwatch`, `<input type="color">` at 40 by 28px): every platform's picker takes hex, so a hex text box beside it only added clutter, and a full-width swatch was a slab of color. Once a color is set, a ghost reset button appears before the swatch (so the swatch keeps its place) and returns it to unset: the default, or for title and labels, following the text color.
 
 **Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Text uses `variant="body"` (default) showing `CURATED_FONTS`; Title and Labels use `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
 

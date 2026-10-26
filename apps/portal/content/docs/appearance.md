@@ -10,17 +10,16 @@ The panel lists each part of the form you can style, in the order they appear on
 
 Hosted forms list Page, Form, Title, Text, Labels, Fields, and Button. Embedded forms have no Page row.
 
-Click a color swatch to open your computer's color picker, where you can also type a hex value.
+Click a color swatch to open your computer's color picker, where you can also type a hex value. Once you've changed a color, the reset button beside it puts it back.
 
 ## Page (hosted forms only)
 
 Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 
 - **Background**: the color behind the form card.
-- **Wrap form in a card**: toggle the rounded surface around the form. Turn it off for a flat look.
-- **Card Shadow**: None, Light, Medium, Heavy. Only shown when the card is enabled.
-- **Content Width**: Narrow (480px), Medium (640px), or Wide (768px).
-- **Vertical Alignment**: Top (form sits near the top of the viewport) or Center (form is vertically centered).
+- **Card**: No card, Flat (a card with no shadow), or a Light, Medium, or Heavy shadow.
+- **Width**: Narrow (480px), Medium (640px), or Wide (768px).
+- **Alignment**: Top (the form sits near the top of the page) or Center (it's centered vertically).
 
 ## Form
 
