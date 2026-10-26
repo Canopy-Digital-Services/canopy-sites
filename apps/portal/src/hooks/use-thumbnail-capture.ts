@@ -36,6 +36,8 @@ export function useThumbnailCapture({
         pixelRatio: 2,
         cacheBust: true,
         skipFonts: true,
+        // The preview's marker boxes are editing chrome, not the form.
+        filter: (node) => !(node instanceof HTMLElement && "previewMark" in node.dataset),
       });
       const base64 = dataUrl.split(",")[1];
       if (base64) await updateFormThumbnail(formId, base64);

@@ -1,52 +1,67 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { buildMark, loadBrush, measure, seeded, shapes, type Mark } from "@/lib/marker-brush";
+import { buildMark, loadBrush, seeded, shapes, type Mark, type Metrics } from "@/lib/marker-brush";
 
 /** Marker body thickness, CSS px. */
 const PEN = 4;
 
+/** Target selector meaning the host itself, boxed inside its edges. */
+export const MARK_HOST = ":scope";
+
+/** How far inside its edges the host's own box is drawn, CSS px. */
+const HOST_INSET = 24;
+
+/** Between one box starting and the next, when a group draws by hand, ms. */
+const STAGGER = 70;
+
 type PreviewMarkProps = {
-  /** The element the embed renders into. Must be positioned, since the
-      mark is placed inside it. */
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  /** CSS selector, inside the container, of the element to box. Null clears the mark. */
+  /** The positioned element the marks are drawn in, over the targets. */
+  hostRef: React.RefObject<HTMLDivElement | null>;
+  /** CSS selector, inside the host, of every element to box (or MARK_HOST).
+      Null clears the marks. */
   target: string | null;
-  /** Changes whenever the embed re-renders, so the mark follows the new layout. */
+  /** Changes whenever the marks should be drawn by hand; any other redraw
+      paints them finished. Null never draws by hand. */
+  drawKey: string | null;
+  /** Changes whenever the embed re-renders, so the marks follow the new layout. */
   renderKey: number;
 };
 
+/** What the box shape reads of a target: its size and font size. */
+function boxMetrics(el: HTMLElement, w: number, h: number): Metrics {
+  const em = parseFloat(getComputedStyle(el).fontSize) || 16;
+  return { w, h, em, baseline: h, xHeight: em / 2 };
+}
+
 /**
- * Sketches a coral marker box round one element of the live preview: drawn by
- * hand when the target changes, redrawn finished when the preview re-renders
- * under it (the user typing).
+ * Sketches a coral marker box round every element of the live preview that
+ * matches `target`: drawn by hand when `drawKey` changes, painted finished on
+ * any other redraw (the preview re-rendering under typing) and whenever
+ * `drawKey` is null (hovering).
  *
- * The canvas lives inside the embed's container, on top of the form, as ink
- * on the page would: it may cross a field's edge or graze neighboring text.
- * The embed wipes the container on every render, so the canvas is made here,
- * outside React, and put back before each draw.
+ * The canvases sit on top of the form, as ink on the page would: a box may
+ * cross a field's edge or graze neighboring text. One canvas per box, made
+ * here outside React and appended to the host.
  */
-export function PreviewMark({ containerRef, target, renderKey }: PreviewMarkProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  /** The target as of the last render, and the one the canvas shows. */
+export function PreviewMark({ hostRef, target, drawKey, renderKey }: PreviewMarkProps) {
+  const canvases = useRef<HTMLCanvasElement[]>([]);
+  /** The target as of the last render. */
   const wanted = useRef<string | null>(null);
+  /** The drawKey last drawn by hand. */
   const drawn = useRef<string | null>(null);
-  /** Bumped by every draw, so an older one stops before touching the canvas. */
+  /** Bumped by every draw, so an older one stops before touching the canvases. */
   const run = useRef(0);
   // The hand-drawing animation, shared so a redraw can cut it short.
   const raf = useRef(0);
 
-  // Build the box round `selector` as laid out now. Null if it isn't rendered
-  // yet, or if draw `id` has been overtaken.
-  const build = async (selector: string, id: number): Promise<Mark | null> => {
-    const [brush] = await Promise.all([loadBrush(), document.fonts?.ready]);
-    const host = containerRef.current;
-    const el = host?.querySelector<HTMLElement>(selector);
-    if (id !== run.current || !host || !el) return null;
-    let canvas = canvasRef.current;
+  const canvasAt = (host: HTMLElement, i: number) => {
+    let canvas = canvases.current[i];
     if (!canvas) {
-      canvas = canvasRef.current = document.createElement("canvas");
+      canvas = canvases.current[i] = document.createElement("canvas");
       canvas.setAttribute("aria-hidden", "true");
+      // Left out of thumbnails (useThumbnailCapture).
+      canvas.dataset.previewMark = "";
       Object.assign(canvas.style, {
         position: "absolute",
         zIndex: "1",
@@ -57,68 +72,95 @@ export function PreviewMark({ containerRef, target, renderKey }: PreviewMarkProp
       });
     }
     if (canvas.parentElement !== host) host.appendChild(canvas);
+    return canvas;
+  };
+
+  // Build a box round each element matching `selector` as laid out now.
+  // Null if draw `id` has been overtaken.
+  const build = async (selector: string, id: number): Promise<Mark[] | null> => {
+    const [brush] = await Promise.all([loadBrush(), document.fonts?.ready]);
+    const host = hostRef.current;
+    if (id !== run.current || !host) return null;
+    const els =
+      selector === MARK_HOST ? [host] : Array.from(host.querySelectorAll<HTMLElement>(selector));
+    for (const extra of canvases.current.splice(els.length)) extra.remove();
     const hostBox = host.getBoundingClientRect();
-    const box = el.getBoundingClientRect();
-    const ox = box.left - hostBox.left, oy = box.top - hostBox.top;
-    const strokes = shapes
-      .box(measure(el), PEN, seeded(selector))
-      .map((st) => st.map(([x, y]) => [x + ox, y + oy] as [number, number]));
-    return buildMark(canvas, brush, strokes, {
-      pen: PEN,
-      color: getComputedStyle(canvas).color,
-      dpr: Math.min(window.devicePixelRatio || 1, 3),
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    return els.map((el, i) => {
+      const canvas = canvasAt(host, i);
+      let ox: number, oy: number, m: Metrics;
+      if (el === host) {
+        ox = oy = HOST_INSET;
+        m = boxMetrics(el, host.clientWidth - 2 * HOST_INSET, host.clientHeight - 2 * HOST_INSET);
+      } else {
+        const box = el.getBoundingClientRect();
+        ox = box.left - hostBox.left;
+        oy = box.top - hostBox.top;
+        m = boxMetrics(el, box.width, box.height);
+      }
+      const strokes = shapes
+        .box(m, PEN, seeded(`${selector}#${i}`))
+        .map((st) => st.map(([x, y]) => [x + ox, y + oy] as [number, number]));
+      return buildMark(canvas, brush, strokes, {
+        pen: PEN,
+        color: getComputedStyle(canvas).color,
+        dpr,
+      });
     });
   };
 
-  // Box `selector`: by hand when it is new, finished when it is already drawn
-  // and the preview re-rendered under it. A target the preview hasn't
-  // rendered yet (a field just added) is drawn on the render that adds it.
-  const draw = async (selector: string) => {
+  // Box every match of `selector`: by hand when `key` hasn't been drawn by
+  // hand yet, finished otherwise. A key whose targets aren't rendered yet (a
+  // field just added) is drawn by hand on the render that adds them.
+  const draw = async (selector: string, key: string | null) => {
     const id = ++run.current;
-    const mark = await build(selector, id);
-    const canvas = canvasRef.current;
-    if (!mark || !canvas || id !== run.current) return;
+    const marks = await build(selector, id);
+    if (!marks || id !== run.current) return;
     cancelAnimationFrame(raf.current);
-    canvas.style.opacity = "1";
+    canvases.current.forEach((c) => (c.style.opacity = "1"));
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const fresh = drawn.current !== selector;
-    drawn.current = selector;
-    if (!fresh || reduced) return mark.paint(1);
+    const fresh = key !== null && marks.length > 0 && drawn.current !== key;
+    if (fresh) drawn.current = key;
+    if (!fresh || reduced) return marks.forEach((mark) => mark.paint(1));
     const t0 = performance.now();
     const tick = (now: number) => {
-      const t = Math.min(1, (now - t0) / mark.duration);
-      mark.paint(t);
-      if (t < 1) raf.current = requestAnimationFrame(tick);
+      let done = true;
+      marks.forEach((mark, i) => {
+        const t = Math.min(1, Math.max(0, (now - t0 - i * STAGGER) / mark.duration));
+        mark.paint(t);
+        if (t < 1) done = false;
+      });
+      if (!done) raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
   };
 
-  // A new target draws in; no target lifts the mark off.
+  // A new target or key draws; no target lifts the marks off.
   useEffect(() => {
     wanted.current = target;
     if (target) {
-      void draw(target).catch(() => {});
+      void draw(target, drawKey).catch(() => {});
       return;
     }
     run.current++;
     drawn.current = null;
     cancelAnimationFrame(raf.current);
-    if (canvasRef.current) canvasRef.current.style.opacity = "0";
+    canvases.current.forEach((c) => (c.style.opacity = "0"));
     // draw reads refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, [target, drawKey]);
 
   // The preview re-rendered: follow the new layout.
   useEffect(() => {
-    if (wanted.current) void draw(wanted.current).catch(() => {});
+    if (wanted.current) void draw(wanted.current, drawKey).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderKey]);
 
-  // Unmounted: take the canvas out of the embed's container.
+  // Unmounted: take the canvases out of the host.
   useEffect(
     () => () => {
       cancelAnimationFrame(raf.current);
-      canvasRef.current?.remove();
+      canvases.current.forEach((c) => c.remove());
     },
     []
   );

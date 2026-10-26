@@ -1,12 +1,14 @@
 ---
-title: Appearance
+title: Styling
 description: Theme colors, typography, spacing, and hosted-page layout.
 icon: Palette
 ---
 
-The **Appearance** section of the Edit tab is where you style a form. All changes autosave and are reflected in the preview to the right. The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+Click **Change styling** at the top of the preview on the Edit tab to style a form. You can do this at any point, before or after adding fields. The styling panel takes the place of the editor until you click **Done**, which returns you to where you were.
 
-Appearance subsections depend on the form type:
+While styling, hover over the preview to see what each part of the form is styled by, then click it to open its settings. Clicking a field label, for example, boxes every label and the title, and opens **Headings**. All changes autosave and show in the preview as you make them.
+
+The styling groups depend on the form type:
 
 - **Hosted forms** see Page, Form, Headings, Body, Button.
 - **Embedded forms** see Form, Headings, Body, Button (no Page subsection).
