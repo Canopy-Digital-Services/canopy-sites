@@ -51,6 +51,19 @@ function toColorInputValue(value: string, fallback: string): string {
 const SIZE_LABELS: Record<string, string> = { sm: "S", md: "M", lg: "L", xl: "XL" };
 const WEIGHT_LABELS: Record<string, string> = { light: "Light", normal: "Regular", bold: "Bold" };
 const WIDTH_LABELS: Record<string, string> = { sm: "Narrow", md: "Medium", lg: "Wide" };
+/** Corner radius presets, px. The embed's default is Slight. */
+const CORNER_OPTIONS: [string, string][] = [
+  ["0", "Square"],
+  ["4", "Slight"],
+  ["8", "Round"],
+  ["16", "Rounder"],
+];
+const SPACING_OPTIONS: [string, string][] = [
+  ["compact", "Compact"],
+  ["normal", "Normal"],
+  ["comfortable", "Roomy"],
+];
+
 const CARD_OPTIONS: [string, string][] = [
   ["off", "No card"],
   ["none", "Flat"],
@@ -367,6 +380,7 @@ export function StylingPanel() {
   const background = str("background");
   const radius = str("radius");
   const density = str("density", "normal");
+  const corners = radius || "4";
   // Title
   const titleFont = str("titleFont", "inherit");
   const titleWeight = str("titleWeight", "normal") === "semibold" ? "bold" : str("titleWeight", "normal");
@@ -548,35 +562,41 @@ export function StylingPanel() {
             title="Form"
             summary={
               <Summary
-                words={[radius && `Radius ${radius}`, density !== "normal" && density[0].toUpperCase() + density.slice(1)]}
+                words={[
+                  corners !== "4" &&
+                    (CORNER_OPTIONS.find(([v]) => v === corners)?.[1] ?? `${corners}px corners`),
+                  density !== "normal" && (SPACING_OPTIONS.find(([v]) => v === density)?.[1] ?? false),
+                ]}
                 colors={[[background, "#ffffff"]]}
               />
             }
           >
-            <ColorField
-              id="background"
-              label="Background"
-              value={background}
-              fallback="#ffffff"
-              onChange={(v) => set("background", v)}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="radius">Corner Radius (px)</Label>
-                <Input
-                  id="radius"
-                  value={radius}
-                  onChange={(e) => set("radius", e.target.value)}
-                  placeholder="4"
+            <div className="space-y-2">
+              <SettingRow id="background" label="Background">
+                <ColorSwatch
+                  id="background"
+                  value={background}
+                  fallback="#ffffff"
+                  onChange={(v) => set("background", v)}
                 />
-              </div>
-              <ChoiceField
-                id="density"
-                label="Density"
-                value={density}
-                options={[["compact", "Compact"], ["normal", "Normal"], ["comfortable", "Comfortable"]]}
-                onChange={(v) => set("density", v)}
-              />
+              </SettingRow>
+              <SettingRow id="radius" label="Corners">
+                {/* A saved radius between presets presses none until changed. */}
+                <Segmented
+                  id="radius"
+                  value={corners}
+                  options={CORNER_OPTIONS}
+                  onChange={(v) => set("radius", v)}
+                />
+              </SettingRow>
+              <SettingRow id="density" label="Spacing">
+                <Segmented
+                  id="density"
+                  value={density}
+                  options={SPACING_OPTIONS}
+                  onChange={(v) => set("density", v)}
+                />
+              </SettingRow>
             </div>
           </StyleRow>
 
