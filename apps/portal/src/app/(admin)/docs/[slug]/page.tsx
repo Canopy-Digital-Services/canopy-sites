@@ -5,6 +5,8 @@ import { getAllDocs, getDocBySlug, getPrevNext } from "@/lib/docs";
 import { DocsBreadcrumb } from "@/components/docs/docs-breadcrumb";
 import { DocTOC } from "@/components/docs/doc-toc";
 import { PrevNext } from "@/components/docs/prev-next";
+import { getCurrentEntitlements } from "@/lib/auth-utils";
+import { productNameFor } from "@/lib/product";
 
 interface DocPageProps {
   params: Promise<{
@@ -17,7 +19,7 @@ export async function generateMetadata({ params }: DocPageProps) {
   const doc = await getDocBySlug(slug);
   if (!doc) return {};
   return {
-    title: `${doc.title} · Canopy Forms docs`,
+    title: `${doc.title} · ${productNameFor(await getCurrentEntitlements())} docs`,
     description: doc.description || undefined,
   };
 }

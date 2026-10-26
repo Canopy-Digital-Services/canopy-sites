@@ -53,6 +53,11 @@ describe("productMetadata", () => {
     expect(productMetadata(productFor(sites)).title).toBe("CANOPY SITES");
     expect(productMetadata(productFor(forms)).title).toBe("CANOPY FORMS");
   });
+
+  it("gives the account's product its favicon, so shared routes like /forms keep it", () => {
+    expect(productMetadata(productFor(sites)).icons).toMatchObject({ icon: { url: "/brand/sites-icon.svg" } });
+    expect(productMetadata(productFor(forms)).icons).toMatchObject({ icon: { url: "/brand/forms-icon.svg" } });
+  });
 });
 
 describe("home host (PRD D22)", () => {
