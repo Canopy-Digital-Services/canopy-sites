@@ -42,19 +42,20 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 26. A larger radius to make something friendlier. Radius is not a design lever here.
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
+29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's marker boxes, a pressed button) carry it.
 
 **Always:**
 
-29. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-30. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-31. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
-32. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-33. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-34. `GripVertical` visible in a sortable row, even when the whole row drags.
-35. `PageHeader` for page titles. Never an inline `<h1>`.
-36. `PageContent` on admin pages, except the form editor.
-37. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-38. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+30. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+31. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+32. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+33. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+34. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+35. `GripVertical` visible in a sortable row, even when the whole row drags.
+36. `PageHeader` for page titles. Never an inline `<h1>`.
+37. `PageContent` on admin pages, except the form editor.
+38. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+39. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -209,6 +210,8 @@ A title, a labelled button, and a visible control already say what a thing is an
 Failed the test and were removed: "Configure the field details and validation rules" (under an "Add Field" dialog), "Customize how your form looks" (under "Appearance"), "Your current plan and usage" (on a card that visibly shows both), "Click the button below to add your first field" (narrating a button), "Your form is ready" (under an "All set" title).
 
 Passed, and why: "Domains allowed to embed and submit to this form. Localhost is always allowed for development" (a constraint you can't infer), "You'll be signed out of all sessions shortly after" (a consequence), "Leave empty for no limit. Spam submissions are not counted" (non-obvious behavior of a blank value).
+
+**The same goes for labels, tags, and instructions.** The editor's preview once sat under a "Preview" caption, which named the pane the user was looking at; it gave way to the Change styling button. Styling mode was built without hover tags naming each part of the form and without a "Select a form element" line: the marker boxes show what a click will style. Add an instruction only once testing shows people get lost without it.
 
 **Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second survived alone.
 
@@ -499,7 +502,7 @@ Baseline-aligned, since it's a parenthetical to the title rather than a chip bes
 
 Layout: the Editor tab is a two-column split, Publish and Submissions are single full-width columns. On `lg+` both columns are a fixed `w-[600px]`, centered as a pair, with the editor column's content constrained to `max-w-[640px]` inside it; the preview column carries a symmetric side shadow and is `hidden lg:flex`. The editor column is `overflow-y-auto overflow-x-hidden`, and that horizontal clip is what contains the flow cards' sideways exit. Below `lg` the editor is full-width and the preview hides behind a fixed right-edge handle opening a `RightPanel` sheet. Preview mode is derived from `form.type` (`HOSTED` page, `EMBEDDED` embed), never user-toggled.
 
-`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Appearance, Submission Settings, then a terminal "All set" card linking to Publish. A stack of four cards presented its full complexity before the first decision.
+`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Submission Settings, then a terminal "All set" card linking to Publish. A stack of cards presented its full complexity before the first decision. Styling is not a step (see Styling mode below).
 
 - Section cards take `variant="flow" | "accordion"`. `flow` is always-expanded with no chevron; `accordion` is the original collapsible card. Both are maintained.
 - **Advancing is animation-driven**: Continue sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
@@ -507,9 +510,16 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 - Section cards are plain `Card`s with no accent bar (see rule 22).
 - On Header with both fields empty, the forward button reads **No Header** instead of Continue.
 
-**Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
+**Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields, and both in styling mode. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
 
-**Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. The canvas sits inside the embed container (`relative`), on top of the form: it is ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, it vanished behind inputs' backgrounds.
+**Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. It boxes every match of a selector, one canvas each, drawn by hand only when its `drawKey` changes. The canvases sit in the preview surface (the `relative` wrapper round the page or embed background), on top of the form: they are ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, a box vanished behind inputs' backgrounds; drawn inside the card, the card's `overflow: hidden` clipped it. Canvases carry `data-preview-mark`, and thumbnail capture filters them out.
+
+**Styling mode.** Styling isn't a flow step: it applies to the whole form at any time, so a step forced users through header and fields first. **Change styling** sits in the preview's top bar (and above the flow below `lg`) and toggles `styling` in `FormContext`. The styling panel (`AppearanceSection`) then replaces the flow in the editor column, which stays mounted under it so **Done** returns to the same step. In the preview:
+
+- Hovering a part of the form boxes everything one styling group changes, painted finished: every label and the title (Headings), every input (Form), the button, the body text, the card (Form), or the page around it (Page). Hover marks never draw by hand; a mark that animated on every pointer move read as noise.
+- Clicking picks that group: it opens in the panel (closing the others, `styleGroup` in `FormContext`) and its boxes draw by hand once. Opening a group in the panel marks it the same way.
+- Clicks never reach the form: capture handlers stop focus, typing, dropdowns, and links. `.preview-styling` in `globals.css` sets the pointer cursor, lets stand-in fields be picked, and hides the Submit button's preview tooltip.
+- The zones (selector to group) live in `ZONES` in [form-preview.tsx](src/components/forms/form-preview.tsx) and follow the embed's class names, so an embed markup change must keep them matching.
 
 Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 
@@ -619,12 +629,12 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 **Font loading**: the embed's `ensureFontsLoaded` and the picker both request `${baseUrl}/api/fonts?family=A&family=B`. The route (`src/lib/font-css.ts`) emits `@font-face` rules pointing at `/fonts/*` for families in `self-hosted-fonts.json`, and a single Google Fonts `@import` for any other family, so the full picker catalogue still works while catalog fonts never touch Google. `/fonts/*` carries `Access-Control-Allow-Origin: *` (next.config.ts) because embeds load them cross-origin. The legacy `fontUrl` theme field still loads its stored URL directly.
 
-### Appearance editor
+### Styling panel
 
-[appearance-section.tsx](src/components/forms/appearance-section.tsx) is an always-open Card with five collapsible SubSection peers, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
+[appearance-section.tsx](src/components/forms/appearance-section.tsx) is the styling-mode panel (section 10): an always-open "Styling" Card with five collapsible SubSection peers, one open at a time, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
 
 ```
-Appearance  (always-open Card)
+Styling  (always-open Card)
 ├─ Page        [swatch]                              ← hosted-only
 ├─ Form        [swatch] [swatch] [swatch] · radius 8 ← surfaces, borders, spacing
 ├─ Headings    Montserrat · Semibold · [swatch]      ← title + label shared style
@@ -633,7 +643,7 @@ Appearance  (always-open Card)
 ```
 
 - **Page**: page background (hosted only). **Form**: background, field background, field border, radius, density, button width and alignment. **Headings**: font, weight, color, label transform, title size. **Body**: font, base size, text color. **Button**: text and color.
-- **SubSection titles are neutral `--foreground`, not `text-primary`.** As teal they made children look more important than the "Appearance" card title above them. Hierarchy inside a card comes from size alone: 22px card title, 16px SubSection titles, same color.
+- **SubSection titles are neutral `--foreground`, not `text-primary`.** As teal they made children look more important than the "Styling" card title above them. Hierarchy inside a card comes from size alone: 22px card title, 16px SubSection titles, same color.
 - The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform is label-specific; title size is title-specific, since labels always render at body size.
 - Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
 

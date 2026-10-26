@@ -355,6 +355,24 @@
   opacity: 0.5;
 }
 
+/* Styling mode: the preview picks what to style, so clicks never reach the
+ * form. Stand-in fields can be picked too, and the Submit button's
+ * preview-only tooltip stays out of the way. */
+.preview-styling,
+.preview-styling * {
+  cursor: pointer !important;
+  user-select: none;
+}
+
+.preview-styling .canopy-root .preview-placeholder-field {
+  pointer-events: auto;
+}
+
+.preview-styling .canopy-root .canopy-submit-preview::before,
+.preview-styling .canopy-root .canopy-submit-preview::after {
+  display: none;
+}
+
 /* Keep the animations (the flow advances on animationend) but make them
  * effectively instant for users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {

@@ -54,7 +54,7 @@ Quick fixes for the most common problems. If none of these match, check the brow
 ## Styling clashes with my site
 
 - The embed uses scoped CSS (`.canopy-*` classes) to avoid touching your site's styles. If something looks off, check your own stylesheet for broad selectors (for example, `input { … }`, `button { … }`) that might be overriding embed styles.
-- Use **Appearance** on the Edit tab to change embed styling. For one-off overrides, add a `data-theme` attribute to the embed container (see [Appearance](./appearance.md)).
+- Use **Change styling** on the Edit tab to change embed styling. For one-off overrides, add a `data-theme` attribute to the embed container (see [Styling](./appearance.md)).
 
 ## The form submits, but values look wrong in the dashboard
 

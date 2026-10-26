@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -19,7 +19,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronRight, Save, Check } from "lucide-react";
 import { FontPicker } from "@/components/ui/font-picker";
-import { useFormContext } from "@/components/forms/form-context";
+import { useFormContext, type StyleGroup } from "@/components/forms/form-context";
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
 
 /** Add '#' prefix if missing from a hex color string. */
@@ -56,24 +56,32 @@ function ColorDot({ color, fallback }: { color: string; fallback: string }) {
 }
 
 function SubSection({
+  group,
   title,
-  open,
-  onOpenChange,
   chips,
   children,
   className,
 }: {
+  group: StyleGroup;
   title: string;
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
   chips?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
+  const { styleGroup, setStyleGroup } = useFormContext();
+  const open = styleGroup === group;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Opened from the preview, the group may be out of view in the column.
+  useEffect(() => {
+    if (open) triggerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [open]);
+
   return (
-    <Collapsible open={open} onOpenChange={onOpenChange}>
+    <Collapsible open={open} onOpenChange={(v) => setStyleGroup(v ? group : null)}>
       <CollapsibleTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           className={`flex w-full items-center justify-between py-2 text-left border-t ${className ?? ""}`}
         >
@@ -97,16 +105,8 @@ function SubSection({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-type AppearanceSectionProps = {
-  /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
-  variant?: "accordion" | "flow";
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-};
-
-export function AppearanceSection({ variant = "accordion", open = false, onOpenChange }: AppearanceSectionProps) {
+export function AppearanceSection() {
   const { state, saveStatus, updateTheme } = useFormContext();
-  const isFlow = variant === "flow";
   const isHosted = state.type === "HOSTED";
 
   const theme = state.defaultTheme ?? {};
@@ -192,13 +192,6 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
     updateTheme(buildTheme({ [key]: value }));
   };
 
-  // Subsection open states
-  const [pageOpen, setPageOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [headingsOpen, setHeadingsOpen] = useState(false);
-  const [bodyOpen, setBodyOpen] = useState(false);
-  const [buttonOpen, setButtonOpen] = useState(false);
-
   // ─── Summary chips for collapsed subsections ───────────────────────────────
 
   const widthLabels: Record<string, string> = { sm: "narrow", md: "medium", lg: "wide" };
@@ -254,7 +247,7 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
 
   const headerInner = (
     <div className="flex items-center justify-between">
-      <CardTitle>Appearance</CardTitle>
+      <CardTitle>Styling</CardTitle>
       <div className="flex items-center gap-2">
         {saveStatus === "saving" && (
           <span className="text-sm text-muted-foreground flex items-center gap-2">
@@ -268,12 +261,6 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
             Saved
           </span>
         )}
-        {!isFlow &&
-          (open ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          ))}
       </div>
     </div>
   );
@@ -284,9 +271,8 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
         {/* ── Page ──────────────────────────────────────────────────── */}
         {isHosted && (
         <SubSection
+          group="page"
           title="Page"
-          open={pageOpen}
-          onOpenChange={setPageOpen}
           chips={pageChips}
           className="border-t-0"
         >
@@ -362,9 +348,8 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
 
         {/* ── Form ──────────────────────────────────────────────────── */}
         <SubSection
+          group="form"
           title="Form"
-          open={formOpen}
-          onOpenChange={setFormOpen}
           chips={formChips}
           className={isHosted ? undefined : "border-t-0"}
         >
@@ -479,9 +464,8 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
 
         {/* ── Headings ─────────────────────────────────────────────── */}
         <SubSection
+          group="headings"
           title="Headings"
-          open={headingsOpen}
-          onOpenChange={setHeadingsOpen}
           chips={headingsChips}
         >
           <p className="text-xs text-muted-foreground">
@@ -577,9 +561,8 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
 
         {/* ── Body ─────────────────────────────────────────────────── */}
         <SubSection
+          group="body"
           title="Body"
-          open={bodyOpen}
-          onOpenChange={setBodyOpen}
           chips={bodyChips}
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -627,9 +610,8 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
 
         {/* ── Button ───────────────────────────────────────────────── */}
         <SubSection
+          group="button"
           title="Button"
-          open={buttonOpen}
-          onOpenChange={setButtonOpen}
           chips={buttonChips}
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -666,23 +648,10 @@ export function AppearanceSection({ variant = "accordion", open = false, onOpenC
       </CardContent>
   );
 
-  if (isFlow) {
-    return (
-      <Card>
-        <CardHeader>{headerInner}</CardHeader>
-        {body}
-      </Card>
-    );
-  }
-
   return (
     <Card>
-      <Collapsible open={open} onOpenChange={onOpenChange}>
-        <CardHeader className="cursor-pointer" onClick={() => onOpenChange?.(!open)}>
-          <CollapsibleTrigger asChild>{headerInner}</CollapsibleTrigger>
-        </CardHeader>
-        <CollapsibleContent>{body}</CollapsibleContent>
-      </Collapsible>
+      <CardHeader>{headerInner}</CardHeader>
+      {body}
     </Card>
   );
 }
