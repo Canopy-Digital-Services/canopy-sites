@@ -24,6 +24,7 @@ import { ChevronUp, Save, Check } from "lucide-react";
 import { FontPicker } from "@/components/ui/font-picker";
 import { useFormContext, type StyleGroup } from "@/components/forms/form-context";
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
+import { buildMark, loadBrush, measure, seeded, shapes } from "@/lib/marker-brush";
 import { cn } from "@/lib/utils";
 
 /** Add '#' prefix if missing from a hex color string. */
@@ -44,6 +45,57 @@ const SIZE_LABELS: Record<string, string> = { sm: "S", md: "M", lg: "L", xl: "XL
 const WEIGHT_LABELS: Record<string, string> = { light: "Light", normal: "Regular", bold: "Bold" };
 const WIDTH_LABELS: Record<string, string> = { sm: "Narrow", md: "Medium", lg: "Wide" };
 const SHADOW_LABELS: Record<string, string> = { none: "No shadow", sm: "Light shadow", lg: "Heavy shadow" };
+
+/** Marker body thickness for a row title's underline, CSS px. */
+const UNDERLINE_PEN = 3;
+
+/** Underlines `ref`'s text with the coral marker, drawn by hand, while `show`
+    is on. The element must be positioned: the canvas sits inside it. */
+function useMarkerUnderline(ref: React.RefObject<HTMLElement | null>, show: boolean) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !show) return;
+    let cancelled = false;
+    let raf = 0;
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-hidden", "true");
+    Object.assign(canvas.style, {
+      position: "absolute",
+      maxWidth: "none",
+      pointerEvents: "none",
+      color: "var(--canopy-coral)",
+    });
+    (async () => {
+      // Measure after web fonts load: fallbacks sit differently.
+      const [brush] = await Promise.all([loadBrush(), document.fonts?.ready]);
+      if (cancelled) return;
+      el.appendChild(canvas);
+      const mark = buildMark(
+        canvas,
+        brush,
+        shapes.underline(measure(el), UNDERLINE_PEN, seeded(el.textContent ?? "")),
+        {
+          pen: UNDERLINE_PEN,
+          color: getComputedStyle(canvas).color,
+          dpr: Math.min(window.devicePixelRatio || 1, 3),
+        }
+      );
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return mark.paint(1);
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - t0) / mark.duration);
+        mark.paint(t);
+        if (t < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      canvas.remove();
+    };
+  }, [ref, show]);
+}
 
 // ─── Helper UI components ────────────────────────────────────────────────────
 
@@ -168,6 +220,8 @@ function StyleRow({
   const { styleGroup, setStyleGroup, setStyleHover } = useFormContext();
   const open = styleGroup === group;
   const rowRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLButtonElement>(null);
+  useMarkerUnderline(titleRef, open);
 
   // Opened from the preview, the row may be out of view in the column.
   useEffect(() => {
@@ -193,8 +247,9 @@ function StyleRow({
       >
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <button
+            ref={titleRef}
             type="button"
-            className="shrink-0 text-left font-heading font-semibold text-base"
+            className="relative shrink-0 text-left font-heading font-semibold text-base"
             aria-expanded={open}
           >
             {title}
@@ -204,8 +259,9 @@ function StyleRow({
         {open && <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground mr-1.5" aria-hidden />}
       </div>
       <CollapsibleContent className="field-row-body">
-        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. */}
-        <div className="-mx-1 px-1">
+        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
+            controls stand off the open row's tint. */}
+        <div className="-mx-1 px-1 [&_input]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
           <div className="space-y-4 px-3 pb-4 pt-2">{children}</div>
         </div>
       </CollapsibleContent>
