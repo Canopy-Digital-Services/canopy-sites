@@ -63,9 +63,9 @@ Identify which layer a change touches before starting.
 
 ### Products and chrome
 
-- **The account's products decide the signed-in UI, never the hostname.** `getAccountEntitlements(accountId).sitesEnabled` picks the chrome in `src/app/(admin)/layout.tsx`: Sites accounts get the Sites wordmark and `SitesNav` (Quick Edit · Editor · Forms · Stats) ; every other account gets the Forms chrome. `sitesEnabled` is the plan's column, true only on `SITES`.
+- **The account's products decide the signed-in UI, never the hostname.** `productFor(entitlements)` (`src/lib/product.ts`, from `sitesEnabled`) picks the chrome in `src/app/(admin)/layout.tsx` and the browser title (`productMetadata`) there and in the operator layout: Sites accounts get the Sites wordmark, `SitesNav` (Quick Edit · Editor · Forms · Stats), and the Sites title on every page, `/forms` included; every other account gets the Forms chrome and title. `sitesEnabled` is the plan's column, true only on `SITES`.
 - Sites-only routes (`/quick-edit`, `/editor`, `/stats`) live in `src/app/(admin)/(sites)/`, whose layout 404s for accounts without Sites.
-- Apart from routing an account to its home host, the hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider`. It is branding, not access control.
+- Apart from routing an account to its home host, the hostname only brands logged-out pages (login, signup, password reset): `getHostProduct()` in `src/lib/product.ts` maps `sites.*` and `sites-*.*` to Sites, and the auth layout passes it to `AuthBrandMark` through `HostProductProvider` and to `productMetadata` for the title. It is branding, not access control.
 
 ### Validation
 

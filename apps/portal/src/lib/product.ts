@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -35,6 +36,25 @@ export function appUrlFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnab
 /** Product name for copy addressed to an account, such as email subjects and footers. */
 export function productNameFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnabled">): string {
   return sitesEnabled ? "Canopy Sites" : "Canopy Forms";
+}
+
+/** The product a signed-in account's pages carry (chrome and title): its products decide, never the hostname. */
+export function productFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnabled">): Product {
+  return sitesEnabled ? "sites" : "forms";
+}
+
+/**
+ * Browser title and description for a product. Signed-out pages pass the
+ * host's product (`getHostProduct`), signed-in layouts the account's
+ * (`productFor`).
+ */
+export function productMetadata(product: Product): Metadata {
+  return product === "sites"
+    ? { title: "CANOPY SITES", description: "Canopy Sites portal" }
+    : {
+        title: "CANOPY FORMS",
+        description: "SaaS forms management platform with form builder UI for static sites",
+      };
 }
 
 /** The host the browser asked for (X-Forwarded-Host behind the proxy), lowercased, with any port. */

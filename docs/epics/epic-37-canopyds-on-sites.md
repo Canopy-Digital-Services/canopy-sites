@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; 4.7 (headings and cards on the canvas) built and checked locally, waiting on its release; then Michael's first edit and publish for the last acceptance items
+**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; Michael's first edit published and deployed (2026-10-20); 4.7 (headings and cards on the canvas) released in v5.7.0 and live on www (2026-10-21 UTC); the remaining acceptance items are checks in Michael's signed-in browser
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -206,7 +206,8 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - Every heading and headline renders from content and is marked: the hero headlines, section headings, and the headings that were typed into templates ("How it works", "See it live", "Bid facts", "Why work with Canopy", "What we do", "Software as a service").
 - The card lists move into content as section cards and are marked: the homepage doors, the /websites steps and its six reasons, the /government reasons, the /about values, and the FAQs (the FAQPage structured data renders from the same cards). The team and the case studies stay in templates: each pairs its text with a portrait or a live site, which cards don't hold.
-- Eyebrows and button labels stay unmarked; the doors' eyebrows and buttons move into content with their cards.
+- The /government bid facts follow as the `bid-facts` section's cards (Michael, 2026-10-21): the certifications' designations and their note (certification number, where to verify it) and the NAICS codes are marked; the capability statement card is an eyebrow and its download button. The cert number keeps its monospace and the codes their spacing wherever an edit leaves them; the site guide tells the owner when an edit leaves the capability statement PDF behind.
+- Eyebrows and button labels stay unmarked; the doors' and bid facts' eyebrows and buttons move into content with their cards.
 - A hand-drawn mark on a word of a marked value renders through `src/components/Marked.astro`: the mark goes wherever its word is, and an edit that drops the word drops the mark. `SITE_GUIDE.md` lists the words.
 - `SITE_GUIDE.md` limits for every new field, measured at 1440 and 390 px: a heading may run one line longer than today's; a card one line longer than the longest card in its list, with one limit per list.
 - On the canvas, every FAQ answer is open and stays open, so a question selects rather than toggles.
@@ -215,14 +216,14 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - [x] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
 - [x] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
-- [ ] With 4.7, the site validates against contract 0.3.0 on www and on the builder, and its pages read and look as before
+- [x] With 4.7, the site validates against contract 0.3.0 on www and on the builder, and its pages read and look as before
 - [x] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
 - [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and facts, prose, headings, and card text marked, nothing else. An in-place edit shows as typed and lands in the draft
 - [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page filling the window and the preview bar at the bottom. The site's navigation moves between pages there, and the build swaps in place
 - [ ] Publish appears only on the preview bar: Quick Edit, the Sites chrome, and the Editor show Preview instead
 - [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
-- [ ] Publish on the preview bar commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
+- [x] Publish on the preview bar commits to `canopy-website`'s `main` as Michael, the Coolify app deploys it, and www shows the change
 - [ ] On the demo, Preview opens the same page, `/demo/__canopy/preview` is gone, and the Editor, Quick Edit, and `/demo` otherwise work as before
 - [x] Sites Onboarding Runbook exists in Nextcloud, linked from the landing page, both checklists, and `CLAUDE.md`, and every step this epic took is in it
 - [ ] `npm run build`, `lint`, `test` pass; every guard's test fails with the guard removed
@@ -252,6 +253,10 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - **Headings and card content are editable in the visual editor** (4.7).
 
+### Michael (2026-10-21)
+
+- **Every fact on the /government bid-fact cards is editable** (4.7), so he can change them himself.
+
 ### Agent calls inside scope
 
 - **One epic, sections 4.1 to 4.5** planned at the start, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others. 4.7 joined at Michael's request on 2026-10-20.
@@ -261,6 +266,7 @@ Michael asked, editing the site, for headings and card content to be editable in
 - **Content moved at the port: facts, and the prose sections that fit `pages`.** Card lists followed with contract 0.3.0 (4.7); the other structured sections wait for contract collections.
 - **One card shape on sections (4.7)**, not a collection per kind (steps, values, FAQs): every card list on the site is a title and text with an optional eyebrow and button, and a section already gives each list its place on a page.
 - **A hand-drawn mark follows its word (4.7)** rather than keeping marked headings in templates, so every heading on the site is editable.
+- **The bid facts are card text, not structured facts (4.7).** They appear on /government only and no second site needs credentials or NAICS codes, so a contract collection for them waits for one.
 - **Eyebrows and button labels stay unmarked (4.7).** Michael asked for headings and card content; the other chrome stays Canopy's until he asks.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
 - **Preview opens the page a change touches**, with the home page for changes outside `pages`.
@@ -311,3 +317,11 @@ Not started.
   - Every marked element's text equals its content value (115 fields); the visible text of all six pages matches `main`; screenshots at 1440 and 390 px differ only by anti-aliasing.
   - The site's content fits all 62 guide limits.
   - On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017, the branch through a local remote): the canvas marks the headings and cards with their labels and limits; in-place edits of a heading, a card title, and a card text saved and built; the preview showed them with the dial still on "together". FAQ answers stay open on the canvas; a door's title selects instead of following its link.
+- 2026-10-20: Michael's first edit: four homepage paragraphs edited on the canvas and published from the preview bar, committed to `main` as `fe3e4ff` authored by him, and deployed by the webhook two seconds later.
+- 2026-10-21 (UTC): 4.7 released. `site-contract-v0.3.0` published (the asset matches the packed tarball byte for byte); v5.7.0 (PR #37, merge `6dc0e27`) deployed the portal and the builder, whose contract reports 0.3.0. `feat/editable-headings`, rebased onto Michael's edit with his four values kept, fast-forwarded `main` to `01fdaa0`, which deployed healthy. Verified on production:
+  - www: every page 200, a missing path 404; each of the 115 marked elements holds exactly its content value; the text matches the branch build; the `_astro/` names match a clean build's.
+  - The builder reads `01fdaa0` with contract 0.3.0 and no issues; no draft is pending.
+  - The deployed portal carries the card field labels; signed out, `/canvas` 404s and `/preview` sends to sign-in.
+  - Not checked: the Editor signed in as Michael (no session I can use). The operator list shows the site's contract as 0.2.0 until the next operator Build and publish sets it.
+- 2026-10-21: Michael made the bid facts editable (4.7). `canopy-website@97e079e`, on top of three more edits of his published from Sites (the /government headline, an /about heading and paragraph). Pixel for pixel the same at 1440 and 390 px; deployed healthy; on www all 118 marked elements hold their content values; the production builder reads the commit with no issues.
+
