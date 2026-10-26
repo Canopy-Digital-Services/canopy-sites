@@ -19,8 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronUp, Save, Check, RotateCcw } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  AlignCenterHorizontal,
+  AlignStartHorizontal,
+  Check,
+  ChevronUp,
+  RotateCcw,
+  Save,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
@@ -46,7 +53,13 @@ function toColorInputValue(value: string, fallback: string): string {
 const SIZE_LABELS: Record<string, string> = { sm: "S", md: "M", lg: "L", xl: "XL" };
 const WEIGHT_LABELS: Record<string, string> = { light: "Light", normal: "Regular", bold: "Bold" };
 const WIDTH_LABELS: Record<string, string> = { sm: "Narrow", md: "Medium", lg: "Wide" };
-const SHADOW_LABELS: Record<string, string> = { none: "No shadow", sm: "Light shadow", lg: "Heavy shadow" };
+const CARD_OPTIONS: [string, string][] = [
+  ["off", "No card"],
+  ["none", "Flat"],
+  ["sm", "Light shadow"],
+  ["md", "Medium shadow"],
+  ["lg", "Heavy shadow"],
+];
 
 /** Marker body thickness for a row title's underline, CSS px. */
 const UNDERLINE_PEN = 3;
@@ -124,52 +137,106 @@ function Summary({ words, colors = [] }: { words: (string | false)[]; colors?: [
 }
 
 /** A color is the native swatch alone: every platform's picker takes hex.
-    `resetLabel` offers going back to unset, for a color that follows another
-    (the title's and labels' follow the text color). */
-function ColorField({
+    Once a color is set, a reset button returns it to unset: the default, or
+    for the title and labels, following the text color (`resetLabel`). */
+function ColorSwatch({
   id,
-  label,
   value,
   fallback,
-  resetLabel,
+  resetLabel = "Reset to default",
   onChange,
 }: {
   id: string;
-  label: string;
   value: string;
   fallback: string;
   resetLabel?: string;
   onChange: (value: string) => void;
 }) {
+  // The reset sits before the swatch, so the swatch keeps its place at the
+  // row's right edge whether or not the reset shows.
+  return (
+    <div className="flex items-center gap-1">
+      {value && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={resetLabel}
+              onClick={() => onChange("")}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{resetLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      <input
+        id={id}
+        type="color"
+        value={toColorInputValue(value, fallback)}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+      />
+    </div>
+  );
+}
+
+/** A color under its label, for rows not yet in the one-line layout. */
+function ColorField({
+  id,
+  label,
+  ...swatch
+}: React.ComponentProps<typeof ColorSwatch> & { label: string }) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-1">
-        <input
-          id={id}
-          type="color"
-          value={toColorInputValue(value, fallback)}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full cursor-pointer rounded-md border border-input bg-card p-0.5"
-        />
-        {resetLabel && value && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={resetLabel}
-                onClick={() => onChange("")}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{resetLabel}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
+      <ColorSwatch id={id} {...swatch} />
     </div>
+  );
+}
+
+/** One setting on one line: its label on the left, its control on the right. */
+function SettingRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-9 items-center justify-between gap-4">
+      <Label id={`${id}-label`} htmlFor={id}>
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+/** A small exclusive choice as a row of buttons. */
+function Segmented({
+  id,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  options: [string, string, React.ReactNode?][];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <ToggleGroup
+      id={id}
+      type="single"
+      value={value}
+      // Pressing the pressed button would clear the choice; a setting always has one.
+      onValueChange={(v) => v && onChange(v)}
+      aria-labelledby={`${id}-label`}
+    >
+      {options.map(([v, text, icon]) => (
+        <ToggleGroupItem key={v} value={v}>
+          {icon}
+          {text}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }
 
@@ -396,6 +463,14 @@ export function StylingPanel() {
   const set = (key: string, value: string | boolean) => {
     updateTheme(buildTheme({ [key]: value }));
   };
+  const setMany = (values: Record<string, string | boolean>) => {
+    updateTheme(buildTheme(values));
+  };
+
+  // One Card choice covers both tokens: "off" is no card, the rest its shadow.
+  const card = cardEnabled ? cardShadow : "off";
+  const setCard = (v: string) =>
+    setMany(v === "off" ? { cardEnabled: false } : { cardEnabled: true, cardShadow: v });
 
   const fontWord = (font: string) => font !== "inherit" && font;
   const sizeWord = (size: string) => size !== "md" && `Size ${SIZE_LABELS[size] ?? size}`;
@@ -430,7 +505,7 @@ export function StylingPanel() {
               summary={
                 <Summary
                   words={[
-                    !cardEnabled ? "No card" : cardShadow !== "md" && SHADOW_LABELS[cardShadow],
+                    card !== "md" && (CARD_OPTIONS.find(([v]) => v === card)?.[1] ?? false),
                     contentWidth !== "md" && WIDTH_LABELS[contentWidth],
                     verticalAlign === "center" && "Centered",
                   ]}
@@ -438,45 +513,48 @@ export function StylingPanel() {
                 />
               }
             >
-              <ColorField
-                id="pageBackground"
-                label="Background"
-                value={pageBackground}
-                fallback="#f4f4f5"
-                onChange={(v) => set("pageBackground", v)}
-              />
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="cardEnabled"
-                  checked={cardEnabled}
-                  onCheckedChange={(checked) => set("cardEnabled", checked === true)}
-                />
-                <Label htmlFor="cardEnabled">Wrap form in a card</Label>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {cardEnabled && (
-                  <ChoiceField
-                    id="cardShadow"
-                    label="Card Shadow"
-                    value={cardShadow}
-                    options={[["none", "None"], ["sm", "Light"], ["md", "Medium"], ["lg", "Heavy"]]}
-                    onChange={(v) => set("cardShadow", v)}
+              <div className="space-y-2">
+                <SettingRow id="pageBackground" label="Background">
+                  <ColorSwatch
+                    id="pageBackground"
+                    value={pageBackground}
+                    fallback="#f4f4f5"
+                    onChange={(v) => set("pageBackground", v)}
                   />
-                )}
-                <ChoiceField
-                  id="contentWidth"
-                  label="Content Width"
-                  value={contentWidth}
-                  options={[["sm", "Narrow (480px)"], ["md", "Medium (640px)"], ["lg", "Wide (768px)"]]}
-                  onChange={(v) => set("contentWidth", v)}
-                />
-                <ChoiceField
-                  id="verticalAlign"
-                  label="Vertical Alignment"
-                  value={verticalAlign}
-                  options={[["top", "Top"], ["center", "Center"]]}
-                  onChange={(v) => set("verticalAlign", v)}
-                />
+                </SettingRow>
+                <SettingRow id="card" label="Card">
+                  <Select value={card} onValueChange={setCard}>
+                    <SelectTrigger id="card" className="w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CARD_OPTIONS.map(([v, text]) => (
+                        <SelectItem key={v} value={v}>
+                          {text}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
+                <SettingRow id="contentWidth" label="Width">
+                  <Segmented
+                    id="contentWidth"
+                    value={contentWidth}
+                    options={[["sm", "Narrow"], ["md", "Medium"], ["lg", "Wide"]]}
+                    onChange={(v) => set("contentWidth", v)}
+                  />
+                </SettingRow>
+                <SettingRow id="verticalAlign" label="Alignment">
+                  <Segmented
+                    id="verticalAlign"
+                    value={verticalAlign}
+                    options={[
+                      ["top", "Top", <AlignStartHorizontal key="i" />],
+                      ["center", "Center", <AlignCenterHorizontal key="i" />],
+                    ]}
+                    onChange={(v) => set("verticalAlign", v)}
+                  />
+                </SettingRow>
               </div>
             </StyleRow>
           )}
