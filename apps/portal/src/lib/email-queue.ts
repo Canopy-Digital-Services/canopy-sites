@@ -2,7 +2,7 @@ import { sendNewSubmissionNotification } from "./email";
 import type { ResponseLine } from "./submission-email";
 import { getAccountEntitlements } from "./data-access/entitlements";
 import { listAccountMemberEmails } from "./data-access/memberships";
-import { appUrlFor } from "./product";
+import { appUrlFor, productNameFor } from "./product";
 
 /**
  * Queue notifications to all listed recipients.
@@ -35,7 +35,9 @@ export function queueNewSubmissionNotification(options: {
   // Fire and forget - don't await
   (async () => {
     const dashboardEmails = await getDashboardEmails(accountId);
-    const appUrl = await getAppUrl(accountId);
+    const entitlements = await getEmailEntitlements(accountId);
+    const appUrl = appUrlFor(entitlements);
+    const productName = productNameFor(entitlements);
 
     for (const email of notifyEmails) {
       try {
@@ -50,6 +52,7 @@ export function queueNewSubmissionNotification(options: {
           // that actually belong to this account get the dashboard link.
           canUseDashboard: dashboardEmails.has(email.trim().toLowerCase()),
           appUrl,
+          productName,
         });
 
         if (success) {
@@ -63,16 +66,16 @@ export function queueNewSubmissionNotification(options: {
 }
 
 /**
- * Dashboard host for this account's links: the Sites host for Sites accounts,
- * so the link reuses the session they normally sign in with. Falls back to the
- * Forms host if the lookup fails.
+ * The account's products, which pick the dashboard host (the Sites host for
+ * Sites accounts, so the link reuses the session they normally sign in with)
+ * and the product the email names. Falls back to Forms if the lookup fails.
  */
-async function getAppUrl(accountId: string): Promise<string> {
+async function getEmailEntitlements(accountId: string): Promise<{ sitesEnabled: boolean }> {
   try {
-    return appUrlFor(await getAccountEntitlements(accountId));
+    return await getAccountEntitlements(accountId);
   } catch (error) {
     console.error(`Entitlement lookup failed for account ${accountId}:`, error);
-    return appUrlFor({ sitesEnabled: false });
+    return { sitesEnabled: false };
   }
 }
 
