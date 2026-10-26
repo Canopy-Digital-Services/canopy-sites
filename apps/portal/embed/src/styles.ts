@@ -5,7 +5,8 @@ export const baseStyles = `
   color: var(--canopy-text, #18181b);
   background: var(--canopy-bg, #ffffff);
   padding: 4px;
-  --canopy-heading-font: var(--canopy-font, inherit);
+  --canopy-title-font: var(--canopy-font, inherit);
+  --canopy-label-font: var(--canopy-font, inherit);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -84,11 +85,11 @@ export const baseStyles = `
 }
 
 .canopy-label {
-  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
+  font-family: var(--canopy-label-font, var(--canopy-font, inherit));
   font-size: var(--canopy-label-size, 1.5em);
-  font-weight: var(--canopy-title-weight, 400);
-  color: var(--canopy-title-color, var(--canopy-text, #18181b));
-  text-transform: var(--canopy-heading-transform, none);
+  font-weight: var(--canopy-label-weight, 400);
+  color: var(--canopy-label-color, var(--canopy-text, #18181b));
+  text-transform: var(--canopy-label-transform, none);
 }
 
 .canopy-required {
@@ -238,7 +239,7 @@ export const baseStyles = `
 
 .canopy-inactive-heading {
   margin: 0;
-  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
+  font-family: var(--canopy-title-font, var(--canopy-font, inherit));
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
@@ -385,11 +386,11 @@ export const baseStyles = `
 }
 
 .canopy-title {
-  font-family: var(--canopy-heading-font, var(--canopy-font, inherit));
+  font-family: var(--canopy-title-font, var(--canopy-font, inherit));
   font-size: var(--canopy-title-size, 1.5em);
   font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
-  text-transform: var(--canopy-heading-transform, none);
+  text-transform: var(--canopy-title-transform, none);
   margin: 0 0 4px 0;
   line-height: 1.3;
 }

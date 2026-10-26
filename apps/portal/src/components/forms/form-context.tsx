@@ -79,9 +79,9 @@ export const FIELD_PLACEHOLDERS: FieldState[] = [
     Null outside the flow. */
 export type EditorStep = "header" | "fields" | "settings" | "done" | null;
 
-/** A group of styling controls, picked in the styling panel or by clicking
-    the part of the preview it styles. */
-export type StyleGroup = "page" | "form" | "headings" | "body" | "button";
+/** A part of the form the styling panel styles, picked in the panel or by
+    clicking it in the preview. */
+export type StyleGroup = "page" | "form" | "title" | "text" | "labels" | "fields" | "button";
 
 type FormContextValue = {
   state: FormState;
@@ -114,6 +114,9 @@ type FormContextValue = {
   /** The open styling group, one at a time. */
   styleGroup: StyleGroup | null;
   setStyleGroup: (group: StyleGroup | null) => void;
+  /** The styling group whose panel row is hovered, which the preview outlines. */
+  styleHover: StyleGroup | null;
+  setStyleHover: (group: StyleGroup | null) => void;
 };
 
 const FormContext = createContext<FormContextValue | null>(null);
@@ -360,6 +363,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
   const [editorStep, setEditorStep] = useState<EditorStep>(null);
   const [styling, setStyling] = useState(false);
   const [styleGroup, setStyleGroup] = useState<StyleGroup | null>(null);
+  const [styleHover, setStyleHover] = useState<StyleGroup | null>(null);
 
   useAutoSave(initialForm.id, state, setSaveStatus, toast, autoSaveEnabled);
 
@@ -429,6 +433,8 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     setStyling,
     styleGroup,
     setStyleGroup,
+    styleHover,
+    setStyleHover,
   };
 
   return <FormContext.Provider value={value}>{children}</FormContext.Provider>;

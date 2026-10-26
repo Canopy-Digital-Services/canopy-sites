@@ -22,8 +22,8 @@ type PreviewMarkProps = {
       Null clears the marks. */
   target: string | null;
   /** Changes whenever the marks should be drawn by hand; any other redraw
-      paints them finished. Null never draws by hand. */
-  drawKey: string | null;
+      paints them finished. */
+  drawKey: string;
   /** Changes whenever the embed re-renders, so the marks follow the new layout. */
   renderKey: number;
 };
@@ -37,8 +37,7 @@ function boxMetrics(el: HTMLElement, w: number, h: number): Metrics {
 /**
  * Sketches a coral marker box round every element of the live preview that
  * matches `target`: drawn by hand when `drawKey` changes, painted finished on
- * any other redraw (the preview re-rendering under typing) and whenever
- * `drawKey` is null (hovering).
+ * any other redraw (the preview re-rendering under typing).
  *
  * The canvases sit on top of the form, as ink on the page would: a box may
  * cross a field's edge or graze neighboring text. One canvas per box, made
@@ -112,14 +111,14 @@ export function PreviewMark({ hostRef, target, drawKey, renderKey }: PreviewMark
   // Box every match of `selector`: by hand when `key` hasn't been drawn by
   // hand yet, finished otherwise. A key whose targets aren't rendered yet (a
   // field just added) is drawn by hand on the render that adds them.
-  const draw = async (selector: string, key: string | null) => {
+  const draw = async (selector: string, key: string) => {
     const id = ++run.current;
     const marks = await build(selector, id);
     if (!marks || id !== run.current) return;
     cancelAnimationFrame(raf.current);
     canvases.current.forEach((c) => (c.style.opacity = "1"));
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const fresh = key !== null && marks.length > 0 && drawn.current !== key;
+    const fresh = marks.length > 0 && drawn.current !== key;
     if (fresh) drawn.current = key;
     if (!fresh || reduced) return marks.forEach((mark) => mark.paint(1));
     const t0 = performance.now();

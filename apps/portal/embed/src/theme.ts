@@ -13,8 +13,9 @@ type ThemeDefaults = {
   buttonAlign: "left" | "center" | "right";
   titleSize: "sm" | "md" | "lg" | "xl";
   titleWeight: "light" | "normal" | "bold";
+  titleTransform: "none" | "uppercase";
   labelSize: "sm" | "md" | "lg" | "xl";
-  labelWeight: "normal" | "medium" | "semibold";
+  labelWeight: "light" | "normal" | "bold";
   labelTransform: "none" | "uppercase";
 };
 
@@ -22,14 +23,19 @@ type ThemeDefaults = {
 // To add a new optional token: add it here. No other changes needed.
 type ThemeOverrides = {
   bodyFont?: string;
-  headingFont?: string;
+  titleFont?: string;
+  labelFont?: string;
   buttonText?: string;
   titleColor?: string;
+  labelColor?: string;
   pageBackground?: string;
   cardEnabled?: boolean;
   cardShadow?: "none" | "sm" | "md" | "lg";
   contentWidth?: "sm" | "md" | "lg";
   verticalAlign?: "top" | "center";
+  /** @deprecated Sets titleFont and labelFont where they are unset. The title
+      and labels shared one heading style until 2026-10. */
+  headingFont?: string;
   /** @deprecated Use bodyFont instead */
   fontFamily?: string;
   /** @deprecated Use ensureFontsLoaded instead */
@@ -52,8 +58,9 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   buttonAlign: "left",
   titleSize: "md",
   titleWeight: "normal",
+  titleTransform: "none",
   labelSize: "md",
-  labelWeight: "medium",
+  labelWeight: "normal",
   labelTransform: "none",
 };
 
@@ -90,14 +97,22 @@ function normalizeColor(value: string | undefined, fallback: string) {
   return fallback;
 }
 
+/** Reads the legacy headingFont as both fonts, unless the theme sets them. */
+function upgradeLegacy(theme: ThemeTokens | null | undefined): ThemeTokens {
+  if (!theme) return {};
+  const { headingFont, ...rest } = theme;
+  if (!headingFont) return rest;
+  return { titleFont: headingFont, labelFont: headingFont, ...rest };
+}
+
 export function resolveTheme(
   formTheme: ThemeTokens | null | undefined,
   overrideTheme: ThemeTokens | null | undefined
 ) {
   return {
     ...DEFAULT_THEME,
-    ...(formTheme ?? {}),
-    ...(overrideTheme ?? {}),
+    ...upgradeLegacy(formTheme),
+    ...upgradeLegacy(overrideTheme),
   };
 }
 
@@ -131,12 +146,14 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   const bodyFontFamily = resolveFont(theme.bodyFont, theme.fontFamily);
   container.style.setProperty("--canopy-font", bodyFontFamily);
 
-  // Resolve heading font: prefer new headingFont, fall back to body font
-  const headingFontFamily = resolveFont(theme.headingFont);
-  container.style.setProperty(
-    "--canopy-heading-font",
-    headingFontFamily === "inherit" ? "var(--canopy-font)" : headingFontFamily
-  );
+  // Title and label fonts fall back to the body font
+  for (const [prop, font] of [
+    ["--canopy-title-font", theme.titleFont],
+    ["--canopy-label-font", theme.labelFont],
+  ] as const) {
+    const family = resolveFont(font);
+    container.style.setProperty(prop, family === "inherit" ? "var(--canopy-font)" : family);
+  }
 
   container.style.setProperty(
     "--canopy-font-size",
@@ -181,24 +198,31 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
   container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
 
-  // Legacy: stored themes may have "semibold" — map to bold (700)
-  const titleWeightMap: Record<string, string> = {
+  // Legacy: stored themes may have "semibold" (title) or "medium" (label)
+  const weightMap: Record<string, string> = {
     light: "300",
     normal: "400",
+    medium: "500",
     bold: "700",
     semibold: "700",
   };
-  const weight = theme.titleWeight ?? "normal";
-  container.style.setProperty("--canopy-title-weight", titleWeightMap[weight] ?? "400");
+  container.style.setProperty("--canopy-title-weight", weightMap[theme.titleWeight ?? "normal"] ?? "400");
+  container.style.setProperty("--canopy-label-weight", weightMap[theme.labelWeight ?? "normal"] ?? "400");
 
-  const resolvedTitleColor = theme.titleColor ? normalizeColor(theme.titleColor, "") : "";
-  if (resolvedTitleColor) {
-    container.style.setProperty("--canopy-title-color", resolvedTitleColor);
-  } else {
-    container.style.removeProperty("--canopy-title-color");
+  for (const [prop, color] of [
+    ["--canopy-title-color", theme.titleColor],
+    ["--canopy-label-color", theme.labelColor],
+  ] as const) {
+    const resolved = color ? normalizeColor(color, "") : "";
+    if (resolved) {
+      container.style.setProperty(prop, resolved);
+    } else {
+      container.style.removeProperty(prop);
+    }
   }
 
-  container.style.setProperty("--canopy-heading-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-title-transform", theme.titleTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 
 export function getDensityClass(theme: ThemeTokens) {
