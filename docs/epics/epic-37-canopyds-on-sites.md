@@ -1,6 +1,6 @@
 # Epic 37: canopyds.com on Sites
 
-**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; Michael's first edit published and deployed (2026-10-20); 4.7 (headings and cards on the canvas) released in v5.7.0 and live on www (2026-10-21 UTC); the remaining acceptance items are checks in Michael's signed-in browser
+**Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; Michael's first edit published and deployed (2026-10-20); 4.7 (headings and cards on the canvas) released in v5.7.0 and live on www (2026-10-21 UTC); 4.8 (the modeling rule, credentials and FAQs) built and checked locally, waiting on its release; the remaining acceptance items are checks in Michael's signed-in browser
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
@@ -22,6 +22,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 - **Builder isolation (4.1)**: site build steps run as their own user.
 - **The site (4.2, in `canopy-website`)**: Astro 7 port with visual parity; facts and prose in contract 0.2.0 collections, marked for the canvas; `SITE_GUIDE.md`; a static image for the existing Coolify app; the repo's own docs.
 - **Headings and cards on the canvas (4.7)**: contract 0.3.0's section cards; the site's headings and card lists in content, marked.
+- **The modeling rule, credentials, and FAQs (4.8)**: PRD D48; contract 0.4.0's `site.credentials` and `faqs`; the site's bid facts and FAQs moved onto them.
 - **Client sites on the canvas, and the preview page (4.3)**: the Editor for any site an account owns, with assets from the site's live address; Preview opens the draft in a new tab without the Sites chrome, for every site, the demo included.
 - **Wiring (4.4)**: the site on Michael's account, the builder's repo access, redirects.
 - **The onboarding runbook (4.5, Nextcloud)**: every step of this run, written for any site, ending in acceptance.
@@ -33,7 +34,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 | Preview hostnames | None, by D47: the canvas and the preview page cover them |
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
 | Production on Caddy, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys (ROADMAP Phase 3 fallback) |
-| Contract changes beyond cards: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
+| Contract changes beyond cards, credentials, and FAQs: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
 | Photos | E32's media pipeline |
 | Dated announcements on canopyds.com | The nightly rebuild (D42) moves the builder's `current`, which nothing serves for this site until E36; www rebuilds only on a push |
 | Eyebrows, buttons, SEO fields, nav and footer chrome | Unmarked (D35, D45) |
@@ -72,9 +73,9 @@ Each section is about one session; 4.2 may take two.
 **Content**
 
 - `src/content/site.json`: name, description, contact (phone, email, locality, region, country), hours (Michael supplies the value: the contract requires one and the site needn't render it), socials (empty; LinkedIn stays in the footer template until the contract has the network). Each fact has one source: the footer, the contact page, and the JSON-LD all render it from this file (Invisible CMS, "The template layer is load-bearing").
-- `src/content/pages.json`: one entry per routed page (home, websites, government, about, work, contact) with title and description (SEO, unmarked), hero, and the sections made of a heading, paragraphs, a quote, a CTA, or cards (4.7). Sections with structure of their own (bid facts, NAICS codes, certifications, roles, team, showcases) and the privacy and cookie policies stay in templates.
+- `src/content/pages.json`: one entry per routed page (home, websites, government, about, work, contact) with title and description (SEO, unmarked), hero, and the sections made of a heading, paragraphs, a quote, a CTA, or cards (4.7). The FAQs are their own collection and the credentials sit in `site.json` (4.8). Sections with structure of their own (roles, team, showcases) and the privacy and cookie policies stay in templates.
 - Templates read content through one module that runs `validateContent` at build, as the demo's `src/lib/content.ts` does, so a violation fails the build.
-- `field()` marks facts, prose, headings, and card text (4.7): headlines, headings, hero subheadlines, section paragraphs, quotes, card titles and text, contact facts.
+- `field()` marks facts, prose, headings, and card text (4.7): headlines, headings, hero subheadlines, section paragraphs, quotes, card titles and text, FAQs, contact facts and credentials (4.8).
 - `SITE_GUIDE.md` (D31, D40). Front matter: limits per address, measured from the rendered layout, and the phone display format. Prose: the Voice & Messaging rules; Canopy's own copy mechanics, adopted (D32 lets a guide adopt them); and the positioning rules in the repo's `docs/site-architecture.md` that a copy edit could break (where DVBE may appear, certifications not yet held, the veteran-owned framing).
 
 **Deploy and docs**
@@ -198,28 +199,51 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 **Contract 0.3.0 (`packages/site-contract`)**
 
-- A section may hold `cards`, each with an id and an optional eyebrow, title, text, and button (`CardSchema`): one shape for steps, reasons, values, and questions with their answers. Cards are addressed by id; the title and text carry a kind and label ("Card title", "Card text"), so the canvas marks them like any field.
+- A section may hold `cards`, each with an id and an optional eyebrow, title, text, and button (`CardSchema`): one shape for steps, reasons, values, and the homepage doors. Cards are addressed by id; the title and text carry a kind and label ("Card title", "Card text"), so the canvas marks them like any field.
 - Additive: 0.2.0 content is valid 0.3.0 content and needs no migration, so the demo stays on 0.2.0 until it wants cards. The portal's pin moves to `^0.3.0`.
 - Released as the contract's tarball (site-contract README, "Releasing") before the site installs it, and deployed with the portal and builder before the site's commit reaches `main`: the builder validates with its own contract, so a 0.2.0 builder would refuse the site's content.
 
 **The site (`canopy-website`)**
 
 - Every heading and headline renders from content and is marked: the hero headlines, section headings, and the headings that were typed into templates ("How it works", "See it live", "Bid facts", "Why work with Canopy", "What we do", "Software as a service").
-- The card lists move into content as section cards and are marked: the homepage doors, the /websites steps and its six reasons, the /government reasons, the /about values, and the FAQs (the FAQPage structured data renders from the same cards). The team and the case studies stay in templates: each pairs its text with a portrait or a live site, which cards don't hold.
-- The /government bid facts follow as the `bid-facts` section's cards (Michael, 2026-10-21): the certifications' designations and their note (certification number, where to verify it) and the NAICS codes are marked; the capability statement card is an eyebrow and its download button. The cert number keeps its monospace and the codes their spacing wherever an edit leaves them; the site guide tells the owner when an edit leaves the capability statement PDF behind.
-- Eyebrows and button labels stay unmarked; the doors' and bid facts' eyebrows and buttons move into content with their cards.
+- The card lists move into content as section cards and are marked: the homepage doors, the /websites steps and its six reasons, the /government reasons, and the /about values. The FAQs went into cards here too, and 4.8 moved them to a collection of their own. The team and the case studies stay in templates: each pairs its text with a portrait or a live site, which cards don't hold.
+- The /government bid facts became editable on 2026-10-21 (Michael), first as cards; 4.8 moved them to the site's credentials.
+- Eyebrows and button labels stay unmarked; the doors' eyebrows and buttons move into content with their cards.
 - A hand-drawn mark on a word of a marked value renders through `src/components/Marked.astro`: the mark goes wherever its word is, and an edit that drops the word drops the mark. `SITE_GUIDE.md` lists the words.
 - `SITE_GUIDE.md` limits for every new field, measured at 1440 and 390 px: a heading may run one line longer than today's; a card one line longer than the longest card in its list, with one limit per list.
 - On the canvas, every FAQ answer is open and stays open, so a question selects rather than toggles.
+
+### 4.8 The modeling rule, credentials, and FAQs (Michael, 2026-10-26)
+
+Asked whether the content schema had stayed coherent, the answer was no: the editing tooling had, but nothing said what shape new content takes, and 4.7 put the FAQs and the bid facts into cards because cards were there. The NAICS codes became one string the template split apart and the certification number was found by a pattern, the two things the Invisible CMS page's "display strings are not storage" rules out.
+
+**The rule (PRD D48, section 4.4).** Facts are structured values in `site` or a typed collection; things the business has get a collection of their own; page copy is `pages` sections; cards are only for groupings that mean nothing outside their section; templates hold design, and a template rule keyed to a content id is only for art. The Invisible CMS page says why, and the onboarding runbook's content step points to the rule.
+
+**Contract 0.4.0 (`packages/site-contract`)**
+
+- `site.credentials`: `certifications`, each with an id, a full `name` (for structured data), an optional `shortName` (for a line of designations), an optional `number` (letters, digits, and hyphens, without a leading #), and an optional `verifyOn`; and `naics`, six-digit codes, each listed once.
+- `faqs`: a collection of questions and answers, in page order.
+- Additive: 0.3.0 content is valid 0.4.0 content. The portal's pin moves to `^0.4.0`. Field descriptions are in `QUICK_EDIT_GUIDANCE.md` section 3.
+- Released and deployed with the portal and builder before the site's commit reaches `main`, as 4.7 was.
+
+**The site (`canopy-website`)**
+
+- `site.json` holds the credentials: DVBE (short name "DVBE", the certification number, verifiable on Cal eProcure) and Small Business (short name "Small Business (Micro)"), and the six NAICS codes. The bid facts render from them, each value marked; the labels ("Certifications", "NAICS") and the words around the values ("Certification #", "verifiable on") are the template's.
+- The structured data's `hasCredential` renders from the same certifications' full names.
+- `faqs.json` holds the FAQs; the contact page and its FAQPage structured data render them. The `faqs` section keeps the heading and intro.
+- The `bid-facts` section keeps its heading and the capability statement button; its cards are gone.
+- `SITE_GUIDE.md`: limits for the certification fields and the FAQs, where the bid facts and FAQs live, and that the capability statement PDF and the footer's certification line need Canopy when a credential changes.
+- The footer's certification line ("California-certified DVBE & Small Business") stays typed in the template, a positioning line kept in step by hand; rendering it from the credentials would add "(Micro)" to it.
 
 ## 5. Acceptance
 
 - [x] www.canopyds.com serves the Astro build from the Coolify app with visual parity at 1440 and 390 px on every routed page; both redirects answer 301; Umami counts only www
 - [x] The site validates against contract 0.2.0, a violation fails `npm run build`, and every fact renders from `site.json`
 - [x] With 4.7, the site validates against contract 0.3.0 on www and on the builder, and its pages read and look as before
+- [ ] With 4.8, the site validates against contract 0.4.0 on www and on the builder, its pages read and look as before, and an invalid NAICS code on the canvas is refused with its reason
 - [x] The builder's build and the production image of one commit list the same `_astro/` files
 - [ ] The builder's isolation checks pass (project memory), and the demo builds and publishes on production afterward
-- [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and facts, prose, headings, and card text marked, nothing else. An in-place edit shows as typed and lands in the draft
+- [ ] Signed in as Michael on production, the Editor shows canopyds.com on the canvas, styled, with no CORS errors in the console, and facts, prose, headings, card text, and FAQs marked, nothing else. An in-place edit shows as typed and lands in the draft
 - [ ] Quick Edit lists canopyds.com's pages; a requested change builds, and Preview opens a new tab with the changed page filling the window and the preview bar at the bottom. The site's navigation moves between pages there, and the build swaps in place
 - [ ] Publish appears only on the preview bar: Quick Edit, the Sites chrome, and the Editor show Preview instead
 - [ ] Signed in on a phone, the same Preview link shows the draft full-page. Signed out, or as another account, the preview page and the canvas route return 404
@@ -257,6 +281,10 @@ Michael asked, editing the site, for headings and card content to be editable in
 
 - **Every fact on the /government bid-fact cards is editable** (4.7), so he can change them himself.
 
+### Michael (2026-10-26)
+
+- **Content is modeled by what it is, not where it shows** (PRD D48, 4.8): the rule goes into the PRD and the Invisible CMS page, contract 0.4.0 adds `site.credentials` and `faqs`, and canopyds.com's bid facts and FAQs move onto them.
+
 ### Agent calls inside scope
 
 - **One epic, sections 4.1 to 4.5** planned at the start, 4.1 to 4.4 each about a session, because together they make the site usable on Sites; 4.2's work lands in `canopy-website`, and 4.5 is written alongside the others. 4.7 joined at Michael's request on 2026-10-20.
@@ -264,9 +292,10 @@ Michael asked, editing the site, for headings and card content to be editable in
 - **One build user per site, not one shared by every site (4.1).** Each site's steps reach only that site's directories, and the builder can stop everything a site's step left running without touching another site's build in progress.
 - **One canvas route for every site, the demo included** (`/canvas/[siteId]`), which replaced `/demo`'s editor and preview modes; `/demo` serves only the published demo.
 - **Content moved at the port: facts, and the prose sections that fit `pages`.** Card lists followed with contract 0.3.0 (4.7); the other structured sections wait for contract collections.
-- **One card shape on sections (4.7)**, not a collection per kind (steps, values, FAQs): every card list on the site is a title and text with an optional eyebrow and button, and a section already gives each list its place on a page.
+- **One card shape on sections (4.7)** for the groupings D48 leaves to cards (steps, reasons, values, doors): each is a title and text with an optional eyebrow and button, and a section already gives each its place on a page.
 - **A hand-drawn mark follows its word (4.7)** rather than keeping marked headings in templates, so every heading on the site is editable.
-- **The bid facts are card text, not structured facts (4.7).** They appear on /government only and no second site needs credentials or NAICS codes, so a contract collection for them waits for one.
+- **Credentials are a part of `site`, not a collection (4.8)**: they are facts about the business, like its contact details. The certification number sits on DVBE alone: the page shows one number for both designations, and a copy on each would let them disagree.
+- **Each credential field holds only what canopyds.com renders (4.8)**: no issuer, expiry, or verification link until a site shows one (PRD section 4.4).
 - **Eyebrows and button labels stay unmarked (4.7).** Michael asked for headings and card content; the other chrome stays Canopy's until he asks.
 - **With no draft, the canvas shows the live page itself**, not the builder's `current`, so its HTML always matches the assets it loads.
 - **Preview opens the page a change touches**, with the home page for changes outside `pages`.
@@ -324,4 +353,5 @@ Not started.
   - The deployed portal carries the card field labels; signed out, `/canvas` 404s and `/preview` sends to sign-in.
   - Not checked: the Editor signed in as Michael (no session I can use). The operator list shows the site's contract as 0.2.0 until the next operator Build and publish sets it.
 - 2026-10-21: Michael made the bid facts editable (4.7). `canopy-website@97e079e`, on top of three more edits of his published from Sites (the /government headline, an /about heading and paragraph). Pixel for pixel the same at 1440 and 390 px; deployed healthy; on www all 118 marked elements hold their content values; the production builder reads the commit with no issues.
+- 2026-10-26: 4.8 built. Contract 0.4.0 and D48 on `dev` (`203df03`); `canopy-website` branch `feat/credentials-faqs` (`4b4684c`). Checked against `main`'s build: the built HTML of the home, /websites, /about, and /work pages is identical apart from structured data, which lists DVBE before SB as the page does; /government and /contact read the same, with /government one kerning pixel off at "on Cal"; all 125 marked elements hold their content values; the content fits the guide's 65 limits. On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017): the canvas labels the new fields ("Where to verify", "NAICS code", "Question") with their limits; an invalid NAICS code was refused with "Six digits, like 541511" and put back; a valid code, a "where to verify", and a question saved, built, and showed in the preview; Publish pushed a commit changing one line each in `site.json` and `faqs.json`. Lint, 219 portal and 34 contract tests, and the build pass.
 
