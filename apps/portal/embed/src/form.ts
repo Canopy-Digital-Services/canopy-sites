@@ -233,7 +233,8 @@ export class CanopyForm {
       border: none !important;
       border-radius: ${radius} !important;
       padding: 10px 16px !important;
-      font-size: 14px !important;
+      font-family: var(--canopy-font, inherit) !important;
+      font-size: var(--canopy-font-size, 16px) !important;
       font-weight: 600 !important;
       background: ${primaryColor} !important;
       background-color: ${primaryColor} !important;

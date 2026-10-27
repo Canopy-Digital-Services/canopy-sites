@@ -22,6 +22,9 @@ import {
 import { ToggleButton, ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   AlignCenter,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalJustifyStart,
   AlignLeft,
   Bold,
   Check,
@@ -52,6 +55,7 @@ function toColorInputValue(value: string, fallback: string): string {
 
 const WEIGHT_LABELS: Record<string, string> = { light: "Light", normal: "Regular", bold: "Bold" };
 const WIDTH_LABELS: Record<string, string> = { sm: "Narrow", md: "Medium", lg: "Wide" };
+const BUTTON_LAYOUT_NAMES: Record<string, string> = { full: "Full width", left: "Left", center: "Center", right: "Right" };
 /** Corner radius presets, px. The embed's default is Slight. */
 const CORNER_OPTIONS: [string, string][] = [
   ["0", "Square"],
@@ -148,16 +152,6 @@ function Summary({ words, colors = [] }: { words: (string | false)[]; colors?: [
   );
 }
 
-/** A color under its label, for rows not yet in the one-line layout. */
-function ColorField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div>{children}</div>
-    </div>
-  );
-}
-
 /** One setting on one line: its label on the left, its control on the right. */
 function SettingRow({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
@@ -233,38 +227,6 @@ function Segmented({
         );
       })}
     </ToggleGroup>
-  );
-}
-
-function ChoiceField({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: [string, string][];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map(([v, text]) => (
-            <SelectItem key={v} value={v}>
-              {text}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
   );
 }
 
@@ -539,6 +501,12 @@ export function StylingPanel() {
     />
   );
 
+  // One Width choice covers both tokens: Full, or as wide as its text and
+  // aligned left, center, or right.
+  const buttonLayout = buttonWidth === "auto" ? buttonAlign : "full";
+  const setButtonLayout = (v: string) =>
+    setMany(v === "full" ? { buttonWidth: "full", buttonAlign: "left" } : { buttonWidth: "auto", buttonAlign: v });
+
   const fontWord = (font: string) => font !== "inherit" && font;
   const weightWord = (weight: string, font: string) =>
     shownWeight(weight, font) !== "normal" && WEIGHT_LABELS[shownWeight(weight, font)];
@@ -800,40 +768,39 @@ export function StylingPanel() {
             title="Button"
             summary={
               <Summary
-                words={[buttonText, buttonWidth === "auto" && "Auto width"]}
+                words={[buttonText, buttonLayout !== "full" && BUTTON_LAYOUT_NAMES[buttonLayout]]}
                 colors={[[primary, "#005F6A"]]}
               />
             }
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="buttonText">Text</Label>
+            <div className="space-y-2">
+              <SettingRow id="buttonText" label="Text">
                 <Input
                   id="buttonText"
                   value={buttonText}
                   onChange={(e) => set("buttonText", e.target.value)}
                   placeholder="Submit"
+                  className="w-48"
                 />
-              </div>
-              <ColorField id="primary" label="Color">
+              </SettingRow>
+              <SettingRow id="primary" label="Color">
                 {colorPicker("primary", "Button color", "#005F6A")}
-              </ColorField>
-              <ChoiceField
-                id="buttonWidth"
-                label="Width"
-                value={buttonWidth}
-                options={[["full", "Full Width"], ["auto", "Auto"]]}
-                onChange={(v) => set("buttonWidth", v)}
-              />
-              {buttonWidth === "auto" && (
-                <ChoiceField
-                  id="buttonAlign"
-                  label="Alignment"
-                  value={buttonAlign}
-                  options={[["left", "Left"], ["center", "Center"], ["right", "Right"]]}
-                  onChange={(v) => set("buttonAlign", v)}
+              </SettingRow>
+              <SettingRow id="buttonLayout" label="Width">
+                <Segmented
+                  id="buttonLayout"
+                  label="Width"
+                  value={buttonLayout}
+                  options={[
+                    ["full", "Full"],
+                    ["left", "", <AlignHorizontalJustifyStart key="i" />],
+                    ["center", "", <AlignHorizontalJustifyCenter key="i" />],
+                    ["right", "", <AlignHorizontalJustifyEnd key="i" />],
+                  ]}
+                  names={BUTTON_LAYOUT_NAMES}
+                  onChange={setButtonLayout}
                 />
-              )}
+              </SettingRow>
             </div>
           </StyleRow>
         </div>
