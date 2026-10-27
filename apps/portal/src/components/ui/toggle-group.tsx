@@ -11,7 +11,11 @@ const groupClasses =
 const itemClasses = cn(
   "inline-flex h-7 items-center justify-center gap-1.5 rounded-sm px-2.5 text-sm text-muted-foreground whitespace-nowrap transition-colors outline-none",
   "hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50",
-  "data-[state=on]:bg-secondary data-[state=on]:font-medium data-[state=on]:text-secondary-foreground",
+  // Pressed is read from ARIA, not `data-state`: a TooltipTrigger round an
+  // item replaces its `data-state` with the tooltip's own.
+  "aria-checked:bg-secondary aria-checked:font-medium aria-checked:text-secondary-foreground",
+  "aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground",
+  "aria-[current=true]:bg-secondary aria-[current=true]:font-medium aria-[current=true]:text-secondary-foreground",
   "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
 )
 
@@ -66,7 +70,6 @@ function ToggleLinkItem({
   return (
     <Link
       data-slot="toggle-group-item"
-      data-state={active ? "on" : "off"}
       aria-current={active ? "true" : undefined}
       className={cn(itemClasses, className)}
       {...props}
