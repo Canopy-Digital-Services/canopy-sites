@@ -10,7 +10,7 @@ The panel lists each part of the form you can style, in the order they appear on
 
 Hosted forms list Page, Form, Title, Text, Labels, Fields, and Button. Embedded forms have no Page row.
 
-Click a color swatch to open your computer's color picker, where you can also type a hex value. Once you've changed a color, the reset button beside it puts it back.
+Click a color swatch to pick a color. The first time, it opens your computer's color picker, where you can also type a hex value. Once you've set a color anywhere in the form, every swatch shows the colors you've set, so matching the title to the button is one click. Hover over a color to see what uses it, or choose **New color** to open the color picker again.
 
 ## Page (hosted forms only)
 
@@ -31,7 +31,7 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 The form's title, in the header above the fields. Its settings sit on one line, like a word processor's toolbar. Hover over a control to see its name.
 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
-- **Color**: the swatch beside the font. Until you pick one, the title uses the text color. The first color you set anywhere in the form opens your system's color picker; after that, the swatch shows the colors you've already used, so you can match the title to the button in one click. Hover over a color to see what uses it, or choose **New color** for another.
+- **Color**: the swatch beside the font. Until you pick one, the title uses the text color.
 - **Size**: 20, 28, 36, or 48 pixels. 20 is the default.
 - **Bold**: turns bold on or off.
 - **Alignment**: left or center.

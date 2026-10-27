@@ -22,13 +22,16 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 export function ColorPicker({
   id,
   label,
+  tooltip = false,
   value,
   rows,
   onChange,
 }: {
   id: string;
-  /** Spoken and tooltip name of the swatch. */
+  /** Spoken name of the swatch, and its tooltip when `tooltip` is set. */
   label: string;
+  /** Name the swatch in a tooltip, where no visible label does (a toolbar). */
+  tooltip?: boolean;
   value: string;
   rows: PickerRow[];
   onChange: (value: string) => void;
@@ -49,44 +52,50 @@ export function ColorPicker({
     setOpen(false);
   };
 
+  const swatch = (
+    <span className="relative inline-flex rounded-md has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50">
+      <Popover.Trigger asChild>
+        <button
+          id={id}
+          type="button"
+          aria-label={label}
+          tabIndex={empty ? -1 : undefined}
+          aria-hidden={empty || undefined}
+          className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <span className="block size-full rounded-sm border border-black/10" style={{ background: value }} />
+        </button>
+      </Popover.Trigger>
+      {/* The system picker, laid invisibly over the swatch so it opens
+          anchored there. With nothing to offer, it takes the swatch's
+          clicks itself: a real click is the sure way to open it, and
+          showPicker() from the swatch's own click didn't. */}
+      <input
+        ref={customRef}
+        type="color"
+        tabIndex={empty ? undefined : -1}
+        aria-hidden={!empty || undefined}
+        aria-label={empty ? label : undefined}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "absolute inset-0 size-full cursor-pointer opacity-0",
+          !empty && "pointer-events-none"
+        )}
+      />
+    </span>
+  );
+
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Tooltip delayDuration={500}>
-        <TooltipTrigger asChild>
-          <span className="relative inline-flex rounded-md has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50">
-            <Popover.Trigger asChild>
-              <button
-                id={id}
-                type="button"
-                aria-label={label}
-                tabIndex={empty ? -1 : undefined}
-                aria-hidden={empty || undefined}
-                className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                <span className="block size-full rounded-sm border border-black/10" style={{ background: value }} />
-              </button>
-            </Popover.Trigger>
-            {/* The system picker, laid invisibly over the swatch so it opens
-                anchored there. With nothing to offer, it takes the swatch's
-                clicks itself: a real click is the sure way to open it, and
-                showPicker() from the swatch's own click didn't. */}
-            <input
-              ref={customRef}
-              type="color"
-              tabIndex={empty ? undefined : -1}
-              aria-hidden={!empty || undefined}
-              aria-label={empty ? label : undefined}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className={cn(
-                "absolute inset-0 size-full cursor-pointer opacity-0",
-                !empty && "pointer-events-none"
-              )}
-            />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
+      {tooltip ? (
+        <Tooltip delayDuration={500}>
+          <TooltipTrigger asChild>{swatch}</TooltipTrigger>
+          <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+      ) : (
+        swatch
+      )}
       <Popover.Portal>
         <Popover.Content
           sideOffset={4}
