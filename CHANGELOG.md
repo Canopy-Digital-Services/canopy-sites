@@ -5,6 +5,35 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.9.0] - 2026-10-27
+
+### Added
+
+- Forms editor: **Change styling**, at the top of the preview, opens the styling panel at any point and **Done** returns to where you were. Click a part of the preview, or its row in the panel, to style it; hovering either outlines what it changes
+- The title and field labels are styled separately, each with its own font, color, size, and bold, and the title can be centered
+- A color picker of your own colors: once you've set a color anywhere in the form, every swatch offers it, named by what uses it, with **New color** for the system picker
+- The submit button's text color can be set. Unset, it's chosen for contrast: white on dark buttons, and on light ones your text color, or near-black if that's too light
+
+### Changed
+
+- The styling panel's rows (Page, Form, Title, Labels, Text, Fields, Button) are one-line settings, with Title, Labels, and Text as word-processor toolbars and a name on each control when you hover it
+- Title, label, and text sizes are pixels picked from a short list. Forms that never set them now use 28px titles, 18px labels, and 16px text (they were 21, 21, and 14), so fields don't zoom in when tapped on an iPhone. Saved sizes are kept as the pixels they rendered at
+- Corners are presets (Square, Slight, Round, Rounder), spacing is Compact, Normal, or Roomy, and the button's width is one choice: Full, or fit to its text at the left, center, or right
+- The submit button's text uses the form's text font and size instead of a fixed 14px
+- A hosted form's card has the same 4px default corners as its inputs and button
+- Every exclusive choice in the app (stats range and chart, forms grid or list, editor viewport, submissions filter) uses one toggle style
+- Font pickers name the font in use instead of "Default"
+
+### Removed
+
+- The title and label case settings (type the title in capitals for a capitalized title), and vertical centering of hosted forms, which now sit at the top of the page
+
+### Fixed
+
+- Help text and form descriptions take the text color instead of a fixed grey or a faded copy of it
+- Square corners stay selected once picked
+- Form thumbnails show the form's own typefaces instead of Times or Arial
+
 ## [5.8.1] - 2026-10-26
 
 ### Fixed
