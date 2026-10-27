@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ToggleLinkGroup, ToggleLinkItem } from "@/components/ui/toggle-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +15,6 @@ import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { ArrowRight, Download, ChevronDown, FileText, CheckCheck } from "lucide-react";
 import { markAllSubmissionsRead } from "@/actions/forms";
-import { cn } from "@/lib/utils";
 
 type Submission = {
   id: string;
@@ -91,7 +91,7 @@ export function SubmissionsContent({
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex gap-4 flex-wrap items-center">
-        <div className="inline-flex h-8 items-center bg-muted-foreground/10 rounded-lg p-[3px]">
+        <ToggleLinkGroup aria-label="Status">
           {[
             { value: "all", label: "All" },
             { value: "NEW", label: "New" },
@@ -99,24 +99,15 @@ export function SubmissionsContent({
             { value: "ARCHIVED", label: "Archived" },
             { value: "spam", label: "Spam" },
           ].map((option) => (
-            <Link
+            <ToggleLinkItem
               key={option.value}
               href={`?mode=submissions&status=${option.value}`}
-              className="h-full"
+              active={statusFilter === option.value}
             >
-              <span
-                className={cn(
-                  "inline-flex h-full items-center rounded-md px-3 text-sm font-medium transition-colors",
-                  statusFilter === option.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {option.label}
-              </span>
-            </Link>
+              {option.label}
+            </ToggleLinkItem>
           ))}
-        </div>
+        </ToggleLinkGroup>
 
         <div className="ml-auto flex gap-2">
           <Button
