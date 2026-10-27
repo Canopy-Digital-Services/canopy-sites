@@ -47,3 +47,15 @@ describe("embed theme: title and labels", () => {
     expect(theme.labelFont).toBe("Lato");
   });
 });
+
+describe("embed theme: title size", () => {
+  it("sizes the title in pixels, 21 by default", () => {
+    expect(applied(resolveTheme({ titleSize: 32 }, null)).get("--canopy-title-size")).toBe("32px");
+    expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("21px");
+  });
+
+  it("still reads a legacy size key from data-theme as a multiple of the text size", () => {
+    const vars = applied(resolveTheme({ titleSize: 28 }, { titleSize: "xl" }));
+    expect(vars.get("--canopy-title-size")).toBe("2.25em");
+  });
+});
