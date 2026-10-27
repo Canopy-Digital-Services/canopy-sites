@@ -43,7 +43,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
 29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
-30. A dropdown for a choice of two to four short options in a settings panel. Use `ToggleGroup`, which shows every option.
+30. A dropdown for a choice of two to four short options in a settings panel, or loose buttons or a tab strip for any exclusive choice (a setting, a view, a filter). Use `ToggleGroup` (section 6), which shows every option.
 31. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
 
 **Always:**
@@ -233,10 +233,14 @@ Passed, and why: "Domains allowed to embed and submit to this form. Localhost is
 | `destructive` | Dangerous action when it's a single confirm/cancel choice |
 | `outline` | Secondary (Cancel, Back) |
 | `ghost` | Tertiary and icon-only in toolbars |
-| `secondary` | Alternative secondary styling; also active filter state |
+| `secondary` | Alternative secondary styling; also the current section in `SitesNav` |
 | `link` | Text actions. With `text-destructive`, de-emphasizes a dangerous option beside a safer primary. |
 
-**Small exclusive choices** (two to four short options, such as a width or an alignment) use `ToggleGroup` ([toggle-group.tsx](src/components/ui/toggle-group.tsx)), not a `Select`: every option shows and takes one click. The pressed option gets the soft `secondary` highlight, like an active filter. Five or more options, or long labels, stay a `Select`.
+**Exclusive choices** (a setting such as a width, a view such as chart or table, a filter such as a submission status) use one look: `ToggleGroup` ([toggle-group.tsx](src/components/ui/toggle-group.tsx)), a bordered `bg-card` track whose pressed option gets the soft `secondary` highlight, the same selection color as the current nav section. Every option shows and takes one click. Loose `secondary`/`ghost` buttons read as a second nav bar, and the muted pill track is `Tabs`, which is for navigation.
+
+- **Kept in the URL** (`?view=`, `?range=`, `?status=`): `ToggleLinkGroup` and `ToggleLinkItem`, the same look built from `Link`s with `aria-current` on the active one. They stay links rather than radios, so they render from server components without JS. Reference: [view-toggle.tsx](src/components/forms/view-toggle.tsx).
+- **Icon-only items** keep a `Tooltip` (rule 3) and take `className="px-1.5"` to square up. The pressed style reads `aria-checked`, `aria-pressed`, and `aria-current`, never `data-state`: a `TooltipTrigger asChild` round an item replaces its `data-state` with the tooltip's own. Reference: the viewport toggle in [canvas-editor.tsx](src/app/(admin)/(sites)/editor/canvas-editor.tsx).
+- A setting with five or more options, or long labels, stays a `Select`. A filter shows every option, since it is read as well as set.
 
 Sizes step on a tight scale: `sm` 28px, `default` 32px (deliberately compact), `lg` 40px, plus `icon-sm` 28px (**use for action icons in lists**), `icon` 32px, `icon-lg` 40px. Corners are the workhorse radius. Filled variants carry no shadow; `outline` carries `shadow-xs`. Ghost hover lands on `hover:bg-muted`.
 
@@ -488,7 +492,7 @@ Baseline-aligned, since it's a parenthetical to the title rather than a chip bes
 
 `PageHeader` ([page-header.tsx](src/components/patterns/page-header.tsx)) takes `title`, `description`, `actions`, and `backHref`. Prefer `backHref` (an ArrowLeft before the title) over a "Back to X" action button.
 
-`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts. For Sites accounts the admin layout passes `SitesNav` ([sites-nav.tsx](src/components/sites/sites-nav.tsx)) as `navItems`: ghost `size="sm"` buttons with an icon and label, the current section getting `variant="secondary"` and `aria-current="page"` (the same soft highlight as an active filter). Forms-only accounts get no nav items. Sites accounts also get `DraftStatus` ([draft-status.tsx](src/components/sites/draft-status.tsx)) at the start of the `userMenu` slot: dot plus text for the site's draft (preparing, unpublished, failed), a ghost Discard behind `ConfirmDialog`, and Publish, enabled only once the draft's preview is built. It renders nothing without a draft. Anything that changes the draft dispatches `DRAFT_CHANGED` on `window` so it refreshes at once; it dispatches `DRAFT_PUBLISHED` after a publish or discard.
+`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts. For Sites accounts the admin layout passes `SitesNav` ([sites-nav.tsx](src/components/sites/sites-nav.tsx)) as `navItems`: ghost `size="sm"` buttons with an icon and label, the current section getting `variant="secondary"` and `aria-current="page"` (the same soft highlight as a pressed `ToggleGroup` option). Forms-only accounts get no nav items. Sites accounts also get `DraftStatus` ([draft-status.tsx](src/components/sites/draft-status.tsx)) at the start of the `userMenu` slot: dot plus text for the site's draft (preparing, unpublished, failed), a ghost Discard behind `ConfirmDialog`, and Publish, enabled only once the draft's preview is built. It renders nothing without a draft. Anything that changes the draft dispatches `DRAFT_CHANGED` on `window` so it refreshes at once; it dispatches `DRAFT_PUBLISHED` after a publish or discard.
 
 `UserMenu` ([user-menu.tsx](src/components/patterns/user-menu.tsx)) is a 32px initials circle (`bg-primary text-primary-foreground`, `bg-primary/80` on hover) with no visible email, opening downward to email, Manage Account, and Sign Out. Initials are the first two alphanumerics of the email local part, uppercased, falling back to "?".
 
@@ -563,7 +567,7 @@ Numeric counts in cells are plain `text-sm text-muted-foreground`, not badges. I
 
 Action hierarchy responds to state: the likely next action takes `default` while the rest stay `outline` (Mark as Read is primary while status is `NEW`).
 
-Filters use title-case labels with uppercase enum values as params, and the active button uses `variant="secondary"` (soft highlight) rather than filled `default`, since a filter is selection state, not a primary action.
+Filters use title-case labels with uppercase enum values as params, in a `ToggleLinkGroup` (section 6).
 
 Empty states: a plain `text-sm text-muted-foreground` line suffices inline; use `EmptyState` ([empty-state.tsx](src/components/patterns/empty-state.tsx)) with `icon`, `title`, `description`, `action` for prominent ones. This is the one place an orienting sentence is welcome (section 5).
 
@@ -577,7 +581,7 @@ Cards render as `<button type="button" role="radio" aria-checked>` so they're ke
 
 The forms landing page defaults to a card grid with a toggle to a compact list.
 
-**View toggle** ([view-toggle.tsx](src/components/forms/view-toggle.tsx)): two `Link`s (server component, no JS) in a pill-shaped `bg-muted` container, active getting `bg-background shadow-sm`. State lives in `?view=grid|list`, defaulting to grid. Icons `LayoutGrid` and `List`.
+**View toggle** ([view-toggle.tsx](src/components/forms/view-toggle.tsx)): a `ToggleLinkGroup` (section 6) of `LayoutGrid` and `List`, state in `?view=grid|list`, defaulting to grid.
 
 **Cards** ([form-card.tsx](src/components/forms/form-card.tsx)), top to bottom: a 16:10 thumbnail linked to the editor with no border below it, a name row (bold, linked, truncated) with hover-revealed submissions and delete icons, and a meta row putting the published/draft Badge inline with field count, submission count, and new-submission count (`text-success`). Cards use `group` with `opacity-0 group-hover:opacity-100 transition-opacity` icons, a single content div at `px-4 py-3`, and `hover:shadow-md transition-shadow overflow-hidden`. Thumbnails are auto-captured (JPEG, 2x pixel ratio) from the preview panel by `useThumbnailCapture`, once when the editor opens and again after each save, stored as `Bytes`, served from `GET /api/forms/[formId]/thumbnail` with `no-cache` and a content-hash ETag (the URL never changes, so a max-age would show a stale image), falling back to `bg-muted/40` with the `<img>` hiding itself on 404. Grid is `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
 
