@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
+import { Toggle as TogglePrimitive, ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
@@ -48,6 +48,23 @@ function ToggleGroupItem({
   )
 }
 
+/** One on/off button in the group's frame, as a word processor's Bold
+    button sits beside its other format buttons. */
+function ToggleButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof TogglePrimitive.Root>) {
+  return (
+    <span data-slot="toggle-group" className={groupClasses}>
+      <TogglePrimitive.Root
+        data-slot="toggle-group-item"
+        className={cn(itemClasses, className)}
+        {...props}
+      />
+    </span>
+  )
+}
+
 /** `ToggleGroup`'s look for a choice kept in the URL: each option is a link,
     the current one marked with `aria-current`. Links stay links (no radio
     role), so it renders from server components without JS. */
@@ -77,4 +94,4 @@ function ToggleLinkItem({
   )
 }
 
-export { ToggleGroup, ToggleGroupItem, ToggleLinkGroup, ToggleLinkItem }
+export { ToggleButton, ToggleGroup, ToggleGroupItem, ToggleLinkGroup, ToggleLinkItem }

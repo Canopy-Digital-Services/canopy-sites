@@ -19,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ToggleButton, ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   AlignCenter,
   AlignLeft,
+  Bold,
   Check,
   ChevronUp,
   RotateCcw,
@@ -352,17 +353,6 @@ const weightOptions = (light: boolean): [string, string][] => [
   ["normal", "Regular"],
   ["bold", "Bold"],
 ];
-/** Weight in a toolbar: a B drawn at each weight, the bold one the word
-    processor's Bold button. */
-const WEIGHT_GLYPH: Record<string, string> = { light: "font-light", normal: "font-normal", bold: "font-bold" };
-const weightGlyphs = (light: boolean): [string, string, React.ReactNode][] =>
-  weightOptions(light).map(([v]) => [
-    v,
-    "",
-    <span key="b" className={WEIGHT_GLYPH[v]}>
-      B
-    </span>,
-  ]);
 
 function StyleRow({
   group,
@@ -710,14 +700,16 @@ export function StylingPanel() {
                 names={SIZE_NAMES}
                 onChange={(v) => set("titleSize", v)}
               />
-              <Segmented
-                id="titleWeight"
-                label="Weight"
-                value={shownWeight(titleWeight, titleFont)}
-                options={weightGlyphs(hasLight(titleFont))}
-                names={WEIGHT_LABELS}
-                onChange={(v) => set("titleWeight", v)}
-              />
+              <Tip text="Bold">
+                <ToggleButton
+                  aria-label="Bold"
+                  pressed={titleWeight === "bold"}
+                  onPressedChange={(on) => set("titleWeight", on ? "bold" : "normal")}
+                  className="min-w-7 px-1.5"
+                >
+                  <Bold />
+                </ToggleButton>
+              </Tip>
               <Segmented
                 id="titleAlign"
                 label="Alignment"
