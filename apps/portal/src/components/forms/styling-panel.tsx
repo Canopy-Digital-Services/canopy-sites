@@ -50,7 +50,6 @@ function toColorInputValue(value: string, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(n) ? n : fallback;
 }
 
-const SIZE_LABELS: Record<string, string> = { sm: "S", md: "M", lg: "L", xl: "XL" };
 const WEIGHT_LABELS: Record<string, string> = { light: "Light", normal: "Regular", bold: "Bold" };
 const WIDTH_LABELS: Record<string, string> = { sm: "Narrow", md: "Medium", lg: "Wide" };
 /** Corner radius presets, px. The embed's default is Slight. */
@@ -269,12 +268,6 @@ function ChoiceField({
   );
 }
 
-const SIZE_OPTIONS: [string, string][] = [
-  ["sm", "Small"],
-  ["md", "Medium"],
-  ["lg", "Large"],
-  ["xl", "Extra Large"],
-];
 /** The hosted page's own font, which an unset text font renders in. */
 const HOSTED_FONT = "Inter";
 
@@ -282,6 +275,8 @@ const HOSTED_FONT = "Inter";
     box. Text's default is 16 because iOS zooms into any field set smaller. */
 const TITLE_SIZE = 28;
 const TITLE_SIZES = [20, 28, 36, 48];
+const LABEL_SIZE = 18;
+const LABEL_SIZES = [16, 18, 20, 24];
 const TEXT_SIZE = 16;
 const TEXT_SIZES = [14, 16, 18];
 
@@ -319,15 +314,6 @@ function SizePicker({
     </Tip>
   );
 }
-const CASE_OPTIONS: [string, string][] = [
-  ["none", "Normal"],
-  ["uppercase", "Uppercase"],
-];
-const weightOptions = (light: boolean): [string, string][] => [
-  ...(light ? [["light", "Light"] as [string, string]] : []),
-  ["normal", "Regular"],
-  ["bold", "Bold"],
-];
 
 function StyleRow({
   group,
@@ -429,8 +415,7 @@ export function StylingPanel() {
   const labelFont = str("labelFont", "inherit");
   const labelWeight = str("labelWeight", "normal") === "semibold" ? "bold" : str("labelWeight", "normal");
   const labelColor = str("labelColor");
-  const labelSize = str("labelSize", "md");
-  const labelTransform = str("labelTransform", "none");
+  const labelSize = str("labelSize", String(LABEL_SIZE));
   // Fields
   const fieldBackground = str("fieldBackground");
   const border = str("border");
@@ -440,7 +425,8 @@ export function StylingPanel() {
   const buttonWidth = str("buttonWidth", "full");
   const buttonAlign = str("buttonAlign", "left");
 
-  // Light is offered only where the chosen font has a genuine 300 weight.
+  // Light is no longer offered (Bold is on or off), but a saved light weight
+  // still renders, and the summary names it, where the font has a 300 weight.
   const hasLight = (font: string) => font !== "inherit" && FONTS_WITH_LIGHT.has(font);
   const shownWeight = (weight: string, font: string) =>
     weight === "light" && !hasLight(font) ? "normal" : weight;
@@ -452,7 +438,7 @@ export function StylingPanel() {
       background, radius, density,
       titleFont, titleWeight, titleColor, titleSize, titleAlign,
       bodyFont, fontSize, text,
-      labelFont, labelWeight, labelColor, labelSize, labelTransform,
+      labelFont, labelWeight, labelColor, labelSize,
       fieldBackground, border,
       buttonText, primary, buttonWidth, buttonAlign,
       ...overrides,
@@ -490,8 +476,7 @@ export function StylingPanel() {
     newTheme.labelFont = s("labelFont") || "inherit";
     choice("labelWeight", "normal");
     color("labelColor");
-    choice("labelSize", "md");
-    choice("labelTransform", "none");
+    if (s("labelSize") && s("labelSize") !== String(LABEL_SIZE)) newTheme.labelSize = parseInt(s("labelSize"), 10);
 
     color("fieldBackground");
     color("border");
@@ -555,7 +540,6 @@ export function StylingPanel() {
   );
 
   const fontWord = (font: string) => font !== "inherit" && font;
-  const sizeWord = (size: string) => size !== "md" && `Size ${SIZE_LABELS[size] ?? size}`;
   const weightWord = (weight: string, font: string) =>
     shownWeight(weight, font) !== "normal" && WEIGHT_LABELS[shownWeight(weight, font)];
 
@@ -723,47 +707,42 @@ export function StylingPanel() {
             title="Labels"
             summary={
               <Summary
-                words={[fontWord(labelFont), weightWord(labelWeight, labelFont), sizeWord(labelSize), labelTransform === "uppercase" && "Uppercase"]}
+                words={[fontWord(labelFont), weightWord(labelWeight, labelFont), labelSize !== String(LABEL_SIZE) && `${labelSize}px`]}
                 colors={[[labelColor || text, "#18181b"]]}
               />
             }
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="labelFont">Font</Label>
-                <FontPicker
-                  id="labelFont"
-                  value={labelFont}
-                  onChange={(v) => set("labelFont", v)}
-                  variant="heading"
-                  showInherit={!isHosted}
-                  unsetFont={textFontName}
-                />
-              </div>
-              <ChoiceField
-                id="labelWeight"
-                label="Weight"
-                value={shownWeight(labelWeight, labelFont)}
-                options={weightOptions(hasLight(labelFont))}
-                onChange={(v) => set("labelWeight", v)}
-              />
-              <ColorField id="labelColor" label="Color">
-                {colorPicker("labelColor", "Label color", textColor)}
-              </ColorField>
-              <ChoiceField
+            {/* Title's toolbar, less alignment: labels line up with their fields. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Tip text="Font">
+                <div className="min-w-32 flex-1">
+                  <FontPicker
+                    id="labelFont"
+                    value={labelFont}
+                    onChange={(v) => set("labelFont", v)}
+                    variant="heading"
+                    showInherit={!isHosted}
+                    unsetFont={textFontName}
+                  />
+                </div>
+              </Tip>
+              {colorPicker("labelColor", "Color", textColor, true)}
+              <SizePicker
                 id="labelSize"
-                label="Size"
                 value={labelSize}
-                options={SIZE_OPTIONS}
+                sizes={LABEL_SIZES}
                 onChange={(v) => set("labelSize", v)}
               />
-              <ChoiceField
-                id="labelTransform"
-                label="Case"
-                value={labelTransform}
-                options={CASE_OPTIONS}
-                onChange={(v) => set("labelTransform", v)}
-              />
+              <Tip text="Bold">
+                <ToggleButton
+                  aria-label="Bold"
+                  pressed={labelWeight === "bold"}
+                  onPressedChange={(on) => set("labelWeight", on ? "bold" : "normal")}
+                  className="min-w-7 px-1.5"
+                >
+                  <Bold strokeWidth={3} />
+                </ToggleButton>
+              </Tip>
             </div>
           </StyleRow>
 

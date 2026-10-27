@@ -26,7 +26,6 @@ describe("embed theme: title and labels", () => {
     expect(vars.get("--canopy-label-font")).toBe("var(--canopy-font)");
     expect(vars.get("--canopy-label-weight")).toBe("400");
     expect(vars.has("--canopy-label-color")).toBe(false);
-    expect(vars.get("--canopy-label-transform")).toBe("none");
   });
 
   it("reads a legacy headingFont as both fonts", () => {
@@ -48,7 +47,7 @@ describe("embed theme: title and labels", () => {
   });
 });
 
-describe("embed theme: title size", () => {
+describe("embed theme: type sizes", () => {
   it("sizes the title in pixels, 28 by default", () => {
     expect(applied(resolveTheme({ titleSize: 36 }, null)).get("--canopy-title-size")).toBe("36px");
     expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("28px");
@@ -56,6 +55,11 @@ describe("embed theme: title size", () => {
 
   it("sets text at 16px by default, where iOS doesn't zoom into fields", () => {
     expect(applied(resolveTheme(null, null)).get("--canopy-font-size")).toBe("16px");
+  });
+
+  it("sizes labels in pixels, 18 by default", () => {
+    expect(applied(resolveTheme({ labelSize: 24 }, null)).get("--canopy-label-size")).toBe("24px");
+    expect(applied(resolveTheme(null, null)).get("--canopy-label-size")).toBe("18px");
   });
 
   it("still reads a legacy size key from data-theme as a multiple of the text size", () => {

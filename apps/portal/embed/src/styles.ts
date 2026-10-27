@@ -86,10 +86,9 @@ export const baseStyles = `
 
 .canopy-label {
   font-family: var(--canopy-label-font, var(--canopy-font, inherit));
-  font-size: var(--canopy-label-size, 1.5em);
+  font-size: var(--canopy-label-size, 18px);
   font-weight: var(--canopy-label-weight, 400);
   color: var(--canopy-label-color, var(--canopy-text, #18181b));
-  text-transform: var(--canopy-label-transform, none);
 }
 
 .canopy-required {

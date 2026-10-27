@@ -17,9 +17,9 @@ type ThemeDefaults = {
   titleSize: number | LegacySize;
   titleWeight: "light" | "normal" | "bold";
   titleAlign: "left" | "center";
-  labelSize: LegacySize;
+  /** Pixels, or a legacy size key as for titleSize. */
+  labelSize: number | LegacySize;
   labelWeight: "light" | "normal" | "bold";
-  labelTransform: "none" | "uppercase";
 };
 
 type LegacySize = "sm" | "md" | "lg" | "xl";
@@ -63,9 +63,8 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   titleSize: 28,
   titleWeight: "normal",
   titleAlign: "left",
-  labelSize: "md",
+  labelSize: 18,
   labelWeight: "normal",
-  labelTransform: "none",
 };
 
 const loadedFonts = new Set<string>();
@@ -198,13 +197,15 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 
+  // Sizes are pixels; a legacy key from a data-theme attribute is still
+  // read as a multiple of the text size.
   const sizeMap: Record<string, string> = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
-  const titlePx = Number(theme.titleSize);
-  container.style.setProperty(
-    "--canopy-title-size",
-    titlePx > 0 ? `${titlePx}px` : sizeMap[String(theme.titleSize)] ?? `${DEFAULT_THEME.titleSize}px`
-  );
-  container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
+  const typeSize = (size: unknown, fallback: unknown) => {
+    const px = Number(size);
+    return px > 0 ? `${px}px` : sizeMap[String(size)] ?? `${Number(fallback)}px`;
+  };
+  container.style.setProperty("--canopy-title-size", typeSize(theme.titleSize, DEFAULT_THEME.titleSize));
+  container.style.setProperty("--canopy-label-size", typeSize(theme.labelSize, DEFAULT_THEME.labelSize));
 
   // Legacy: stored themes may have "semibold" (title) or "medium" (label)
   const weightMap: Record<string, string> = {
@@ -230,7 +231,6 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   }
 
   container.style.setProperty("--canopy-title-align", theme.titleAlign === "center" ? "center" : "left");
-  container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 
 export function getDensityClass(theme: ThemeTokens) {
