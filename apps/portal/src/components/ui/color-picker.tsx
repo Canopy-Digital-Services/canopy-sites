@@ -8,15 +8,16 @@ import { cn } from "@/lib/utils";
 /** One color on offer, with the names of what already uses it. */
 export type PickerColor = { value: string; names: string[] };
 
-/** A titled row of colors: "In this form", and on Sites a brand row. */
-export type PickerRow = { title: string; colors: PickerColor[] };
+/** A row of colors: the form's own, and on Sites a titled brand row above. */
+export type PickerRow = { title?: string; colors: PickerColor[] };
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /**
  * A color as a swatch that opens rows of colors to pick from, so matching
- * one already in use is one click, and Custom for the system picker (which
- * takes hex on every platform). `value` is the color shown now, set or not.
+ * one already in use is one click, and New color for the system picker
+ * (which takes hex on every platform). With no colors to offer, the swatch
+ * opens the system picker itself. `value` is the color shown now, set or not.
  */
 export function ColorPicker({
   id,
@@ -33,6 +34,7 @@ export function ColorPicker({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const empty = rows.every((row) => row.colors.length === 0);
   const customRef = useRef<HTMLInputElement>(null);
   // Closing for Custom leaves focus alone: moving it back to the swatch can
   // dismiss the system picker as it opens.
@@ -49,33 +51,42 @@ export function ColorPicker({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <span className="relative inline-flex">
-        <Tooltip delayDuration={500}>
-          <TooltipTrigger asChild>
+      <Tooltip delayDuration={500}>
+        <TooltipTrigger asChild>
+          <span className="relative inline-flex rounded-md has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50">
             <Popover.Trigger asChild>
               <button
                 id={id}
                 type="button"
                 aria-label={label}
+                tabIndex={empty ? -1 : undefined}
+                aria-hidden={empty || undefined}
                 className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <span className="block size-full rounded-sm border border-black/10" style={{ background: value }} />
               </button>
             </Popover.Trigger>
-          </TooltipTrigger>
-          <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-        {/* The system picker opens anchored here, over the swatch. */}
-        <input
-          ref={customRef}
-          type="color"
-          tabIndex={-1}
-          aria-hidden
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="pointer-events-none absolute inset-0 size-full opacity-0"
-        />
-      </span>
+            {/* The system picker, laid invisibly over the swatch so it opens
+                anchored there. With nothing to offer, it takes the swatch's
+                clicks itself: a real click is the sure way to open it, and
+                showPicker() from the swatch's own click didn't. */}
+            <input
+              ref={customRef}
+              type="color"
+              tabIndex={empty ? undefined : -1}
+              aria-hidden={!empty || undefined}
+              aria-label={empty ? label : undefined}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className={cn(
+                "absolute inset-0 size-full cursor-pointer opacity-0",
+                !empty && "pointer-events-none"
+              )}
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
       <Popover.Portal>
         <Popover.Content
           sideOffset={4}
@@ -93,9 +104,9 @@ export function ColorPicker({
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
           )}
         >
-          {rows.map((row) => (
-            <div key={row.title} className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">{row.title}</p>
+          {rows.map((row, i) => (
+            <div key={row.title ?? i} className="space-y-1.5">
+              {row.title && <p className="text-xs text-muted-foreground">{row.title}</p>}
               <div className="flex flex-wrap gap-1.5">
                 {row.colors.map((color) => (
                   <Tooltip key={color.value} delayDuration={300}>
@@ -126,7 +137,7 @@ export function ColorPicker({
             onClick={openCustom}
             className="-mx-1.5 block w-[calc(100%+0.75rem)] rounded-sm px-1.5 py-1 text-left text-sm hover:bg-accent hover:text-accent-foreground"
           >
-            Custom…
+            New color
           </button>
         </Popover.Content>
       </Popover.Portal>

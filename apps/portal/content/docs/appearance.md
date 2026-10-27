@@ -31,7 +31,7 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 The form's title, in the header above the fields. Its settings sit on one line, like a word processor's toolbar. Hover over a control to see its name.
 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
-- **Color**: the swatch beside the font. It opens the colors already in your form, so you can match the title to the button or text in one click. Hover over a color to see what uses it. **Custom…** opens your system's color picker for any other color. Until you pick one, the title uses the text color.
+- **Color**: the swatch beside the font. Until you pick one, the title uses the text color. The first color you set anywhere in the form opens your system's color picker; after that, the swatch shows the colors you've already used, so you can match the title to the button in one click. Hover over a color to see what uses it, or choose **New color** for another.
 - **Size**: 20, 28, 36, or 48 pixels. 20 is the default.
 - **Bold**: turns bold on or off.
 - **Alignment**: left or center.
