@@ -49,9 +49,9 @@ describe("embed theme: title and labels", () => {
 });
 
 describe("embed theme: title size", () => {
-  it("sizes the title in pixels, 21 by default", () => {
-    expect(applied(resolveTheme({ titleSize: 32 }, null)).get("--canopy-title-size")).toBe("32px");
-    expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("21px");
+  it("sizes the title in pixels, 20 by default", () => {
+    expect(applied(resolveTheme({ titleSize: 36 }, null)).get("--canopy-title-size")).toBe("36px");
+    expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("20px");
   });
 
   it("still reads a legacy size key from data-theme as a multiple of the text size", () => {

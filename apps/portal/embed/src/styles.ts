@@ -387,7 +387,7 @@ export const baseStyles = `
 
 .canopy-title {
   font-family: var(--canopy-title-font, var(--canopy-font, inherit));
-  font-size: var(--canopy-title-size, 21px);
+  font-size: var(--canopy-title-size, 20px);
   font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
   text-align: var(--canopy-title-align, left);

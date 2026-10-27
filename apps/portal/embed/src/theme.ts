@@ -60,7 +60,7 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
-  titleSize: 21,
+  titleSize: 20,
   titleWeight: "normal",
   titleAlign: "left",
   labelSize: "md",
