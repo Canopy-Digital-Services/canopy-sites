@@ -339,8 +339,8 @@ const SIZE_OPTIONS: [string, string][] = [
 /** Title size in pixels, from a short list as in a word processor's size
     box. A saved size off the list (one converted from the old S to XL keys)
     joins it in order. */
-const TITLE_SIZE = 21;
-const TITLE_SIZES = [18, 21, 24, 28, 32, 36];
+const TITLE_SIZE = 20;
+const TITLE_SIZES = [20, 28, 36, 48];
 const titleSizes = (current: string) =>
   [...new Set([...TITLE_SIZES, Number(current)])].filter((px) => px > 0).sort((a, b) => a - b);
 const CASE_OPTIONS: [string, string][] = [
@@ -714,7 +714,7 @@ export function StylingPanel() {
                   onPressedChange={(on) => set("titleWeight", on ? "bold" : "normal")}
                   className="min-w-7 px-1.5"
                 >
-                  <Bold />
+                  <Bold strokeWidth={3} />
                 </ToggleButton>
               </Tip>
               <Segmented
