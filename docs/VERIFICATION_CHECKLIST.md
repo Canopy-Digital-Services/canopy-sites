@@ -101,7 +101,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 1. In the admin UI, navigate to a form's editor and use the Integrate tab to get the embed snippet.
 2. Create a minimal test HTML file or use a test page that embeds the form:
    ```html
-   <div data-can-o-form="<formId>" data-base-url="http://localhost:3006"></div>
+   <div data-canopy-form="<formId>" data-base-url="http://localhost:3006"></div>
    <script src="http://localhost:3006/embed.js" defer></script>
    ```
 3. Open it in the browser and confirm:

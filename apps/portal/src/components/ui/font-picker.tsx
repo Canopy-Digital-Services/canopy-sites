@@ -23,20 +23,26 @@ type FontPickerProps = {
    * have no host page to inherit from — pass false to hide it.
    */
   showInherit?: boolean;
+  /**
+   * The font an unset value renders in, when it's known: Inter on a hosted
+   * page, the text font for the title and labels. The trigger names it, and
+   * so does the inherit option, rather than a vague "Default". Left out, an
+   * unset value can only be named as the host page's font.
+   */
+  unsetFont?: string;
 };
 
-export function FontPicker({ value, onChange, id, variant = "body", showInherit = true }: FontPickerProps) {
+export function FontPicker({ value, onChange, id, variant = "body", showInherit = true, unsetFont }: FontPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const isInherit = value === INHERIT_VALUE || !value;
-  const displayLabel = isInherit && showInherit
-    ? INHERIT_LABEL
-    : isInherit
-      ? "Default"
-      : value;
+  const inheritLabel = unsetFont ?? INHERIT_LABEL;
+  // The font the trigger shows, set or not, so it renders in its own typeface.
+  const shownFont = isInherit ? unsetFont : value;
+  const displayLabel = isInherit ? inheritLabel : value;
 
   const isSearching = search.trim().length > 0;
   const query = search.trim().toLowerCase();
@@ -74,12 +80,12 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
     }
   }, [open]);
 
-  // Load the currently selected font so the trigger renders in its own typeface
+  // Load the shown font so the trigger renders in its own typeface
   useEffect(() => {
-    if (value && value !== INHERIT_VALUE) {
-      loadFonts([value]);
+    if (shownFont) {
+      loadFonts([shownFont]);
     }
-  }, [value]);
+  }, [shownFont]);
 
   // Load curated fonts so each option can render in its own typeface
   useEffect(() => {
@@ -108,7 +114,7 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
         >
           <span
             className="truncate text-left"
-            style={value && value !== INHERIT_VALUE ? { fontFamily: `'${value}', sans-serif` } : undefined}
+            style={shownFont ? { fontFamily: `'${shownFont}', sans-serif` } : undefined}
           >
             {displayLabel}
           </span>
@@ -163,7 +169,7 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
             {!isSearching && showInherit && (
               <FontOption
                 font={INHERIT_VALUE}
-                label={INHERIT_LABEL}
+                label={inheritLabel}
                 selected={value === INHERIT_VALUE || !value}
                 onSelect={handleSelect}
               />

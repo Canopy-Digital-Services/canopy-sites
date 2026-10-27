@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/site-editor";
 import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
@@ -407,24 +408,30 @@ export function CanvasEditor({
           ) : saveState === "error" ? (
             <span className="text-sm text-destructive">Not saved</span>
           ) : null}
-          <div className="flex items-center gap-1">
+          <ToggleGroup
+            type="single"
+            value={viewport}
+            // Pressing the pressed button would clear the choice; the canvas always has a width.
+            onValueChange={(v) => v && setViewport(v as "desktop" | "phone")}
+            aria-label="Viewport"
+          >
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant={viewport === "desktop" ? "secondary" : "ghost"} size="icon-sm" aria-label="Desktop" onClick={() => setViewport("desktop")}>
+                <ToggleGroupItem value="desktop" aria-label="Desktop" className="px-1.5">
                   <Monitor className="h-4 w-4" />
-                </Button>
+                </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent>Desktop</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant={viewport === "phone" ? "secondary" : "ghost"} size="icon-sm" aria-label="Phone" onClick={() => setViewport("phone")}>
+                <ToggleGroupItem value="phone" aria-label="Phone" className="px-1.5">
                   <Smartphone className="h-4 w-4" />
-                </Button>
+                </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent>Phone</TooltipContent>
             </Tooltip>
-          </div>
+          </ToggleGroup>
         </div>
       </div>
 

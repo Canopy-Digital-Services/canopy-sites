@@ -31,15 +31,13 @@ The URL uses the form's ID, which stays the same for the life of the form. Renam
 
 ## Customizing the hosted page
 
-The hosted page uses the form's theme plus a few extra controls that only show for hosted forms. All of these live under **Appearance → Page** on the Edit tab:
+The hosted page uses the form's theme plus a few extra controls that only show for hosted forms. All of these live under **Change styling → Page** on the Edit tab:
 
-- **Page Background Color**: the background behind the form card.
-- **Wrap form in a card**: toggle the surrounding card.
-- **Card Shadow**: None, Light, Medium, or Heavy.
-- **Content Width**: Narrow, Medium, or Wide.
-- **Vertical Alignment**: Top or Center.
+- **Background**: the background behind the form card.
+- **Card**: No card, Flat, or a Light, Medium, or Heavy shadow.
+- **Width**: Narrow, Medium, or Wide.
 
-Every other theme setting (colors, typography, density, button style) is shared by both form types. See [Appearance](./appearance.md) for the full list.
+Every other theme setting (colors, typography, spacing, button style) is shared by both form types. See [Styling](./appearance.md) for the full list.
 
 The hosted page also shows the form's **Title** and **Description** (set under **Edit → Header**), along with an SEO-friendly document title and OpenGraph tags.
 

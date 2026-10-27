@@ -21,10 +21,9 @@ import { cn } from "@/lib/utils";
 import { useFormContext } from "@/components/forms/form-context";
 import { HeaderSection } from "@/components/forms/header-section";
 import { FieldsSection } from "@/components/forms/fields-section";
-import { AppearanceSection } from "@/components/forms/appearance-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
 
-const STEPS = ["header", "fields", "appearance", "settings"] as const;
+const STEPS = ["header", "fields", "settings"] as const;
 
 type EditorFlowProps = {
   formId: string;
@@ -33,7 +32,7 @@ type EditorFlowProps = {
 
 export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
   const router = useRouter();
-  // 0..3 = section cards, STEPS.length = completion card
+  // Section cards by index, then STEPS.length = completion card
   const [step, setStep] = useState(0);
   const [exiting, setExiting] = useState<"forward" | "back" | null>(null);
 
@@ -101,7 +100,6 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
       >
         {current === "header" && <HeaderSection variant="flow" />}
         {current === "fields" && <FieldsSection formId={formId} variant="flow" />}
-        {current === "appearance" && <AppearanceSection variant="flow" />}
         {current === "settings" && (
           <AfterSubmissionSection ownerEmail={ownerEmail} variant="flow" />
         )}

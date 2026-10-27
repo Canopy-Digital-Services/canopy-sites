@@ -1,45 +1,29 @@
-import Link from "next/link";
 import { LayoutGrid, List } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ToggleLinkGroup, ToggleLinkItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ViewToggleProps = {
   view: "grid" | "list";
 };
 
+const VIEWS = [
+  { value: "grid", label: "Grid view", Icon: LayoutGrid },
+  { value: "list", label: "List view", Icon: List },
+] as const;
+
 export function ViewToggle({ view }: ViewToggleProps) {
   return (
-    <div className="flex gap-1">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={view === "grid" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label="Grid view"
-            asChild
-          >
-            <Link href="/forms?view=grid">
-              <LayoutGrid className="h-4 w-4" />
-            </Link>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Grid view</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={view === "list" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label="List view"
-            asChild
-          >
-            <Link href="/forms?view=list">
-              <List className="h-4 w-4" />
-            </Link>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>List view</TooltipContent>
-      </Tooltip>
-    </div>
+    <ToggleLinkGroup aria-label="View">
+      {VIEWS.map(({ value, label, Icon }) => (
+        <Tooltip key={value}>
+          <TooltipTrigger asChild>
+            <ToggleLinkItem href={`/forms?view=${value}`} active={view === value} aria-label={label} className="px-1.5">
+              <Icon className="h-4 w-4" />
+            </ToggleLinkItem>
+          </TooltipTrigger>
+          <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+      ))}
+    </ToggleLinkGroup>
   );
 }

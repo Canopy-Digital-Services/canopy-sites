@@ -91,7 +91,7 @@
 
 **Use case:** Makes it obvious which part of the form each setting affects, especially for colors and typography.
 
-**Partly built:** the editor marks the focused header input and the open field row with a hand-drawn box (`PreviewMark`, see `docs/UX_PATTERNS.md`); appearance controls don't yet.
+**Partly built:** the editor marks the focused header input and the open field row with a hand-drawn box (`PreviewMark`, see `docs/UX_PATTERNS.md` section 10), and styling mode outlines a part of the form on hover and marks everything a row styles when it opens. Individual controls inside a row don't mark their own elements yet.
 
 **Technical considerations:**
 - Preview and editor are same document; no iframe, so we can query the preview container DOM from the admin app.

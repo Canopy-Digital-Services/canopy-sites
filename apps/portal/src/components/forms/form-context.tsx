@@ -49,15 +49,16 @@ export type PreviewFocus = "title" | "description" | `field:${string}` | null;
 
 /** What the live preview shows for an empty header, so the editor starts
     from a header the user can see and overwrite. Preview only, and only
-    while the header step is open: nothing is saved until the user types. */
+    while the header step is open or while styling: nothing is saved until
+    the user types. */
 export const HEADER_PLACEHOLDERS = {
   title: "Contact Us",
   description: "Fill out the form below and we'll get back to you.",
 } as const;
 
 /** What the live preview shows in place of an empty field list, on every
-    editor step after the header: a form to look at while adding fields or
-    styling. Preview only, like HEADER_PLACEHOLDERS. */
+    editor step after the header and while styling: a form to look at while
+    adding fields or styling it. Preview only, like HEADER_PLACEHOLDERS. */
 export const FIELD_PLACEHOLDERS: FieldState[] = [
   { label: "Name", type: "TEXT", validation: null },
   { label: "Email", type: "EMAIL", validation: null },
@@ -76,7 +77,11 @@ export const FIELD_PLACEHOLDERS: FieldState[] = [
 
 /** The editor-flow step on screen, which decides the preview's stand-ins.
     Null outside the flow. */
-export type EditorStep = "header" | "fields" | "appearance" | "settings" | "done" | null;
+export type EditorStep = "header" | "fields" | "settings" | "done" | null;
+
+/** A part of the form the styling panel styles, picked in the panel or by
+    clicking it in the preview. */
+export type StyleGroup = "page" | "form" | "title" | "text" | "labels" | "fields" | "button";
 
 type FormContextValue = {
   state: FormState;
@@ -102,6 +107,16 @@ type FormContextValue = {
   setPreviewFocus: (focus: PreviewFocus) => void;
   editorStep: EditorStep;
   setEditorStep: (step: EditorStep) => void;
+  /** Styling mode: the styling panel replaces the editor flow and the
+      preview picks a group on click. */
+  styling: boolean;
+  setStyling: (styling: boolean) => void;
+  /** The open styling group, one at a time. */
+  styleGroup: StyleGroup | null;
+  setStyleGroup: (group: StyleGroup | null) => void;
+  /** The styling group whose panel row is hovered, which the preview outlines. */
+  styleHover: StyleGroup | null;
+  setStyleHover: (group: StyleGroup | null) => void;
 };
 
 const FormContext = createContext<FormContextValue | null>(null);
@@ -346,6 +361,9 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [previewFocus, setPreviewFocus] = useState<PreviewFocus>(null);
   const [editorStep, setEditorStep] = useState<EditorStep>(null);
+  const [styling, setStyling] = useState(false);
+  const [styleGroup, setStyleGroup] = useState<StyleGroup | null>(null);
+  const [styleHover, setStyleHover] = useState<StyleGroup | null>(null);
 
   useAutoSave(initialForm.id, state, setSaveStatus, toast, autoSaveEnabled);
 
@@ -411,6 +429,12 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     setPreviewFocus,
     editorStep,
     setEditorStep,
+    styling,
+    setStyling,
+    styleGroup,
+    setStyleGroup,
+    styleHover,
+    setStyleHover,
   };
 
   return <FormContext.Provider value={value}>{children}</FormContext.Provider>;

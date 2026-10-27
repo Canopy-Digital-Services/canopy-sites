@@ -42,20 +42,22 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 26. A larger radius to make something friendlier. Radius is not a design lever here.
 27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
 28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
-29. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
+29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
+30. A dropdown for a choice of two to four short options in a settings panel, or loose buttons or a tab strip for any exclusive choice (a setting, a view, a filter). Use `ToggleGroup` (section 6), which shows every option.
+31. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
 
 **Always:**
 
-30. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-31. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-32. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
-33. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-34. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-35. `GripVertical` visible in a sortable row, even when the whole row drags.
-36. `PageHeader` for page titles. Never an inline `<h1>`.
-37. `PageContent` on admin pages, except the form editor.
-38. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-39. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+32. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+33. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+34. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+35. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+36. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+37. `GripVertical` visible in a sortable row, even when the whole row drags.
+38. `PageHeader` for page titles. Never an inline `<h1>`.
+39. `PageContent` on admin pages, except the form editor.
+40. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+41. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -211,6 +213,8 @@ Failed the test and were removed: "Configure the field details and validation ru
 
 Passed, and why: "Domains allowed to embed and submit to this form. Localhost is always allowed for development" (a constraint you can't infer), "You'll be signed out of all sessions shortly after" (a consequence), "Leave empty for no limit. Spam submissions are not counted" (non-obvious behavior of a blank value).
 
+**The same goes for labels, tags, and instructions.** The editor's preview once sat under a "Preview" caption, which named the pane the user was looking at; it gave way to the Change styling button. Styling mode was built without hover tags naming each part of the form and without a "Select a form element" line: the hover outline shows what a click will pick. Add an instruction only once testing shows people get lost without it.
+
 **Trim rather than delete when a sentence mixes both.** The Password card read "Change your password. You'll be signed out of all sessions shortly after." The first sentence restated the title; the second survived alone.
 
 **Zero states are the exception.** A first-run empty state is the one place a sentence of orientation earns its keep, because the user has no surrounding context. That does not license helper text beside a labelled Add button in a populated list.
@@ -229,8 +233,14 @@ Passed, and why: "Domains allowed to embed and submit to this form. Localhost is
 | `destructive` | Dangerous action when it's a single confirm/cancel choice |
 | `outline` | Secondary (Cancel, Back) |
 | `ghost` | Tertiary and icon-only in toolbars |
-| `secondary` | Alternative secondary styling; also active filter state |
+| `secondary` | Alternative secondary styling; also the current section in `SitesNav` |
 | `link` | Text actions. With `text-destructive`, de-emphasizes a dangerous option beside a safer primary. |
+
+**Exclusive choices** (a setting such as a width, a view such as chart or table, a filter such as a submission status) use one look: `ToggleGroup` ([toggle-group.tsx](src/components/ui/toggle-group.tsx)), a bordered `bg-card` track whose pressed option gets the soft `secondary` highlight, the same selection color as the current nav section. Every option shows and takes one click. Loose `secondary`/`ghost` buttons read as a second nav bar, and the muted pill track is `Tabs`, which is for navigation.
+
+- **Kept in the URL** (`?view=`, `?range=`, `?status=`): `ToggleLinkGroup` and `ToggleLinkItem`, the same look built from `Link`s with `aria-current` on the active one. They stay links rather than radios, so they render from server components without JS. Reference: [view-toggle.tsx](src/components/forms/view-toggle.tsx).
+- **Icon-only items** keep a `Tooltip` (rule 3) and take `className="px-1.5"` to square up. The pressed style reads `aria-checked`, `aria-pressed`, and `aria-current`, never `data-state`: a `TooltipTrigger asChild` round an item replaces its `data-state` with the tooltip's own. Reference: the viewport toggle in [canvas-editor.tsx](src/app/(admin)/(sites)/editor/canvas-editor.tsx).
+- A setting with five or more options, or long labels, stays a `Select`. A filter shows every option, since it is read as well as set.
 
 Sizes step on a tight scale: `sm` 28px, `default` 32px (deliberately compact), `lg` 40px, plus `icon-sm` 28px (**use for action icons in lists**), `icon` 32px, `icon-lg` 40px. Corners are the workhorse radius. Filled variants carry no shadow; `outline` carries `shadow-xs`. Ghost hover lands on `hover:bg-muted`.
 
@@ -482,7 +492,7 @@ Baseline-aligned, since it's a parenthetical to the title rather than a chip bes
 
 `PageHeader` ([page-header.tsx](src/components/patterns/page-header.tsx)) takes `title`, `description`, `actions`, and `backHref`. Prefer `backHref` (an ArrowLeft before the title) over a "Back to X" action button.
 
-`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts. For Sites accounts the admin layout passes `SitesNav` ([sites-nav.tsx](src/components/sites/sites-nav.tsx)) as `navItems`: ghost `size="sm"` buttons with an icon and label, the current section getting `variant="secondary"` and `aria-current="page"` (the same soft highlight as an active filter). Forms-only accounts get no nav items. Sites accounts also get `DraftStatus` ([draft-status.tsx](src/components/sites/draft-status.tsx)) at the start of the `userMenu` slot: dot plus text for the site's draft (preparing, unpublished, failed), a ghost Discard behind `ConfirmDialog`, and Publish, enabled only once the draft's preview is built. It renders nothing without a draft. Anything that changes the draft dispatches `DRAFT_CHANGED` on `window` so it refreshes at once; it dispatches `DRAFT_PUBLISHED` after a publish or discard.
+`TopNavLayout` ([top-nav-layout.tsx](src/components/patterns/top-nav-layout.tsx)) takes `logo`, `navItems`, `userMenu`, `children`, all required. Desktop (md+) is a horizontal bar (`h-14`, `border-b`, `bg-muted/40`); below md the logo stays left and a hamburger opens a left-sliding Sheet holding logo, nav, and user menu. The `logo` slot renders in **both** places, so anything in it appears in both with no mobile handling. Content area is `flex-1 min-h-0 flex flex-col overflow-auto`, with pages adding their own spacing. Used by the admin and operator layouts. For Sites accounts the admin layout passes `SitesNav` ([sites-nav.tsx](src/components/sites/sites-nav.tsx)) as `navItems`: ghost `size="sm"` buttons with an icon and label, the current section getting `variant="secondary"` and `aria-current="page"` (the same soft highlight as a pressed `ToggleGroup` option). Forms-only accounts get no nav items. Sites accounts also get `DraftStatus` ([draft-status.tsx](src/components/sites/draft-status.tsx)) at the start of the `userMenu` slot: dot plus text for the site's draft (preparing, unpublished, failed), a ghost Discard behind `ConfirmDialog`, and Publish, enabled only once the draft's preview is built. It renders nothing without a draft. Anything that changes the draft dispatches `DRAFT_CHANGED` on `window` so it refreshes at once; it dispatches `DRAFT_PUBLISHED` after a publish or discard.
 
 `UserMenu` ([user-menu.tsx](src/components/patterns/user-menu.tsx)) is a 32px initials circle (`bg-primary text-primary-foreground`, `bg-primary/80` on hover) with no visible email, opening downward to email, Manage Account, and Sign Out. Initials are the first two alphanumerics of the email local part, uppercased, falling back to "?".
 
@@ -500,7 +510,7 @@ Baseline-aligned, since it's a parenthetical to the title rather than a chip bes
 
 Layout: the Editor tab is a two-column split, Publish and Submissions are single full-width columns. On `lg+` both columns are a fixed `w-[600px]`, centered as a pair, with the editor column's content constrained to `max-w-[640px]` inside it; the preview column carries a symmetric side shadow and is `hidden lg:flex`. The editor column is `overflow-y-auto overflow-x-hidden`, and that horizontal clip is what contains the flow cards' sideways exit. Below `lg` the editor is full-width and the preview hides behind a fixed right-edge handle opening a `RightPanel` sheet. Preview mode is derived from `form.type` (`HOSTED` page, `EMBEDDED` embed), never user-toggled.
 
-`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Appearance, Submission Settings, then a terminal "All set" card linking to Publish. A stack of four cards presented its full complexity before the first decision.
+`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Submission Settings, then a terminal "All set" card linking to Publish. A stack of cards presented its full complexity before the first decision. Styling is not a step (see Styling mode below).
 
 - Section cards take `variant="flow" | "accordion"`. `flow` is always-expanded with no chevron; `accordion` is the original collapsible card. Both are maintained.
 - **Advancing is animation-driven**: Continue sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
@@ -508,9 +518,15 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 - Section cards are plain `Card`s with no accent bar (see rule 22).
 - On Header with both fields empty, the forward button reads **No Header** instead of Continue.
 
-**Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
+**Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields, and both in styling mode. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
 
-**Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. The canvas sits inside the embed container (`relative`), on top of the form: it is ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, it vanished behind inputs' backgrounds.
+**Focus mark.** Focusing a Header input or opening a field row sets `previewFocus`, and `PreviewMark` ([preview-mark.tsx](src/components/forms/preview-mark.tsx)) sketches a coral marker box round the matching preview element with the canopyds.com marker brush ([marker-brush.ts](src/lib/marker-brush.ts)), then redraws it finished as the preview re-renders under typing. It boxes every match of a selector, one canvas each, drawn by hand only when its `drawKey` changes. The canvases sit in the preview surface (the `relative` wrapper round the page or embed background), on top of the form: they are ink drawn on the page, so crossing a field's edge or grazing nearby text is expected. Drawn under the content, a box vanished behind inputs' backgrounds; drawn inside the card, the card's `overflow: hidden` clipped it. Canvases carry `data-preview-mark`, and thumbnail capture filters them out.
+
+**Styling mode.** Styling isn't a flow step: it applies to the whole form at any time, so a step forced users through header and fields first. **Change styling** sits in the preview's top bar (and above the flow below `lg`) and toggles `styling` in `FormContext`. The styling panel (`StylingPanel`, section 11) then replaces the flow in the editor column, which stays mounted under it so **Done** returns to the same step. Each panel row is a part of the form you can click in the preview (`StyleGroup`).
+
+- **Hover outlines; selection marks.** Hovering the preview draws a thin `border-primary` outline (`PreviewOutline`, [preview-outline.tsx](src/components/forms/preview-outline.tsx)) hugging the one element under the pointer at its own corner radius, as builders and the browser's inspector do; the card or the page outline as a whole. Hovering a panel row (`styleHover`) outlines every element its group styles. Clicking a part, or opening its row, sets `styleGroup` and draws the marker boxes by hand round everything that group styles. A field's checkbox options are boxed and outlined as one list, not one box per option. Everything a row marks must render from that row's settings: help text was hard-coded grey and the description drawn at 75% opacity, so the Text color reached neither; both now use `--canopy-text` as is. Marker boxes on hover were tried first and rejected: several hand-drawn shapes on every pointer move were chaotic, and a box round the whole card or page pointed at nothing.
+- Clicks never reach the form: capture handlers stop focus, typing, dropdowns, and links. `.preview-styling` in `globals.css` sets the pointer cursor, lets stand-in fields be picked, and hides the Submit button's preview tooltip.
+- `ZONES` (what a click picks) and `groupTargets` (what a group marks and outlines) in [form-preview.tsx](src/components/forms/form-preview.tsx) follow the embed's class names, so an embed markup change must keep them matching.
 
 Known gaps, deliberate and pending further disclosure work: the flow always starts at Header even when editing an existing form, progress dots aren't clickable, and there's no per-card disclosure.
 
@@ -551,7 +567,7 @@ Numeric counts in cells are plain `text-sm text-muted-foreground`, not badges. I
 
 Action hierarchy responds to state: the likely next action takes `default` while the rest stay `outline` (Mark as Read is primary while status is `NEW`).
 
-Filters use title-case labels with uppercase enum values as params, and the active button uses `variant="secondary"` (soft highlight) rather than filled `default`, since a filter is selection state, not a primary action.
+Filters use title-case labels with uppercase enum values as params, in a `ToggleLinkGroup` (section 6).
 
 Empty states: a plain `text-sm text-muted-foreground` line suffices inline; use `EmptyState` ([empty-state.tsx](src/components/patterns/empty-state.tsx)) with `icon`, `title`, `description`, `action` for prominent ones. This is the one place an orienting sentence is welcome (section 5).
 
@@ -565,9 +581,9 @@ Cards render as `<button type="button" role="radio" aria-checked>` so they're ke
 
 The forms landing page defaults to a card grid with a toggle to a compact list.
 
-**View toggle** ([view-toggle.tsx](src/components/forms/view-toggle.tsx)): two `Link`s (server component, no JS) in a pill-shaped `bg-muted` container, active getting `bg-background shadow-sm`. State lives in `?view=grid|list`, defaulting to grid. Icons `LayoutGrid` and `List`.
+**View toggle** ([view-toggle.tsx](src/components/forms/view-toggle.tsx)): a `ToggleLinkGroup` (section 6) of `LayoutGrid` and `List`, state in `?view=grid|list`, defaulting to grid.
 
-**Cards** ([form-card.tsx](src/components/forms/form-card.tsx)), top to bottom: a 16:10 thumbnail linked to the editor with no border below it, a name row (bold, linked, truncated) with hover-revealed submissions and delete icons, and a meta row putting the published/draft Badge inline with field count, submission count, and new-submission count (`text-success`). Cards use `group` with `opacity-0 group-hover:opacity-100 transition-opacity` icons, a single content div at `px-4 py-3`, and `hover:shadow-md transition-shadow overflow-hidden`. Thumbnails are auto-captured (JPEG, 2x pixel ratio) from the preview panel by `useThumbnailCapture`, once when the editor opens and again after each save, stored as `Bytes`, served from `GET /api/forms/[formId]/thumbnail` with `no-cache` and a content-hash ETag (the URL never changes, so a max-age would show a stale image), falling back to `bg-muted/40` with the `<img>` hiding itself on 404. Grid is `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
+**Cards** ([form-card.tsx](src/components/forms/form-card.tsx)), top to bottom: a 16:10 thumbnail linked to the editor with no border below it, a name row (bold, linked, truncated) with hover-revealed submissions and delete icons, and a meta row putting the published/draft Badge inline with field count, submission count, and new-submission count (`text-success`). Cards use `group` with `opacity-0 group-hover:opacity-100 transition-opacity` icons, a single content div at `px-4 py-3`, and `hover:shadow-md transition-shadow overflow-hidden`. Thumbnails are auto-captured (JPEG, 2x pixel ratio) from the preview panel by `useThumbnailCapture`, with the web fonts the preview has loaded inlined (`thumbnailFontCss`; the capture is an image, which can't reach the page's fonts), once when the editor opens and again after each save, stored as `Bytes`, served from `GET /api/forms/[formId]/thumbnail` with `no-cache` and a content-hash ETag (the URL never changes, so a max-age would show a stale image), falling back to `bg-muted/40` with the `<img>` hiding itself on 404. Grid is `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`.
 
 Above the grid, a single `text-sm text-muted-foreground` summary strip shows aggregate totals ("5 forms · 20 submissions · 3 new", with "new" in `text-success font-medium`), hidden in the empty state.
 
@@ -589,6 +605,8 @@ Embedded forms use their own theming system in `embed/src/theme.ts`, unrelated t
 
 - **`ThemeDefaults`**: tokens with a default. `DEFAULT_THEME` must provide all of them. Adding one means editing both.
 - **`ThemeOverrides`**: optional tokens with no default (`bodyFont`, `titleColor`, `pageBackground`). Adding one needs nothing else.
+
+**Title and labels are separate token sets**: `titleFont`, `titleWeight`, `titleColor`, `titleSize`, `titleAlign` and `labelFont`, `labelWeight`, `labelColor`, `labelSize`, each driving its own `--canopy-title-*` / `--canopy-label-*` variable. They shared one heading style until 2026-10; migration `20261026210000_split_title_label_theme` wrote that shared style out to both sets in every saved theme. Neither has a case setting (text in capitals is typed in capitals): migration `20261027000000_remove_title_transform` dropped the `titleTransform` the split had written, and `20261027110000_label_size_pixels_no_case` dropped `labelTransform`. `titleSize` is pixels (default 28), not a multiple of `fontSize` (default 16): migration `20261027100000_title_size_pixels` wrote each saved theme's S to XL key out as the pixels it rendered at, except a title left at the old default (21px), which takes the new one; `20261027110000_label_size_pixels_no_case` did the same for `labelSize` (default 18). `applyTheme` still reads a size key as em, for `data-theme` attributes. The legacy `headingFont` survives only in `resolveTheme`, which reads it as both fonts where they are unset, because `data-theme` attributes on customers' sites may still carry it.
 - **`ThemeTokens`** = `Partial<ThemeDefaults> & ThemeOverrides`, the public type. All fields optional, since a stored theme only holds what the user set.
 
 ```typescript
@@ -598,7 +616,8 @@ fieldBackground: "#ffffff"   // inputs              (--canopy-field-bg)
 primary:         "#005F6A"   // button bg, focus    (--canopy-primary)
 border:          "#e4e4e7"   // input borders       (--canopy-border)
 text:            "#18181b"   // labels and body     (--canopy-text)
-// Derived, not stored: --canopy-button-text (white or #18181b by WCAG luminance of primary),
+// --canopy-button-text: buttonTextColor (an override) if set, else autoButtonTextColor:
+//   white on a dark primary; on a light one the text color if it reads at 4.5:1, else #18181b
 // ::placeholder (--canopy-text at 0.5 opacity, CSS only)
 ```
 
@@ -609,7 +628,6 @@ pageBackground?: string                   // falls back to bg-muted/40
 cardEnabled?: boolean                     // default true
 cardShadow?: "none" | "sm" | "md" | "lg"  // default "md"
 contentWidth?: "sm" | "md" | "lg"         // 480/640/768px, default "md"
-verticalAlign?: "top" | "center"          // default "top"
 ```
 
 Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, used by `hosted-form-page.tsx` and `form-preview.tsx`.
@@ -620,25 +638,29 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 **Font loading**: the embed's `ensureFontsLoaded` and the picker both request `${baseUrl}/api/fonts?family=A&family=B`. The route (`src/lib/font-css.ts`) emits `@font-face` rules pointing at `/fonts/*` for families in `self-hosted-fonts.json`, and a single Google Fonts `@import` for any other family, so the full picker catalogue still works while catalog fonts never touch Google. `/fonts/*` carries `Access-Control-Allow-Origin: *` (next.config.ts) because embeds load them cross-origin. The legacy `fontUrl` theme field still loads its stored URL directly.
 
-### Appearance editor
+### Styling panel
 
-[appearance-section.tsx](src/components/forms/appearance-section.tsx) is an always-open Card with five collapsible SubSection peers, each showing summary chips when collapsed. There is no third nesting tier. Colors sit with the element they affect rather than in a separate color section.
+[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run from the page inward (Page, Form), then the type from most to least prominent (Title, Labels, Text), then Fields and Button. Text sits below Labels although it's second on the form: the list reads as a hierarchy, not a map. A collapsed row shows its non-default values as muted words and color dots. Unlike a field row's label, a row title is a section heading (`font-heading font-semibold text-base`, neutral `--foreground`): at the field rows' `font-medium text-sm` the sections didn't read as places to go. The open row's title gets a coral marker underline, drawn by hand as it opens, and its controls are `bg-card` white so they stand off the row's tint (`bg-background` is the grey page color, not white).
 
 ```
-Appearance  (always-open Card)
-├─ Page        [swatch]                              ← hosted-only
-├─ Form        [swatch] [swatch] [swatch] · radius 8 ← surfaces, borders, spacing
-├─ Headings    Montserrat · Semibold · [swatch]      ← title + label shared style
-├─ Body        Lato · 14px · [swatch]
-└─ Button      Submit · [swatch]
+Page     Wide · [swatch]              ← hosted only
+Form     Round · Roomy · [swatch]     ← background, corners, spacing
+Title    Lora · Bold · 36px · [swatch]
+Labels   Lora · Bold · 20px · [swatch]
+Text     Inter · 18px · [swatch]       ← description, help text, input text
+Fields   [swatch] [swatch]             ← field background, border
+Button   Send · Center · [swatch]      ← text, color, width
 ```
 
-- **Page**: page background (hosted only). **Form**: background, field background, field border, radius, density, button width and alignment. **Headings**: font, weight, color, label transform, title size. **Body**: font, base size, text color. **Button**: text and color.
-- **SubSection titles are neutral `--foreground`, not `text-primary`.** As teal they made children look more important than the "Appearance" card title above them. Hierarchy inside a card comes from size alone: 22px card title, 16px SubSection titles, same color.
-- The form title and all field labels share one heading style (`headingFont`, `titleWeight`, `titleColor`). Label transform is label-specific; title size is title-specific, since labels always render at body size.
-- Each color control is a native swatch plus a hex input that normalizes to `#rrggbb` on blur.
+- **Each setting lives in exactly one row.** A setting shared by two rows reads as one change in one place silently changing another. The title and labels each have their own font, weight, color, and size (section 11). Corner radius rounds the card, inputs, and button together, so it belongs to Form, which is all three.
+- **One setting per line** (`SettingRow`): label on the left, control on the right, as in a design tool's inspector. It halves a row's height and the labels scan as a column; stacked labels suit text the user types. Page, Form, Fields, and Button use it. Fields keeps its labels where the type rows dropped theirs: two bare swatches wouldn't say which is the fill and which the outline. Settings run from the biggest visual effect to the smallest.
+- **Type settings are a toolbar.** Title puts font, color, size, bold, and alignment on one unlabeled line, in that order (Labels: the same less alignment, since labels line up with their fields; Text: font, color, size), like a word processor's formatting bar: people know these controls from Word, so a label column only restated them. Size is Word's size box (`SizePicker`): a narrow dropdown of pixel sizes, Title 20, 28, 36, 48 (steps that widen as the type grows, default 28), Labels 16, 18, 20, 24 (default 18, between text and title), and Text 14, 16, 18 (default 16, since iOS zooms into any field under 16px). It reads more familiar than S/M/L/XL, leaves width to the font, and has no free entry; a saved size off the list (a converted key, or one set through `data-theme`) joins it so it shows. Weight is Word's one Bold button (`ToggleButton`), on or off, so Light isn't offered there. Alignment is icons. Each control names itself in a tooltip after a 500ms dwell (`Tip`, or `Segmented` given a `label`), the word processor's convention, so sweeping the pointer across doesn't flash a run of them. The color is an unlabeled swatch right after the font, the pair being one decision. The font picker takes the slack; the line wraps only when the column is narrower than the editor's 600px.
+- **Content width previews in proportion.** The pane is narrower than the Medium and Wide content widths, so at their real widths they rendered identically. `FormPreview` sizes a hosted form's content as a share of the pane instead: Wide fills it edge to edge, Medium and Narrow keep their ratio to Wide. Zooming the whole page out to a laptop's width was tried first and rejected. Vertical centering was removed in the same pass (migration `20261026230000_remove_vertical_align`): every hosted form sits at the top.
+- **Presets over numbers.** Form's corners are Square, Slight, Round, Rounder (`radius` 0, 4, 8, 16) rather than a pixel box: owners judge corners by eye, not px. A saved radius between presets presses no button and is kept until changed.
+- **One decision, one control.** A checkbox that reveals a dependent control is folded into one choice: Page's Card is No card, Flat, or a shadow strength, written to `cardEnabled` and `cardShadow` together. Button's text color is an unlabeled swatch after the button's text, the pair being one decision as a font and its color are. Unset, it shows the automatic color (`autoButtonTextColor`, shared by the embed and the panel); once picked it holds whatever the button color, so an owner can match their brand's white-on-orange though it fails contrast. The automatic dark is the form's text color where it reads, not a fixed near-black. No contrast warning: the preview shows the result, and warning copy is the labeling this panel avoids. Button's Width is Full, or as wide as its text at the left, center, or right (icons, named in tooltips), written to `buttonWidth` and `buttonAlign` together; alignment used to appear only once Width was Auto.
+- **A color opens our own picker** (`ColorPicker`, [color-picker.tsx](src/components/ui/color-picker.tsx)): the swatch opens a popover of the colors the owner has set anywhere in the form, each once, its tooltip naming what uses it ("Title, Button"), the current one ringed, then New color for the system picker (anchored on the swatch; every platform's takes hex, so there's no hex box). Matching the title to the button is one click. Defaults aren't offered: a new form's are Canopy's brand colors, no use to anyone else, and a stock palette is just as unlikely to be what an owner wants. So with nothing set yet the swatch skips the popover and opens the system picker directly. No row is titled, since the form beside it says where the colors came from; a row may take a title, for a Brand row above on Sites. Black and white aren't offered either: text is already near-black by default, and pure white is a choice to make on purpose. An unset title or label color shows as the text color it renders with; picking stores a color, so nothing links a title to the text color any more. Every color in the panel uses it. Nothing offers a way back to a default: on Forms the defaults are Canopy's own colors, so nothing is lost; on Sites, where defaults come from the site's brand, an element's brand default is to be offered once it has moved off it.
 
-**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Body uses `variant="body"` (default) showing `CURATED_FONTS`; Headings uses `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. Search results don't load fonts, since someone typing a name already knows what it looks like.
+**Font pickers**: both use `FontPicker` ([font-picker.tsx](src/components/ui/font-picker.tsx)) with different lists. Text uses `variant="body"` (default) showing `CURATED_FONTS`; Title and Labels use `variant="heading"` showing `CURATED_HEADING_FONTS`. Search filters the full Google Fonts catalogue in both cases; the variant only sets the default list. Previews render each option in its own typeface: opening the picker loads the curated list through `src/lib/load-fonts.ts`, which injects one combined `/api/fonts` stylesheet, deduplicated per session. The selected font also loads eagerly on mount so the closed trigger renders correctly. An unset font is named by what it renders in (`unsetFont`), never "Default": Inter on a hosted page (the app's font), and for Title and Labels the text font they follow. Only an embedded form's unset text font, which is the host page's, reads "Inherit from host page". Search results don't load fonts, since someone typing a name already knows what it looks like.
 
 ---
 
