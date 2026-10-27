@@ -30,7 +30,7 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 
 The form's title, in the header above the fields. Its settings sit on one line, like a word processor's toolbar. Hover over a control to see its name.
 
-- **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
+- **Font**: pick a Google Font. Curated heading fonts are listed first. Until you pick one, the title uses the text font, and the picker shows its name.
 - **Color**: the swatch beside the font. Until you pick one, the title uses the text color.
 - **Size**: 20, 28, 36, or 48 pixels. 28 is the default.
 - **Bold**: turns bold on or off.
@@ -44,7 +44,7 @@ The label above each field. Same settings as Title, set separately: a bold title
 
 The description, help text, option labels, and what people type into fields. Same toolbar as Title: font, color, and size.
 
-- **Font**: the body font. Embedded forms also offer **Inherit from host page**.
+- **Font**: the body font. Hosted forms use Inter until you pick one. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font.
 - **Color**: placeholder text uses this color at reduced opacity.
 - **Size**: 14, 16, or 18 pixels. 16 is the default; on iPhones, fields with smaller text zoom in when tapped.
 

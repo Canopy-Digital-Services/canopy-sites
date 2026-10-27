@@ -275,6 +275,9 @@ const SIZE_OPTIONS: [string, string][] = [
   ["lg", "Large"],
   ["xl", "Extra Large"],
 ];
+/** The hosted page's own font, which an unset text font renders in. */
+const HOSTED_FONT = "Inter";
+
 /** Type sizes in pixels, from a short list as in a word processor's size
     box. Text's default is 16 because iOS zooms into any field set smaller. */
 const TITLE_SIZE = 28;
@@ -537,6 +540,9 @@ export function StylingPanel() {
   // Unset, a color shows as what it renders with: the title and labels as
   // the text color, the rest as their defaults.
   const textColor = toColorInputValue(text, "#18181b");
+  // The text font by name where it's known; the title and labels follow it
+  // until set. On an embedded form an unset text font is the host page's.
+  const textFontName = bodyFont !== "inherit" ? bodyFont : isHosted ? HOSTED_FONT : undefined;
   const colorPicker = (key: string, label: string, fallback: string, tooltip = false) => (
     <ColorPicker
       id={key}
@@ -677,6 +683,7 @@ export function StylingPanel() {
                     onChange={(v) => set("titleFont", v)}
                     variant="heading"
                     showInherit={!isHosted}
+                    unsetFont={textFontName}
                   />
                 </div>
               </Tip>
@@ -730,6 +737,7 @@ export function StylingPanel() {
                   onChange={(v) => set("labelFont", v)}
                   variant="heading"
                   showInherit={!isHosted}
+                  unsetFont={textFontName}
                 />
               </div>
               <ChoiceField
@@ -778,6 +786,7 @@ export function StylingPanel() {
                     value={bodyFont}
                     onChange={(v) => set("bodyFont", v)}
                     showInherit={!isHosted}
+                    unsetFont={isHosted ? HOSTED_FONT : undefined}
                   />
                 </div>
               </Tip>
