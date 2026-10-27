@@ -33,7 +33,7 @@ The form's title, in the header above the fields. Its settings sit on one line, 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
 - **Color**: the swatch beside the font. It follows the text color until you pick one; the reset button beside it makes it follow the text color again.
 - **Size**: S, M, L, or XL.
-- **Weight**: a B drawn at each weight, regular and bold. A light B is added when the selected font has a 300 weight.
+- **Bold**: turns bold on or off.
 - **Alignment**: left or center.
 
 ## Text
