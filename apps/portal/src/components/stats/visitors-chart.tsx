@@ -11,8 +11,8 @@
 // preserveAspectRatio="none" and non-scaling strokes, HTML for text and
 // markers), so it renders at full width on the server with no measuring.
 import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { DailyStats } from "@/lib/stats";
@@ -44,19 +44,16 @@ export function VisitorsChart({ daily }: { daily: DailyStats[] }) {
       <CardHeader>
         <CardTitle>Visitors per day</CardTitle>
         <CardAction>
-          <div role="group" aria-label="Show as" className="flex gap-1">
-            {(["chart", "table"] as const).map((v) => (
-              <Button
-                key={v}
-                size="sm"
-                variant={view === v ? "secondary" : "ghost"}
-                aria-pressed={view === v}
-                onClick={() => setView(v)}
-              >
-                {v === "chart" ? "Chart" : "Table"}
-              </Button>
-            ))}
-          </div>
+          <ToggleGroup
+            type="single"
+            value={view}
+            // Pressing the pressed button would clear the choice; one view always shows.
+            onValueChange={(v) => v && setView(v as "chart" | "table")}
+            aria-label="Show as"
+          >
+            <ToggleGroupItem value="chart">Chart</ToggleGroupItem>
+            <ToggleGroupItem value="table">Table</ToggleGroupItem>
+          </ToggleGroup>
         </CardAction>
       </CardHeader>
       <CardContent>{view === "chart" ? <Plot daily={daily} /> : <DailyTable daily={daily} />}</CardContent>
