@@ -369,7 +369,11 @@ export function StylingPanel() {
   const isHosted = state.type === "HOSTED";
 
   const theme = state.defaultTheme ?? {};
-  const str = (key: string, fallback = "") => String(theme[key] || fallback);
+  // Only a missing value falls back: a saved 0 (square corners) is a value.
+  const str = (key: string, fallback = "") => {
+    const v = theme[key];
+    return v === undefined || v === null || v === "" ? fallback : String(v);
+  };
 
   // Page
   const pageBackground = str("pageBackground");
