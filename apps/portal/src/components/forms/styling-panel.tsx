@@ -541,26 +541,27 @@ export function StylingPanel() {
   const setCard = (v: string) =>
     setMany(v === "off" ? { cardEnabled: false } : { cardEnabled: true, cardShadow: v });
 
-  // Every color the form shows, once each, named by what uses it: picking
-  // one in any color's picker matches it. Unset colors count at the value
-  // they render with.
+  // The colors the owner has set, once each, named by what uses them:
+  // picking one in any color's picker matches it. Defaults aren't offered;
+  // with nothing set, a swatch goes straight to the system picker.
   const formColors: PickerColor[] = [];
-  for (const [value, fallback, name] of [
-    [text, "#18181b", "Text"],
-    [titleColor || text, "#18181b", "Title"],
-    [labelColor || text, "#18181b", "Labels"],
-    [primary, "#005F6A", "Button"],
-    [background, "#ffffff", "Form"],
-    [fieldBackground, "#ffffff", "Fields"],
-    [border, "#e4e4e7", "Field borders"],
-    ...(isHosted ? [[pageBackground, "#f4f4f5", "Page"]] : []),
+  for (const [value, name] of [
+    [text, "Text"],
+    [titleColor, "Title"],
+    [labelColor, "Labels"],
+    [primary, "Button"],
+    [background, "Form"],
+    [fieldBackground, "Fields"],
+    [border, "Field borders"],
+    ...(isHosted ? [[pageBackground, "Page"]] : []),
   ]) {
-    const hex = toColorInputValue(value, fallback).toLowerCase();
+    const hex = toColorInputValue(value, "").toLowerCase();
+    if (!hex) continue;
     const found = formColors.find((c) => c.value === hex);
     if (found) found.names.push(name);
     else formColors.push({ value: hex, names: [name] });
   }
-  const colorRows = [{ title: "In this form", colors: formColors }];
+  const colorRows = [{ colors: formColors }];
 
   const fontWord = (font: string) => font !== "inherit" && font;
   const sizeWord = (size: string) => size !== "md" && `Size ${SIZE_LABELS[size] ?? size}`;
