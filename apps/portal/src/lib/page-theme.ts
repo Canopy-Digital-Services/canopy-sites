@@ -20,7 +20,8 @@ export type PageTheme = {
   contentWidth: keyof typeof CONTENT_WIDTH_MAP;
   /** Form-level background color, used as the card's background. */
   formBackground: string;
-  /** Form-level border radius, used as the card's border radius. */
+  /** Form-level border radius, used as the card's border radius. Defaults to
+      the embed's own radius default, so card, inputs and button match. */
   formRadius: number;
 };
 
@@ -34,7 +35,7 @@ export function extractPageTheme(
     cardShadow: "md",
     contentWidth: "md",
     formBackground: "#ffffff",
-    formRadius: 8,
+    formRadius: 4,
   };
 
   if (!themeObj) return defaults;
@@ -61,7 +62,7 @@ export function extractPageTheme(
     typeof themeObj.background === "string" ? themeObj.background : "#ffffff";
 
   const formRadius =
-    typeof themeObj.radius === "number" ? themeObj.radius : 8;
+    typeof themeObj.radius === "number" ? themeObj.radius : 4;
 
   return {
     pageBackground, cardEnabled, cardShadow, contentWidth,
