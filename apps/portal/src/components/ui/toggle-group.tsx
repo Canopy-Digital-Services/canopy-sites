@@ -19,7 +19,7 @@ const itemClasses = cn(
   "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
 )
 
-/** A row of buttons for one small, exclusive choice (2–4 options): every
+/** A row of buttons for one exclusive choice (a setting, view, or filter): every
     option visible, one click. The pressed one takes the soft `secondary`
     highlight, as selection state does elsewhere. */
 function ToggleGroup({
