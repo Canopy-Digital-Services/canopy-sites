@@ -165,11 +165,21 @@ function ColorSwatch({
   value: string;
   fallback: string;
   resetLabel?: string;
-  /** Spoken name, for a swatch with no visible label (beside a font). */
+  /** Spoken and tooltip name, for a swatch with no visible label. */
   label?: string;
   className?: string;
   onChange: (value: string) => void;
 }) {
+  const swatch = (
+    <input
+      id={id}
+      type="color"
+      aria-label={label}
+      value={toColorInputValue(value, fallback)}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn("h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5", className)}
+    />
+  );
   // The reset sits before the swatch, so the swatch keeps its place at the
   // row's right edge whether or not the reset shows.
   return (
@@ -190,14 +200,7 @@ function ColorSwatch({
           <TooltipContent>{resetLabel}</TooltipContent>
         </Tooltip>
       )}
-      <input
-        id={id}
-        type="color"
-        aria-label={label}
-        value={toColorInputValue(value, fallback)}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn("h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5", className)}
-      />
+      {label ? <Tip text={label}>{swatch}</Tip> : swatch}
     </div>
   );
 }
@@ -228,15 +231,32 @@ function SettingRow({ id, label, children }: { id: string; label: string; childr
   );
 }
 
-/** A small exclusive choice as a row of buttons. */
+/** Toolbar tooltips wait a beat, as a word processor's do, so sweeping the
+    pointer across the controls doesn't flash a run of them. */
+const TIP_DELAY = 500;
+
+/** A control in a toolbar row, named by a tooltip instead of a label. */
+function Tip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <Tooltip delayDuration={TIP_DELAY}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** A small exclusive choice as a row of buttons. Given a `label`, the row is
+    a toolbar group: no visible label, each option named in a tooltip. */
 function Segmented({
   id,
+  label,
   value,
   options,
   names,
   onChange,
 }: {
   id: string;
+  label?: string;
   value: string;
   options: [string, string, React.ReactNode?][];
   /** Spoken names for options whose visible text is terse ("S", "AA"). */
@@ -250,14 +270,29 @@ function Segmented({
       value={value}
       // Pressing the pressed button would clear the choice; a setting always has one.
       onValueChange={(v) => v && onChange(v)}
-      aria-labelledby={`${id}-label`}
+      aria-label={label}
+      aria-labelledby={label ? undefined : `${id}-label`}
     >
-      {options.map(([v, text, icon]) => (
-        <ToggleGroupItem key={v} value={v} aria-label={names?.[v]}>
-          {icon}
-          {text}
-        </ToggleGroupItem>
-      ))}
+      {options.map(([v, text, icon]) => {
+        const item = (
+          <ToggleGroupItem
+            key={v}
+            value={v}
+            aria-label={names?.[v]}
+            className={label ? "min-w-7 px-1.5" : undefined}
+          >
+            {icon}
+            {text}
+          </ToggleGroupItem>
+        );
+        return label ? (
+          <Tip key={v} text={names?.[v] ?? text}>
+            {item}
+          </Tip>
+        ) : (
+          item
+        );
+      })}
     </ToggleGroup>
   );
 }
@@ -317,6 +352,17 @@ const weightOptions = (light: boolean): [string, string][] => [
   ["normal", "Regular"],
   ["bold", "Bold"],
 ];
+/** Weight in a toolbar: a B drawn at each weight, the bold one the word
+    processor's Bold button. */
+const WEIGHT_GLYPH: Record<string, string> = { light: "font-light", normal: "font-normal", bold: "font-bold" };
+const weightGlyphs = (light: boolean): [string, string, React.ReactNode][] =>
+  weightOptions(light).map(([v]) => [
+    v,
+    "",
+    <span key="b" className={WEIGHT_GLYPH[v]}>
+      B
+    </span>,
+  ]);
 
 function StyleRow({
   group,
@@ -633,58 +679,56 @@ export function StylingPanel() {
               />
             }
           >
-            <div className="space-y-2">
-              {/* The color sits with the font, unlabeled: a swatch says what it is. */}
-              <SettingRow id="titleFont" label="Font">
-                <div className="flex items-center gap-1">
-                  <div className="w-52">
-                    <FontPicker
-                      id="titleFont"
-                      value={titleFont}
-                      onChange={(v) => set("titleFont", v)}
-                      variant="heading"
-                      showInherit={!isHosted}
-                    />
-                  </div>
-                  <ColorSwatch
-                    id="titleColor"
-                    label="Title color"
-                    value={titleColor}
-                    fallback={toColorInputValue(text, "#18181b")}
-                    resetLabel="Use text color"
-                    className="h-9"
-                    onChange={(v) => set("titleColor", v)}
+            {/* A word processor's toolbar: one line, no labels, tooltips name
+                each control. The font takes the slack; past it, the line wraps. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Tip text="Font">
+                <div className="min-w-32 flex-1">
+                  <FontPicker
+                    id="titleFont"
+                    value={titleFont}
+                    onChange={(v) => set("titleFont", v)}
+                    variant="heading"
+                    showInherit={!isHosted}
                   />
                 </div>
-              </SettingRow>
-              <SettingRow id="titleSize" label="Size">
-                <Segmented
-                  id="titleSize"
-                  value={titleSize}
-                  options={SIZE_SEGMENTS}
-                  names={SIZE_NAMES}
-                  onChange={(v) => set("titleSize", v)}
-                />
-              </SettingRow>
-              <SettingRow id="titleWeight" label="Weight">
-                <Segmented
-                  id="titleWeight"
-                  value={shownWeight(titleWeight, titleFont)}
-                  options={weightOptions(hasLight(titleFont))}
-                  onChange={(v) => set("titleWeight", v)}
-                />
-              </SettingRow>
-              <SettingRow id="titleAlign" label="Alignment">
-                <Segmented
-                  id="titleAlign"
-                  value={titleAlign}
-                  options={[
-                    ["left", "Left", <AlignLeft key="i" />],
-                    ["center", "Center", <AlignCenter key="i" />],
-                  ]}
-                  onChange={(v) => set("titleAlign", v)}
-                />
-              </SettingRow>
+              </Tip>
+              <ColorSwatch
+                id="titleColor"
+                label="Color"
+                value={titleColor}
+                fallback={toColorInputValue(text, "#18181b")}
+                resetLabel="Use text color"
+                className="h-9"
+                onChange={(v) => set("titleColor", v)}
+              />
+              <Segmented
+                id="titleSize"
+                label="Size"
+                value={titleSize}
+                options={SIZE_SEGMENTS}
+                names={SIZE_NAMES}
+                onChange={(v) => set("titleSize", v)}
+              />
+              <Segmented
+                id="titleWeight"
+                label="Weight"
+                value={shownWeight(titleWeight, titleFont)}
+                options={weightGlyphs(hasLight(titleFont))}
+                names={WEIGHT_LABELS}
+                onChange={(v) => set("titleWeight", v)}
+              />
+              <Segmented
+                id="titleAlign"
+                label="Alignment"
+                value={titleAlign}
+                options={[
+                  ["left", "", <AlignLeft key="i" />],
+                  ["center", "", <AlignCenter key="i" />],
+                ]}
+                names={{ left: "Align left", center: "Center" }}
+                onChange={(v) => set("titleAlign", v)}
+              />
             </div>
           </StyleRow>
 
