@@ -225,11 +225,14 @@ function Segmented({
   id,
   value,
   options,
+  names,
   onChange,
 }: {
   id: string;
   value: string;
   options: [string, string, React.ReactNode?][];
+  /** Spoken names for options whose visible text is terse ("S", "AA"). */
+  names?: Record<string, string>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -242,7 +245,7 @@ function Segmented({
       aria-labelledby={`${id}-label`}
     >
       {options.map(([v, text, icon]) => (
-        <ToggleGroupItem key={v} value={v}>
+        <ToggleGroupItem key={v} value={v} aria-label={names?.[v]}>
           {icon}
           {text}
         </ToggleGroupItem>
@@ -289,6 +292,19 @@ const SIZE_OPTIONS: [string, string][] = [
   ["lg", "Large"],
   ["xl", "Extra Large"],
 ];
+/** Size and case as button groups: terse visible text, full spoken names. */
+const SIZE_SEGMENTS: [string, string][] = [
+  ["sm", "S"],
+  ["md", "M"],
+  ["lg", "L"],
+  ["xl", "XL"],
+];
+const SIZE_NAMES: Record<string, string> = { sm: "Small", md: "Medium", lg: "Large", xl: "Extra large" };
+const CASE_SEGMENTS: [string, string][] = [
+  ["none", "Aa"],
+  ["uppercase", "AA"],
+];
+const CASE_NAMES: Record<string, string> = { none: "Normal case", uppercase: "Uppercase" };
 const CASE_OPTIONS: [string, string][] = [
   ["none", "Normal"],
   ["uppercase", "Uppercase"],
@@ -614,46 +630,53 @@ export function StylingPanel() {
               />
             }
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="titleFont">Font</Label>
-                <FontPicker
-                  id="titleFont"
-                  value={titleFont}
-                  onChange={(v) => set("titleFont", v)}
-                  variant="heading"
-                  showInherit={!isHosted}
+            <div className="space-y-2">
+              <SettingRow id="titleFont" label="Font">
+                <div className="w-52">
+                  <FontPicker
+                    id="titleFont"
+                    value={titleFont}
+                    onChange={(v) => set("titleFont", v)}
+                    variant="heading"
+                    showInherit={!isHosted}
+                  />
+                </div>
+              </SettingRow>
+              <SettingRow id="titleSize" label="Size">
+                <Segmented
+                  id="titleSize"
+                  value={titleSize}
+                  options={SIZE_SEGMENTS}
+                  names={SIZE_NAMES}
+                  onChange={(v) => set("titleSize", v)}
                 />
-              </div>
-              <ChoiceField
-                id="titleWeight"
-                label="Weight"
-                value={shownWeight(titleWeight, titleFont)}
-                options={weightOptions(hasLight(titleFont))}
-                onChange={(v) => set("titleWeight", v)}
-              />
-              <ColorField
-                id="titleColor"
-                label="Color"
-                value={titleColor}
-                fallback={toColorInputValue(text, "#18181b")}
-                resetLabel="Use text color"
-                onChange={(v) => set("titleColor", v)}
-              />
-              <ChoiceField
-                id="titleSize"
-                label="Size"
-                value={titleSize}
-                options={SIZE_OPTIONS}
-                onChange={(v) => set("titleSize", v)}
-              />
-              <ChoiceField
-                id="titleTransform"
-                label="Case"
-                value={titleTransform}
-                options={CASE_OPTIONS}
-                onChange={(v) => set("titleTransform", v)}
-              />
+              </SettingRow>
+              <SettingRow id="titleWeight" label="Weight">
+                <Segmented
+                  id="titleWeight"
+                  value={shownWeight(titleWeight, titleFont)}
+                  options={weightOptions(hasLight(titleFont))}
+                  onChange={(v) => set("titleWeight", v)}
+                />
+              </SettingRow>
+              <SettingRow id="titleTransform" label="Case">
+                <Segmented
+                  id="titleTransform"
+                  value={titleTransform}
+                  options={CASE_SEGMENTS}
+                  names={CASE_NAMES}
+                  onChange={(v) => set("titleTransform", v)}
+                />
+              </SettingRow>
+              <SettingRow id="titleColor" label="Color">
+                <ColorSwatch
+                  id="titleColor"
+                  value={titleColor}
+                  fallback={toColorInputValue(text, "#18181b")}
+                  resetLabel="Use text color"
+                  onChange={(v) => set("titleColor", v)}
+                />
+              </SettingRow>
             </div>
           </StyleRow>
 

@@ -31,10 +31,10 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 The form's title, in the header above the fields.
 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
+- **Size**: S, M, L, or XL.
 - **Weight**: Regular or Bold. Light is only offered when the selected font has a 300 weight.
+- **Case**: Aa (as typed) or AA (uppercase).
 - **Color**: follows the text color until you pick one. The reset button beside the swatch makes it follow the text color again.
-- **Size**: Small, Medium, Large, or Extra Large.
-- **Case**: Normal or Uppercase.
 
 ## Text
 
