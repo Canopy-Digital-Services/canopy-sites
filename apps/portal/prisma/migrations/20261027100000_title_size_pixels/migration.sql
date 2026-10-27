@@ -1,8 +1,9 @@
 -- Title size becomes pixels, picked from a list as in a word processor. It
 -- was a key ("sm" to "xl", absent meaning "md") scaling the text size
 -- ("fontSize", absent meaning 14). Write out each saved theme's current
--- pixel size, rounded, so no styled title changes size. The old default (md
--- at 14px, 21px) becomes the new default, 20, and is left unwritten.
+-- pixel size, rounded, so no styled title changes size. A title left at the
+-- old default (md at 14px, 21px) takes the new default, 28, so 21 and 28
+-- are left unwritten.
 WITH sized AS (
   SELECT id,
     round(
@@ -18,7 +19,7 @@ WITH sized AS (
 )
 UPDATE "forms" f
 SET "defaultTheme" = CASE
-  WHEN sized.px IN (20, 21) THEN f."defaultTheme" - 'titleSize'
+  WHEN sized.px IN (21, 28) THEN f."defaultTheme" - 'titleSize'
   ELSE jsonb_set(f."defaultTheme", '{titleSize}', to_jsonb(sized.px))
 END
 FROM sized
