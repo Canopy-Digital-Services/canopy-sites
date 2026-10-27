@@ -70,7 +70,7 @@ The button's text uses the font and size set under **Text**, in semibold.
 
 The preview to the right of the editor updates as you type. The preview mode is locked to the form's type:
 
-- **Hosted forms** preview as the page at `/f/<form-id>`, including the Page-level settings (background, card, width, alignment).
+- **Hosted forms** preview as the page at `/f/<form-id>`, including the Page-level settings (background, card, width).
 - **Embedded forms** preview as the form rendered inside a generic container, matching what visitors to your site will see.
 
 On mobile or narrow windows, the preview hides and is accessible through the preview tab on the right edge.
