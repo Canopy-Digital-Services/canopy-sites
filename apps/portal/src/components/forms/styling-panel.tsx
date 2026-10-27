@@ -784,13 +784,14 @@ export function StylingPanel() {
             title="Fields"
             summary={<Summary words={[]} colors={[[fieldBackground, "#ffffff"], [border, "#e4e4e7"]]} />}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ColorField id="fieldBackground" label="Background">
+            {/* Labeled: two bare swatches wouldn't say which is fill, which outline. */}
+            <div className="space-y-2">
+              <SettingRow id="fieldBackground" label="Background">
                 {colorPicker("fieldBackground", "Field background", "#ffffff")}
-              </ColorField>
-              <ColorField id="border" label="Border">
+              </SettingRow>
+              <SettingRow id="border" label="Border">
                 {colorPicker("border", "Field border", "#e4e4e7")}
-              </ColorField>
+              </SettingRow>
             </div>
           </StyleRow>
 
