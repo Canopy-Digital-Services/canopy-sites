@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  AlignCenter,
+  AlignLeft,
   Check,
   ChevronUp,
   RotateCcw,
@@ -155,12 +157,17 @@ function ColorSwatch({
   value,
   fallback,
   resetLabel = "Reset to default",
+  label,
+  className,
   onChange,
 }: {
   id: string;
   value: string;
   fallback: string;
   resetLabel?: string;
+  /** Spoken name, for a swatch with no visible label (beside a font). */
+  label?: string;
+  className?: string;
   onChange: (value: string) => void;
 }) {
   // The reset sits before the swatch, so the swatch keeps its place at the
@@ -186,9 +193,10 @@ function ColorSwatch({
       <input
         id={id}
         type="color"
+        aria-label={label}
         value={toColorInputValue(value, fallback)}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5"
+        className={cn("h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5", className)}
       />
     </div>
   );
@@ -292,7 +300,7 @@ const SIZE_OPTIONS: [string, string][] = [
   ["lg", "Large"],
   ["xl", "Extra Large"],
 ];
-/** Size and case as button groups: terse visible text, full spoken names. */
+/** Size as a button group: terse visible text, full spoken names. */
 const SIZE_SEGMENTS: [string, string][] = [
   ["sm", "S"],
   ["md", "M"],
@@ -300,11 +308,6 @@ const SIZE_SEGMENTS: [string, string][] = [
   ["xl", "XL"],
 ];
 const SIZE_NAMES: Record<string, string> = { sm: "Small", md: "Medium", lg: "Large", xl: "Extra large" };
-const CASE_SEGMENTS: [string, string][] = [
-  ["none", "Aa"],
-  ["uppercase", "AA"],
-];
-const CASE_NAMES: Record<string, string> = { none: "Normal case", uppercase: "Uppercase" };
 const CASE_OPTIONS: [string, string][] = [
   ["none", "Normal"],
   ["uppercase", "Uppercase"],
@@ -406,7 +409,7 @@ export function StylingPanel() {
   const titleWeight = str("titleWeight", "normal") === "semibold" ? "bold" : str("titleWeight", "normal");
   const titleColor = str("titleColor");
   const titleSize = str("titleSize", "md");
-  const titleTransform = str("titleTransform", "none");
+  const titleAlign = str("titleAlign", "left");
   // Text
   const bodyFont = str("bodyFont", "inherit");
   const fontSize = str("fontSize");
@@ -436,7 +439,7 @@ export function StylingPanel() {
     const merged: Record<string, string | boolean> = {
       pageBackground, cardEnabled, cardShadow, contentWidth,
       background, radius, density,
-      titleFont, titleWeight, titleColor, titleSize, titleTransform,
+      titleFont, titleWeight, titleColor, titleSize, titleAlign,
       bodyFont, fontSize, text,
       labelFont, labelWeight, labelColor, labelSize, labelTransform,
       fieldBackground, border,
@@ -467,7 +470,7 @@ export function StylingPanel() {
     choice("titleWeight", "normal");
     color("titleColor");
     choice("titleSize", "md");
-    choice("titleTransform", "none");
+    choice("titleAlign", "left");
 
     newTheme.bodyFont = s("bodyFont") || "inherit";
     if (s("fontSize")) newTheme.fontSize = parseInt(s("fontSize"), 10);
@@ -625,20 +628,32 @@ export function StylingPanel() {
             title="Title"
             summary={
               <Summary
-                words={[fontWord(titleFont), weightWord(titleWeight, titleFont), sizeWord(titleSize), titleTransform === "uppercase" && "Uppercase"]}
+                words={[fontWord(titleFont), weightWord(titleWeight, titleFont), sizeWord(titleSize), titleAlign === "center" && "Centered"]}
                 colors={[[titleColor || text, "#18181b"]]}
               />
             }
           >
             <div className="space-y-2">
+              {/* The color sits with the font, unlabeled: a swatch says what it is. */}
               <SettingRow id="titleFont" label="Font">
-                <div className="w-52">
-                  <FontPicker
-                    id="titleFont"
-                    value={titleFont}
-                    onChange={(v) => set("titleFont", v)}
-                    variant="heading"
-                    showInherit={!isHosted}
+                <div className="flex items-center gap-1">
+                  <div className="w-52">
+                    <FontPicker
+                      id="titleFont"
+                      value={titleFont}
+                      onChange={(v) => set("titleFont", v)}
+                      variant="heading"
+                      showInherit={!isHosted}
+                    />
+                  </div>
+                  <ColorSwatch
+                    id="titleColor"
+                    label="Title color"
+                    value={titleColor}
+                    fallback={toColorInputValue(text, "#18181b")}
+                    resetLabel="Use text color"
+                    className="h-9"
+                    onChange={(v) => set("titleColor", v)}
                   />
                 </div>
               </SettingRow>
@@ -659,22 +674,15 @@ export function StylingPanel() {
                   onChange={(v) => set("titleWeight", v)}
                 />
               </SettingRow>
-              <SettingRow id="titleTransform" label="Case">
+              <SettingRow id="titleAlign" label="Alignment">
                 <Segmented
-                  id="titleTransform"
-                  value={titleTransform}
-                  options={CASE_SEGMENTS}
-                  names={CASE_NAMES}
-                  onChange={(v) => set("titleTransform", v)}
-                />
-              </SettingRow>
-              <SettingRow id="titleColor" label="Color">
-                <ColorSwatch
-                  id="titleColor"
-                  value={titleColor}
-                  fallback={toColorInputValue(text, "#18181b")}
-                  resetLabel="Use text color"
-                  onChange={(v) => set("titleColor", v)}
+                  id="titleAlign"
+                  value={titleAlign}
+                  options={[
+                    ["left", "Left", <AlignLeft key="i" />],
+                    ["center", "Center", <AlignCenter key="i" />],
+                  ]}
+                  onChange={(v) => set("titleAlign", v)}
                 />
               </SettingRow>
             </div>

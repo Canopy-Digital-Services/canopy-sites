@@ -17,12 +17,12 @@ function applied(theme: ThemeTokens) {
 describe("embed theme: title and labels", () => {
   it("styles the title without touching the labels", () => {
     const vars = applied(
-      resolveTheme({ titleFont: "Lora", titleWeight: "bold", titleColor: "#112233", titleTransform: "uppercase" }, null)
+      resolveTheme({ titleFont: "Lora", titleWeight: "bold", titleColor: "#112233", titleAlign: "center" }, null)
     );
     expect(vars.get("--canopy-title-font")).toBe("'Lora', sans-serif");
     expect(vars.get("--canopy-title-weight")).toBe("700");
     expect(vars.get("--canopy-title-color")).toBe("#112233");
-    expect(vars.get("--canopy-title-transform")).toBe("uppercase");
+    expect(vars.get("--canopy-title-align")).toBe("center");
     expect(vars.get("--canopy-label-font")).toBe("var(--canopy-font)");
     expect(vars.get("--canopy-label-weight")).toBe("400");
     expect(vars.has("--canopy-label-color")).toBe(false);

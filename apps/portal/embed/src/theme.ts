@@ -13,7 +13,7 @@ type ThemeDefaults = {
   buttonAlign: "left" | "center" | "right";
   titleSize: "sm" | "md" | "lg" | "xl";
   titleWeight: "light" | "normal" | "bold";
-  titleTransform: "none" | "uppercase";
+  titleAlign: "left" | "center";
   labelSize: "sm" | "md" | "lg" | "xl";
   labelWeight: "light" | "normal" | "bold";
   labelTransform: "none" | "uppercase";
@@ -57,7 +57,7 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   buttonAlign: "left",
   titleSize: "md",
   titleWeight: "normal",
-  titleTransform: "none",
+  titleAlign: "left",
   labelSize: "md",
   labelWeight: "normal",
   labelTransform: "none",
@@ -220,7 +220,7 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     }
   }
 
-  container.style.setProperty("--canopy-title-transform", theme.titleTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-title-align", theme.titleAlign === "center" ? "center" : "left");
   container.style.setProperty("--canopy-label-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
 }
 

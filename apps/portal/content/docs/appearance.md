@@ -31,10 +31,10 @@ Applies to the form's hosted page at `forms.canopyds.com/f/<form-id>`.
 The form's title, in the header above the fields.
 
 - **Font**: pick a Google Font. Curated heading fonts are listed first. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font; hosted forms don't, since there's no host page to inherit from.
+- **Color**: the swatch beside the font. It follows the text color until you pick one; the reset button beside it makes it follow the text color again.
 - **Size**: S, M, L, or XL.
 - **Weight**: Regular or Bold. Light is only offered when the selected font has a 300 weight.
-- **Case**: Aa (as typed) or AA (uppercase).
-- **Color**: follows the text color until you pick one. The reset button beside the swatch makes it follow the text color again.
+- **Alignment**: Left or Center.
 
 ## Text
 
@@ -84,11 +84,11 @@ You can override the saved theme for a single embed without changing the form's 
 
 Override properties are merged on top of the saved defaults, so you only need to specify what's changing.
 
-The title and labels are styled separately: `titleWeight`, `titleColor`, and `titleTransform` change only the title, and the `label` keys only the labels. An older `headingFont` key still works and sets both fonts.
+The title and labels are styled separately: `titleWeight`, `titleColor`, and `titleAlign` change only the title, and the `label` keys only the labels. An older `headingFont` key still works and sets both fonts.
 
 **Commonly overridden keys:**
 
-- Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleTransform`, `labelFont`, `labelWeight`, `labelSize`, `labelTransform`
+- Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleAlign`, `labelFont`, `labelWeight`, `labelSize`, `labelTransform`
 - Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`
 - Layout: `radius`, `density`, `buttonWidth`, `buttonAlign`, `buttonText`
 - Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`

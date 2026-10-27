@@ -390,7 +390,7 @@ export const baseStyles = `
   font-size: var(--canopy-title-size, 1.5em);
   font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
-  text-transform: var(--canopy-title-transform, none);
+  text-align: var(--canopy-title-align, left);
   margin: 0 0 4px 0;
   line-height: 1.3;
 }
