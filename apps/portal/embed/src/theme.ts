@@ -31,6 +31,9 @@ type ThemeOverrides = {
   titleFont?: string;
   labelFont?: string;
   buttonText?: string;
+  /** The button's text color. Unset, it's picked for contrast with the
+      button (autoButtonTextColor). */
+  buttonTextColor?: string;
   titleColor?: string;
   labelColor?: string;
   pageBackground?: string;
@@ -134,14 +137,21 @@ function relativeLuminance(r: number, g: number, b: number): number {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
-function contrastingTextColor(hex: string): string {
-  try {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return "#ffffff";
-    return relativeLuminance(...rgb) > 0.179 ? "#18181b" : "#ffffff";
-  } catch {
-    return "#ffffff";
-  }
+function luminance(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  return rgb ? relativeLuminance(...rgb) : null;
+}
+
+/**
+ * The button text color when the owner hasn't picked one: white on a dark
+ * button, and on a light one the form's text color if it reads at WCAG AA
+ * (4.5:1) against the button, else near-black. Both arguments are #rrggbb.
+ */
+export function autoButtonTextColor(button: string, text: string): string {
+  const bg = luminance(button);
+  if (bg === null || bg <= 0.179) return "#ffffff";
+  const fg = luminance(text);
+  return fg !== null && (bg + 0.05) / (fg + 0.05) >= 4.5 ? text : DEFAULT_THEME.text;
 }
 
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
@@ -162,10 +172,8 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     "--canopy-font-size",
     `${theme.fontSize ?? DEFAULT_THEME.fontSize}px`
   );
-  container.style.setProperty(
-    "--canopy-text",
-    normalizeColor(theme.text, DEFAULT_THEME.text)
-  );
+  const resolvedText = normalizeColor(theme.text, DEFAULT_THEME.text);
+  container.style.setProperty("--canopy-text", resolvedText);
   container.style.setProperty(
     "--canopy-bg",
     normalizeColor(theme.background, DEFAULT_THEME.background)
@@ -178,7 +186,7 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--canopy-primary", resolvedPrimary);
   container.style.setProperty(
     "--canopy-button-text",
-    contrastingTextColor(resolvedPrimary)
+    normalizeColor(theme.buttonTextColor, "") || autoButtonTextColor(resolvedPrimary, resolvedText)
   );
   container.style.setProperty(
     "--canopy-border",

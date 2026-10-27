@@ -38,6 +38,7 @@ import { useFormContext, type StyleGroup } from "@/components/forms/form-context
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
 import { buildMark, loadBrush, measure, seeded, shapes } from "@/lib/marker-brush";
 import { cn } from "@/lib/utils";
+import { autoButtonTextColor } from "../../../embed/src/theme";
 
 /** Add '#' prefix if missing from a hex color string. */
 function normalizeHex(value: string): string {
@@ -384,6 +385,7 @@ export function StylingPanel() {
   // Button
   const buttonText = str("buttonText");
   const primary = str("primary");
+  const buttonTextColor = str("buttonTextColor");
   const buttonWidth = str("buttonWidth", "full");
   const buttonAlign = str("buttonAlign", "left");
 
@@ -402,7 +404,7 @@ export function StylingPanel() {
       bodyFont, fontSize, text,
       labelFont, labelWeight, labelColor, labelSize,
       fieldBackground, border,
-      buttonText, primary, buttonWidth, buttonAlign,
+      buttonText, primary, buttonTextColor, buttonWidth, buttonAlign,
       ...overrides,
     };
 
@@ -445,6 +447,7 @@ export function StylingPanel() {
 
     if (s("buttonText")) newTheme.buttonText = s("buttonText");
     color("primary");
+    color("buttonTextColor");
     choice("buttonWidth", "full");
     choice("buttonAlign", "left");
 
@@ -472,6 +475,7 @@ export function StylingPanel() {
     [titleColor, "Title"],
     [labelColor, "Labels"],
     [primary, "Button"],
+    [buttonTextColor, "Button text"],
     [background, "Form"],
     [fieldBackground, "Fields"],
     [border, "Field borders"],
@@ -775,13 +779,22 @@ export function StylingPanel() {
           >
             <div className="space-y-2">
               <SettingRow id="buttonText" label="Text">
-                <Input
-                  id="buttonText"
-                  value={buttonText}
-                  onChange={(e) => set("buttonText", e.target.value)}
-                  placeholder="Submit"
-                  className="w-48"
-                />
+                {/* The words and their color are one decision, as a font and its color are. */}
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="buttonText"
+                    value={buttonText}
+                    onChange={(e) => set("buttonText", e.target.value)}
+                    placeholder="Submit"
+                    className="w-48"
+                  />
+                  {colorPicker(
+                    "buttonTextColor",
+                    "Text color",
+                    autoButtonTextColor(toColorInputValue(primary, "#005F6A"), textColor),
+                    true
+                  )}
+                </div>
               </SettingRow>
               <SettingRow id="primary" label="Color">
                 {colorPicker("primary", "Button color", "#005F6A")}

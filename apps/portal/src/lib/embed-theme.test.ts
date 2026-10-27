@@ -67,3 +67,23 @@ describe("embed theme: type sizes", () => {
     expect(vars.get("--canopy-title-size")).toBe("2.25em");
   });
 });
+
+describe("embed theme: button text color", () => {
+  const buttonText = (theme: ThemeTokens) => applied(resolveTheme(theme, null)).get("--canopy-button-text");
+
+  it("is white on a dark button", () => {
+    expect(buttonText({ primary: "#3d0000" })).toBe("#ffffff");
+  });
+
+  it("is the form's text color on a light button when it reads", () => {
+    expect(buttonText({ primary: "#ff8000", text: "#1f2a44" })).toBe("#1f2a44");
+  });
+
+  it("falls back to near-black when the text color wouldn't read", () => {
+    expect(buttonText({ primary: "#ff8000", text: "#7a7a7a" })).toBe("#18181b");
+  });
+
+  it("is the owner's color once picked, whatever the button", () => {
+    expect(buttonText({ primary: "#ff8000", buttonTextColor: "#ffffff" })).toBe("#ffffff");
+  });
+});
