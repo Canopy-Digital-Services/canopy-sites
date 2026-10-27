@@ -60,8 +60,8 @@ The description, help text, option labels, and what people type into fields. Sam
 
 ## Button
 
-- **Text**: the submit button's label (for example, "Send Message" or "Subscribe"). Defaults to "Submit".
-- **Color**: the button's background. Its text color is picked automatically for contrast (white on dark colors, dark on light).
+- **Text**: the submit button's label (for example, "Send Message" or "Subscribe"). Defaults to "Submit". The swatch beside it is the text's color. Until you pick one, it's chosen for you so it's easy to read: white on dark buttons, and on light ones your text color, or near-black if your text color is too light.
+- **Color**: the button's background.
 - **Width**: **Full**, spanning the form, or as wide as its text and placed at the left, center, or right. Hover over an icon to see its name.
 
 The button's text uses the font and size set under **Text**, in semibold.
@@ -95,7 +95,7 @@ The title and labels are styled separately: `titleWeight`, `titleColor`, and `ti
 **Commonly overridden keys:**
 
 - Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleAlign`, `labelFont`, `labelWeight`, `labelSize`
-- Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`
+- Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`, `buttonTextColor`
 - Layout: `radius`, `density`, `buttonWidth`, `buttonAlign`, `buttonText`
 - Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`
 
