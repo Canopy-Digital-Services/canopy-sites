@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
+import { ColorPicker, type PickerColor } from "@/components/ui/color-picker";
 import { useFormContext, type StyleGroup } from "@/components/forms/form-context";
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
 import { buildMark, loadBrush, measure, seeded, shapes } from "@/lib/marker-brush";
@@ -540,6 +541,27 @@ export function StylingPanel() {
   const setCard = (v: string) =>
     setMany(v === "off" ? { cardEnabled: false } : { cardEnabled: true, cardShadow: v });
 
+  // Every color the form shows, once each, named by what uses it: picking
+  // one in any color's picker matches it. Unset colors count at the value
+  // they render with.
+  const formColors: PickerColor[] = [];
+  for (const [value, fallback, name] of [
+    [text, "#18181b", "Text"],
+    [titleColor || text, "#18181b", "Title"],
+    [labelColor || text, "#18181b", "Labels"],
+    [primary, "#005F6A", "Button"],
+    [background, "#ffffff", "Form"],
+    [fieldBackground, "#ffffff", "Fields"],
+    [border, "#e4e4e7", "Field borders"],
+    ...(isHosted ? [[pageBackground, "#f4f4f5", "Page"]] : []),
+  ]) {
+    const hex = toColorInputValue(value, fallback).toLowerCase();
+    const found = formColors.find((c) => c.value === hex);
+    if (found) found.names.push(name);
+    else formColors.push({ value: hex, names: [name] });
+  }
+  const colorRows = [{ title: "In this form", colors: formColors }];
+
   const fontWord = (font: string) => font !== "inherit" && font;
   const sizeWord = (size: string) => size !== "md" && `Size ${SIZE_LABELS[size] ?? size}`;
   const weightWord = (weight: string, font: string) =>
@@ -682,13 +704,11 @@ export function StylingPanel() {
                   />
                 </div>
               </Tip>
-              <ColorSwatch
+              <ColorPicker
                 id="titleColor"
                 label="Color"
-                value={titleColor}
-                fallback={toColorInputValue(text, "#18181b")}
-                resetLabel="Use text color"
-                className="h-9"
+                value={toColorInputValue(titleColor || text, "#18181b")}
+                rows={colorRows}
                 onChange={(v) => set("titleColor", v)}
               />
               <Tip text="Size">
