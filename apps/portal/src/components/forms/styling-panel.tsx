@@ -26,10 +26,8 @@ import {
   Bold,
   Check,
   ChevronUp,
-  RotateCcw,
   Save,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
 import { ColorPicker, type PickerColor } from "@/components/ui/color-picker";
@@ -151,72 +149,12 @@ function Summary({ words, colors = [] }: { words: (string | false)[]; colors?: [
   );
 }
 
-/** A color is the native swatch alone: every platform's picker takes hex.
-    Once a color is set, a reset button returns it to unset: the default, or
-    for the title and labels, following the text color (`resetLabel`). */
-function ColorSwatch({
-  id,
-  value,
-  fallback,
-  resetLabel = "Reset to default",
-  label,
-  className,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  fallback: string;
-  resetLabel?: string;
-  /** Spoken and tooltip name, for a swatch with no visible label. */
-  label?: string;
-  className?: string;
-  onChange: (value: string) => void;
-}) {
-  const swatch = (
-    <input
-      id={id}
-      type="color"
-      aria-label={label}
-      value={toColorInputValue(value, fallback)}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn("h-7 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-card p-0.5", className)}
-    />
-  );
-  // The reset sits before the swatch, so the swatch keeps its place at the
-  // row's right edge whether or not the reset shows.
-  return (
-    <div className="flex items-center gap-1">
-      {value && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={resetLabel}
-              onClick={() => onChange("")}
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{resetLabel}</TooltipContent>
-        </Tooltip>
-      )}
-      {label ? <Tip text={label}>{swatch}</Tip> : swatch}
-    </div>
-  );
-}
-
 /** A color under its label, for rows not yet in the one-line layout. */
-function ColorField({
-  id,
-  label,
-  ...swatch
-}: React.ComponentProps<typeof ColorSwatch> & { label: string }) {
+function ColorField({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <ColorSwatch id={id} {...swatch} />
+      <div>{children}</div>
     </div>
   );
 }
@@ -562,6 +500,19 @@ export function StylingPanel() {
     else formColors.push({ value: hex, names: [name] });
   }
   const colorRows = [{ colors: formColors }];
+  // Unset, a color shows as what it renders with: the title and labels as
+  // the text color, the rest as their defaults.
+  const textColor = toColorInputValue(text, "#18181b");
+  const colorPicker = (key: string, label: string, fallback: string, tooltip = false) => (
+    <ColorPicker
+      id={key}
+      label={label}
+      tooltip={tooltip}
+      value={toColorInputValue(str(key), fallback)}
+      rows={colorRows}
+      onChange={(v) => set(key, v)}
+    />
+  );
 
   const fontWord = (font: string) => font !== "inherit" && font;
   const sizeWord = (size: string) => size !== "md" && `Size ${SIZE_LABELS[size] ?? size}`;
@@ -605,12 +556,7 @@ export function StylingPanel() {
             >
               <div className="space-y-2">
                 <SettingRow id="pageBackground" label="Background">
-                  <ColorSwatch
-                    id="pageBackground"
-                    value={pageBackground}
-                    fallback="#f4f4f5"
-                    onChange={(v) => set("pageBackground", v)}
-                  />
+                  {colorPicker("pageBackground", "Page background", "#f4f4f5")}
                 </SettingRow>
                 <SettingRow id="card" label="Card">
                   <Select value={card} onValueChange={setCard}>
@@ -654,12 +600,7 @@ export function StylingPanel() {
           >
             <div className="space-y-2">
               <SettingRow id="background" label="Background">
-                <ColorSwatch
-                  id="background"
-                  value={background}
-                  fallback="#ffffff"
-                  onChange={(v) => set("background", v)}
-                />
+                {colorPicker("background", "Form background", "#ffffff")}
               </SettingRow>
               <SettingRow id="radius" label="Corners">
                 {/* A saved radius between presets presses none until changed. */}
@@ -705,13 +646,7 @@ export function StylingPanel() {
                   />
                 </div>
               </Tip>
-              <ColorPicker
-                id="titleColor"
-                label="Color"
-                value={toColorInputValue(titleColor || text, "#18181b")}
-                rows={colorRows}
-                onChange={(v) => set("titleColor", v)}
-              />
+              {colorPicker("titleColor", "Color", textColor, true)}
               <Tip text="Size">
                 <span className="inline-flex">
                   <Select value={titleSize} onValueChange={(v) => set("titleSize", v)}>
@@ -784,13 +719,9 @@ export function StylingPanel() {
                   placeholder="14"
                 />
               </div>
-              <ColorField
-                id="text"
-                label="Color"
-                value={text}
-                fallback="#18181b"
-                onChange={(v) => set("text", v)}
-              />
+              <ColorField id="text" label="Color">
+                {colorPicker("text", "Text color", "#18181b")}
+              </ColorField>
             </div>
           </StyleRow>
 
@@ -822,14 +753,9 @@ export function StylingPanel() {
                 options={weightOptions(hasLight(labelFont))}
                 onChange={(v) => set("labelWeight", v)}
               />
-              <ColorField
-                id="labelColor"
-                label="Color"
-                value={labelColor}
-                fallback={toColorInputValue(text, "#18181b")}
-                resetLabel="Use text color"
-                onChange={(v) => set("labelColor", v)}
-              />
+              <ColorField id="labelColor" label="Color">
+                {colorPicker("labelColor", "Label color", textColor)}
+              </ColorField>
               <ChoiceField
                 id="labelSize"
                 label="Size"
@@ -853,20 +779,12 @@ export function StylingPanel() {
             summary={<Summary words={[]} colors={[[fieldBackground, "#ffffff"], [border, "#e4e4e7"]]} />}
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              <ColorField
-                id="fieldBackground"
-                label="Background"
-                value={fieldBackground}
-                fallback="#ffffff"
-                onChange={(v) => set("fieldBackground", v)}
-              />
-              <ColorField
-                id="border"
-                label="Border"
-                value={border}
-                fallback="#e4e4e7"
-                onChange={(v) => set("border", v)}
-              />
+              <ColorField id="fieldBackground" label="Background">
+                {colorPicker("fieldBackground", "Field background", "#ffffff")}
+              </ColorField>
+              <ColorField id="border" label="Border">
+                {colorPicker("border", "Field border", "#e4e4e7")}
+              </ColorField>
             </div>
           </StyleRow>
 
@@ -890,13 +808,9 @@ export function StylingPanel() {
                   placeholder="Submit"
                 />
               </div>
-              <ColorField
-                id="primary"
-                label="Color"
-                value={primary}
-                fallback="#005F6A"
-                onChange={(v) => set("primary", v)}
-              />
+              <ColorField id="primary" label="Color">
+                {colorPicker("primary", "Button color", "#005F6A")}
+              </ColorField>
               <ChoiceField
                 id="buttonWidth"
                 label="Width"
