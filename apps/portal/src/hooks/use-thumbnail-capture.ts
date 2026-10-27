@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { toJpeg } from "html-to-image";
 import { updateFormThumbnail } from "@/actions/forms";
+import { thumbnailFontCss } from "@/lib/thumbnail-fonts";
 import type { SaveStatus } from "@/components/forms/form-context";
 
 export function useThumbnailCapture({
@@ -35,7 +36,7 @@ export function useThumbnailCapture({
         quality: 0.9,
         pixelRatio: 2,
         cacheBust: true,
-        skipFonts: true,
+        fontEmbedCSS: await thumbnailFontCss(el),
         // The preview's marker boxes are editing chrome, not the form.
         filter: (node) => !(node instanceof HTMLElement && "previewMark" in node.dataset),
       });
