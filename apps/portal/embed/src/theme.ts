@@ -11,13 +11,18 @@ type ThemeDefaults = {
   density: "compact" | "normal" | "comfortable";
   buttonWidth: "full" | "auto";
   buttonAlign: "left" | "center" | "right";
-  titleSize: "sm" | "md" | "lg" | "xl";
+  /** Pixels. Themes saved before 2026-10-27 may carry a size key instead
+      ("sm" to "xl", a multiple of fontSize), as data-theme attributes on
+      customers' sites still can. */
+  titleSize: number | LegacySize;
   titleWeight: "light" | "normal" | "bold";
   titleAlign: "left" | "center";
-  labelSize: "sm" | "md" | "lg" | "xl";
+  labelSize: LegacySize;
   labelWeight: "light" | "normal" | "bold";
   labelTransform: "none" | "uppercase";
 };
+
+type LegacySize = "sm" | "md" | "lg" | "xl";
 
 // Tokens that are optional — no default, omitted when unset.
 // To add a new optional token: add it here. No other changes needed.
@@ -55,7 +60,7 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
-  titleSize: "md",
+  titleSize: 21,
   titleWeight: "normal",
   titleAlign: "left",
   labelSize: "md",
@@ -193,8 +198,12 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 
-  const sizeMap = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
-  container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
+  const sizeMap: Record<string, string> = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
+  const titlePx = Number(theme.titleSize);
+  container.style.setProperty(
+    "--canopy-title-size",
+    titlePx > 0 ? `${titlePx}px` : sizeMap[String(theme.titleSize)] ?? `${DEFAULT_THEME.titleSize}px`
+  );
   container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
 
   // Legacy: stored themes may have "semibold" (title) or "medium" (label)

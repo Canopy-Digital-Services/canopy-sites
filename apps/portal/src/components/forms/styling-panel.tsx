@@ -336,14 +336,13 @@ const SIZE_OPTIONS: [string, string][] = [
   ["lg", "Large"],
   ["xl", "Extra Large"],
 ];
-/** Size as a button group: terse visible text, full spoken names. */
-const SIZE_SEGMENTS: [string, string][] = [
-  ["sm", "S"],
-  ["md", "M"],
-  ["lg", "L"],
-  ["xl", "XL"],
-];
-const SIZE_NAMES: Record<string, string> = { sm: "Small", md: "Medium", lg: "Large", xl: "Extra large" };
+/** Title size in pixels, from a short list as in a word processor's size
+    box. A saved size off the list (one converted from the old S to XL keys)
+    joins it in order. */
+const TITLE_SIZE = 21;
+const TITLE_SIZES = [18, 21, 24, 28, 32, 36];
+const titleSizes = (current: string) =>
+  [...new Set([...TITLE_SIZES, Number(current)])].filter((px) => px > 0).sort((a, b) => a - b);
 const CASE_OPTIONS: [string, string][] = [
   ["none", "Normal"],
   ["uppercase", "Uppercase"],
@@ -444,7 +443,7 @@ export function StylingPanel() {
   const titleFont = str("titleFont", "inherit");
   const titleWeight = str("titleWeight", "normal") === "semibold" ? "bold" : str("titleWeight", "normal");
   const titleColor = str("titleColor");
-  const titleSize = str("titleSize", "md");
+  const titleSize = str("titleSize", String(TITLE_SIZE));
   const titleAlign = str("titleAlign", "left");
   // Text
   const bodyFont = str("bodyFont", "inherit");
@@ -505,7 +504,7 @@ export function StylingPanel() {
     newTheme.titleFont = s("titleFont") || "inherit";
     choice("titleWeight", "normal");
     color("titleColor");
-    choice("titleSize", "md");
+    if (s("titleSize") && s("titleSize") !== String(TITLE_SIZE)) newTheme.titleSize = parseInt(s("titleSize"), 10);
     choice("titleAlign", "left");
 
     newTheme.bodyFont = s("bodyFont") || "inherit";
@@ -664,7 +663,7 @@ export function StylingPanel() {
             title="Title"
             summary={
               <Summary
-                words={[fontWord(titleFont), weightWord(titleWeight, titleFont), sizeWord(titleSize), titleAlign === "center" && "Centered"]}
+                words={[fontWord(titleFont), weightWord(titleWeight, titleFont), titleSize !== String(TITLE_SIZE) && `${titleSize}px`, titleAlign === "center" && "Centered"]}
                 colors={[[titleColor || text, "#18181b"]]}
               />
             }
@@ -692,14 +691,22 @@ export function StylingPanel() {
                 className="h-9"
                 onChange={(v) => set("titleColor", v)}
               />
-              <Segmented
-                id="titleSize"
-                label="Size"
-                value={titleSize}
-                options={SIZE_SEGMENTS}
-                names={SIZE_NAMES}
-                onChange={(v) => set("titleSize", v)}
-              />
+              <Tip text="Size">
+                <span className="inline-flex">
+                  <Select value={titleSize} onValueChange={(v) => set("titleSize", v)}>
+                    <SelectTrigger id="titleSize" aria-label="Size" className="w-[4.5rem]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {titleSizes(titleSize).map((px) => (
+                        <SelectItem key={px} value={String(px)}>
+                          {px}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </span>
+              </Tip>
               <Tip text="Bold">
                 <ToggleButton
                   aria-label="Bold"
