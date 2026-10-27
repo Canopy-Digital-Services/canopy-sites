@@ -62,8 +62,9 @@ The description, help text, option labels, and what people type into fields. Sam
 
 - **Text**: the submit button's label (for example, "Send Message" or "Subscribe"). Defaults to "Submit".
 - **Color**: the button's background. Its text color is picked automatically for contrast (white on dark colors, dark on light).
-- **Width**: Full Width or Auto.
-- **Alignment**: Left, Center, or Right. Only shown when Width is Auto.
+- **Width**: **Full**, spanning the form, or as wide as its text and placed at the left, center, or right. Hover over an icon to see its name.
+
+The button's text uses the font and size set under **Text**, in semibold.
 
 ## Live preview
 

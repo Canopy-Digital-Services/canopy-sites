@@ -204,6 +204,8 @@ export const baseStyles = `
   border: none;
   border-radius: var(--canopy-radius, 8px);
   padding: 10px 16px;
+  /* Buttons don't inherit the page's font on their own. */
+  font-family: var(--canopy-font, inherit);
   font-size: var(--canopy-font-size, 16px);
   font-weight: 600;
   background: var(--canopy-primary, #005F6A);
