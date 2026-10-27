@@ -9,6 +9,7 @@ import {
   Check,
   Pencil,
   Eye,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { EditorFlow } from "@/components/forms/editor-flow";
+import { StylingPanel } from "@/components/forms/styling-panel";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -108,7 +110,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName } = useFormContext();
+  const { state, saveStatus, updateName, styling, setStyling } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -269,18 +271,34 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         ) : (
           /* Editor tab: editor column + preview column */
           <div className="flex flex-1 min-h-0 justify-center">
-            {/* Editor column — one section card at a time (progressive disclosure) */}
+            {/* Editor column — one section card at a time (progressive disclosure),
+                or the styling panel in its place. The flow stays mounted under
+                the panel so Done returns to the same step. */}
             <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
               <div className="max-w-[640px] mx-auto">
-                <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
+                {!styling && (
+                  <div className="lg:hidden mb-4">
+                    <StylingToggle />
+                  </div>
+                )}
+                <div hidden={styling}>
+                  <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
+                </div>
+                {styling && (
+                  <div className="space-y-4 editor-swoop-in">
+                    <StylingPanel />
+                    <div className="flex justify-end">
+                      <Button onClick={() => setStyling(false)}>Done</Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Preview column — fixed width, floating shadow on both sides */}
             <div className="w-[600px] shrink-0 hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
-              <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
-                <Eye className="h-3.5 w-3.5" aria-hidden />
-                Preview
+              <div className="shrink-0 flex items-center px-2 py-1 border-b bg-muted/30">
+                <StylingToggle />
               </div>
               <div ref={previewContainerRef} className="flex-1 overflow-y-auto flex flex-col">
                 <FormPreview live mode={previewMode} />
@@ -313,5 +331,21 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
         <FormPreview live mode={previewMode} />
       </RightPanel>
     </>
+  );
+}
+
+/** Enters styling mode, and leaves it again while pressed. */
+function StylingToggle() {
+  const { styling, setStyling } = useFormContext();
+  return (
+    <Button
+      variant={styling ? "secondary" : "ghost"}
+      size="sm"
+      aria-pressed={styling}
+      onClick={() => setStyling(!styling)}
+    >
+      <Palette className="h-4 w-4" />
+      Change styling
+    </Button>
   );
 }

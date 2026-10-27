@@ -18,10 +18,10 @@ export type PageTheme = {
   cardEnabled: boolean;
   cardShadow: keyof typeof CARD_SHADOW_MAP;
   contentWidth: keyof typeof CONTENT_WIDTH_MAP;
-  verticalAlign: "top" | "center";
   /** Form-level background color, used as the card's background. */
   formBackground: string;
-  /** Form-level border radius, used as the card's border radius. */
+  /** Form-level border radius, used as the card's border radius. Defaults to
+      the embed's own radius default, so card, inputs and button match. */
   formRadius: number;
 };
 
@@ -34,9 +34,8 @@ export function extractPageTheme(
     cardEnabled: true,
     cardShadow: "md",
     contentWidth: "md",
-    verticalAlign: "top",
     formBackground: "#ffffff",
-    formRadius: 8,
+    formRadius: 4,
   };
 
   if (!themeObj) return defaults;
@@ -59,17 +58,14 @@ export function extractPageTheme(
       ? (themeObj.contentWidth as PageTheme["contentWidth"])
       : "md";
 
-  const verticalAlign =
-    themeObj.verticalAlign === "center" ? "center" : "top";
-
   const formBackground =
     typeof themeObj.background === "string" ? themeObj.background : "#ffffff";
 
   const formRadius =
-    typeof themeObj.radius === "number" ? themeObj.radius : 8;
+    typeof themeObj.radius === "number" ? themeObj.radius : 4;
 
   return {
-    pageBackground, cardEnabled, cardShadow, contentWidth, verticalAlign,
+    pageBackground, cardEnabled, cardShadow, contentWidth,
     formBackground, formRadius,
   };
 }

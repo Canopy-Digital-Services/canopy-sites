@@ -146,10 +146,10 @@ export class CanopyForm {
     applyTheme(this.container, theme);
 
     // Load any explicitly selected families (new format)
-    ensureFontsLoaded([theme.bodyFont, theme.headingFont], this.options.baseUrl || "");
+    ensureFontsLoaded([theme.bodyFont, theme.titleFont, theme.labelFont], this.options.baseUrl || "");
 
     // Backward compat: load legacy fontUrl if new fields are absent
-    if (!theme.bodyFont && !theme.headingFont) {
+    if (!theme.bodyFont && !theme.titleFont && !theme.labelFont) {
       ensureFontLoaded((theme as { fontUrl?: string }).fontUrl);
     }
 
@@ -233,7 +233,8 @@ export class CanopyForm {
       border: none !important;
       border-radius: ${radius} !important;
       padding: 10px 16px !important;
-      font-size: 14px !important;
+      font-family: var(--canopy-font, inherit) !important;
+      font-size: var(--canopy-font-size, 16px) !important;
       font-weight: 600 !important;
       background: ${primaryColor} !important;
       background-color: ${primaryColor} !important;

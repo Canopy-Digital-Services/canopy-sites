@@ -50,10 +50,7 @@ export function HostedFormPage({ form }: HostedFormPageProps) {
       className={cn("min-h-screen flex flex-col", !page.pageBackground && "bg-muted/40")}
       style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
     >
-      <main className={cn(
-        "flex-1 flex justify-center px-4 py-8 sm:py-12",
-        page.verticalAlign === "center" ? "items-center" : "items-start",
-      )}>
+      <main className="flex-1 flex items-start justify-center px-4 py-8 sm:py-12">
         <div className="w-full" style={{ maxWidth: CONTENT_WIDTH_MAP[page.contentWidth] }}>
           <div style={cardWrapperStyle(page)}>
             <div ref={containerRef}>

@@ -11,25 +11,38 @@ type ThemeDefaults = {
   density: "compact" | "normal" | "comfortable";
   buttonWidth: "full" | "auto";
   buttonAlign: "left" | "center" | "right";
-  titleSize: "sm" | "md" | "lg" | "xl";
+  /** Pixels. Themes saved before 2026-10-27 may carry a size key instead
+      ("sm" to "xl", a multiple of fontSize), as data-theme attributes on
+      customers' sites still can. */
+  titleSize: number | LegacySize;
   titleWeight: "light" | "normal" | "bold";
-  labelSize: "sm" | "md" | "lg" | "xl";
-  labelWeight: "normal" | "medium" | "semibold";
-  labelTransform: "none" | "uppercase";
+  titleAlign: "left" | "center";
+  /** Pixels, or a legacy size key as for titleSize. */
+  labelSize: number | LegacySize;
+  labelWeight: "light" | "normal" | "bold";
 };
+
+type LegacySize = "sm" | "md" | "lg" | "xl";
 
 // Tokens that are optional — no default, omitted when unset.
 // To add a new optional token: add it here. No other changes needed.
 type ThemeOverrides = {
   bodyFont?: string;
-  headingFont?: string;
+  titleFont?: string;
+  labelFont?: string;
   buttonText?: string;
+  /** The button's text color. Unset, it's picked for contrast with the
+      button (autoButtonTextColor). */
+  buttonTextColor?: string;
   titleColor?: string;
+  labelColor?: string;
   pageBackground?: string;
   cardEnabled?: boolean;
   cardShadow?: "none" | "sm" | "md" | "lg";
   contentWidth?: "sm" | "md" | "lg";
-  verticalAlign?: "top" | "center";
+  /** @deprecated Sets titleFont and labelFont where they are unset. The title
+      and labels shared one heading style until 2026-10. */
+  headingFont?: string;
   /** @deprecated Use bodyFont instead */
   fontFamily?: string;
   /** @deprecated Use ensureFontsLoaded instead */
@@ -40,7 +53,7 @@ type ThemeOverrides = {
 type ThemeTokens = Partial<ThemeDefaults> & ThemeOverrides;
 
 const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
-  fontSize: 14,
+  fontSize: 16,
   text: "#18181b",
   background: "#ffffff",
   fieldBackground: "#ffffff",
@@ -50,11 +63,11 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
-  titleSize: "md",
+  titleSize: 28,
   titleWeight: "normal",
-  labelSize: "md",
-  labelWeight: "medium",
-  labelTransform: "none",
+  titleAlign: "left",
+  labelSize: 18,
+  labelWeight: "normal",
 };
 
 const loadedFonts = new Set<string>();
@@ -90,14 +103,22 @@ function normalizeColor(value: string | undefined, fallback: string) {
   return fallback;
 }
 
+/** Reads the legacy headingFont as both fonts, unless the theme sets them. */
+function upgradeLegacy(theme: ThemeTokens | null | undefined): ThemeTokens {
+  if (!theme) return {};
+  const { headingFont, ...rest } = theme;
+  if (!headingFont) return rest;
+  return { titleFont: headingFont, labelFont: headingFont, ...rest };
+}
+
 export function resolveTheme(
   formTheme: ThemeTokens | null | undefined,
   overrideTheme: ThemeTokens | null | undefined
 ) {
   return {
     ...DEFAULT_THEME,
-    ...(formTheme ?? {}),
-    ...(overrideTheme ?? {}),
+    ...upgradeLegacy(formTheme),
+    ...upgradeLegacy(overrideTheme),
   };
 }
 
@@ -116,14 +137,21 @@ function relativeLuminance(r: number, g: number, b: number): number {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
-function contrastingTextColor(hex: string): string {
-  try {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return "#ffffff";
-    return relativeLuminance(...rgb) > 0.179 ? "#18181b" : "#ffffff";
-  } catch {
-    return "#ffffff";
-  }
+function luminance(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  return rgb ? relativeLuminance(...rgb) : null;
+}
+
+/**
+ * The button text color when the owner hasn't picked one: white on a dark
+ * button, and on a light one the form's text color if it reads at WCAG AA
+ * (4.5:1) against the button, else near-black. Both arguments are #rrggbb.
+ */
+export function autoButtonTextColor(button: string, text: string): string {
+  const bg = luminance(button);
+  if (bg === null || bg <= 0.179) return "#ffffff";
+  const fg = luminance(text);
+  return fg !== null && (bg + 0.05) / (fg + 0.05) >= 4.5 ? text : DEFAULT_THEME.text;
 }
 
 export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
@@ -131,21 +159,21 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   const bodyFontFamily = resolveFont(theme.bodyFont, theme.fontFamily);
   container.style.setProperty("--canopy-font", bodyFontFamily);
 
-  // Resolve heading font: prefer new headingFont, fall back to body font
-  const headingFontFamily = resolveFont(theme.headingFont);
-  container.style.setProperty(
-    "--canopy-heading-font",
-    headingFontFamily === "inherit" ? "var(--canopy-font)" : headingFontFamily
-  );
+  // Title and label fonts fall back to the body font
+  for (const [prop, font] of [
+    ["--canopy-title-font", theme.titleFont],
+    ["--canopy-label-font", theme.labelFont],
+  ] as const) {
+    const family = resolveFont(font);
+    container.style.setProperty(prop, family === "inherit" ? "var(--canopy-font)" : family);
+  }
 
   container.style.setProperty(
     "--canopy-font-size",
     `${theme.fontSize ?? DEFAULT_THEME.fontSize}px`
   );
-  container.style.setProperty(
-    "--canopy-text",
-    normalizeColor(theme.text, DEFAULT_THEME.text)
-  );
+  const resolvedText = normalizeColor(theme.text, DEFAULT_THEME.text);
+  container.style.setProperty("--canopy-text", resolvedText);
   container.style.setProperty(
     "--canopy-bg",
     normalizeColor(theme.background, DEFAULT_THEME.background)
@@ -158,7 +186,7 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
   container.style.setProperty("--canopy-primary", resolvedPrimary);
   container.style.setProperty(
     "--canopy-button-text",
-    contrastingTextColor(resolvedPrimary)
+    normalizeColor(theme.buttonTextColor, "") || autoButtonTextColor(resolvedPrimary, resolvedText)
   );
   container.style.setProperty(
     "--canopy-border",
@@ -177,28 +205,40 @@ export function applyTheme(container: HTMLElement, theme: ThemeTokens) {
     theme.buttonAlign || DEFAULT_THEME.buttonAlign
   );
 
-  const sizeMap = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
-  container.style.setProperty("--canopy-title-size", sizeMap[theme.titleSize ?? "md"]);
-  container.style.setProperty("--canopy-label-size", sizeMap[theme.labelSize ?? "md"]);
+  // Sizes are pixels; a legacy key from a data-theme attribute is still
+  // read as a multiple of the text size.
+  const sizeMap: Record<string, string> = { sm: "1.25em", md: "1.5em", lg: "1.875em", xl: "2.25em" };
+  const typeSize = (size: unknown, fallback: unknown) => {
+    const px = Number(size);
+    return px > 0 ? `${px}px` : sizeMap[String(size)] ?? `${Number(fallback)}px`;
+  };
+  container.style.setProperty("--canopy-title-size", typeSize(theme.titleSize, DEFAULT_THEME.titleSize));
+  container.style.setProperty("--canopy-label-size", typeSize(theme.labelSize, DEFAULT_THEME.labelSize));
 
-  // Legacy: stored themes may have "semibold" — map to bold (700)
-  const titleWeightMap: Record<string, string> = {
+  // Legacy: stored themes may have "semibold" (title) or "medium" (label)
+  const weightMap: Record<string, string> = {
     light: "300",
     normal: "400",
+    medium: "500",
     bold: "700",
     semibold: "700",
   };
-  const weight = theme.titleWeight ?? "normal";
-  container.style.setProperty("--canopy-title-weight", titleWeightMap[weight] ?? "400");
+  container.style.setProperty("--canopy-title-weight", weightMap[theme.titleWeight ?? "normal"] ?? "400");
+  container.style.setProperty("--canopy-label-weight", weightMap[theme.labelWeight ?? "normal"] ?? "400");
 
-  const resolvedTitleColor = theme.titleColor ? normalizeColor(theme.titleColor, "") : "";
-  if (resolvedTitleColor) {
-    container.style.setProperty("--canopy-title-color", resolvedTitleColor);
-  } else {
-    container.style.removeProperty("--canopy-title-color");
+  for (const [prop, color] of [
+    ["--canopy-title-color", theme.titleColor],
+    ["--canopy-label-color", theme.labelColor],
+  ] as const) {
+    const resolved = color ? normalizeColor(color, "") : "";
+    if (resolved) {
+      container.style.setProperty(prop, resolved);
+    } else {
+      container.style.removeProperty(prop);
+    }
   }
 
-  container.style.setProperty("--canopy-heading-transform", theme.labelTransform === "uppercase" ? "uppercase" : "none");
+  container.style.setProperty("--canopy-title-align", theme.titleAlign === "center" ? "center" : "left");
 }
 
 export function getDensityClass(theme: ThemeTokens) {
