@@ -275,13 +275,47 @@ const SIZE_OPTIONS: [string, string][] = [
   ["lg", "Large"],
   ["xl", "Extra Large"],
 ];
-/** Title size in pixels, from a short list as in a word processor's size
-    box. A saved size off the list (one converted from the old S to XL keys)
-    joins it in order. */
-const TITLE_SIZE = 20;
+/** Type sizes in pixels, from a short list as in a word processor's size
+    box. Text's default is 16 because iOS zooms into any field set smaller. */
+const TITLE_SIZE = 28;
 const TITLE_SIZES = [20, 28, 36, 48];
-const titleSizes = (current: string) =>
-  [...new Set([...TITLE_SIZES, Number(current)])].filter((px) => px > 0).sort((a, b) => a - b);
+const TEXT_SIZE = 16;
+const TEXT_SIZES = [14, 16, 18];
+
+/** A size dropdown for a toolbar. A saved size off the list (one converted
+    from the old S to XL keys, or set through data-theme) joins it in order,
+    so it shows rather than a blank. */
+function SizePicker({
+  id,
+  value,
+  sizes,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  sizes: number[];
+  onChange: (value: string) => void;
+}) {
+  const shown = [...new Set([...sizes, Number(value)])].filter((px) => px > 0).sort((a, b) => a - b);
+  return (
+    <Tip text="Size">
+      <span className="inline-flex">
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger id={id} aria-label="Size" className="w-[4.5rem]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {shown.map((px) => (
+              <SelectItem key={px} value={String(px)}>
+                {px}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </span>
+    </Tip>
+  );
+}
 const CASE_OPTIONS: [string, string][] = [
   ["none", "Normal"],
   ["uppercase", "Uppercase"],
@@ -386,7 +420,7 @@ export function StylingPanel() {
   const titleAlign = str("titleAlign", "left");
   // Text
   const bodyFont = str("bodyFont", "inherit");
-  const fontSize = str("fontSize");
+  const fontSize = str("fontSize", String(TEXT_SIZE));
   const text = str("text");
   // Labels
   const labelFont = str("labelFont", "inherit");
@@ -447,7 +481,7 @@ export function StylingPanel() {
     choice("titleAlign", "left");
 
     newTheme.bodyFont = s("bodyFont") || "inherit";
-    if (s("fontSize")) newTheme.fontSize = parseInt(s("fontSize"), 10);
+    if (s("fontSize") && s("fontSize") !== String(TEXT_SIZE)) newTheme.fontSize = parseInt(s("fontSize"), 10);
     color("text");
 
     newTheme.labelFont = s("labelFont") || "inherit";
@@ -647,22 +681,12 @@ export function StylingPanel() {
                 </div>
               </Tip>
               {colorPicker("titleColor", "Color", textColor, true)}
-              <Tip text="Size">
-                <span className="inline-flex">
-                  <Select value={titleSize} onValueChange={(v) => set("titleSize", v)}>
-                    <SelectTrigger id="titleSize" aria-label="Size" className="w-[4.5rem]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {titleSizes(titleSize).map((px) => (
-                        <SelectItem key={px} value={String(px)}>
-                          {px}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </span>
-              </Tip>
+              <SizePicker
+                id="titleSize"
+                value={titleSize}
+                sizes={TITLE_SIZES}
+                onChange={(v) => set("titleSize", v)}
+              />
               <Tip text="Bold">
                 <ToggleButton
                   aria-label="Bold"
@@ -684,44 +708,6 @@ export function StylingPanel() {
                 names={{ left: "Align left", center: "Center" }}
                 onChange={(v) => set("titleAlign", v)}
               />
-            </div>
-          </StyleRow>
-
-          <StyleRow
-            group="text"
-            title="Text"
-            summary={
-              <Summary
-                words={[fontWord(bodyFont), fontSize && `${fontSize}px`]}
-                colors={[[text, "#18181b"]]}
-              />
-            }
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="bodyFont">Font</Label>
-                <FontPicker
-                  id="bodyFont"
-                  value={bodyFont}
-                  onChange={(v) => set("bodyFont", v)}
-                  showInherit={!isHosted}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fontSize">Size (px)</Label>
-                <Input
-                  id="fontSize"
-                  type="number"
-                  min="10"
-                  max="24"
-                  value={fontSize}
-                  onChange={(e) => set("fontSize", e.target.value)}
-                  placeholder="14"
-                />
-              </div>
-              <ColorField id="text" label="Color">
-                {colorPicker("text", "Text color", "#18181b")}
-              </ColorField>
             </div>
           </StyleRow>
 
@@ -769,6 +755,38 @@ export function StylingPanel() {
                 value={labelTransform}
                 options={CASE_OPTIONS}
                 onChange={(v) => set("labelTransform", v)}
+              />
+            </div>
+          </StyleRow>
+
+          <StyleRow
+            group="text"
+            title="Text"
+            summary={
+              <Summary
+                words={[fontWord(bodyFont), fontSize !== String(TEXT_SIZE) && `${fontSize}px`]}
+                colors={[[text, "#18181b"]]}
+              />
+            }
+          >
+            {/* The same toolbar as Title's. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Tip text="Font">
+                <div className="min-w-32 flex-1">
+                  <FontPicker
+                    id="bodyFont"
+                    value={bodyFont}
+                    onChange={(v) => set("bodyFont", v)}
+                    showInherit={!isHosted}
+                  />
+                </div>
+              </Tip>
+              {colorPicker("text", "Color", "#18181b", true)}
+              <SizePicker
+                id="fontSize"
+                value={fontSize}
+                sizes={TEXT_SIZES}
+                onChange={(v) => set("fontSize", v)}
               />
             </div>
           </StyleRow>

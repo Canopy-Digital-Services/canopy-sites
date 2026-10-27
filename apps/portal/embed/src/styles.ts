@@ -1,7 +1,7 @@
 export const baseStyles = `
 .canopy-root {
   font-family: var(--canopy-font, inherit);
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   color: var(--canopy-text, #18181b);
   background: var(--canopy-bg, #ffffff);
   padding: 4px;
@@ -106,7 +106,7 @@ export const baseStyles = `
   border: 1px solid var(--canopy-border, #e4e4e7) !important;
   padding: 10px 12px;
   font-family: var(--canopy-font, inherit);
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   background: var(--canopy-field-bg, #ffffff) !important;
   color: inherit;
   min-height: 40px;
@@ -133,7 +133,7 @@ export const baseStyles = `
 }
 
 .canopy-help-text {
-  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
   color: var(--canopy-text, #18181b);
   margin-top: 4px;
   line-height: 1.4;
@@ -177,7 +177,7 @@ export const baseStyles = `
 }
 
 .canopy-name-part-label {
-  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
   font-weight: 500;
   color: var(--canopy-text, #18181b);
 }
@@ -193,7 +193,7 @@ export const baseStyles = `
 }
 
 .canopy-address-part-label {
-  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
   font-weight: 500;
   color: var(--canopy-text, #18181b);
 }
@@ -205,7 +205,7 @@ export const baseStyles = `
   border: none;
   border-radius: var(--canopy-radius, 8px);
   padding: 10px 16px;
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   font-weight: 600;
   background: var(--canopy-primary, #005F6A);
   color: var(--canopy-button-text, #ffffff);
@@ -219,7 +219,7 @@ export const baseStyles = `
 }
 
 .canopy-status {
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
 }
 
 .canopy-status.canopy-status-error {
@@ -249,7 +249,7 @@ export const baseStyles = `
   margin: 0;
   max-width: 360px;
   color: var(--canopy-muted-text, #71717a);
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   line-height: 1.5;
 }
 
@@ -288,7 +288,7 @@ export const baseStyles = `
 
 .canopy-success-message {
   font-family: var(--canopy-font, inherit);
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   color: var(--canopy-text, #18181b);
   line-height: 1.5;
   margin: 0;
@@ -301,7 +301,7 @@ export const baseStyles = `
   border: none;
   color: var(--canopy-primary, #005F6A);
   font-family: var(--canopy-font, inherit);
-  font-size: calc(var(--canopy-font-size, 14px) - 1px);
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
   font-weight: 500;
   cursor: pointer;
   padding: 6px 10px;
@@ -387,7 +387,7 @@ export const baseStyles = `
 
 .canopy-title {
   font-family: var(--canopy-title-font, var(--canopy-font, inherit));
-  font-size: var(--canopy-title-size, 20px);
+  font-size: var(--canopy-title-size, 28px);
   font-weight: var(--canopy-title-weight, 400);
   color: var(--canopy-title-color, var(--canopy-text, #18181b));
   text-align: var(--canopy-title-align, left);
@@ -396,7 +396,7 @@ export const baseStyles = `
 }
 
 .canopy-description {
-  font-size: var(--canopy-font-size, 14px);
+  font-size: var(--canopy-font-size, 16px);
   color: var(--canopy-text, #18181b);
   margin: 0;
   line-height: 1.5;

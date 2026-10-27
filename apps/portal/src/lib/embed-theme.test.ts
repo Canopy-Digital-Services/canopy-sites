@@ -49,9 +49,13 @@ describe("embed theme: title and labels", () => {
 });
 
 describe("embed theme: title size", () => {
-  it("sizes the title in pixels, 20 by default", () => {
+  it("sizes the title in pixels, 28 by default", () => {
     expect(applied(resolveTheme({ titleSize: 36 }, null)).get("--canopy-title-size")).toBe("36px");
-    expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("20px");
+    expect(applied(resolveTheme(null, null)).get("--canopy-title-size")).toBe("28px");
+  });
+
+  it("sets text at 16px by default, where iOS doesn't zoom into fields", () => {
+    expect(applied(resolveTheme(null, null)).get("--canopy-font-size")).toBe("16px");
   });
 
   it("still reads a legacy size key from data-theme as a multiple of the text size", () => {

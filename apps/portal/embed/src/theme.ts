@@ -50,7 +50,7 @@ type ThemeOverrides = {
 type ThemeTokens = Partial<ThemeDefaults> & ThemeOverrides;
 
 const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
-  fontSize: 14,
+  fontSize: 16,
   text: "#18181b",
   background: "#ffffff",
   fieldBackground: "#ffffff",
@@ -60,7 +60,7 @@ const DEFAULT_THEME: ThemeDefaults & ThemeOverrides = {
   density: "normal",
   buttonWidth: "full",
   buttonAlign: "left",
-  titleSize: 20,
+  titleSize: 28,
   titleWeight: "normal",
   titleAlign: "left",
   labelSize: "md",
