@@ -38,7 +38,12 @@ The form's title, in the header above the fields. Its settings sit on one line, 
 
 ## Labels
 
-The label above each field. Same settings as Title, set separately: a bold title can sit over regular labels.
+The label above each field. The same toolbar as Title, set separately (a bold title can sit over regular labels), without alignment, since labels line up with their fields.
+
+- **Font**: until you pick one, labels use the text font.
+- **Color**: until you pick one, labels use the text color.
+- **Size**: 16, 18, 20, or 24 pixels. 18 is the default.
+- **Bold**: turns bold on or off.
 
 ## Text
 
@@ -84,11 +89,11 @@ You can override the saved theme for a single embed without changing the form's 
 
 Override properties are merged on top of the saved defaults, so you only need to specify what's changing.
 
-The title and labels are styled separately: `titleWeight`, `titleColor`, and `titleAlign` change only the title, and the `label` keys only the labels. `titleSize` is a number of pixels (`"titleSize":28`). An older `headingFont` key still works and sets both fonts.
+The title and labels are styled separately: `titleWeight`, `titleColor`, and `titleAlign` change only the title, and the `label` keys only the labels. `titleSize`, `labelSize`, and `fontSize` are numbers of pixels (`"titleSize":36`). An older `headingFont` key still works and sets both fonts.
 
 **Commonly overridden keys:**
 
-- Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleAlign`, `labelFont`, `labelWeight`, `labelSize`, `labelTransform`
+- Typography: `bodyFont`, `fontSize`, `titleFont`, `titleWeight`, `titleSize`, `titleAlign`, `labelFont`, `labelWeight`, `labelSize`
 - Colors: `text`, `titleColor`, `labelColor`, `background`, `fieldBackground`, `border`, `primary`
 - Layout: `radius`, `density`, `buttonWidth`, `buttonAlign`, `buttonText`
 - Page surface (hosted page only): `pageBackground`, `cardEnabled`, `cardShadow`, `contentWidth`
