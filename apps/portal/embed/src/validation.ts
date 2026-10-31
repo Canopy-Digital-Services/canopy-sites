@@ -1,3 +1,5 @@
+import { DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel } from "./name";
+
 type FieldOption = { value: string; label: string };
 
 type FieldValidation = {
@@ -18,7 +20,6 @@ type FieldValidation = {
 type NameOptions = {
   parts?: string[];
   partLabels?: Record<string, string>;
-  partsRequired?: Record<string, boolean>;
 };
 
 type DropdownOptions = {
@@ -266,17 +267,14 @@ export function validateSubmission(
 
     if (field.type === "NAME") {
       const nameValue = value as Record<string, string>;
-      const options = (field.options as NameOptions) || { parts: ["first", "last"] };
-      const parts = options.parts || ["first", "last"];
-      const partsRequired = options.partsRequired || {};
-      
+      const options = (field.options as NameOptions) || {};
+      const parts = options.parts || DEFAULT_NAME_PARTS;
+
       // Validate each part
       for (const part of parts) {
         const partValue = nameValue[part];
-        const isPartRequired = field.required || partsRequired[part];
-        
-        if (isPartRequired && (!partValue || partValue.trim() === "")) {
-          const partLabel = options.partLabels?.[part] || part;
+        if (isNamePartRequired(part, field.required) && (!partValue || partValue.trim() === "")) {
+          const partLabel = part === "single" ? label : namePartLabel(part, options.partLabels);
           errors[field.name] = `${partLabel} is required.`;
           return;
         }

@@ -195,6 +195,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
                 onToggle={() => toggle(field.id)}
                 onChange={(patch) => change(field.id, patch)}
                 onDelete={() => setDeletingField(field)}
+                onFocusPart={(part) => setPreviewFocus(`field:${field.name}${part ? `#${part}` : ""}`)}
               />
             )}
           />

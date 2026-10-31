@@ -165,14 +165,20 @@ export const baseStyles = `
 }
 
 .canopy-name-parts {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .canopy-name-part {
   display: grid;
   gap: 4px;
+  flex: 1 1 150px;
+}
+
+/* One or two characters: a full-width box would look like a mistake. */
+.canopy-name-part-initial {
+  flex: 0 0 4.5em;
 }
 
 .canopy-name-part-label {

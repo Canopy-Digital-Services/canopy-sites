@@ -9,6 +9,7 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
+import { DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel } from "../../embed/src/name";
 
 type FieldDefinition = {
   name: string;
@@ -300,23 +301,15 @@ function validateFields(
       const nameValue = value as Record<string, string> | undefined;
       const options =
         typeof field.options === "object" && field.options !== null
-          ? (field.options as {
-              parts?: string[];
-              partLabels?: Record<string, string>;
-              partsRequired?: Record<string, boolean>;
-            })
-          : { parts: ["first", "last"] };
-      
-      const parts = options.parts || ["first", "last"];
-      const partsRequired = options.partsRequired || {};
-      
+          ? (field.options as { parts?: string[]; partLabels?: Record<string, string> })
+          : {};
+      const parts = options.parts || DEFAULT_NAME_PARTS;
+
       // Validate each part
       for (const part of parts) {
         const partValue = nameValue?.[part];
-        const isPartRequired = field.required || partsRequired[part];
-        
-        if (isPartRequired && (!partValue || String(partValue).trim() === "")) {
-          const partLabel = options.partLabels?.[part] || part;
+        if (isNamePartRequired(part, field.required) && (!partValue || String(partValue).trim() === "")) {
+          const partLabel = part === "single" ? getFieldLabel(field) : namePartLabel(part, options.partLabels);
           errors[field.name] = `${partLabel} is required.`;
           break;
         }

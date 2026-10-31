@@ -42,7 +42,7 @@ Until you type, the preview shows faded sample text where the title and descript
 
 ## Fields
 
-The **Fields** section is where you add and arrange inputs. Click **Add field** at the bottom of the list and pick a type. The new field opens in the list with its settings, and the field you're editing is outlined in the preview. Click any field to open its settings; opening one closes the other. To change an open field's type, click the type beside its name. Changes save as you go.
+The **Fields** section is where you add and arrange inputs. Click **Add field** at the bottom of the list and pick a type. The new field opens in the list with its settings, and the field you're editing is outlined in the preview. Click any field to open its settings; opening one closes the other. A field's type can't be changed; to use another type, add a new field and delete the old one. Changes save as you go.
 
 ### Field types
 
@@ -53,7 +53,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Paragraph | Multi-line text | For longer responses |
 | Phone | Phone number | Lenient or strict format |
 | Date | Date picker | Optional min / max, no-future, no-past rules |
-| Name | Name with parts | Choose which parts (first, last, middle, prefix, suffix) |
+| Name | Person's name | One box, or separate first, middle, and last parts |
 | Dropdown | Single select | Configure value/label options |
 | Yes / No | Single checkbox | For consent-style prompts |
 | Checkboxes | Multi-select checkboxes | Configure options; submitted value is an array |
@@ -66,7 +66,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Core options:**
 
-- **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
+- **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, and Address have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
 - **Placeholder**: optional hint text inside the empty input.
 - **Required**: toggles whether the field must be filled before the form can submit.
 - **Help text**: optional muted text shown below the field to guide the user.
@@ -76,7 +76,7 @@ Every field type has the same core options, plus type-specific ones.
 - Text, Paragraph, Email, Phone: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length, custom error messages.
 - Date: min date, max date, "no future", "no past".
 - Dropdown, Checkboxes: the list of options (value/label pairs). Values must be unique.
-- Name: which name parts to include.
+- Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. A required Name requires every part but the middle. Rename a part with the pencil beside it.
 - Address: which address components to include.
 - Number: min, max.
 
