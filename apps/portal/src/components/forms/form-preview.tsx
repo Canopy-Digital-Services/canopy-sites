@@ -23,6 +23,13 @@ const BODY_TEXT =
 const BODY_TEXT_GROUPS =
   ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label";
 const OPTION_LIST = ".canopy-checkboxes";
+
+/** A field focus (`<name>` or `<name>#<part>`) as a selector. */
+const fieldTarget = (focus: string) => {
+  const [name, part] = focus.split("#");
+  const field = `.canopy-field[data-field-name="${CSS.escape(name)}"]`;
+  return part ? `${field} [data-field-part="${CSS.escape(part)}"]` : field;
+};
 const CARD = "[data-preview-card]";
 
 /** A hosted form's content width in the preview, as a share of the pane:
@@ -90,7 +97,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       : focus === "description"
         ? ".canopy-description"
         : focus?.startsWith("field:")
-          ? `.canopy-field[data-field-name="${CSS.escape(focus.slice(6))}"]`
+          ? fieldTarget(focus.slice(6))
           : null;
 
   // Styling mode: hovering outlines the part of the form under the pointer

@@ -45,6 +45,9 @@ export type SaveStatus = "idle" | "saving" | "saved";
 
 /** The part of the form being edited, which the live preview marks: a
     focused header input, or the open field (by name). */
+/** What the preview marks: the title, the description, or a field
+    (`field:<name>`), narrowed to one of its parts (`field:<name>#<part>`, a
+    `data-field-part` in the embed) while that part's settings have focus. */
 export type PreviewFocus = "title" | "description" | `field:${string}` | null;
 
 /** What the live preview shows for an empty header, so the editor starts

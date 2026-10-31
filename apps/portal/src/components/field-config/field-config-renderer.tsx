@@ -32,10 +32,11 @@ type FieldConfigRendererProps = {
   type: FieldType;
   value: unknown;
   onChange: (value: unknown) => void;
+  onFocusPart?: (part: string | null) => void;
 };
 
-export function FieldConfigRenderer({ type, value, onChange }: FieldConfigRendererProps) {
+export function FieldConfigRenderer({ type, value, onChange, onFocusPart }: FieldConfigRendererProps) {
   const Component = configRegistry[type];
   if (!Component) return null;
-  return <Component value={value} onChange={onChange} />;
+  return <Component value={value} onChange={onChange} onFocusPart={onFocusPart} />;
 }

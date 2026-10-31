@@ -2,6 +2,7 @@ import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resol
 import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
 import type { FieldOption, AddressOptions } from "./validation";
 import { US_STATES } from "./us-states";
+import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel, orderNameParts } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
@@ -204,6 +205,8 @@ export class CanopyForm {
     definition.fields.forEach((field) => {
       const { wrapper, input, errorEl } = this.createField(field);
       if (wrapper) {
+        // Lets the admin preview find a field to mark it (PreviewMark).
+        wrapper.dataset.fieldName = field.name;
         form.appendChild(wrapper);
       }
       this.fieldElements.set(field.name, { input, errorEl });
@@ -297,11 +300,11 @@ export class CanopyForm {
 
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field";
-    // Lets the admin preview find a field to mark it (PreviewMark).
-    wrapper.dataset.fieldName = field.name;
 
     const label = document.createElement("label");
     label.className = "canopy-label";
+    // The admin preview marks a field's label alone while its box has focus.
+    label.dataset.fieldPart = "label";
     label.htmlFor = fieldId;
     label.textContent = field.label || field.name;
 
@@ -420,6 +423,7 @@ export class CanopyForm {
         });
         checkboxWrapper.appendChild(checkbox);
         const text = document.createElement("span");
+        text.dataset.fieldPart = "label";
         text.textContent = field.label || field.name;
         checkboxWrapper.appendChild(text);
         wrapper.appendChild(checkboxWrapper);
@@ -625,28 +629,25 @@ export class CanopyForm {
     const wrapper = document.createElement("div");
     wrapper.className = "canopy-field canopy-name-group";
     wrapper.setAttribute("role", "group");
-    wrapper.setAttribute("aria-labelledby", `${fieldId}-group-label`);
 
-    const label = document.createElement("span");
-    label.id = `${fieldId}-group-label`;
-    label.className = "canopy-label";
-    label.textContent = field.label || field.name;
-    // No top-level asterisk — required markers go on individual parts
-
-    wrapper.appendChild(label);
-
-    const options = (field.options as NameOptions) || { parts: ["first", "last"] };
-    const parts = options.parts || ["first", "last"];
-    const partLabels = options.partLabels || {};
-    const partsRequired = options.partsRequired || {};
-
-    const defaultLabels: Record<string, string> = {
-      first: "First Name",
-      last: "Last Name",
-      middle: "Middle Name",
-      middleInitial: "M.I.",
-      single: "Full Name",
-    };
+    const options = (field.options as NameOptions) || {};
+    const parts = orderNameParts(options.parts || DEFAULT_NAME_PARTS);
+    const fieldLabel = field.label || DEFAULT_NAME_LABEL;
+    // Parts sit under the field's label ("Name" over "First" and "Last"); a
+    // single input takes the label itself.
+    const single = parts.includes("single");
+    if (single) {
+      wrapper.setAttribute("aria-label", fieldLabel);
+    } else {
+      const label = document.createElement("span");
+      label.id = `${fieldId}-group-label`;
+      label.className = "canopy-label";
+      label.dataset.fieldPart = "label";
+      label.textContent = fieldLabel;
+      // No top-level asterisk: the middle is optional, so markers go on the parts.
+      wrapper.appendChild(label);
+      wrapper.setAttribute("aria-labelledby", label.id);
+    }
 
     const nameInputsWrapper = document.createElement("div");
     nameInputsWrapper.className = "canopy-name-parts";
@@ -663,15 +664,18 @@ export class CanopyForm {
 
     parts.forEach((part: string) => {
       const partWrapper = document.createElement("div");
-      partWrapper.className = "canopy-name-part";
+      partWrapper.className =
+        part === "middleInitial" ? "canopy-name-part canopy-name-part-initial" : "canopy-name-part";
 
       const partLabel = document.createElement("label");
-      partLabel.className = "canopy-name-part-label";
+      partLabel.className = single ? "canopy-label" : "canopy-name-part-label";
       const partId = `${fieldId}-${part}`;
       partLabel.htmlFor = partId;
-      partLabel.textContent = partLabels[part] || defaultLabels[part] || part;
+      partLabel.textContent = single ? fieldLabel : namePartLabel(part, options.partLabels);
+      partLabel.dataset.fieldPart = single ? "label" : `label-${part}`;
+      const required = isNamePartRequired(part, field.required);
 
-      if (field.required || partsRequired[part]) {
+      if (required) {
         const req = document.createElement("span");
         req.className = "canopy-required";
         req.textContent = " *";
@@ -686,7 +690,9 @@ export class CanopyForm {
       partInput.name = `${field.name}.${part}`;
       partInput.setAttribute("data-name-part", part);
       partInput.setAttribute("data-name-field", field.name);
-      if (field.required || partsRequired[part]) {
+      // An initial, with room for its period.
+      if (part === "middleInitial") partInput.maxLength = 2;
+      if (required) {
         partInput.setAttribute("aria-required", "true");
       }
       
@@ -727,6 +733,7 @@ export class CanopyForm {
     const label = document.createElement("span");
     label.id = `${fieldId}-group-label`;
     label.className = "canopy-label";
+    label.dataset.fieldPart = "label";
     label.textContent = field.label || "Address";
     // No top-level asterisk — required markers go on individual parts
 

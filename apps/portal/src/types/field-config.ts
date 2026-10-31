@@ -4,6 +4,8 @@
  * stored in the Field model for each FieldType.
  */
 
+import type { NamePart } from "../../embed/src/name";
+
 // Base validation (shared by TEXT, EMAIL, TEXTAREA)
 export type BaseValidation = {
   minLength?: number;
@@ -48,9 +50,8 @@ export type DropdownOptions = {
 };
 
 export type NameOptions = {
-  parts: ("first" | "last" | "middle" | "middleInitial" | "single")[];
+  parts: NamePart[];
   partLabels?: Record<string, string>;
-  partsRequired?: Record<string, boolean>;
 };
 
 export type CheckboxesOptions = {

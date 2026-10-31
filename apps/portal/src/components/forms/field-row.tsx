@@ -6,32 +6,24 @@
 // carries the field's settings in place, where the add/edit modal used to.
 // The list keeps one row open at a time and autosaves (form-fields-manager).
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FieldType } from "@prisma/client";
-import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SortableItemRenderProps } from "@/components/ui/sortable-list";
+import { InlineRename } from "@/components/forms/inline-rename";
+import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
@@ -48,6 +40,15 @@ const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOX
 /** A field's label when the user hasn't given one: its type's name. */
 export const defaultLabel = (type: string) => getFieldTypeLabel(type);
 
+/** Types whose name already says what they ask for. They have no Label box:
+    the label stays the default unless renamed with the pencil beside it in
+    the row header, where the user can see what they are renaming. */
+const SELF_LABELED = new Set(["NAME", "EMAIL", "PHONE", "ADDRESS"]);
+
+/** Whether the user has given the field a label of their own. */
+const hasCustomLabel = (field: FieldState) =>
+  field.label.trim() !== "" && field.label !== defaultLabel(field.type);
+
 type ChoiceOption = { value: string; label: string };
 
 /** What a new field of `type` starts with, so it is complete (and saved) the
@@ -56,7 +57,8 @@ export function newFieldDefaults(type: string) {
   return {
     type,
     label: defaultLabel(type),
-    required: false,
+    // A form's names are nearly always required.
+    required: type === "NAME",
     options: isChoiceType(type)
       ? { options: [1, 2].map((n) => ({ value: `Option ${n}`, label: `Option ${n}` })) }
       : undefined,
@@ -85,46 +87,16 @@ const NO_PLACEHOLDER = new Set(["CHECKBOX", "CHECKBOXES", "NAME", "DATE", "ADDRE
 /** The field's Input Rules: `options` or `validation`, by type. */
 const configOf = (field: FieldState) => (isOptionsType(field.type) ? field.options : field.validation);
 
-/** Whether switching `field` to `type` carries its Input Rules over. Plain
-    types share validation (Text to Email keeps its lengths), and Dropdown and
-    Checkboxes share options; anything else starts from the new type's defaults. */
-const keepsConfig = (field: FieldState, type: string) =>
-  (isChoiceType(type) && isChoiceType(field.type)) ||
-  (!isOptionsType(type) && !isOptionsType(field.type));
-
-/** Whether the user has set Input Rules beyond what the type starts with. */
-function hasCustomConfig(field: FieldState) {
-  const config = configOf(field);
-  if (config == null) return false;
-  if (typeof config === "object" && Object.keys(config).length === 0) return false;
-  return JSON.stringify(config) !== JSON.stringify(newFieldDefaults(field.type).options);
-}
-
-/** The changes that switch `field` to `type`. */
-function typeChange(field: FieldState, type: string): Partial<FieldState> {
-  const patch: Partial<FieldState> = { type };
-  // A label still at its default follows the type.
-  if (!field.label.trim() || field.label === defaultLabel(field.type)) patch.label = defaultLabel(type);
-  if (!keepsConfig(field, type)) {
-    patch.options = newFieldDefaults(type).options ?? null;
-    patch.validation = null;
-  }
-  if (NO_PLACEHOLDER.has(type)) patch.placeholder = null;
-  return patch;
-}
-
 // ─── Type list ──────────────────────────────────────────────────────────────
 
 /** The field types as a dropdown list, under whatever `trigger` is. */
 function TypeMenu({
   trigger,
-  value,
   disabled,
   onOpenChange,
   onPick,
 }: {
   trigger: React.ReactNode;
-  value?: string;
   disabled?: boolean;
   onOpenChange?: (open: boolean) => void;
   onPick: (type: FieldType) => void;
@@ -135,21 +107,11 @@ function TypeMenu({
         {trigger}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48" onClick={(e) => e.stopPropagation()}>
-        {value ? (
-          <DropdownMenuRadioGroup value={value} onValueChange={(v) => onPick(v as FieldType)}>
-            {FIELD_TYPE_OPTIONS.map((option) => (
-              <DropdownMenuRadioItem key={option.value} value={option.value}>
-                {option.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        ) : (
-          FIELD_TYPE_OPTIONS.map((option) => (
-            <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
-              {option.label}
-            </DropdownMenuItem>
-          ))
-        )}
+        {FIELD_TYPE_OPTIONS.map((option) => (
+          <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
+            {option.label}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -166,20 +128,46 @@ type FieldRowProps = {
   onToggle: () => void;
   onChange: (patch: Partial<FieldState>) => void;
   onDelete: () => void;
+  /** The part of the field whose settings have focus (a `data-field-part` in
+      the embed), for the preview to mark alone; null for the whole field. */
+  onFocusPart: (part: string | null) => void;
 };
 
-export function FieldRow({ field, open, problem, dragHandleProps, onToggle, onChange, onDelete }: FieldRowProps) {
+export function FieldRow({
+  field,
+  open,
+  problem,
+  dragHandleProps,
+  onToggle,
+  onChange,
+  onDelete,
+  onFocusPart,
+}: FieldRowProps) {
   const label = field.label.trim() || defaultLabel(field.type);
-  // A type change that would throw away rules the user set waits on a confirm.
-  const [pendingType, setPendingType] = useState<FieldType | null>(null);
-
-  const pickType = (type: FieldType) => {
-    if (type === field.type) return;
-    if (!keepsConfig(field, type) && hasCustomConfig(field)) setPendingType(type);
-    else onChange(typeChange(field, type));
-  };
-
   const typeName = getFieldTypeLabel(field.type);
+
+  // The open row's title is underlined in coral, as a styling row's is; not
+  // while it is being renamed, since the input replaces it.
+  const titleRef = useRef<HTMLButtonElement>(null);
+  const [renaming, setRenaming] = useState(false);
+  useMarkerUnderline(titleRef, open && !renaming);
+
+  const title = (
+    <button
+      ref={titleRef}
+      type="button"
+      // Clipped across only: a long label ends in an ellipsis, and the
+      // underline below the text still shows.
+      className={cn(ROW_TITLE, "min-w-0 whitespace-nowrap text-ellipsis overflow-x-clip")}
+      aria-expanded={open}
+      aria-label={open ? `Collapse ${label}` : `Edit ${label}`}
+    >
+      {label}
+      {field.required && (
+        <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+      )}
+    </button>
+  );
 
   return (
     <Collapsible
@@ -189,8 +177,7 @@ export function FieldRow({ field, open, problem, dragHandleProps, onToggle, onCh
         open && "bg-muted/30"
       )}
     >
-      {/* Summary: the whole row toggles it; the grip alone drags, and the
-          open row's type opens the type list. */}
+      {/* Summary: the whole row toggles it; the grip alone drags. */}
       <div
         className="flex items-center gap-2 py-2 px-3 cursor-pointer hover:bg-muted/50"
         onClick={onToggle}
@@ -207,34 +194,26 @@ export function FieldRow({ field, open, problem, dragHandleProps, onToggle, onCh
           </span>
         )}
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          <button
-            type="button"
-            className="min-w-0 text-left font-medium text-sm truncate"
-            aria-expanded={open}
-            aria-label={open ? `Collapse ${label}` : `Edit ${label}`}
-          >
-            {label}
-            {field.required && (
-              <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
-            )}
-          </button>
-          {open ? (
-            <TypeMenu
-              value={field.type}
-              onPick={pickType}
-              trigger={
-                <button
-                  type="button"
-                  aria-label={`Field type: ${typeName}. Change type`}
-                  className="shrink-0 inline-flex items-center gap-0.5 rounded-md px-1 -mx-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {typeName}
-                  <ChevronDown className="h-3 w-3" aria-hidden />
-                </button>
-              }
-            />
+          {open && SELF_LABELED.has(field.type) ? (
+            <InlineRename
+              value={field.label}
+              placeholder={defaultLabel(field.type)}
+              onChange={(text) => onChange({ label: text })}
+              name="Rename field"
+              className="h-8 max-w-64 font-heading text-base font-semibold"
+              onEditingChange={(editing) => {
+                setRenaming(editing);
+                onFocusPart(editing ? "label" : null);
+              }}
+            >
+              {title}
+            </InlineRename>
           ) : (
+            title
+          )}
+          {/* The type, unless the label already says it. A field doesn't
+              change type: one of another type is a new field. */}
+          {hasCustomLabel(field) && (
             <span className="text-xs text-muted-foreground/60 shrink-0">{typeName}</span>
           )}
         </div>
@@ -264,33 +243,10 @@ export function FieldRow({ field, open, problem, dragHandleProps, onToggle, onCh
         {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
             controls stand off the open row's tint. */}
         <div className="-mx-1 px-1 [&_input]:bg-card [&_textarea]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
-          <FieldSettings field={field} problem={problem} onChange={onChange} />
+          <FieldSettings field={field} problem={problem} onChange={onChange} onFocusPart={onFocusPart} />
         </div>
       </CollapsibleContent>
 
-      <Dialog open={pendingType !== null} onOpenChange={(o) => !o && setPendingType(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change field type</DialogTitle>
-            <DialogDescription>
-              If you change the field type, the current configuration will be lost. Proceed?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingType(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (pendingType) onChange(typeChange(field, pendingType));
-                setPendingType(null);
-              }}
-            >
-              Proceed
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Collapsible>
   );
 }
@@ -299,25 +255,34 @@ function FieldSettings({
   field,
   problem,
   onChange,
+  onFocusPart,
 }: {
   field: FieldState;
   problem: string | null;
   onChange: (patch: Partial<FieldState>) => void;
+  onFocusPart: (part: string | null) => void;
 }) {
   const id = (part: string) => `field-${field.id}-${part}`;
   const optionsType = isOptionsType(field.type);
+  // A self-labeled field is renamed from its row header instead.
+  const selfLabeled = SELF_LABELED.has(field.type);
 
   return (
     <div className="space-y-4 px-3 pb-4 pt-2">
-      <div className="space-y-2">
-        <Label htmlFor={id("label")}>Label</Label>
-        <Input
-          id={id("label")}
-          value={field.label}
-          onChange={(e) => onChange({ label: e.target.value })}
-          placeholder={defaultLabel(field.type)}
-        />
-      </div>
+      {!selfLabeled && (
+        <div className="space-y-2">
+          <Label htmlFor={id("label")}>Label</Label>
+          <Input
+            id={id("label")}
+            value={field.label}
+            onChange={(e) => onChange({ label: e.target.value })}
+            placeholder={defaultLabel(field.type)}
+            // While the box has focus, the preview marks the label alone.
+            onFocus={() => onFocusPart("label")}
+            onBlur={() => onFocusPart(null)}
+          />
+        </div>
+      )}
 
       {!NO_PLACEHOLDER.has(field.type) && (
         <div className="space-y-2">
@@ -347,6 +312,7 @@ function FieldSettings({
           <FieldConfigRenderer
             type={field.type as FieldType}
             value={configOf(field) ?? undefined}
+            onFocusPart={onFocusPart}
             onChange={(next) =>
               onChange(optionsType ? { options: next ?? null } : { validation: next ?? null })
             }
@@ -360,7 +326,6 @@ function FieldSettings({
           id={id("help")}
           value={field.helpText ?? ""}
           onChange={(e) => onChange({ helpText: e.target.value })}
-          placeholder="Brief guidance for filling out this field"
           rows={2}
         />
       </div>

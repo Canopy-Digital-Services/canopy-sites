@@ -50,7 +50,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 
 32. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
 33. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-34. `font-heading` on every semantic heading (page, card, section, nav titles). Never on body, buttons, labels, table content, or toasts.
+34. `font-heading` on every semantic heading (page, card, section, nav titles, and the row titles of the editor's Fields and Styling lists, `ROW_TITLE`). Never on body, buttons, labels, table content, or toasts.
 35. `noValidate` on admin and auth forms, with the touched/submitted pattern.
 36. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
 37. `GripVertical` visible in a sortable row, even when the whole row drags.
@@ -186,7 +186,7 @@ Three families: **Urbanist** headings, **Inter** body and UI, **Geist Mono** cod
 --font-mono: var(--font-geist-mono);
 ```
 
-`font-heading` goes on page titles, section headings, card and modal titles, and nav titles. Not on body copy, buttons, labels, inputs, table content, or toast text.
+`font-heading` goes on page titles, section headings, card and modal titles, nav titles, and the row titles of the editor's Fields and Styling lists (`ROW_TITLE` in [row-title.ts](src/components/forms/row-title.ts); a row title is a heading even though it is the toggle button, and a field row's title is its label). Not on body copy, buttons, labels, inputs, table content, or toast text.
 
 Headings are a **single weight (600)**; hierarchy is carried by size.
 
@@ -209,7 +209,7 @@ A title, a labelled button, and a visible control already say what a thing is an
 
 **The test: delete it. If nothing is lost, it was noise.**
 
-Failed the test and were removed: "Configure the field details and validation rules" (under an "Add Field" dialog), "Customize how your form looks" (under "Appearance"), "Your current plan and usage" (on a card that visibly shows both), "Click the button below to add your first field" (narrating a button), "Your form is ready" (under an "All set" title).
+Failed the test and were removed: "Configure the field details and validation rules" (under an "Add Field" dialog), "Customize how your form looks" (under "Appearance"), "Your current plan and usage" (on a card that visibly shows both), "Click the button below to add your first field" (narrating a button), "Your form is ready" (under an "All set" title), "Select which name parts to collect" (instructions over a row of checkboxes; the checkboxes became a Format toggle), "Automatically convert email addresses to lowercase before storing" (a sentence propping up a vague "Normalize Case" label; the label became "Store in lowercase").
 
 Passed, and why: "Domains allowed to embed and submit to this form. Localhost is always allowed for development" (a constraint you can't infer), "You'll be signed out of all sessions shortly after" (a consequence), "Leave empty for no limit. Spam submissions are not counted" (non-obvious behavior of a blank value).
 
@@ -314,13 +314,16 @@ Reference: [plan-resolution-dialog.tsx](src/components/plan/plan-resolution-dial
 
 Fields are added and edited in the Fields list itself, not in a modal: the live preview beside the editor already shows the field, so a modal with its own preview was a second copy of it.
 
+- **Row titles look like the Styling list's**: `ROW_TITLE`, with the coral marker underline under the open row's title (section 11, Styling panel). A long label ends in an ellipsis clipped across only (`overflow-x-clip`), since `overflow: hidden` would also clip the underline below the text. The underline lifts while the label is being renamed and redraws after.
 - **One row open at a time**, accordion-style, so settings panels never stack into a long scroll. Clicking anywhere on a collapsed row opens it; clicking its summary again closes it. The grip alone drags, and an open row has no grip. The settings slide down open and back up closed (Radix `Collapsible`, `.field-row-body` in `globals.css`).
 - **Add field is the list's last row.** It drops down the field types as a list. No type is preselected: a default type is a path-of-least-resistance trap (a generic Text where Email or Phone would validate better). Picking one creates the field and opens it.
-- **Type is not a setting.** In an open row the type beside the label is the trigger for the same list. A change that would discard Input Rules the user set asks first ("If you change the field type, the current configuration will be lost. Proceed?"); one that loses nothing, or only the type's own defaults, just happens.
+- **A field's type is fixed once it's added.** Nobody needs to turn a configured Email into a Dropdown: a field of another type is a new field, and the switch kept almost nothing (another label, other Input Rules, behind a "configuration will be lost" confirm). The type shows as a muted tag beside the title only when the label doesn't already say it.
 - **New fields start complete**: the label defaults to the type's name and Dropdown and Checkboxes get two options (`newFieldDefaults`), so nothing blocks the first save. A cleared label saves as the default.
+- **Self-describing types are renamed where the name is shown.** Name, Email, Phone, and Address have no Label box: the open row's header shows the label with a pencil beside it that turns it into an input in place (`InlineRename`, [inline-rename.tsx](src/components/forms/inline-rename.tsx), the same move as the form name's pencil). A "Custom label" checkbox at the top of the settings asked for a decision before the user could see what it applied to. A label counts as custom when it differs from the type's name (no stored flag); clearing it restores the default. A collapsed row whose label is still the default drops its type tag, which would only repeat it.
+- **Name is the field's label over short part labels.** The form shows "Name" (or the custom label) as the field's label, with "First", "Middle" or "M.I.", and "Last" under it in the smaller `.canopy-name-part-label`; "Name" over "First Name" said it twice. One box takes the field's label itself. Asterisks go on the parts, since the middle is always optional (`isNamePartRequired` in [name.ts](embed/src/name.ts), shared by the embed and the server). The M.I. box is narrow and takes two characters.
+- **Name's Input Rules disclose progressively.** The first decision is a Format `ToggleGroup`: Full name (one box) or Separate parts. Only Separate parts shows the parts to collect: a checkbox each for First, Middle, and Last, shown in that order on the form whatever order they were saved in (`orderNameParts`). A middle is a name or an initial, never both, so a ticked Middle takes a Full / Initial `ToggleGroup` beside it rather than two checkboxes acting as radios. Each ticked part's label has its own pencil. "Separate parts" names the option without "fields", which already means the Name field itself. A new Name starts required, as First and Last.
 - **Autosave**, like the rest of the editor: each change saves 600ms after the last, and at once when the row closes or the step changes. A field that can't save yet (an empty option, a Name with no parts) holds its last saved state and says why under its settings (`fieldProblem`).
-- Changing type keeps what still applies (validation between plain types, options between Dropdown and Checkboxes) and resets the rest; a label still at its default follows the type.
-- The open field is the preview's focus (`field:<name>`), so `PreviewMark` outlines it. The embed tags each field wrapper with `data-field-name` for this. A field just added isn't in the preview until its next render, so the mark draws on the render that brings it in.
+- The open field is the preview's focus (`field:<name>`), so `PreviewMark` outlines it. The embed tags each field wrapper with `data-field-name` for this. While a label is being edited (its box or pencil input has focus) the mark narrows to that label (`field:<name>#<part>`, matching a `data-field-part` the embed puts on each label: `label` for the field's own, `label-first` and so on for a Name's parts), so typing in a box never leaves the user guessing which text it changes. A field just added isn't in the preview until its next render, so the mark draws on the render that brings it in.
 
 Reference: [field-row.tsx](src/components/forms/field-row.tsx), [form-fields-manager.tsx](src/components/form-fields-manager.tsx).
 
@@ -640,7 +643,7 @@ Extraction is shared through `extractPageTheme()` in `src/lib/page-theme.ts`, us
 
 ### Styling panel
 
-[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run from the page inward (Page, Form), then the type from most to least prominent (Title, Labels, Text), then Fields and Button. Text sits below Labels although it's second on the form: the list reads as a hierarchy, not a map. A collapsed row shows its non-default values as muted words and color dots. Unlike a field row's label, a row title is a section heading (`font-heading font-semibold text-base`, neutral `--foreground`): at the field rows' `font-medium text-sm` the sections didn't read as places to go. The open row's title gets a coral marker underline, drawn by hand as it opens, and its controls are `bg-card` white so they stand off the row's tint (`bg-background` is the grey page color, not white).
+[styling-panel.tsx](src/components/forms/styling-panel.tsx) is the styling-mode panel (section 10): a "Styling" Card holding one list in the Fields list's style (`border rounded-md`, rows `py-2 px-3`, one open at a time, settings sliding open with `.field-row-body`). A row is a part of the form, not a kind of setting, so clicking the preview and reading the list name the same things; rows run from the page inward (Page, Form), then the type from most to least prominent (Title, Labels, Text), then Fields and Button. Text sits below Labels although it's second on the form: the list reads as a hierarchy, not a map. A collapsed row shows its non-default values as muted words and color dots. A row title is a section heading (`ROW_TITLE`: `font-heading font-semibold text-base`, neutral `--foreground`): at `font-medium text-sm` the rows didn't read as places to go. The Fields list uses the same title and underline ([row-title.ts](src/components/forms/row-title.ts)), so the two lists look the same. The open row's title gets a coral marker underline (`useMarkerUnderline`), drawn by hand as it opens, and its controls are `bg-card` white so they stand off the row's tint (`bg-background` is the grey page color, not white).
 
 ```
 Page     Wide · [swatch]              ← hosted only
