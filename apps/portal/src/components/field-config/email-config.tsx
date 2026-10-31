@@ -106,11 +106,7 @@ export function EmailConfig({
               }
               rows={4}
             />
-            <p className="text-xs text-muted-foreground">
-              {ruleType === "allow"
-                ? "One domain per line. Only emails from these domains will be accepted. Only one of allow or block can be used at a time."
-                : "One domain per line. Emails from these domains will be rejected. Only one of allow or block can be used at a time."}
-            </p>
+            <p className="text-xs text-muted-foreground">One domain per line.</p>
           </>
         )}
       </div>
@@ -126,12 +122,9 @@ export function EmailConfig({
             htmlFor="email-normalize"
             className="text-sm font-normal cursor-pointer"
           >
-            Normalize Case
+            Store in lowercase
           </Label>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Automatically convert email addresses to lowercase before storing.
-        </p>
       </div>
     </div>
   );

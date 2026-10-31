@@ -49,8 +49,8 @@ export function PhoneConfig({
         </Select>
         <p className="text-xs text-muted-foreground">
           {validation.format === "strict"
-            ? "Validates and normalizes US phone numbers (10 digits). Stored as +1XXXXXXXXXX."
-            : "Accepts any format with at least 7 characters. No validation or normalization."}
+            ? "10 digits, stored as +1XXXXXXXXXX."
+            : "At least 7 characters."}
         </p>
       </div>
     </div>
