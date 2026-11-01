@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  Save,
-  Check,
   Pencil,
+  Check,
   Eye,
   Palette,
 } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -218,22 +218,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
 
               {/* Right: contextual actions */}
               <div className="flex items-center gap-2 shrink-0">
-                {editing && (
-                  <>
-                    {saveStatus === "saving" && (
-                      <span className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Save className="h-4 w-4 animate-pulse" />
-                        Saving...
-                      </span>
-                    )}
-                    {saveStatus === "saved" && (
-                      <span className="text-sm text-success-strong flex items-center gap-2">
-                        <Check className="h-4 w-4" />
-                        Saved
-                      </span>
-                    )}
-                  </>
-                )}
+                {editing && <SaveIndicator status={saveStatus} />}
               </div>
             </div>
 

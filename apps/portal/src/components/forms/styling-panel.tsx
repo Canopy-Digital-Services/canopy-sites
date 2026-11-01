@@ -27,10 +27,9 @@ import {
   AlignHorizontalJustifyStart,
   AlignLeft,
   Bold,
-  Check,
   ChevronUp,
-  Save,
 } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
 import { ColorPicker, type PickerColor } from "@/components/ui/color-picker";
@@ -469,18 +468,7 @@ export function StylingPanel() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Styling</CardTitle>
-          {saveStatus === "saving" && (
-            <span className="text-sm text-muted-foreground flex items-center gap-2">
-              <Save className="h-4 w-4 animate-pulse" />
-              Saving...
-            </span>
-          )}
-          {saveStatus === "saved" && (
-            <span className="text-sm text-success-strong flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              Saved
-            </span>
-          )}
+          <SaveIndicator status={saveStatus} />
         </div>
       </CardHeader>
       <CardContent>

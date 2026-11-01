@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import { useFormContext, HEADER_PLACEHOLDERS } from "@/components/forms/form-context";
 
 type HeaderSectionProps = {
@@ -37,18 +38,7 @@ export function HeaderSection({ variant = "accordion", open = false, onOpenChang
         </CardTitle>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {saveStatus === "saving" && (
-          <span className="text-sm text-muted-foreground flex items-center gap-2">
-            <Save className="h-4 w-4 animate-pulse" />
-            Saving...
-          </span>
-        )}
-        {saveStatus === "saved" && (
-          <span className="text-sm text-success-strong flex items-center gap-2">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
+        <SaveIndicator status={saveStatus} />
         {!isFlow &&
           (open ? (
             <ChevronDown className="h-4 w-4" />
