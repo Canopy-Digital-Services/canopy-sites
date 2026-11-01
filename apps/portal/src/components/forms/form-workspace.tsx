@@ -26,6 +26,7 @@ import { toggleFormPublished } from "@/actions/forms";
 import { getPlanErrorCode, PLAN_ERROR_CODES } from "@/lib/errors/plan-errors";
 import { toast } from "sonner";
 import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
+import { useScrollHold } from "@/hooks/use-scroll-hold";
 
 type WorkspaceForm = {
   id: string;
@@ -110,7 +111,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName, styling, setStyling } = useFormContext();
+  const { state, saveStatus, updateName, styling, setStyling, editorStep } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -124,6 +125,18 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const editing = activeTab === "editor";
+
+  // Collapsing settings near the bottom of the editor column doesn't slide it
+  // under the pointer; a new step, or styling, starts at the top.
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+  const editorContentRef = useRef<HTMLDivElement>(null);
+  const editorSpacerRef = useRef<HTMLDivElement>(null);
+  useScrollHold(
+    editorScrollRef,
+    editorContentRef,
+    editorSpacerRef,
+    `${activeTab}:${editorStep}:${styling}`
+  );
 
   useThumbnailCapture({
     formId: form.id,
@@ -259,8 +272,11 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             {/* Editor column — one section card at a time (progressive disclosure),
                 or the styling panel in its place. The flow stays mounted under
                 the panel so Done returns to the same step. */}
-            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
-              <div className="max-w-[640px] mx-auto">
+            <div
+              ref={editorScrollRef}
+              className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6"
+            >
+              <div ref={editorContentRef} className="max-w-[640px] mx-auto">
                 {!styling && (
                   <div className="lg:hidden mb-4">
                     <StylingToggle />
@@ -278,6 +294,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                   </div>
                 )}
               </div>
+              <div ref={editorSpacerRef} aria-hidden />
             </div>
 
             {/* Preview column — fixed width, floating shadow on both sides */}
