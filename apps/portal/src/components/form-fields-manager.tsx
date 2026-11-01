@@ -55,12 +55,11 @@ const toFieldInput = (f: FieldState) => ({
  * changes). Adding happens in the list's last row.
  */
 export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
-  const { state, setFields, updateField: patchField, addField, removeField, setPreviewFocus } =
+  const { state, setFields, updateField: patchField, addField, removeField, setPreviewFocus, trackSave } =
     useFormContext();
   const fields = useMemo(() => [...state.fields].sort((a, b) => a.order - b.order), [state.fields]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [saving, setSaving] = useState(0);
   const [deletingField, setDeletingField] = useState<FieldState | null>(null);
   const { toast } = useToast();
 
@@ -75,14 +74,11 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     timers.current.delete(fieldId);
     const field = latest.current.find((f) => f.id === fieldId);
     if (!field || fieldProblem(field)) return;
-    setSaving((n) => n + 1);
     try {
-      await updateField(formId, fieldId, toFieldInput(field));
+      await trackSave(updateField(formId, fieldId, toFieldInput(field)));
     } catch (error) {
       console.error(error);
       toast.error("Unable to save field. Please try again.");
-    } finally {
-      setSaving((n) => n - 1);
     }
   };
 
@@ -133,7 +129,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
   const create = async (type: FieldType) => {
     setCreating(true);
     try {
-      const created = await createField(formId, newFieldDefaults(type));
+      const created = await trackSave(createField(formId, newFieldDefaults(type)));
       addField(toFieldState(created));
       setOpenId(created.id);
     } catch (error) {
@@ -154,7 +150,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     const previous = [...state.fields];
     removeField(fieldId);
     try {
-      await deleteField(formId, fieldId, purgeData);
+      await trackSave(deleteField(formId, fieldId, purgeData));
     } catch (error) {
       console.error(error);
       toast.error("Unable to delete field. Please try again.");
@@ -170,7 +166,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
       .map((field, index) => ({ ...field, order: index + 1 }));
     setFields(reordered);
     try {
-      await reorderFields(formId, fieldIds);
+      await trackSave(reorderFields(formId, fieldIds));
     } catch (error) {
       console.error(error);
       toast.error("Unable to reorder fields. Please try again.");
@@ -216,7 +212,6 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
           onConfirm={(purge) => void handleDeleteConfirm(purge)}
         />
       )}
-      {saving > 0 && <p className="text-xs text-muted-foreground">Saving changes...</p>}
     </div>
   );
 }

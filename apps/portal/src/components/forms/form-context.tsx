@@ -89,6 +89,8 @@ export type StyleGroup = "page" | "form" | "title" | "text" | "labels" | "fields
 type FormContextValue = {
   state: FormState;
   saveStatus: SaveStatus;
+  /** Shows a save the form's autosave doesn't make (a field's) in `saveStatus`. */
+  trackSave: <T>(work: Promise<T>) => Promise<T>;
   updateName: (name: string) => void;
   updateHeader: (patch: { title?: string | null; description?: string | null }) => void;
   updateTheme: (theme: Record<string, string | number | boolean>) => void;
@@ -370,6 +372,28 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
 
   useAutoSave(initialForm.id, state, setSaveStatus, toast, autoSaveEnabled);
 
+  // Saves in flight through trackSave: "Saved" shows once the last one lands.
+  const trackedSaves = useRef(0);
+  const savedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const trackSave = async <T,>(work: Promise<T>): Promise<T> => {
+    trackedSaves.current += 1;
+    clearTimeout(savedTimer.current);
+    setSaveStatus("saving");
+    let failed = false;
+    try {
+      return await work;
+    } catch (error) {
+      failed = true;
+      throw error;
+    } finally {
+      trackedSaves.current -= 1;
+      if (trackedSaves.current === 0) {
+        setSaveStatus(failed ? "idle" : "saved");
+        if (!failed) savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
+      }
+    }
+  };
+
   const updateName = (name: string) => {
     setState(prev => ({ ...prev, name }));
   };
@@ -420,6 +444,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
   const value: FormContextValue = {
     state,
     saveStatus,
+    trackSave,
     updateName,
     updateHeader,
     updateTheme,
