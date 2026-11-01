@@ -4,7 +4,10 @@
  * stored in the Field model for each FieldType.
  */
 
-import type { NamePart } from "../../embed/src/name";
+import type { NameOptions } from "../../embed/src/name";
+import type { AddressOptions } from "../../embed/src/address";
+
+export type { NameOptions, AddressOptions };
 
 // Base validation (shared by TEXT, EMAIL, TEXTAREA)
 export type BaseValidation = {
@@ -49,17 +52,8 @@ export type DropdownOptions = {
   allowOther?: boolean;
 };
 
-export type NameOptions = {
-  parts: NamePart[];
-  partLabels?: Record<string, string>;
-};
-
 export type CheckboxesOptions = {
   options: DropdownOption[];
-};
-
-export type AddressOptions = {
-  showLine2?: boolean;
 };
 
 // Field configuration discriminated union

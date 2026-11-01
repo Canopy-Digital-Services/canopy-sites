@@ -1,22 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  isNamePartRequired,
+  nameRequiredParts,
   namePartLabel,
   orderNameParts,
 } from "../../embed/src/name";
 
-describe("isNamePartRequired", () => {
-  it("requires every part of a required Name but the middle", () => {
-    expect(isNamePartRequired("first", true)).toBe(true);
-    expect(isNamePartRequired("last", true)).toBe(true);
-    expect(isNamePartRequired("single", true)).toBe(true);
-    expect(isNamePartRequired("middle", true)).toBe(false);
-    expect(isNamePartRequired("middleInitial", true)).toBe(false);
+describe("nameRequiredParts", () => {
+  it("is the field's own list of required parts", () => {
+    expect(nameRequiredParts({ parts: ["first", "middle", "last"], requiredParts: ["first", "middle"] }, true)).toEqual([
+      "first",
+      "middle",
+    ]);
   });
 
-  it("requires nothing of an optional Name", () => {
-    expect(isNamePartRequired("first", false)).toBe(false);
-    expect(isNamePartRequired("single", false)).toBe(false);
+  it("without a list, requires every part of a required Name but the middle", () => {
+    expect(nameRequiredParts({ parts: ["first", "middleInitial", "last"] }, true)).toEqual(["first", "last"]);
+    expect(nameRequiredParts({ parts: ["first", "last"] }, false)).toEqual([]);
   });
 });
 

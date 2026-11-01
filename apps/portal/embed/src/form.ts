@@ -1,8 +1,9 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
 import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
 import type { FieldOption, AddressOptions } from "./validation";
+import { addressPartLabel, addressParts, addressRequiredParts } from "./address";
 import { US_STATES } from "./us-states";
-import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel, orderNameParts } from "./name";
+import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, orderNameParts } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
@@ -632,6 +633,7 @@ export class CanopyForm {
 
     const options = (field.options as NameOptions) || {};
     const parts = orderNameParts(options.parts || DEFAULT_NAME_PARTS);
+    const requiredParts = nameRequiredParts(options, field.required);
     const fieldLabel = field.label || DEFAULT_NAME_LABEL;
     // Parts sit under the field's label ("Name" over "First" and "Last"); a
     // single input takes the label itself.
@@ -673,7 +675,7 @@ export class CanopyForm {
       partLabel.htmlFor = partId;
       partLabel.textContent = single ? fieldLabel : namePartLabel(part, options.partLabels);
       partLabel.dataset.fieldPart = single ? "label" : `label-${part}`;
-      const required = isNamePartRequired(part, field.required);
+      const required = requiredParts.includes(part);
 
       if (required) {
         const req = document.createElement("span");
@@ -751,36 +753,25 @@ export class CanopyForm {
     errorEl.className = "canopy-error";
     errorEl.id = `${fieldId}-error`;
 
-    type AddressPart = {
-      key: string;
-      label: string;
-      tag: "input" | "select";
-      attrs?: Record<string, string>;
+    const attrs: Record<string, Record<string, string>> = {
+      postalCode: { maxlength: "10", inputmode: "numeric" },
     };
 
-    const parts: AddressPart[] = [
-      { key: "line1", label: "Street Address", tag: "input" },
-    ];
-    if (options.showLine2 !== false) {
-      parts.push({ key: "line2", label: "Apt, Suite, etc.", tag: "input" });
-    }
-    parts.push(
-      { key: "city", label: "City", tag: "input" },
-      { key: "region", label: "State", tag: "select" },
-      { key: "postalCode", label: "ZIP Code", tag: "input", attrs: { maxlength: "10", inputmode: "numeric" } },
-    );
-
-    parts.forEach((part) => {
+    const requiredParts = addressRequiredParts(options, field.required);
+    addressParts(options).forEach((key) => {
+      const required = requiredParts.includes(key);
       const partWrapper = document.createElement("div");
-      partWrapper.className = "canopy-address-part";
+      // City, State, and ZIP share a row (canopy-address-part-<key>).
+      partWrapper.className = `canopy-address-part canopy-address-part-${key}`;
 
       const partLabel = document.createElement("label");
       partLabel.className = "canopy-address-part-label";
-      const partId = `${fieldId}-${part.key}`;
+      const partId = `${fieldId}-${key}`;
       partLabel.htmlFor = partId;
-      partLabel.textContent = part.label;
+      partLabel.textContent = addressPartLabel(key, options.partLabels);
+      partLabel.dataset.fieldPart = `label-${key}`;
 
-      if (field.required && part.key !== "line2") {
+      if (required) {
         const req = document.createElement("span");
         req.className = "canopy-required";
         req.textContent = " *";
@@ -790,7 +781,7 @@ export class CanopyForm {
 
       let partInput: HTMLInputElement | HTMLSelectElement;
 
-      if (part.tag === "select") {
+      if (key === "region") {
         const select = document.createElement("select");
         select.className = "canopy-select";
 
@@ -818,8 +809,8 @@ export class CanopyForm {
         input.type = "text";
         input.className = "canopy-input";
 
-        if (part.attrs) {
-          Object.entries(part.attrs).forEach(([k, v]) => input.setAttribute(k, v));
+        if (attrs[key]) {
+          Object.entries(attrs[key]).forEach(([k, v]) => input.setAttribute(k, v));
         }
 
         // Clear validation state on all siblings — error could be on any subfield.
@@ -832,9 +823,9 @@ export class CanopyForm {
       }
 
       partInput.id = partId;
-      partInput.setAttribute("data-address-part", part.key);
+      partInput.setAttribute("data-address-part", key);
       partInput.setAttribute("data-address-field", field.name);
-      if (field.required && part.key !== "line2") {
+      if (required) {
         partInput.setAttribute("aria-required", "true");
       }
 
@@ -933,22 +924,23 @@ export class CanopyForm {
     const nameInputs = this.container.querySelectorAll<HTMLInputElement>(
       `input[data-name-field="${name}"]`
     );
+    // The first required part left empty: required parts carry aria-required.
+    const isEmptyRequired = (input: HTMLInputElement | HTMLSelectElement) =>
+      input.getAttribute("aria-required") === "true" && !input.value.trim();
     if (nameInputs.length > 0) {
       for (const input of nameInputs) {
-        if (!input.value.trim()) return input;
+        if (isEmptyRequired(input)) return input;
       }
       return nameInputs[0];
     }
 
-    // ADDRESS field — only check core required parts (line2 is always optional)
-    const addressCoreKeys = ["line1", "city", "region", "postalCode"];
+    // ADDRESS field
     const addressInputs = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
       `input[data-address-field="${name}"], select[data-address-field="${name}"]`
     );
     if (addressInputs.length > 0) {
       for (const input of addressInputs) {
-        const part = input.getAttribute("data-address-part");
-        if (part && addressCoreKeys.includes(part) && !input.value.trim()) return input;
+        if (isEmptyRequired(input)) return input;
       }
       // All required parts filled — format errors currently only apply to postalCode.
       for (const input of addressInputs) {

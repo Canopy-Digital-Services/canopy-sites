@@ -5,6 +5,13 @@
 
 export type NamePart = "first" | "middle" | "middleInitial" | "last" | "single";
 
+export type NameOptions = {
+  parts?: NamePart[];
+  partLabels?: Record<string, string>;
+  /** The parts a visitor must fill. */
+  requiredParts?: NamePart[];
+};
+
 /** A Name field's label until the user gives it one: the type's name
     (src/lib/field-types.ts). The form shows it over the parts. */
 export const DEFAULT_NAME_LABEL = "Name";
@@ -30,9 +37,12 @@ export function orderNameParts(parts: string[]): string[] {
   );
 }
 
-/** A required Name requires every part but the middle: plenty of people have none. */
-export function isNamePartRequired(part: string, fieldRequired: boolean): boolean {
-  return fieldRequired && part !== "middle" && part !== "middleInitial";
+/** The parts a visitor must fill. A field without the list (made outside
+    the editor) requires, when required, every part but the middle. */
+export function nameRequiredParts(options: NameOptions | null | undefined, fieldRequired: boolean): string[] {
+  if (options?.requiredParts) return options.requiredParts;
+  const parts = options?.parts ?? DEFAULT_NAME_PARTS;
+  return fieldRequired ? parts.filter((p) => p !== "middle" && p !== "middleInitial") : [];
 }
 
 export function namePartLabel(part: string, partLabels?: Record<string, string>): string {

@@ -58,7 +58,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Yes / No | Single checkbox | For consent-style prompts |
 | Checkboxes | Multi-select checkboxes | Configure options; submitted value is an array |
 | Number | Numeric input | Min/max bounds |
-| Address | Mailing address | Street, city, region, postal code, country |
+| Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
 ### Configuring a field
 
@@ -68,7 +68,7 @@ Every field type has the same core options, plus type-specific ones.
 
 - **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, and Address have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
 - **Placeholder**: optional hint text inside the empty input.
-- **Required**: toggles whether the field must be filled before the form can submit.
+- **Required**: toggles whether the field must be filled before the form can submit. Name and Address are required part by part instead, with a Required column beside their parts.
 - **Help text**: optional muted text shown below the field to guide the user.
 
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
@@ -76,8 +76,8 @@ Every field type has the same core options, plus type-specific ones.
 - Text, Paragraph, Email, Phone: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length, custom error messages.
 - Date: min date, max date, "no future", "no past".
 - Dropdown, Checkboxes: the list of options (value/label pairs). Values must be unique.
-- Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. A required Name requires every part but the middle. Rename a part with the pencil beside it.
-- Address: which address components to include.
+- Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.
+- Address: which parts to collect: Street (with an optional Apt, suite), City, State, ZIP. Collect only what you need, for example ZIP alone for a service-area question. Tick a part in the Required column to require it, for example only ZIP; a new Address requires every part but Apt, suite. Rename a part with the pencil beside it. Addresses are US only: State is a list of US states and ZIP must be 5 or 9 digits.
 - Number: min, max.
 
 ### Internal key behavior

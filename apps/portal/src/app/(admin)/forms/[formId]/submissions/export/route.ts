@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
+import { addressParts, type AddressOptions } from "../../../../../../../embed/src/address";
 
 export async function GET(
   request: NextRequest,
@@ -74,11 +75,10 @@ export async function GET(
           parts: opts?.parts || ["first", "last"],
         });
       } else if (field.type === "ADDRESS") {
-        const opts = field.options as { showLine2?: boolean } | null;
-        const parts = ["line1"];
-        if (opts?.showLine2 !== false) parts.push("line2");
-        parts.push("city", "region", "postalCode");
-        compositeFields.set(field.name, { type: "ADDRESS", parts });
+        compositeFields.set(field.name, {
+          type: "ADDRESS",
+          parts: addressParts(field.options as AddressOptions | null),
+        });
       }
     }
 
