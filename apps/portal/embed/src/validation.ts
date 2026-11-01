@@ -1,4 +1,5 @@
-import { DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel } from "./name";
+import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions } from "./name";
+import { addressError, type AddressOptions } from "./address";
 
 type FieldOption = { value: string; label: string };
 
@@ -17,11 +18,6 @@ type FieldValidation = {
   integer?: boolean;
 };
 
-type NameOptions = {
-  parts?: string[];
-  partLabels?: Record<string, string>;
-};
-
 type DropdownOptions = {
   options: FieldOption[];
   defaultValue?: string;
@@ -32,9 +28,6 @@ type CheckboxesOptions = {
   options: FieldOption[];
 };
 
-type AddressOptions = {
-  showLine2?: boolean;
-};
 
 type FieldDefinition = {
   name: string;
@@ -269,11 +262,12 @@ export function validateSubmission(
       const nameValue = value as Record<string, string>;
       const options = (field.options as NameOptions) || {};
       const parts = options.parts || DEFAULT_NAME_PARTS;
+      const required = nameRequiredParts(options, field.required);
 
       // Validate each part
       for (const part of parts) {
-        const partValue = nameValue[part];
-        if (isNamePartRequired(part, field.required) && (!partValue || partValue.trim() === "")) {
+        const partValue = nameValue?.[part];
+        if (required.includes(part) && (!partValue || partValue.trim() === "")) {
           const partLabel = part === "single" ? label : namePartLabel(part, options.partLabels);
           errors[field.name] = `${partLabel} is required.`;
           return;
@@ -285,33 +279,12 @@ export function validateSubmission(
     }
 
     if (field.type === "ADDRESS") {
-      const addr = value as Record<string, string> | undefined;
-      const options = (field.options as AddressOptions) || {};
-      const coreKeys = ["line1", "city", "region", "postalCode"];
-      const allKeys = options.showLine2 !== false
-        ? ["line1", "line2", "city", "region", "postalCode"]
-        : coreKeys;
-
-      const anyFilled = allKeys.some(k => addr?.[k]?.trim());
-
-      if (!anyFilled && !field.required) return;
-
-      const labels: Record<string, string> = {
-        line1: "Street address", city: "City",
-        region: "State", postalCode: "ZIP code",
-      };
-      for (const key of coreKeys) {
-        if (!addr?.[key]?.trim()) {
-          errors[field.name] = `${labels[key]} is required.`;
-          return;
-        }
-      }
-
-      const zip = addr?.postalCode?.trim() ?? "";
-      if (!/^\d{5}(-\d{4})?$/.test(zip)) {
-        errors[field.name] = "ZIP code must be a valid US postal code (e.g., 12345 or 12345-6789).";
-        return;
-      }
+      const error = addressError(
+        value as Record<string, unknown> | undefined,
+        field.options as AddressOptions | undefined,
+        field.required
+      );
+      if (error) errors[field.name] = error;
       return;
     }
 

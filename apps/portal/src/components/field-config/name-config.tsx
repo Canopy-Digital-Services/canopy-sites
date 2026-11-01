@@ -1,16 +1,16 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { InlineRename } from "@/components/forms/inline-rename";
 import { NameOptions } from "@/types/field-config";
 import {
   DEFAULT_NAME_PARTS,
   NAME_PART_LABELS,
+  nameRequiredParts,
   orderNameParts,
   type NamePart,
 } from "../../../embed/src/name";
+import { PartRow, PartsRequiredHeading } from "./part-row";
 import { ConfigComponentProps } from "./types";
 
 type Row = "first" | "middle" | "last";
@@ -21,9 +21,15 @@ const ROWS: [Row, string][] = [
   ["last", "Last"],
 ];
 
-export function NameConfig({ value, onChange, onFocusPart }: ConfigComponentProps<NameOptions>) {
+export function NameConfig({
+  value,
+  onChange,
+  onFocusPart,
+  required: fieldRequired = false,
+}: ConfigComponentProps<NameOptions>) {
   const parts: NamePart[] = value?.parts ?? DEFAULT_NAME_PARTS;
   const partLabels = value?.partLabels ?? {};
+  const requiredParts = nameRequiredParts(value, fieldRequired) as NamePart[];
   const single = parts.includes("single");
   // A middle is a name or an initial, never both; one saved with both shows as the name.
   const middle: NamePart | null = parts.includes("middle")
@@ -32,14 +38,17 @@ export function NameConfig({ value, onChange, onFocusPart }: ConfigComponentProp
       ? "middleInitial"
       : null;
 
-  const save = (nextParts: NamePart[], nextLabels: Record<string, string> = partLabels) => {
-    // Part labels stay only for the parts that stay.
-    const kept = Object.fromEntries(
-      Object.entries(nextLabels).filter(([part]) => nextParts.includes(part as NamePart))
+  const save = (next: Partial<NameOptions>) => {
+    const nextParts = next.parts ?? parts;
+    // Labels and requirements stay only for the parts that stay.
+    const keep = (part: string) => nextParts.includes(part as NamePart);
+    const labels = Object.fromEntries(
+      Object.entries(next.partLabels ?? partLabels).filter(([part]) => keep(part))
     );
     onChange({
       parts: orderNameParts(nextParts) as NamePart[],
-      ...(Object.keys(kept).length > 0 && { partLabels: kept }),
+      requiredParts: orderNameParts((next.requiredParts ?? requiredParts).filter(keep)) as NamePart[],
+      ...(Object.keys(labels).length > 0 && { partLabels: labels }),
     });
   };
 
@@ -48,15 +57,24 @@ export function NameConfig({ value, onChange, onFocusPart }: ConfigComponentProp
     row === "middle" ? middle : parts.includes(row) ? row : null;
 
   const toggleRow = (row: Row, on: boolean) => {
-    if (row === "middle") save(on ? [...withoutMiddle, "middle"] : withoutMiddle);
-    else save(on ? [...parts, row] : parts.filter((p) => p !== row));
+    if (row === "middle") save({ parts: on ? [...withoutMiddle, "middle"] : withoutMiddle });
+    else save({ parts: on ? [...parts, row] : parts.filter((p) => p !== row) });
   };
+
+  const setRequired = (part: NamePart, on: boolean) =>
+    save({ requiredParts: on ? [...requiredParts, part] : requiredParts.filter((p) => p !== part) });
 
   const setPartLabel = (part: NamePart, text: string) => {
     const next = { ...partLabels };
     if (text.trim()) next[part] = text;
     else delete next[part];
-    save(parts, next);
+    save({ partLabels: next });
+  };
+
+  // Switching format keeps whether the name is required.
+  const pickFormat = (nextSingle: boolean) => {
+    const nextParts: NamePart[] = nextSingle ? ["single"] : DEFAULT_NAME_PARTS;
+    save({ parts: nextParts, partLabels: {}, requiredParts: requiredParts.length > 0 ? nextParts : [] });
   };
 
   return (
@@ -67,7 +85,7 @@ export function NameConfig({ value, onChange, onFocusPart }: ConfigComponentProp
           type="single"
           value={single ? "single" : "parts"}
           // Pressing the pressed button would clear the choice; a setting always has one.
-          onValueChange={(v) => v && save(v === "single" ? ["single"] : DEFAULT_NAME_PARTS, {})}
+          onValueChange={(v) => v && pickFormat(v === "single")}
           aria-labelledby="name-format-label"
         >
           <ToggleGroupItem value="single">Full name</ToggleGroupItem>
@@ -75,51 +93,58 @@ export function NameConfig({ value, onChange, onFocusPart }: ConfigComponentProp
         </ToggleGroup>
       </div>
 
-      {!single && (
+      {single ? (
+        // One box has no part rows to carry the Required column.
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={requiredParts.includes("single")}
+            onChange={(e) => setRequired("single", e.target.checked)}
+          />
+          Required field
+        </label>
+      ) : (
         <div className="editor-reveal">
           {/* The reveal grows a grid row; padding keeps focus rings clear of its clip. */}
           <div className="min-h-0 overflow-hidden -m-1 p-1 space-y-1">
+            <PartsRequiredHeading />
             {ROWS.map(([row, text]) => {
               const part = partFor(row);
-              const id = `name-part-${row}`;
               return (
-                <div key={row} className="flex h-8 items-center gap-2">
-                  <Checkbox
-                    id={id}
-                    checked={part !== null}
-                    onCheckedChange={(checked) => toggleRow(row, checked === true)}
-                  />
-                  {part ? (
-                    <InlineRename
-                      value={partLabels[part] ?? ""}
-                      placeholder={NAME_PART_LABELS[part]}
-                      onChange={(t) => setPartLabel(part, t)}
-                      name={`Rename ${NAME_PART_LABELS[part]}`}
-                      className="max-w-40"
-                      onEditingChange={(editing) => onFocusPart?.(editing ? `label-${part}` : null)}
-                    >
-                      <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
-                        {partLabels[part] || NAME_PART_LABELS[part]}
-                      </Label>
-                    </InlineRename>
-                  ) : (
-                    <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
-                      {text}
-                    </Label>
-                  )}
+                <PartRow
+                  key={row}
+                  id={`name-part-${row}`}
+                  name={text}
+                  checked={part !== null}
+                  onCheckedChange={(on) => toggleRow(row, on)}
+                  label={part ? (partLabels[part] ?? "") : ""}
+                  defaultLabel={part ? NAME_PART_LABELS[part] : text}
+                  onRename={(t) => part && setPartLabel(part, t)}
+                  onRenaming={(renaming) => part && onFocusPart?.(renaming ? `label-${part}` : null)}
+                  required={part !== null && requiredParts.includes(part)}
+                  onRequiredChange={(on) => part && setRequired(part, on)}
+                >
                   {row === "middle" && middle && (
                     <ToggleGroup
                       type="single"
                       value={middle}
-                      onValueChange={(v) => v && save([...withoutMiddle, v as NamePart])}
+                      onValueChange={(v) => {
+                        if (!v) return;
+                        const next = v as NamePart;
+                        // The middle stays required, or not, as it switches.
+                        const wasRequired = requiredParts.includes(middle);
+                        save({
+                          parts: [...withoutMiddle, next],
+                          requiredParts: wasRequired ? [...requiredParts, next] : requiredParts,
+                        });
+                      }}
                       aria-label="Middle name or initial"
-                      className="ml-auto"
                     >
                       <ToggleGroupItem value="middle">Full</ToggleGroupItem>
                       <ToggleGroupItem value="middleInitial">Initial</ToggleGroupItem>
                     </ToggleGroup>
                   )}
-                </div>
+                </PartRow>
               );
             })}
           </div>

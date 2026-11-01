@@ -23,6 +23,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SortableItemRenderProps } from "@/components/ui/sortable-list";
 import { InlineRename } from "@/components/forms/inline-rename";
+import { DEFAULT_NAME_PARTS } from "../../../embed/src/name";
+import { ADDRESS_PARTS } from "../../../embed/src/address";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
@@ -36,6 +38,9 @@ export const isOptionsType = (type: string) =>
   type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS";
 
 const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOXES";
+
+/** Types made of parts, each collected and required on its own. */
+const isComposite = (type: string) => type === "NAME" || type === "ADDRESS";
 
 /** A field's label when the user hasn't given one: its type's name. */
 export const defaultLabel = (type: string) => getFieldTypeLabel(type);
@@ -57,11 +62,16 @@ export function newFieldDefaults(type: string) {
   return {
     type,
     label: defaultLabel(type),
-    // A form's names are nearly always required.
-    required: type === "NAME",
+    // A form's names and addresses are nearly always required, all but
+    // the middle name and the apartment.
+    required: isComposite(type),
     options: isChoiceType(type)
       ? { options: [1, 2].map((n) => ({ value: `Option ${n}`, label: `Option ${n}` })) }
-      : undefined,
+      : type === "NAME"
+        ? { parts: DEFAULT_NAME_PARTS, requiredParts: DEFAULT_NAME_PARTS }
+        : type === "ADDRESS"
+          ? { parts: ADDRESS_PARTS, requiredParts: ADDRESS_PARTS.filter((p) => p !== "line2") }
+          : undefined,
   };
 }
 
@@ -77,6 +87,10 @@ export function fieldProblem(field: FieldState): string | null {
   if (field.type === "NAME") {
     const parts = (field.options as { parts?: string[] } | null)?.parts;
     if (parts && parts.length === 0) return "Choose at least one name part to save.";
+  }
+  if (field.type === "ADDRESS") {
+    const parts = (field.options as { parts?: string[] } | null)?.parts;
+    if (parts && parts.length === 0) return "Choose at least one address part to save.";
   }
   return null;
 }
@@ -295,27 +309,36 @@ function FieldSettings({
         </div>
       )}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={field.required}
-          onChange={(e) => onChange({ required: e.target.checked })}
-        />
-        Required field
-      </label>
+      {/* A Name or Address is required part by part, in its own settings. */}
+      {!isComposite(field.type) && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={field.required}
+            onChange={(e) => onChange({ required: e.target.checked })}
+          />
+          Required field
+        </label>
+      )}
 
       {field.type !== "CHECKBOX" && (
-        <div className="border-t pt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-            Input Rules
-          </h3>
+        // The type's own settings, set off from the common ones above them;
+        // a Name or Address has none above.
+        <div className={isComposite(field.type) ? undefined : "border-t pt-4"}>
           <FieldConfigRenderer
             type={field.type as FieldType}
             value={configOf(field) ?? undefined}
+            required={field.required}
             onFocusPart={onFocusPart}
-            onChange={(next) =>
-              onChange(optionsType ? { options: next ?? null } : { validation: next ?? null })
-            }
+            onChange={(next) => {
+              if (!optionsType) return onChange({ validation: next ?? null });
+              const patch: Partial<FieldState> = { options: next ?? null };
+              // The field is required while any part is, for the list's asterisk.
+              if (isComposite(field.type)) {
+                patch.required = ((next as { requiredParts?: string[] } | null)?.requiredParts?.length ?? 0) > 0;
+              }
+              onChange(patch);
+            }}
           />
         </div>
       )}

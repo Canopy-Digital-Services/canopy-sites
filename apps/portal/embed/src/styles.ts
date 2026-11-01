@@ -188,13 +188,28 @@ export const baseStyles = `
 }
 
 .canopy-address-parts {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
 .canopy-address-part {
   display: grid;
   gap: 4px;
+  flex: 1 1 100%;
+}
+
+/* City, State, and ZIP share a row, wrapping on a narrow form. */
+.canopy-address-part-city {
+  flex: 2 1 10em;
+}
+
+.canopy-address-part-region {
+  flex: 1 1 8em;
+}
+
+.canopy-address-part-postalCode {
+  flex: 0 1 7em;
 }
 
 .canopy-address-part-label {

@@ -9,7 +9,8 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
-import { DEFAULT_NAME_PARTS, isNamePartRequired, namePartLabel } from "../../embed/src/name";
+import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions } from "../../embed/src/name";
+import { addressError, type AddressOptions } from "../../embed/src/address";
 
 type FieldDefinition = {
   name: string;
@@ -301,14 +302,15 @@ function validateFields(
       const nameValue = value as Record<string, string> | undefined;
       const options =
         typeof field.options === "object" && field.options !== null
-          ? (field.options as { parts?: string[]; partLabels?: Record<string, string> })
+          ? (field.options as NameOptions)
           : {};
       const parts = options.parts || DEFAULT_NAME_PARTS;
+      const required = nameRequiredParts(options, field.required);
 
       // Validate each part
       for (const part of parts) {
         const partValue = nameValue?.[part];
-        if (isNamePartRequired(part, field.required) && (!partValue || String(partValue).trim() === "")) {
+        if (required.includes(part) && (!partValue || String(partValue).trim() === "")) {
           const partLabel = part === "single" ? getFieldLabel(field) : namePartLabel(part, options.partLabels);
           errors[field.name] = `${partLabel} is required.`;
           break;
@@ -320,39 +322,12 @@ function validateFields(
     }
 
     if (field.type === "ADDRESS") {
-      const addr = value as Record<string, string> | undefined;
-      const options =
-        typeof field.options === "object" && field.options !== null
-          ? (field.options as { showLine2?: boolean })
-          : {};
-      const coreKeys = ["line1", "city", "region", "postalCode"];
-      const allKeys = options.showLine2 !== false
-        ? ["line1", "line2", "city", "region", "postalCode"]
-        : coreKeys;
-
-      const anyFilled = allKeys.some(k => addr?.[k]?.trim());
-
-      if (!anyFilled && !field.required) continue;
-
-      const labels: Record<string, string> = {
-        line1: "Street address", city: "City",
-        region: "State", postalCode: "ZIP code",
-      };
-      let hasError = false;
-      for (const key of coreKeys) {
-        if (!addr?.[key]?.trim()) {
-          errors[field.name] = `${labels[key]} is required.`;
-          hasError = true;
-          break;
-        }
-      }
-      if (hasError) continue;
-
-      const zip = addr?.postalCode?.trim() ?? "";
-      if (!/^\d{5}(-\d{4})?$/.test(zip)) {
-        errors[field.name] = "ZIP code must be a valid US postal code (e.g., 12345 or 12345-6789).";
-        continue;
-      }
+      const error = addressError(
+        value as Record<string, unknown> | undefined,
+        field.options as AddressOptions | null,
+        field.required
+      );
+      if (error) errors[field.name] = error;
       continue;
     }
 
