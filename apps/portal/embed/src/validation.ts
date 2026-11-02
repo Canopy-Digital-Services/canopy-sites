@@ -4,7 +4,7 @@
  * on every submission, with only its own guardrails (payload size) on top.
  */
 
-import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions } from "./name";
+import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, type NameOptions } from "./name";
 import { addressError, type AddressOptions } from "./address";
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
 
@@ -45,18 +45,23 @@ type ValidatedField = {
   validation?: unknown;
 };
 
-/** The longest answer a type takes when the field sets no limit. */
+/** The longest answer a type takes when the field sets no limit. Only these
+    types take a limit of their own. */
 const DEFAULT_MAX_LENGTHS: Record<string, number> = {
   TEXT: 200,
   EMAIL: 254, // RFC 5321 standard
   TEXTAREA: 2000,
 };
 
-/** The most a field of the type can be set to take. */
+/** The most a field of the type can be set to take, or, for a type without
+    a default, the longest answer it takes. */
 const ABSOLUTE_MAX_LENGTHS: Record<string, number> = {
   TEXT: 500,
   EMAIL: 320, // Extended email format
   TEXTAREA: 10000,
+  PHONE: 30,
+  NUMBER: 50,
+  DATE: 30,
 };
 
 function rulesOf(field: { validation?: unknown }): FieldValidation {
@@ -66,12 +71,16 @@ function rulesOf(field: { validation?: unknown }): FieldValidation {
 }
 
 /** The longest answer the field takes: its own limit when that's a positive
-    whole number, else its type's default, and never past its type's absolute. */
+    whole number, else its type's default, and never past its type's absolute.
+    A type without a default has no length setting, so it takes its absolute
+    whatever the field has stored. */
 function getEffectiveMaxLength(field: { type: string; validation?: unknown }): number | undefined {
-  const configured = rulesOf(field).maxLength;
-  const max = Number.isInteger(configured) && configured! > 0 ? configured : DEFAULT_MAX_LENGTHS[field.type];
+  const fallback = DEFAULT_MAX_LENGTHS[field.type];
   const absolute = ABSOLUTE_MAX_LENGTHS[field.type];
-  return max !== undefined && absolute !== undefined ? Math.min(max, absolute) : max;
+  if (fallback === undefined) return absolute;
+  const configured = rulesOf(field).maxLength;
+  const max = Number.isInteger(configured) && configured! > 0 ? configured! : fallback;
+  return absolute !== undefined ? Math.min(max, absolute) : max;
 }
 
 /** RFC 5322 compliant address shape. */
@@ -154,16 +163,16 @@ function dateBound(bound: string | undefined, today: string): string | null {
   return bound === "today" ? today : calendarDate(bound);
 }
 
+function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
+  return maxLength !== undefined && text.length > maxLength ? `${label} must be at most ${maxLength} characters.` : null;
+}
+
 function lengthError(field: ValidatedField, text: string, label: string): string | null {
   const { minLength } = rulesOf(field);
   if (minLength && text.length < minLength) {
     return `${label} must be at least ${minLength} characters.`;
   }
-  const maxLength = getEffectiveMaxLength(field);
-  if (maxLength !== undefined && text.length > maxLength) {
-    return `${label} must be at most ${maxLength} characters.`;
-  }
-  return null;
+  return tooLongError(text, getEffectiveMaxLength(field), label);
 }
 
 /** Text and Textarea formats. "alphanumeric", the default, takes any text. */
@@ -214,15 +223,18 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       }
       return choiceError("CHECKBOXES", value, field.options, label);
     case "NAME": {
-      // Required per part, and no length or pattern checks on the parts.
+      // Required per part, and each part's length; no pattern checks.
       const answer = value as Record<string, unknown> | null | undefined;
       const options = (typeof field.options === "object" && field.options !== null ? field.options : {}) as NameOptions;
       const required = nameRequiredParts(options, field.required);
       for (const part of options.parts || DEFAULT_NAME_PARTS) {
         const partValue = answer?.[part];
+        const partLabel = part === "single" ? label : namePartLabel(part, options.partLabels);
         if (required.includes(part) && (!partValue || String(partValue).trim() === "")) {
-          return `${part === "single" ? label : namePartLabel(part, options.partLabels)} is required.`;
+          return `${partLabel} is required.`;
         }
+        const tooLong = tooLongError(String(partValue ?? ""), namePartMaxLength(part), partLabel);
+        if (tooLong) return tooLong;
       }
       return null;
     }
@@ -239,12 +251,17 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
   }
   const text = String(value);
 
+  // A type without a length setting is held to its cap before its own rules.
+  if (DEFAULT_MAX_LENGTHS[field.type] === undefined) {
+    const tooLong = tooLongError(text, getEffectiveMaxLength(field), label);
+    if (tooLong) return tooLong;
+  }
+
   switch (field.type) {
     case "DROPDOWN":
       return choiceError("DROPDOWN", value, field.options, label);
 
     case "PHONE": {
-      // Phone numbers skip the length checks.
       const format = rules.format || "lenient";
       if (format === "lenient" && !/^[\d\s\-\(\)\+\.]{7,}$/.test(text)) {
         return `${label} must be a valid phone number.`;

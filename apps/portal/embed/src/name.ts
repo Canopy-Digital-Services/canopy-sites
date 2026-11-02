@@ -45,6 +45,12 @@ export function nameRequiredParts(options: NameOptions | null | undefined, field
   return fieldRequired ? parts.filter((p) => p !== "middle" && p !== "middleInitial") : [];
 }
 
+/** The longest answer a part takes: an initial, with room for its period,
+    or a name. */
+export function namePartMaxLength(part: string): number {
+  return part === "middleInitial" ? 2 : 100;
+}
+
 export function namePartLabel(part: string, partLabels?: Record<string, string>): string {
   return partLabels?.[part] || NAME_PART_LABELS[part as NamePart] || part;
 }

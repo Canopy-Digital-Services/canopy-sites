@@ -10,9 +10,9 @@ import {
   choiceList,
   type ChoiceOptions,
 } from "./choices";
-import { addressPartLabel, addressParts, addressRequiredParts } from "./address";
+import { ADDRESS_PART_MAX_LENGTH, addressPartLabel, addressParts, addressRequiredParts } from "./address";
 import { US_STATES } from "./us-states";
-import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, orderNameParts } from "./name";
+import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, orderNameParts } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
 
@@ -732,8 +732,7 @@ export class CanopyForm {
       partInput.name = `${field.name}.${part}`;
       partInput.setAttribute("data-name-part", part);
       partInput.setAttribute("data-name-field", field.name);
-      // An initial, with room for its period.
-      if (part === "middleInitial") partInput.maxLength = 2;
+      partInput.maxLength = namePartMaxLength(part);
       if (required) {
         partInput.setAttribute("aria-required", "true");
       }
@@ -848,7 +847,9 @@ export class CanopyForm {
         const input = document.createElement("input");
         input.type = "text";
         input.className = "canopy-input";
+        input.maxLength = ADDRESS_PART_MAX_LENGTH;
 
+        // The ZIP's own attributes narrow it further.
         if (attrs[key]) {
           Object.entries(attrs[key]).forEach(([k, v]) => input.setAttribute(k, v));
         }
@@ -961,21 +962,23 @@ export class CanopyForm {
   }
 
   /**
-   * For composite fields (NAME, ADDRESS), find the first empty required
-   * subfield — this is the one the validation error refers to.
-   * Falls back to the first subfield if none are empty.
+   * For composite fields (NAME, ADDRESS), find the first subfield that is
+   * required and empty, or longer than it takes (a value a script set past
+   * its maxlength): the one the validation error refers to. Falls back to
+   * the first subfield if none fails.
    */
   private findFailingInput(name: string): HTMLInputElement | HTMLSelectElement | null {
     // NAME field
     const nameInputs = this.container.querySelectorAll<HTMLInputElement>(
       `input[data-name-field="${name}"]`
     );
-    // The first required part left empty: required parts carry aria-required.
-    const isEmptyRequired = (input: HTMLInputElement | HTMLSelectElement) =>
-      input.getAttribute("aria-required") === "true" && !input.value.trim();
+    // Required parts carry aria-required.
+    const fails = (input: HTMLInputElement | HTMLSelectElement) =>
+      (input.getAttribute("aria-required") === "true" && !input.value.trim()) ||
+      (input instanceof HTMLInputElement && input.maxLength > 0 && input.value.length > input.maxLength);
     if (nameInputs.length > 0) {
       for (const input of nameInputs) {
-        if (isEmptyRequired(input)) return input;
+        if (fails(input)) return input;
       }
       return nameInputs[0];
     }
@@ -986,7 +989,7 @@ export class CanopyForm {
     );
     if (addressInputs.length > 0) {
       for (const input of addressInputs) {
-        if (isEmptyRequired(input)) return input;
+        if (fails(input)) return input;
       }
       // All required parts filled — format errors currently only apply to postalCode.
       for (const input of addressInputs) {
