@@ -5,7 +5,7 @@
  */
 
 import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, type NameOptions } from "./name";
-import { addressError, type AddressOptions } from "./address";
+import { addressError, addressPartLabel, addressParts, type AddressOptions } from "./address";
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
 
 type FieldValidation = {
@@ -204,6 +204,24 @@ function formatError(format: string | undefined, text: string, label: string): s
   }
 }
 
+/** Why a Name or Address answer isn't an object of only the field's own
+    parts, each a piece of text, or null if it is. Each type checks its
+    parts' lengths with its other part rules. */
+function partsError(
+  value: unknown,
+  parts: string[],
+  partLabel: (part: string) => string,
+  label: string
+): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return `${label} must be an object of its parts.`;
+  for (const [part, text] of Object.entries(value)) {
+    if (!parts.includes(part)) return `${label} has no part "${part}".`;
+    if (typeof text !== "string") return `${partLabel(part)} must be text.`;
+  }
+  return null;
+}
+
 /** Why `value` can't be submitted for the field, or null if it can. `today`
     is what a date bound of "today" means where this runs. */
 export function validateField(field: ValidatedField, value: unknown, today: Today = visitorToday()): string | null {
@@ -213,6 +231,10 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
   // Types whose answer isn't a single piece of text.
   switch (field.type) {
     case "CHECKBOX":
+      // An HTML checkbox sends "on" when checked, and nothing when not.
+      if (value !== undefined && value !== null && typeof value !== "boolean" && value !== "on") {
+        return `${label} must be true or false.`;
+      }
       return field.required && !value ? `${label} is required.` : null;
     case "CHECKBOXES":
       if (!Array.isArray(value) || value.length === 0) {
@@ -223,12 +245,16 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       return choiceError("CHECKBOXES", value, field.options, label);
     case "NAME": {
       // Required per part, and each part's length; no pattern checks.
-      const answer = value as Record<string, unknown> | null | undefined;
       const options = (typeof field.options === "object" && field.options !== null ? field.options : {}) as NameOptions;
+      const parts = options.parts || DEFAULT_NAME_PARTS;
+      const labelOf = (part: string) => (part === "single" ? label : namePartLabel(part, options.partLabels));
+      const shape = partsError(value, parts, labelOf, label);
+      if (shape) return shape;
+      const answer = value as Record<string, unknown> | null | undefined;
       const required = nameRequiredParts(options, field.required);
-      for (const part of options.parts || DEFAULT_NAME_PARTS) {
+      for (const part of parts) {
         const partValue = answer?.[part];
-        const partLabel = part === "single" ? label : namePartLabel(part, options.partLabels);
+        const partLabel = labelOf(part);
         if (required.includes(part) && (!partValue || String(partValue).trim() === "")) {
           return `${partLabel} is required.`;
         }
@@ -237,18 +263,27 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       }
       return null;
     }
-    case "ADDRESS":
-      return addressError(
-        value as Record<string, unknown> | undefined,
-        field.options as AddressOptions | null | undefined,
-        field.required
+    case "ADDRESS": {
+      const options = field.options as AddressOptions | null | undefined;
+      const labelOf = (part: string) => addressPartLabel(part, options?.partLabels);
+      return (
+        partsError(value, addressParts(options), labelOf, label) ??
+        addressError(value as Record<string, unknown> | undefined, options, field.required)
       );
+    }
   }
 
-  if (value === undefined || value === null || String(value).trim() === "") {
+  // The rest take one piece of text, and Number a number too.
+  if (value === undefined || value === null) {
     return field.required ? `${label} is required.` : null;
   }
+  if (typeof value !== "string" && !(field.type === "NUMBER" && typeof value === "number")) {
+    return field.type === "NUMBER" ? `${label} must be a number.` : `${label} must be text.`;
+  }
   const text = String(value);
+  if (text.trim() === "") {
+    return field.required ? `${label} is required.` : null;
+  }
 
   // A type without a length setting is held to its cap before its own rules.
   if (DEFAULT_MAX_LENGTHS[field.type] === undefined) {
@@ -317,10 +352,16 @@ export function validateSubmission(
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const field of fields) {
-    const error = validateField(field, values[field.name], today);
+    const error = validateField(field, answerOf(values, field.name), today);
     if (error) errors[field.name] = error;
   }
   return errors;
+}
+
+/** The answer sent for `name`. Only the answers' own keys count: a field
+    named "constructor" left out isn't Object's constructor. */
+export function answerOf(values: Record<string, unknown>, name: string): unknown {
+  return Object.prototype.hasOwnProperty.call(values, name) ? values[name] : undefined;
 }
 
 export type { FieldDefinition, FieldValidation, ValidatedField, NameOptions, AddressOptions };

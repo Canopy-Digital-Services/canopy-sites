@@ -61,7 +61,8 @@ export function allowsOther(options: unknown): boolean {
 /**
  * Why the answer isn't one the field offers, or null. An answer off the list
  * is the visitor's "Other", one at most and only where the field offers it.
- * An empty answer is the required check's business, not this one's.
+ * Checkboxes picks each option once. An empty answer is the required check's
+ * business, not this one's.
  */
 export function choiceError(
   type: "DROPDOWN" | "CHECKBOXES",
@@ -70,9 +71,12 @@ export function choiceError(
   label: string
 ): string | null {
   const answers = type === "CHECKBOXES" ? value : typeof value === "string" ? [value] : null;
-  if (!Array.isArray(answers)) return `${label} must be one of its options.`;
+  if (!Array.isArray(answers) || answers.some((a) => typeof a !== "string")) {
+    return `${label} must be one of its options.`;
+  }
+  if (new Set(answers).size < answers.length) return `${label} picks an option more than once.`;
   const values = choiceList(options).map((o) => o.value);
-  const typed = answers.map(String).filter((a) => !values.includes(a));
+  const typed = (answers as string[]).filter((a) => !values.includes(a));
   if (typed.length === 0) return null;
   if (!allowsOther(options) || typed.length > 1) return `${label} must be one of its options.`;
   if (typed[0].length > OTHER_MAX_LENGTH) {

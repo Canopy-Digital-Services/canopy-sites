@@ -247,6 +247,45 @@ describe("validateField: name parts", () => {
   });
 });
 
+describe("validateField: Name and Address parts", () => {
+  const name = field("NAME");
+  const address = field("ADDRESS", { options: { parts: ["line1", "city"] } });
+
+  it("takes only the parts the field asks for", () => {
+    expect(validateField(name, { first: "Ann", last: "Lee" })).toBeNull();
+    expect(validateField(name, { first: "Ann", last: "Lee", middle: "B" })).toBe('Answer has no part "middle".');
+    expect(validateField(address, { line1: "1 Main St", postalCode: "12345" })).toBe(
+      'Answer has no part "postalCode".'
+    );
+  });
+
+  it("takes an object of parts, each a piece of text", () => {
+    expect(validateField(name, "Ann Lee")).toBe("Answer must be an object of its parts.");
+    expect(validateField(address, ["1 Main St"])).toBe("Answer must be an object of its parts.");
+    expect(validateField(name, { first: { junk: "x" } })).toBe("First must be text.");
+    expect(validateField(field("NAME", { options: { parts: ["single"] } }), { single: 7 })).toBe("Answer must be text.");
+    expect(validateField(address, { city: ["Sacramento"] })).toBe("City must be text.");
+  });
+});
+
+describe("validateField: answer shapes", () => {
+  it("takes text where the answer is one piece of it, and a number for Number too", () => {
+    expect(validateField(field("TEXT"), { junk: "x" })).toBe("Answer must be text.");
+    expect(validateField(field("TEXT"), ["a"])).toBe("Answer must be text.");
+    expect(validateField(field("TEXT"), 12345)).toBe("Answer must be text.");
+    expect(validateField(field("DATE"), ["2026-11-02"], nov2)).toBe("Answer must be text.");
+    expect(validateField(field("NUMBER"), 7)).toBeNull();
+    expect(validateField(field("NUMBER"), [7])).toBe("Answer must be a number.");
+  });
+
+  it("takes true, false, or what an HTML checkbox sends, for a checkbox", () => {
+    expect(validateField(field("CHECKBOX"), true)).toBeNull();
+    expect(validateField(field("CHECKBOX"), false)).toBeNull();
+    expect(validateField(field("CHECKBOX"), "on")).toBeNull();
+    expect(validateField(field("CHECKBOX"), "x".repeat(1000))).toBe("Answer must be true or false.");
+  });
+});
+
 describe("validateSubmission", () => {
   it("reports each field's first error by name, and nothing for fields that pass", () => {
     const fields = [field("TEXT", { required: true }), field("EMAIL"), field("NUMBER")];
@@ -254,5 +293,10 @@ describe("validateSubmission", () => {
       text: "Answer is required.",
       email: "Enter a valid email address",
     });
+  });
+
+  it("reads only the answers' own keys", () => {
+    const fields = [field("TEXT", { name: "constructor", required: true })];
+    expect(validateSubmission(fields, {}, nov2)).toEqual({ constructor: "Answer is required." });
   });
 });

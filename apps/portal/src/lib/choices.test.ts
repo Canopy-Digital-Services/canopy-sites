@@ -34,4 +34,11 @@ describe("choiceError", () => {
     expect(choiceError("DROPDOWN", ["Small"], sizes, "Size")).toBe("Size must be one of its options.");
     expect(choiceError("CHECKBOXES", "Small", sizes, "Sizes")).toBe("Sizes must be one of its options.");
   });
+
+  it("takes each checkbox once, and only as text", () => {
+    expect(choiceError("CHECKBOXES", ["Small", "Small"], sizes, "Sizes")).toBe("Sizes picks an option more than once.");
+    expect(choiceError("CHECKBOXES", ["Small", { junk: "x" }], withOther, "Sizes")).toBe(
+      "Sizes must be one of its options."
+    );
+  });
 });
