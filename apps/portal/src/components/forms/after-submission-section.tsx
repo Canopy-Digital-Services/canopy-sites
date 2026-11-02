@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFormContext } from "@/components/forms/form-context";
+import { STEP_TITLES } from "@/components/forms/editor-steps";
 
 const MAX_NOTIFY_EMAILS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -114,7 +115,7 @@ export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open
   const headerInner = (
     <div className="flex items-start justify-between">
       <div>
-        <CardTitle>Submission Settings</CardTitle>
+        <CardTitle>{STEP_TITLES.settings}</CardTitle>
         <CardDescription>Control responses, notifications, and limits</CardDescription>
       </div>
       <div className="flex items-center gap-2 shrink-0">

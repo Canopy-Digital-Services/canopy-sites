@@ -8,12 +8,8 @@ import type { NameOptions } from "../../embed/src/name";
 import type { AddressOptions } from "../../embed/src/address";
 import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
 
-export type { NameOptions, AddressOptions };
-
 // Dropdown and Checkboxes share one shape; only a Dropdown has a default.
-export type DropdownOption = ChoiceOption;
-export type DropdownOptions = ChoiceOptions;
-export type CheckboxesOptions = ChoiceOptions;
+export type { NameOptions, AddressOptions, ChoiceOption, ChoiceOptions };
 
 // Base validation (shared by TEXT, EMAIL, TEXTAREA)
 export type BaseValidation = {
@@ -81,7 +77,7 @@ export type FieldConfig =
   | {
       type: "DROPDOWN";
       validation?: never;
-      options: DropdownOptions;
+      options: ChoiceOptions;
     }
   | {
       type: "CHECKBOX";
@@ -91,7 +87,7 @@ export type FieldConfig =
   | {
       type: "CHECKBOXES";
       validation?: never;
-      options: CheckboxesOptions;
+      options: ChoiceOptions;
     }
   | {
       type: "NUMBER";

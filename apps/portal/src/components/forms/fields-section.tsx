@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { FormFieldsManager } from "@/components/form-fields-manager";
 import { useFormContext } from "@/components/forms/form-context";
 import { SaveIndicator } from "@/components/forms/save-indicator";
+import { STEP_TITLES } from "@/components/forms/editor-steps";
 
 type FieldsSectionProps = {
   formId: string;
@@ -27,7 +28,7 @@ export function FieldsSection({ formId, variant = "accordion", open = false, onO
     <div className="flex items-center justify-between gap-4">
       {/* No description: "Add Field" states the action and the grip handles
           state the reordering. Both were narrating the design. */}
-      <CardTitle>Fields</CardTitle>
+      <CardTitle>{STEP_TITLES.fields}</CardTitle>
       <div className="flex items-center gap-2 shrink-0">
         <SaveIndicator status={saveStatus} />
         {!isFlow &&

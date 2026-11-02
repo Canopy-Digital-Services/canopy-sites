@@ -30,23 +30,21 @@ import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
-import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
+import { FIELD_TYPE_OPTIONS, fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
 
 // ─── Field rules ────────────────────────────────────────────────────────────
 // What a field saves and when it can't is in lib/field-rules; these are the
 // row's own.
 
-/** Types whose name already says what they ask for. They have no Label box:
-    the label stays the default unless renamed with the pencil beside it in
-    the row header, where the user can see what they are renaming. */
-const SELF_LABELED = new Set(["NAME", "EMAIL", "PHONE", "ADDRESS"]);
+/** A type whose name already says what it asks for has no Label box: the
+    label stays the default unless renamed with the pencil beside it in the
+    row header, where the user can see what they are renaming. */
+const isSelfLabeled = (type: string) => fieldTypeHas(type, "selfLabeled");
 
 /** Whether the user has given the field a label of their own. */
 const hasCustomLabel = (field: FieldState) =>
   field.label.trim() !== "" && field.label !== defaultLabel(field.type);
 
-// Fields whose placeholder input doesn't apply.
-const NO_PLACEHOLDER = new Set(["CHECKBOX", "CHECKBOXES", "NAME", "DATE", "ADDRESS"]);
 
 /** The field's Input Rules: `options` or `validation`, by type. */
 const configOf = (field: FieldState) => (isOptionsType(field.type) ? field.options : field.validation);
@@ -186,7 +184,7 @@ export function FieldRow({
           </span>
         )}
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          {open && SELF_LABELED.has(field.type) ? (
+          {open && isSelfLabeled(field.type) ? (
             <InlineRename
               value={field.label}
               placeholder={defaultLabel(field.type)}
@@ -266,7 +264,7 @@ function FieldSettings({
   const id = (part: string) => `field-${field.id}-${part}`;
   const optionsType = isOptionsType(field.type);
   // A self-labeled field is renamed from its row header instead.
-  const selfLabeled = SELF_LABELED.has(field.type);
+  const selfLabeled = isSelfLabeled(field.type);
 
   return (
     <div className="space-y-4 px-3 pb-4 pt-2">
@@ -285,7 +283,7 @@ function FieldSettings({
         </div>
       )}
 
-      {!NO_PLACEHOLDER.has(field.type) && (
+      {!fieldTypeHas(field.type, "noPlaceholder") && (
         <div className="space-y-2">
           <Label htmlFor={id("placeholder")}>Placeholder</Label>
           <Input

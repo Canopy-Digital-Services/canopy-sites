@@ -16,16 +16,7 @@ import { useFormContext } from "@/components/forms/form-context";
 import { HeaderSection } from "@/components/forms/header-section";
 import { FieldsSection } from "@/components/forms/fields-section";
 import { AfterSubmissionSection } from "@/components/forms/after-submission-section";
-
-const STEPS = ["header", "fields", "settings"] as const;
-
-/** The steps as their cards title them. The flow's buttons name where they
-    go: a bare "Continue" read as "done with this field" and wasn't. */
-const STEP_NAMES: Record<(typeof STEPS)[number], string> = {
-  header: "Header",
-  fields: "Fields",
-  settings: "Submission Settings",
-};
+import { EDITOR_STEPS, STEP_TITLES } from "@/components/forms/editor-steps";
 
 type EditorFlowProps = {
   formId: string;
@@ -37,8 +28,8 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
   const [step, setStep] = useState(0);
   const [exiting, setExiting] = useState<"forward" | "back" | null>(null);
 
-  const current = STEPS[step];
-  const last = step === STEPS.length - 1;
+  const current = EDITOR_STEPS[step];
+  const last = step === EDITOR_STEPS.length - 1;
   const { setEditorStep } = useFormContext();
 
   // The preview picks its stand-ins by step.
@@ -68,11 +59,11 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
         className="flex items-center justify-center gap-1.5"
         role="progressbar"
         aria-valuemin={1}
-        aria-valuemax={STEPS.length}
+        aria-valuemax={EDITOR_STEPS.length}
         aria-valuenow={step + 1}
-        aria-label={`Step ${step + 1} of ${STEPS.length}`}
+        aria-label={`Step ${step + 1} of ${EDITOR_STEPS.length}`}
       >
-        {STEPS.map((key, index) => {
+        {EDITOR_STEPS.map((key, index) => {
           const active = index === step;
           const complete = index < step;
           return (
@@ -105,12 +96,13 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
         )}
       </div>
 
-      {/* Flow controls */}
+      {/* Flow controls: they name where they go (a bare "Continue" read as
+          "done with this field" and wasn't). */}
       <div className="flex items-center justify-between">
         {step > 0 ? (
           <Button variant="ghost" onClick={() => go("back")} disabled={exiting !== null}>
             <ArrowLeft className="h-4 w-4" />
-            {STEP_NAMES[STEPS[step - 1]]}
+            {STEP_TITLES[EDITOR_STEPS[step - 1]]}
           </Button>
         ) : (
           <span aria-hidden />
@@ -122,7 +114,7 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
           </Button>
         ) : (
           <Button onClick={() => go("forward")} disabled={exiting !== null}>
-            {STEP_NAMES[STEPS[step + 1]]}
+            {STEP_TITLES[EDITOR_STEPS[step + 1]]}
             <ArrowRight className="h-4 w-4" />
           </Button>
         )}

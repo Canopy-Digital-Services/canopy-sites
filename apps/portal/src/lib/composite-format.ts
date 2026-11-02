@@ -1,11 +1,9 @@
+import { isComposite } from "@/lib/field-rules";
+
 /**
  * Formatting utilities for composite field types (NAME, ADDRESS).
  * Used in submission viewer and potentially other display contexts.
  */
-
-export function isCompositeFieldType(type: string): boolean {
-  return type === "NAME" || type === "ADDRESS";
-}
 
 /**
  * Render any submitted value as human-readable text: booleans as Yes/No,
@@ -22,7 +20,7 @@ export function formatFieldValue(
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") {
-    if (isCompositeFieldType(type)) {
+    if (isComposite(type)) {
       return formatCompositeValue(type, value as Record<string, unknown>, options);
     }
     return "";
