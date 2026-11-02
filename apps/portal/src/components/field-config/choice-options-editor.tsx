@@ -7,7 +7,7 @@
 // lines makes one option per line. "Other", whose answer the visitor types,
 // sits last once added.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,13 @@ export function clashingChoices(config: ChoiceOptions): Set<string> {
 
 const blank: ChoiceOption = { value: "", label: "" };
 
+/** An option's place in the list, kept apart from the option (which saves
+    without one) so that React and the drag list follow a row as it moves,
+    not a position: a box inserted mid-list must be a new box. */
+type Row = { id: string; option: ChoiceOption };
+let rowCount = 0;
+const newRowId = () => `option-${++rowCount}`;
+
 /** A new field's options, so it saves at once. Their text is a stand-in:
     clicking into one selects it whole, so typing replaces it. */
 export const STARTER_OPTIONS: ChoiceOption[] = [1, 2].map((n) => ({ value: `Option ${n}`, label: `Option ${n}` }));
@@ -50,7 +57,15 @@ export function ChoiceOptionsEditor({
 }) {
   const options = value.options;
   const clashes = clashingChoices(value);
-  const items = options.map((option, index) => ({ id: `option-${index}`, index, ...option }));
+
+  // Row ids follow the options through every change made here; a change
+  // from outside (closing the row drops blank options) re-fits them.
+  const [ids, setIds] = useState(() => options.map(newRowId));
+  if (ids.length !== options.length) {
+    setIds(options.map((_, i) => ids[i] ?? newRowId()));
+  }
+  const rows: Row[] = options.map((option, i) => ({ id: ids[i] ?? `pending-${i}`, option }));
+  const items = rows.map((row, index) => ({ id: row.id, index, ...row.option }));
 
   // The click that focuses a starter would drop its selection to a caret on
   // mouseup, so that mouseup is skipped.
@@ -68,33 +83,36 @@ export function ChoiceOptionsEditor({
     selectedOnFocus.current = false;
   });
 
-  const setOptions = (next: ChoiceOption[], focus?: number, defaultValue = value.defaultValue) => {
+  const setRows = (next: Row[], focus?: number, defaultValue = value.defaultValue) => {
     if (focus !== undefined) focusNext.current = focus;
-    const config: ChoiceOptions = { ...value, options: next };
+    setIds(next.map((row) => row.id));
+    const config: ChoiceOptions = { ...value, options: next.map((row) => row.option) };
     if (defaultValue === undefined) delete config.defaultValue;
     else config.defaultValue = defaultValue;
     onChange(config);
   };
+  const newRows = (added: ChoiceOption[]) => added.map((option) => ({ id: newRowId(), option }));
 
   const rename = (index: number, text: string) => {
     const old = options[index];
     // A default follows its option to the new name.
     const defaultValue = value.defaultValue === old.value ? text : value.defaultValue;
-    setOptions(options.map((o, i) => (i === index ? { value: text, label: text } : o)), undefined, defaultValue);
+    setRows(
+      rows.map((row, i) => (i === index ? { ...row, option: { value: text, label: text } } : row)),
+      undefined,
+      defaultValue
+    );
   };
 
   const insert = (at: number, added: ChoiceOption[], focus: number) =>
-    setOptions([...options.slice(0, at), ...added, ...options.slice(at)], focus);
+    setRows([...rows.slice(0, at), ...newRows(added), ...rows.slice(at)], focus);
 
   const remove = (index: number, focus?: number) => {
     const defaultValue = value.defaultValue === options[index].value ? undefined : value.defaultValue;
-    setOptions(options.filter((_, i) => i !== index), focus, defaultValue);
+    setRows(rows.filter((_, i) => i !== index), focus, defaultValue);
   };
 
-  const reorder = (ids: string[]) =>
-    setOptions(
-      ids.flatMap((id) => items.filter((item) => item.id === id)).map((item) => ({ value: item.value, label: item.label }))
-    );
+  const reorder = (order: string[]) => setRows(order.flatMap((id) => rows.filter((row) => row.id === id)));
 
   const addAtEnd = () => {
     // An empty box at the end is the one to type in, not another.
@@ -115,10 +133,10 @@ export function ChoiceOptionsEditor({
       .filter(Boolean);
     if (lines.length < 2) return;
     e.preventDefault();
-    const keep = options[index].label.trim() ? [options[index]] : [];
-    const added = lines.map((line) => ({ value: line, label: line }));
-    setOptions(
-      [...options.slice(0, index), ...keep, ...added, ...options.slice(index + 1)],
+    const keep = options[index].label.trim() ? [rows[index]] : [];
+    const added = newRows(lines.map((line) => ({ value: line, label: line })));
+    setRows(
+      [...rows.slice(0, index), ...keep, ...added, ...rows.slice(index + 1)],
       index + keep.length + added.length - 1
     );
   };
