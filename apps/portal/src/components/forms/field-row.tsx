@@ -6,7 +6,7 @@
 // carries the field's settings in place, where the add/edit modal used to.
 // The list keeps one row open at a time and autosaves (form-fields-manager).
 
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FieldType } from "@prisma/client";
 import { ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { ADDRESS_PARTS } from "../../../embed/src/address";
 import { DEFAULT_CHOICE_PROMPT, choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
 import { STARTER_OPTIONS, clashingChoices } from "@/components/field-config/choice-options-editor";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
+import { SCROLL_HOLD_RELEASE, SCROLL_HOLD_RESUME, type ScrollHoldFold } from "@/hooks/use-scroll-hold";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
@@ -181,6 +182,45 @@ export function FieldRow({
   const [renaming, setRenaming] = useState(false);
   useMarkerUnderline(titleRef, open && !renaming);
 
+  // The chevron at the foot, or Escape, closes the row and hands focus to its
+  // title, since what had it is folding away. The editor doesn't hold its
+  // scroll for this fold (the pointer was on what's going): it hands the
+  // scroll to the fold, which brings the row's summary into view as the
+  // settings fold, in one motion.
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const refocus = useRef(false);
+  const released = useRef(false);
+  const close = (from: Element) => {
+    refocus.current = true;
+    if (summaryRef.current && bodyRef.current) {
+      released.current = true;
+      const detail: ScrollHoldFold = { folding: bodyRef.current, anchor: summaryRef.current };
+      from.dispatchEvent(new CustomEvent(SCROLL_HOLD_RELEASE, { bubbles: true, detail }));
+    }
+    onToggle();
+  };
+  // The settings' height as it is now, for the fold to start from (see
+  // .field-row-body in globals.css): set before the first paint of an open
+  // row and kept current while it changes.
+  const settingsRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    const settings = settingsRef.current;
+    if (!body || !settings) return;
+    const track = () => body.style.setProperty("--field-row-height", `${settings.offsetHeight}px`);
+    track();
+    const observer = new ResizeObserver(track);
+    observer.observe(settings);
+    return () => observer.disconnect();
+  }, [open]);
+
+  useEffect(() => {
+    if (open || !refocus.current) return;
+    refocus.current = false;
+    titleRef.current?.focus({ preventScroll: true });
+  }, [open]);
+
   const title = (
     <button
       ref={titleRef}
@@ -205,10 +245,19 @@ export function FieldRow({
         "border-b border-border/50 last:border-b-0 transition-colors",
         open && "bg-muted/30"
       )}
+      onKeyDown={(e) => {
+        // A menu or popover inside takes its own Escape (and prevents it).
+        if (!open || e.key !== "Escape" || e.defaultPrevented || e.nativeEvent.isComposing) return;
+        e.preventDefault();
+        close(e.currentTarget);
+      }}
     >
-      {/* Summary: the whole row toggles it; the grip alone drags. */}
+      {/* Summary: the whole row toggles it; the grip alone drags. Closing
+          from the foot brings it back into view with room above it for the
+          rows before it. */}
       <div
-        className="flex items-center gap-2 py-2 px-3 cursor-pointer hover:bg-muted/50"
+        ref={summaryRef}
+        className="flex items-center gap-2 py-2 px-3 cursor-pointer hover:bg-muted/50 scroll-mt-24"
         onClick={onToggle}
       >
         {open ? (
@@ -247,7 +296,6 @@ export function FieldRow({
           )}
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          {open && <ChevronUp className="h-4 w-4 text-muted-foreground mr-1.5" aria-hidden />}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -268,11 +316,28 @@ export function FieldRow({
         </div>
       </div>
 
-      <CollapsibleContent className="field-row-body">
+      <CollapsibleContent
+        ref={bodyRef}
+        className="field-row-body"
+        onAnimationEnd={(e) => {
+          if (e.target !== e.currentTarget || open || !released.current) return;
+          released.current = false;
+          e.currentTarget.dispatchEvent(new Event(SCROLL_HOLD_RESUME, { bubbles: true }));
+        }}
+      >
         {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
             controls stand off the open row's tint. */}
-        <div className="-mx-1 px-1 [&_input]:bg-card [&_textarea]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
-          <FieldSettings field={field} problem={problem} onChange={onChange} onFocusPart={onFocusPart} />
+        <div
+          ref={settingsRef}
+          className="-mx-1 px-1 [&_input]:bg-card [&_textarea]:bg-card [&_[role=combobox]:not(:hover)]:bg-card"
+        >
+          <FieldSettings
+            field={field}
+            problem={problem}
+            onChange={onChange}
+            onFocusPart={onFocusPart}
+            onClose={close}
+          />
         </div>
       </CollapsibleContent>
 
@@ -285,11 +350,14 @@ function FieldSettings({
   problem,
   onChange,
   onFocusPart,
+  onClose,
 }: {
   field: FieldState;
   problem: string | null;
   onChange: (patch: Partial<FieldState>) => void;
   onFocusPart: (part: string | null) => void;
+  /** Closes the row, from the control that closed it; the field saves as it goes. */
+  onClose: (from: Element) => void;
 }) {
   const id = (part: string) => `field-${field.id}-${part}`;
   const optionsType = isOptionsType(field.type);
@@ -372,7 +440,27 @@ function FieldSettings({
         />
       </div>
 
-      {problem && <p className="text-sm text-destructive">{problem}</p>}
+      {/* An open row's chevron is down here, where the user is when they
+          finish, rather than in its header, which a long panel scrolls away.
+          It lines up with the trash buttons above it. */}
+      <div className="flex items-start gap-3">
+        {problem && <p className="flex-1 text-sm text-destructive">{problem}</p>}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close field settings"
+              className="ml-auto shrink-0 text-muted-foreground"
+              onClick={(e) => onClose(e.currentTarget)}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Close</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }
