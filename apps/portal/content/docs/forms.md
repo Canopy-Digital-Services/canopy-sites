@@ -23,7 +23,7 @@ A URL-friendly slug is generated automatically from the name and shown below it.
 
 Every form opens to a three-tab workspace:
 
-- **Edit**: the builder, which walks through Header, Fields, and Submission Settings one section at a time. Use **Continue** and **Back** to move between them; the dots above the card show where you are. On desktop, a live preview sits to the right, with **Change styling** above it for the form's look (see [Styling](./appearance.md)). The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+- **Edit**: the builder, which walks through Header, Fields, and Submission Settings one section at a time. The buttons under the card are named for the section they take you to, and the dots above it show where you are. On desktop, a live preview sits to the right, with **Change styling** above it for the form's look (see [Styling](./appearance.md)). The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
 - **Publish**: publish status and the controls that apply to your form type — the hosted form link for hosted forms, allowed origins and embed snippet for embedded ones. See [Publishing](./publishing.md).
 - **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 
@@ -38,7 +38,7 @@ The **Header** section is the first step in the Edit tab. Both fields are option
 
 Both are rendered on the hosted page and by the embed. If your container already has its own heading, you'll usually leave these blank for the embed and rely on them for the hosted page.
 
-Until you type, the preview shows faded sample text where the title and description go. It isn't saved: leave both blank and click **No Header**, and the form has no header.
+Until you type, the preview shows faded sample text where the title and description go. It isn't saved: leave both blank and the form has no header.
 
 ## Fields
 
@@ -93,7 +93,7 @@ Drag a field by its grip to move it. The order here is the order fields render i
 
 ## Submission Settings
 
-The **Submission Settings** section is the last step. It controls what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves. Continue past it and **Go to Publish** takes you to the Publish tab.
+The **Submission Settings** section is the last step. It controls what happens after someone submits, whether you get notified, and whether to cap submissions. Everything here autosaves. **Publish** under it takes you to the Publish tab.
 
 ### After submission
 
