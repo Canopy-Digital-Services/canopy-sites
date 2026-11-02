@@ -25,6 +25,8 @@ import type { SortableItemRenderProps } from "@/components/ui/sortable-list";
 import { InlineRename } from "@/components/forms/inline-rename";
 import { DEFAULT_NAME_PARTS } from "../../../embed/src/name";
 import { ADDRESS_PARTS } from "../../../embed/src/address";
+import { DEFAULT_CHOICE_PROMPT, choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
+import { STARTER_OPTIONS, clashingChoices } from "@/components/field-config/choice-options-editor";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
@@ -37,7 +39,7 @@ import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
 export const isOptionsType = (type: string) =>
   type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS";
 
-const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOXES";
+export const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOXES";
 
 /** Types made of parts, each collected and required on its own. */
 const isComposite = (type: string) => type === "NAME" || type === "ADDRESS";
@@ -54,8 +56,6 @@ const SELF_LABELED = new Set(["NAME", "EMAIL", "PHONE", "ADDRESS"]);
 const hasCustomLabel = (field: FieldState) =>
   field.label.trim() !== "" && field.label !== defaultLabel(field.type);
 
-type ChoiceOption = { value: string; label: string };
-
 /** What a new field of `type` starts with, so it is complete (and saved) the
     moment it is created and the user only overrides what they need. */
 export function newFieldDefaults(type: string) {
@@ -66,7 +66,7 @@ export function newFieldDefaults(type: string) {
     // the middle name and the apartment.
     required: isComposite(type),
     options: isChoiceType(type)
-      ? { options: [1, 2].map((n) => ({ value: `Option ${n}`, label: `Option ${n}` })) }
+      ? { options: STARTER_OPTIONS }
       : type === "NAME"
         ? { parts: DEFAULT_NAME_PARTS, requiredParts: DEFAULT_NAME_PARTS }
         : type === "ADDRESS"
@@ -78,11 +78,10 @@ export function newFieldDefaults(type: string) {
 /** Why the field as edited can't be saved yet, or null if it can. */
 export function fieldProblem(field: FieldState): string | null {
   if (isChoiceType(field.type)) {
-    const options = (field.options as { options?: ChoiceOption[] } | null)?.options ?? [];
-    if (options.length === 0) return "Add at least one option to save.";
-    if (!options.every((o) => o.value.trim() && o.label.trim())) return "Fill in every option to save.";
-    const values = options.map((o) => o.value.trim());
-    if (new Set(values).size !== values.length) return "Options must be different to save.";
+    const config = choiceOptions(field.options);
+    // Blank options don't count: the field saves without them.
+    if (!config.options.some((o) => o.label.trim())) return "Add at least one option to save.";
+    if (clashingChoices(config).size > 0) return "Options must be different to save.";
   }
   if (field.type === "NAME") {
     const parts = (field.options as { parts?: string[] } | null)?.parts;
@@ -93,6 +92,22 @@ export function fieldProblem(field: FieldState): string | null {
     if (parts && parts.length === 0) return "Choose at least one address part to save.";
   }
   return null;
+}
+
+/** A choice field's options as saved: blanks dropped, text trimmed, and the
+    default kept only while its option is. */
+export function savedChoices(options: unknown): ChoiceOptions {
+  const config = choiceOptions(options);
+  const saved: ChoiceOptions = {
+    ...config,
+    options: config.options
+      .filter((o) => o.value.trim() && o.label.trim())
+      .map((o) => ({ value: o.value.trim(), label: o.label.trim() })),
+  };
+  const preset = saved.defaultValue?.trim();
+  if (preset && saved.options.some((o) => o.value === preset)) saved.defaultValue = preset;
+  else delete saved.defaultValue;
+  return saved;
 }
 
 // Fields whose placeholder input doesn't apply.
@@ -305,6 +320,10 @@ function FieldSettings({
             id={id("placeholder")}
             value={field.placeholder ?? ""}
             onChange={(e) => onChange({ placeholder: e.target.value })}
+            // A dropdown's placeholder is its first line, which has a default.
+            placeholder={field.type === "DROPDOWN" ? DEFAULT_CHOICE_PROMPT : undefined}
+            onFocus={() => onFocusPart("input")}
+            onBlur={() => onFocusPart(null)}
           />
         </div>
       )}

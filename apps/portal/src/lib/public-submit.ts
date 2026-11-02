@@ -11,6 +11,7 @@ import {
 } from "@/lib/data-access/notifications";
 import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions } from "../../embed/src/name";
 import { addressError, type AddressOptions } from "../../embed/src/address";
+import { choiceError } from "../../embed/src/choices";
 
 type FieldDefinition = {
   name: string;
@@ -139,20 +140,9 @@ function validateFields(
         errors[field.name] = `${label} must be an array.`;
         continue;
       }
-      // Validate selected values exist in the options list
       if (Array.isArray(value) && value.length > 0) {
-        const optionsObj = field.options as Record<string, unknown> | null;
-        const cbOpts =
-          typeof field.options === "object" && field.options !== null && "options" in optionsObj!
-            ? (optionsObj!.options as { value: string }[])
-            : [];
-        const validValues = cbOpts.map((o) => o.value);
-        for (const v of value) {
-          if (!validValues.includes(String(v))) {
-            errors[field.name] = `${label} contains an invalid option.`;
-            break;
-          }
-        }
+        const error = choiceError("CHECKBOXES", value, field.options, label);
+        if (error) errors[field.name] = error;
       }
       continue;
     }
@@ -332,33 +322,9 @@ function validateFields(
     }
 
     if (field.type === "DROPDOWN") {
-      const opts = field.options;
-      const isNewFormat =
-        opts !== null &&
-        typeof opts === "object" &&
-        !Array.isArray(opts) &&
-        "options" in opts;
-
-      const rawOptions = isNewFormat
-        ? (opts as { options: unknown }).options
-        : opts;
-
-      const optionValues = Array.isArray(rawOptions)
-        ? rawOptions
-            .map((option) =>
-              typeof option === "object" && option !== null
-                ? (option as { value?: string }).value
-                : null
-            )
-            .filter((option): option is string => Boolean(option))
-        : [];
-
-      const allowOther = isNewFormat && (opts as { allowOther?: boolean }).allowOther === true;
-
-      if (optionValues.length > 0 && !allowOther && !optionValues.includes(String(value))) {
-        errors[field.name] = `${label} must be a valid option.`;
-        continue;
-      }
+      const error = choiceError("DROPDOWN", value, field.options, label);
+      if (error) errors[field.name] = error;
+      continue;
     }
 
     const stringValue = String(value);

@@ -6,8 +6,14 @@
 
 import type { NameOptions } from "../../embed/src/name";
 import type { AddressOptions } from "../../embed/src/address";
+import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
 
 export type { NameOptions, AddressOptions };
+
+// Dropdown and Checkboxes share one shape; only a Dropdown has a default.
+export type DropdownOption = ChoiceOption;
+export type DropdownOptions = ChoiceOptions;
+export type CheckboxesOptions = ChoiceOptions;
 
 // Base validation (shared by TEXT, EMAIL, TEXTAREA)
 export type BaseValidation = {
@@ -38,22 +44,6 @@ export type NumberValidation = {
   min?: number;
   max?: number;
   integer?: boolean;
-};
-
-// Type-specific options
-export type DropdownOption = {
-  value: string;
-  label: string;
-};
-
-export type DropdownOptions = {
-  options: DropdownOption[];
-  defaultValue?: string;
-  allowOther?: boolean;
-};
-
-export type CheckboxesOptions = {
-  options: DropdownOption[];
 };
 
 // Field configuration discriminated union
