@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  anywhereToday,
   getEffectiveMaxLength,
   isValidEmail,
   usPhoneDigits,
@@ -15,6 +16,8 @@ const field = (type: string, more: Partial<ValidatedField> = {}): ValidatedField
   required: false,
   ...more,
 });
+
+const nov2 = { earliest: "2026-11-02", latest: "2026-11-02" };
 
 describe("validateField: required", () => {
   it("refuses a required answer left empty or blank, whatever the type", () => {
@@ -141,8 +144,53 @@ describe("validateField: number", () => {
 });
 
 describe("validateField: date", () => {
-  it("refuses a date that isn't one", () => {
-    expect(validateField(field("DATE"), "soon")).toBe("Answer must be a valid date.");
+  const between = field("DATE", { validation: { minDate: "2026-11-10", maxDate: "2026-11-20" } });
+  const fromToday = field("DATE", { validation: { minDate: "today" } });
+  const untilToday = field("DATE", { validation: { maxDate: "today" } });
+
+  it("refuses a date that isn't one, including a day the month doesn't have", () => {
+    expect(validateField(field("DATE"), "soon", nov2)).toBe("Answer must be a valid date.");
+    expect(validateField(field("DATE"), "2026-02-30", nov2)).toBe("Answer must be a valid date.");
+  });
+
+  it("keeps to the field's dates, inclusive", () => {
+    expect(validateField(between, "2026-11-10", nov2)).toBeNull();
+    expect(validateField(between, "2026-11-20", nov2)).toBeNull();
+    expect(validateField(between, "2026-11-09", nov2)).toMatch(/^Answer must be on or after /);
+    expect(validateField(between, "2026-11-21", nov2)).toMatch(/^Answer must be on or before /);
+  });
+
+  it("counts today itself as on or after today, and on or before it", () => {
+    expect(validateField(fromToday, "2026-11-02", nov2)).toBeNull();
+    expect(validateField(untilToday, "2026-11-02", nov2)).toBeNull();
+    expect(validateField(fromToday, "2026-11-01", nov2)).toMatch(/^Answer must be on or after /);
+    expect(validateField(untilToday, "2026-11-03", nov2)).toMatch(/^Answer must be on or before /);
+  });
+
+  it("on the server, takes any date that is today somewhere", () => {
+    const today = anywhereToday(new Date("2026-11-02T20:00:00Z"));
+    expect(today).toEqual({ earliest: "2026-11-02", latest: "2026-11-03" });
+    expect(validateField(untilToday, "2026-11-03", today)).toBeNull();
+    expect(validateField(untilToday, "2026-11-04", today)).toMatch(/^Answer must be on or before /);
+    expect(anywhereToday(new Date("2026-11-02T06:00:00Z"))).toEqual({ earliest: "2026-11-01", latest: "2026-11-02" });
+  });
+
+  describe("west of UTC", () => {
+    const zone = process.env.TZ;
+    beforeAll(() => {
+      process.env.TZ = "America/Los_Angeles";
+    });
+    afterAll(() => {
+      process.env.TZ = zone;
+    });
+
+    it("compares the day the visitor picked, and names the field's date as set", () => {
+      expect(new Date(2026, 10, 2).getTimezoneOffset()).toBe(480);
+      expect(validateField(fromToday, "2026-11-02", nov2)).toBeNull();
+      expect(validateField(between, "2026-11-09", nov2)).toBe(
+        `Answer must be on or after ${new Date(2026, 10, 10).toLocaleDateString()}.`
+      );
+    });
   });
 });
 
@@ -161,7 +209,7 @@ describe("validateField: composite and choice fields", () => {
 describe("validateSubmission", () => {
   it("reports each field's first error by name, and nothing for fields that pass", () => {
     const fields = [field("TEXT", { required: true }), field("EMAIL"), field("NUMBER")];
-    expect(validateSubmission(fields, { email: "nope", number: "4" })).toEqual({
+    expect(validateSubmission(fields, { email: "nope", number: "4" }, nov2)).toEqual({
       text: "Answer is required.",
       email: "Enter a valid email address",
     });

@@ -1,5 +1,5 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission, getEffectiveMaxLength, NameOptions } from "./validation";
+import { FieldDefinition, validateSubmission, getEffectiveMaxLength, localDate, NameOptions } from "./validation";
 import type { AddressOptions } from "./validation";
 import {
   DEFAULT_CHOICE_PROMPT,
@@ -657,9 +657,10 @@ export class CanopyForm {
     return otherInput;
   }
 
+  // "today" is the visitor's date, as validateSubmission reads it.
   private resolveDate(dateValue: string): string {
     if (dateValue === "today") {
-      return new Date().toISOString().split("T")[0];
+      return localDate();
     }
     return dateValue;
   }

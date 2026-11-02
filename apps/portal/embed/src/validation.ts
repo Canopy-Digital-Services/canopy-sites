@@ -103,6 +103,57 @@ export function usPhoneDigits(value: string): string | null {
   return /^\d{10}$/.test(digits) ? digits : null;
 }
 
+// Dates are compared as YYYY-MM-DD strings, the way the date input writes
+// them. Parsing one with `new Date` reads it as UTC midnight, which is the
+// day before anywhere west of UTC.
+
+/** What "today" stands for in a date bound: the earliest and latest date it
+    can be, as YYYY-MM-DD. */
+export type Today = { earliest: string; latest: string };
+
+/** `date`'s day on this machine's calendar, as YYYY-MM-DD. */
+export function localDate(date = new Date()): string {
+  const pad = (n: number, width = 2) => String(n).padStart(width, "0");
+  return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Today in the form: the visitor's own date. */
+export function visitorToday(): Today {
+  const today = localDate();
+  return { earliest: today, latest: today };
+}
+
+/** Today on the server, which can't know where the visitor is: any date it
+    is somewhere on Earth, from UTC-12 to UTC+14. */
+export function anywhereToday(now = new Date()): Today {
+  const dateAt = (hours: number) => new Date(now.getTime() + hours * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { earliest: dateAt(-12), latest: dateAt(14) };
+}
+
+/** The day an answer or bound names, as YYYY-MM-DD, or null if it names none.
+    A date written as the date input writes it is read as written; any other
+    way of writing one is read on this machine's calendar. */
+function calendarDate(value: string): string | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    // Rejects a day the month doesn't have, which Date would roll over.
+    const date = new Date(`${value}T00:00:00Z`);
+    return !isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
+  }
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : localDate(date);
+}
+
+/** A YYYY-MM-DD date in the reader's own format. A date-time without an
+    offset is local, so the day stays the one named. */
+function formatDate(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString();
+}
+
+function dateBound(bound: string | undefined, today: string): string | null {
+  if (!bound) return null;
+  return bound === "today" ? today : calendarDate(bound);
+}
+
 function lengthError(field: ValidatedField, text: string, label: string): string | null {
   const { minLength } = rulesOf(field);
   if (minLength && text.length < minLength) {
@@ -145,8 +196,9 @@ function formatError(format: string | undefined, text: string, label: string): s
   }
 }
 
-/** Why `value` can't be submitted for the field, or null if it can. */
-export function validateField(field: ValidatedField, value: unknown): string | null {
+/** Why `value` can't be submitted for the field, or null if it can. `today`
+    is what a date bound of "today" means where this runs. */
+export function validateField(field: ValidatedField, value: unknown, today: Today = visitorToday()): string | null {
   const label = field.label || field.name;
   const rules = rulesOf(field);
 
@@ -204,21 +256,12 @@ export function validateField(field: ValidatedField, value: unknown): string | n
     }
 
     case "DATE": {
-      const dateValue = new Date(text);
-      if (isNaN(dateValue.getTime())) return `${label} must be a valid date.`;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      dateValue.setHours(0, 0, 0, 0);
-      if (rules.minDate) {
-        const minDate = new Date(rules.minDate === "today" ? today : rules.minDate);
-        minDate.setHours(0, 0, 0, 0);
-        if (dateValue < minDate) return `${label} must be on or after ${minDate.toLocaleDateString()}.`;
-      }
-      if (rules.maxDate) {
-        const maxDate = new Date(rules.maxDate === "today" ? today : rules.maxDate);
-        maxDate.setHours(0, 0, 0, 0);
-        if (dateValue > maxDate) return `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
-      }
+      const date = calendarDate(text);
+      if (!date) return `${label} must be a valid date.`;
+      const minDate = dateBound(rules.minDate, today.earliest);
+      if (minDate && date < minDate) return `${label} must be on or after ${formatDate(minDate)}.`;
+      const maxDate = dateBound(rules.maxDate, today.latest);
+      if (maxDate && date > maxDate) return `${label} must be on or before ${formatDate(maxDate)}.`;
       return null;
     }
 
@@ -251,10 +294,14 @@ export function validateField(field: ValidatedField, value: unknown): string | n
 }
 
 /** Every field's error, by field name. */
-export function validateSubmission(fields: ValidatedField[], values: Record<string, unknown>): Record<string, string> {
+export function validateSubmission(
+  fields: ValidatedField[],
+  values: Record<string, unknown>,
+  today: Today = visitorToday()
+): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const field of fields) {
-    const error = validateField(field, values[field.name]);
+    const error = validateField(field, values[field.name], today);
     if (error) errors[field.name] = error;
   }
   return errors;

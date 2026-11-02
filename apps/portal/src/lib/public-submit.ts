@@ -9,7 +9,7 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
-import { usPhoneDigits, validateSubmission } from "../../embed/src/validation";
+import { anywhereToday, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
 
 type RateLimitConfig = {
   max: number;
@@ -163,8 +163,9 @@ export async function handlePublicSubmit({
   }
 
   if (form.fields.length > 0) {
-    // The form's own checks, run again here.
-    const errors = validateSubmission(form.fields, formData);
+    // The form's own checks. The server can't know the visitor's date, so a
+    // bound of "today" takes any date it is somewhere.
+    const errors = validateSubmission(form.fields, formData, anywhereToday());
 
     if (Object.keys(errors).length > 0) {
       return jsonResponse(
