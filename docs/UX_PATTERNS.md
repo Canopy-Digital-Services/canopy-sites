@@ -519,13 +519,13 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 
 **What you click doesn't move.** Collapsing something near the bottom of the editor column (switching Name to Full name, closing a field row) would otherwise pull the column's scroll back, since it can't stay scrolled past the end, and slide the panel down under the pointer. `useScrollHold` ([use-scroll-hold.ts](src/hooks/use-scroll-hold.ts)) puts a spacer at the column's end that takes up what was removed, restores the scroll before paint, and shrinks away as the user scrolls up. A new step, or opening styling, starts at the column's top instead.
 
-`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Submission Settings, then a terminal "All set" card linking to Publish. A stack of cards presented its full complexity before the first decision. Styling is not a step (see Styling mode below).
+`EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Submission Settings, whose forward button goes to Publish. A stack of cards presented its full complexity before the first decision. Styling is not a step (see Styling mode below).
 
 - Section cards take `variant="flow" | "accordion"`. `flow` is always-expanded with no chevron; `accordion` is the original collapsible card. Both are maintained.
-- **Advancing is animation-driven**: Continue sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
+- **Advancing is animation-driven**: the forward button sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
 - Forward exits left, back exits right.
 - Section cards are plain `Card`s with no accent bar (see rule 22).
-- On Header with both fields empty, the forward button reads **No Header** instead of Continue.
+- **The buttons name where they go** (Header, Fields, Submission Settings, Publish, as the cards title them; `STEP_NAMES`). A bare Continue under the Fields list read as "done with this field" and moved on to the next step instead. Header's forward button says Fields whether or not it's filled (rule 25), and no "All set" card stands between the last step and Publish.
 
 **Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields, and both in styling mode. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
 

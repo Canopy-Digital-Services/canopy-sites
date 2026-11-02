@@ -80,7 +80,7 @@ export const FIELD_PLACEHOLDERS: FieldState[] = [
 
 /** The editor-flow step on screen, which decides the preview's stand-ins.
     Null outside the flow. */
-export type EditorStep = "header" | "fields" | "settings" | "done" | null;
+export type EditorStep = "header" | "fields" | "settings" | null;
 
 /** A part of the form the styling panel styles, picked in the panel or by
     clicking it in the preview. */
