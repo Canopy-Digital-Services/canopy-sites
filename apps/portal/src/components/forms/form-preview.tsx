@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useBringIntoView } from "@/hooks/use-bring-into-view";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition, type EmbedFormInput } from "@/lib/embed-preview";
 import {
@@ -146,6 +147,9 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   const outlineTarget = !styling ? null : rowHover ? targets[rowHover] : hovered;
   const markTarget = styling ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
   const drawKey = styling ? `${styleGroup}:${picks}` : (focusTarget ?? "");
+
+  // What's being edited stays in view.
+  useBringIntoView(surfaceRef, styling ? null : focusTarget, renderKey);
 
   // Render from static form prop (no debounce)
   useEffect(() => {

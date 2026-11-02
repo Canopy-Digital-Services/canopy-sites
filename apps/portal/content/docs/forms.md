@@ -42,7 +42,7 @@ Until you type, the preview shows faded sample text where the title and descript
 
 ## Fields
 
-The **Fields** section is where you add and arrange inputs. Click **Add field** at the bottom of the list and pick a type. The new field opens in the list with its settings, and the field you're editing is outlined in the preview. Click any field to open its settings; opening one closes the other. To close them, click the field's name, click the arrow at the bottom of the settings, or press Escape. A field's type can't be changed; to use another type, add a new field and delete the old one. Changes save as you go.
+The **Fields** section is where you add and arrange inputs. Click **Add field** at the bottom of the list and pick a type. The new field opens in the list with its settings, and the field you're editing is outlined in the preview, which scrolls to show it. Click any field to open its settings; opening one closes the other. To close them, click the field's name, click the arrow at the bottom of the settings, or press Escape. A field's type can't be changed; to use another type, add a new field and delete the old one. Changes save as you go.
 
 ### Field types
 
