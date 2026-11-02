@@ -14,8 +14,10 @@ import {
   FieldRow,
   defaultLabel,
   fieldProblem,
+  isChoiceType,
   isOptionsType,
   newFieldDefaults,
+  savedChoices,
 } from "@/components/forms/field-row";
 
 /** Quiet time after the last edit before a field saves. */
@@ -45,7 +47,7 @@ const toFieldInput = (f: FieldState) => ({
   placeholder: f.placeholder,
   required: f.required,
   helpText: f.helpText,
-  options: isOptionsType(f.type) ? f.options : null,
+  options: isChoiceType(f.type) ? savedChoices(f.options) : isOptionsType(f.type) ? f.options : null,
   validation: isOptionsType(f.type) ? null : f.validation,
 });
 
@@ -103,11 +105,26 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The open field is the one the preview marks.
+  // The open field is the one the preview marks, narrowed to the part whose
+  // settings have focus. Moving from one box to the next blurs one before
+  // focusing the other, so going back to the whole field waits a beat: two
+  // boxes marking the same part (a Dropdown's options all mark the dropdown)
+  // leave the mark as drawn instead of redrawing it.
+  const partLeft = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const focusPart = (name: string, part: string | null) => {
+    clearTimeout(partLeft.current);
+    if (part) setPreviewFocus(`field:${name}#${part}`);
+    else partLeft.current = setTimeout(() => setPreviewFocus(`field:${name}`), 0);
+  };
   const openName = fields.find((f) => f.id === openId)?.name ?? null;
   useEffect(() => {
+    // A closing row's last blur (its focus going to the title) mustn't mark it.
+    clearTimeout(partLeft.current);
     setPreviewFocus(openName ? `field:${openName}` : null);
-    return () => setPreviewFocus(null);
+    return () => {
+      clearTimeout(partLeft.current);
+      setPreviewFocus(null);
+    };
   }, [openName, setPreviewFocus]);
 
   const change = (fieldId: string, patch: Partial<FieldState>) => {
@@ -116,13 +133,23 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     timers.current.set(fieldId, setTimeout(() => void save(fieldId), SAVE_DELAY_MS));
   };
 
+  // A row that closes shows its options as they saved, without the blanks.
+  const tidy = (fieldId: string | null) => {
+    const field = latest.current.find((f) => f.id === fieldId);
+    if (!field || !isChoiceType(field.type) || fieldProblem(field)) return;
+    const options = savedChoices(field.options);
+    if (JSON.stringify(options) !== JSON.stringify(field.options)) patchField(field.id, { options });
+  };
+
   const toggle = (fieldId: string) => {
     flush(openId);
+    tidy(openId);
     setOpenId(openId === fieldId ? null : fieldId);
   };
 
   const closeOpen = () => {
     flush(openId);
+    tidy(openId);
     setOpenId(null);
   };
 
@@ -191,7 +218,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
                 onToggle={() => toggle(field.id)}
                 onChange={(patch) => change(field.id, patch)}
                 onDelete={() => setDeletingField(field)}
-                onFocusPart={(part) => setPreviewFocus(`field:${field.name}${part ? `#${part}` : ""}`)}
+                onFocusPart={(part) => focusPart(field.name, part)}
               />
             )}
           />

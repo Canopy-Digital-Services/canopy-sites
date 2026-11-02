@@ -54,9 +54,9 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Phone | Phone number | Lenient or strict format |
 | Date | Date picker | Optional min / max, no-future, no-past rules |
 | Name | Person's name | One box, or separate first, middle, and last parts |
-| Dropdown | Single select | Configure value/label options |
+| Dropdown | Single select | Configure options; can offer "Other" |
 | Yes / No | Single checkbox | For consent-style prompts |
-| Checkboxes | Multi-select checkboxes | Configure options; submitted value is an array |
+| Checkboxes | Multi-select checkboxes | Configure options; can offer "Other"; submitted value is an array |
 | Number | Numeric input | Min/max bounds |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
@@ -67,7 +67,7 @@ Every field type has the same core options, plus type-specific ones.
 **Core options:**
 
 - **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, and Address have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
-- **Placeholder**: optional hint text inside the empty input.
+- **Placeholder**: optional hint text inside the empty input. On a Dropdown it's the first line, "Choose one..." unless you change it.
 - **Required**: toggles whether the field must be filled before the form can submit. Name and Address are required part by part instead, with a Required column beside their parts.
 - **Help text**: optional muted text shown below the field to guide the user.
 
@@ -75,7 +75,7 @@ Every field type has the same core options, plus type-specific ones.
 
 - Text, Paragraph, Email, Phone: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length, custom error messages.
 - Date: min date, max date, "no future", "no past".
-- Dropdown, Checkboxes: the list of options (value/label pairs). Values must be unique.
+- Dropdown, Checkboxes: the options, one box each. Press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Add "Other" to let visitors type their own answer, which is saved in place of "Other". A Dropdown can also start on a **Default choice**.
 - Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.
 - Address: which parts to collect: Street (with an optional Apt, suite), City, State, ZIP. Collect only what you need, for example ZIP alone for a service-area question. Tick a part in the Required column to require it, for example only ZIP; a new Address requires every part but Apt, suite. Rename a part with the pencil beside it. Addresses are US only: State is a list of US states and ZIP must be 5 or 9 digits.
 - Number: min, max.

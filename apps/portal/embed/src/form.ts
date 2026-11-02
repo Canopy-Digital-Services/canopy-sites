@@ -1,6 +1,15 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission, getEffectiveMaxLength, DropdownOptions, CheckboxesOptions, NameOptions } from "./validation";
-import type { FieldOption, AddressOptions } from "./validation";
+import { FieldDefinition, validateSubmission, getEffectiveMaxLength, NameOptions } from "./validation";
+import type { AddressOptions } from "./validation";
+import {
+  DEFAULT_CHOICE_PROMPT,
+  OTHER_LABEL,
+  OTHER_MAX_LENGTH,
+  OTHER_VALUE,
+  allowsOther,
+  choiceList,
+  type ChoiceOptions,
+} from "./choices";
 import { addressPartLabel, addressParts, addressRequiredParts } from "./address";
 import { US_STATES } from "./us-states";
 import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, orderNameParts } from "./name";
@@ -337,29 +346,29 @@ export class CanopyForm {
         break;
       }
       case "DROPDOWN": {
-        const selectOpts = field.options as DropdownOptions | FieldOption[] | undefined;
-        const isNewFormat = selectOpts && typeof selectOpts === "object" && "options" in selectOpts && !Array.isArray(selectOpts);
-        const options = isNewFormat ? (selectOpts as DropdownOptions).options : (Array.isArray(selectOpts) ? selectOpts : []);
-        const defaultValue = isNewFormat ? (selectOpts as DropdownOptions).defaultValue : undefined;
-        const allowOther = isNewFormat ? (selectOpts as DropdownOptions).allowOther : false;
-        
+        const options = choiceList(field.options);
+        const defaultValue = Array.isArray(field.options)
+          ? undefined
+          : (field.options as ChoiceOptions | undefined)?.defaultValue;
+        const preset = options.some((o) => o.value === defaultValue);
+        const allowOther = allowsOther(field.options);
+
         const select = document.createElement("select");
         select.className = "canopy-select";
 
-        if (!defaultValue) {
-          const placeholder = document.createElement("option");
-          placeholder.value = "";
-          placeholder.textContent = "Choose one...";
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          select.appendChild(placeholder);
-        }
+        // The prompt line stays in the list even under a default, greyed.
+        const prompt = document.createElement("option");
+        prompt.value = "";
+        prompt.textContent = field.placeholder || DEFAULT_CHOICE_PROMPT;
+        prompt.disabled = true;
+        prompt.selected = !preset;
+        select.appendChild(prompt);
 
-        options.forEach((option: FieldOption) => {
+        options.forEach((option) => {
           const opt = document.createElement("option");
           opt.value = option.value;
           opt.textContent = option.label;
-          if (defaultValue && option.value === defaultValue) {
+          if (preset && option.value === defaultValue) {
             opt.selected = true;
           }
           select.appendChild(opt);
@@ -367,8 +376,8 @@ export class CanopyForm {
         
         if (allowOther) {
           const otherOpt = document.createElement("option");
-          otherOpt.value = "__other__";
-          otherOpt.textContent = "Other";
+          otherOpt.value = OTHER_VALUE;
+          otherOpt.textContent = OTHER_LABEL;
           select.appendChild(otherOpt);
         }
         
@@ -376,22 +385,11 @@ export class CanopyForm {
         
         // If allowOther, create the "Other" text input (hidden initially)
         if (allowOther) {
-          const otherInput = document.createElement("input");
-          otherInput.type = "text";
-          otherInput.className = "canopy-input canopy-select-other";
-          otherInput.name = `${field.name}_other`;
-          otherInput.placeholder = "Please specify...";
-          otherInput.style.setProperty("display", "none", "important");
-          otherInput.style.marginTop = "0.5rem";
-          
-          // Clear validation state when user starts typing
-          otherInput.addEventListener("input", () => {
-            otherInput.setCustomValidity("");
-          });
+          const otherInput = this.createOtherInput(field);
           
           // Show/hide other input based on selection
           select.addEventListener("change", () => {
-            if (select.value === "__other__") {
+            if (select.value === OTHER_VALUE) {
               otherInput.style.setProperty("display", "block", "important");
               if (field.required) {
                 otherInput.required = true;
@@ -446,36 +444,57 @@ export class CanopyForm {
         return { wrapper, input: checkbox, errorEl };
       }
       case "CHECKBOXES": {
-        const cbOpts = field.options as CheckboxesOptions | FieldOption[] | undefined;
-        const isNewFormat = cbOpts && typeof cbOpts === "object" && "options" in cbOpts && !Array.isArray(cbOpts);
-        const cbOptions = isNewFormat ? (cbOpts as CheckboxesOptions).options : (Array.isArray(cbOpts) ? cbOpts : []);
-
         const checkboxesWrapper = document.createElement("div");
         checkboxesWrapper.className = "canopy-checkboxes";
         checkboxesWrapper.setAttribute("data-checkbox-group", field.name);
 
-        cbOptions.forEach((option: FieldOption) => {
+        // showErrors sets validity on the first checkbox in the group, so
+        // clear it there (not on the hidden pseudo-input)
+        const clearError = () => {
+          const firstCb = checkboxesWrapper.querySelector("input[type=checkbox]") as HTMLInputElement;
+          if (firstCb) firstCb.setCustomValidity("");
+        };
+
+        const addChoice = (value: string, text: string, part: string) => {
           const itemLabel = document.createElement("label");
           itemLabel.className = "canopy-checkbox";
+          itemLabel.dataset.fieldPart = part;
 
           const cb = document.createElement("input");
           cb.type = "checkbox";
           cb.name = field.name;
-          cb.value = option.value;
-          cb.addEventListener("change", () => {
-            // showErrors sets validity on the first checkbox in the group,
-            // so clear it there (not on the hidden pseudo-input)
-            const firstCb = checkboxesWrapper.querySelector("input[type=checkbox]") as HTMLInputElement;
-            if (firstCb) firstCb.setCustomValidity("");
-          });
+          cb.value = value;
+          cb.addEventListener("change", clearError);
 
           const span = document.createElement("span");
-          span.textContent = option.label;
+          span.textContent = text;
 
           itemLabel.appendChild(cb);
           itemLabel.appendChild(span);
           checkboxesWrapper.appendChild(itemLabel);
+          return cb;
+        };
+
+        choiceList(field.options).forEach((option, index) => {
+          addChoice(option.value, option.label, `option-${index}`);
         });
+
+        if (allowsOther(field.options)) {
+          const otherCb = addChoice(OTHER_VALUE, OTHER_LABEL, "option-other");
+          const otherInput = this.createOtherInput(field);
+          otherInput.dataset.choiceOther = field.name;
+          otherInput.addEventListener("input", clearError);
+          otherCb.addEventListener("change", () => {
+            if (otherCb.checked) {
+              otherInput.style.setProperty("display", "block", "important");
+              otherInput.focus();
+            } else {
+              otherInput.style.setProperty("display", "none", "important");
+              otherInput.value = "";
+            }
+          });
+          checkboxesWrapper.appendChild(otherInput);
+        }
 
         // Hidden pseudo-input for fieldElements map (like NAME pattern)
         const pseudoCbInput = document.createElement("input");
@@ -573,11 +592,13 @@ export class CanopyForm {
 
     input.id = fieldId;
     input.name = field.name;
+    input.dataset.fieldPart = "input";
     input.setAttribute("aria-invalid", "false");
     if (field.required) {
       input.setAttribute("aria-required", "true");
     }
-    if (field.placeholder) {
+    // A dropdown's placeholder is its prompt line instead.
+    if (field.placeholder && !(input instanceof HTMLSelectElement)) {
       input.setAttribute("placeholder", field.placeholder);
     }
     
@@ -616,6 +637,24 @@ export class CanopyForm {
     wrapper.appendChild(errorEl);
 
     return { wrapper, input, errorEl };
+  }
+
+  /** The box for a visitor's "Other" answer, hidden until they pick Other. */
+  private createOtherInput(field: FieldDefinition) {
+    const otherInput = document.createElement("input");
+    otherInput.type = "text";
+    otherInput.className = "canopy-input canopy-choice-other";
+    otherInput.name = `${field.name}_other`;
+    otherInput.placeholder = "Please specify...";
+    otherInput.maxLength = OTHER_MAX_LENGTH;
+    otherInput.setAttribute("aria-label", `${field.label || field.name}: ${OTHER_LABEL}`);
+    otherInput.style.setProperty("display", "none", "important");
+
+    // Clear validation state when user starts typing
+    otherInput.addEventListener("input", () => {
+      otherInput.setCustomValidity("");
+    });
+    return otherInput;
   }
 
   private resolveDate(dateValue: string): string {
@@ -862,7 +901,13 @@ export class CanopyForm {
           if (checkboxGroup) {
             const checked: string[] = [];
             checkboxGroup.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").forEach((cb) => {
-              checked.push(cb.value);
+              if (cb.value !== OTHER_VALUE) {
+                checked.push(cb.value);
+                return;
+              }
+              // Other counts once the visitor has typed it.
+              const typed = checkboxGroup.querySelector<HTMLInputElement>("[data-choice-other]")?.value.trim();
+              if (typed) checked.push(typed);
             });
             data[name] = checked;
           } else {
@@ -902,7 +947,7 @@ export class CanopyForm {
         }
       } else if (element.input instanceof HTMLSelectElement) {
         // Check if "Other" option was selected
-        if (element.input.value === "__other__" && (element.input as SelectWithOther).__otherInput) {
+        if (element.input.value === OTHER_VALUE && (element.input as SelectWithOther).__otherInput) {
           data[name] = (element.input as SelectWithOther).__otherInput!.value;
         } else {
           data[name] = element.input.value;
