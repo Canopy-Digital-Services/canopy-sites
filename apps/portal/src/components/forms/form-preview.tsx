@@ -11,7 +11,7 @@ import {
 } from "@/components/forms/form-context";
 import { PreviewMark, MARK_HOST } from "@/components/forms/preview-mark";
 import { PreviewOutline } from "@/components/forms/preview-outline";
-import { defaultLabel } from "@/components/forms/field-row";
+import { defaultLabel } from "@/lib/field-rules";
 import { cn } from "@/lib/utils";
 import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 

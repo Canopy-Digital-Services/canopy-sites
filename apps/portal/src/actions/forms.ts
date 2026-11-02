@@ -18,6 +18,7 @@ import {
 } from "@/lib/errors/plan-errors";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
+import { fieldProblem, savedField } from "@/lib/field-rules";
 
 type FieldInput = {
   name?: string; // Optional on create, ignored on update
@@ -58,14 +59,15 @@ export async function createField(formId: string, data: FieldInput) {
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.label) {
-    throw new Error("Field label is required");
-  }
+  // The same rules the editor keeps, whatever sent the field.
+  const problem = fieldProblem(data);
+  if (problem) throw new Error(problem);
+  const saved = savedField(data);
 
   // Generate unique name from label if not provided
   const fieldName = data.name?.trim() || await generateUniqueName(
     formId,
-    slugify(data.label)
+    slugify(saved.label)
   );
 
   const lastField = await prisma.field.findFirst({
@@ -80,14 +82,14 @@ export async function createField(formId: string, data: FieldInput) {
     data: {
       formId,
       name: fieldName,
-      type: data.type as FieldType,
-      label: data.label.trim(),
-      placeholder: data.placeholder?.trim() || null,
-      required: Boolean(data.required),
-      helpText: data.helpText?.trim() || null,
+      type: saved.type as FieldType,
+      label: saved.label,
+      placeholder: saved.placeholder,
+      required: saved.required,
+      helpText: saved.helpText,
       order,
-      options: data.options || undefined,
-      validation: data.validation || undefined,
+      options: (saved.options as Prisma.InputJsonValue | null) ?? undefined,
+      validation: (saved.validation as Prisma.InputJsonValue | null) ?? undefined,
     },
   });
 
@@ -103,10 +105,6 @@ export async function updateField(
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.label) {
-    throw new Error("Field label is required");
-  }
-
   const field = await prisma.field.findFirst({
     where: {
       id: fieldId,
@@ -118,18 +116,24 @@ export async function updateField(
     throw new Error("Field not found");
   }
 
-  // Note: name is immutable after creation (not updated). Options and
-  // validation are written whole: a field whose rules were cleared stores none.
+  // A field's name and type are fixed once it exists: the rules follow the
+  // type it has, not one the request names.
+  const settings = { ...data, type: field.type };
+  const problem = fieldProblem(settings);
+  if (problem) throw new Error(problem);
+  const saved = savedField(settings);
+
+  // Options and validation are written whole: a field whose rules were
+  // cleared stores none.
   const updated = await prisma.field.update({
     where: { id: fieldId },
     data: {
-      type: data.type as FieldType,
-      label: data.label.trim(),
-      placeholder: data.placeholder?.trim() || null,
-      required: Boolean(data.required),
-      helpText: data.helpText?.trim() || null,
-      options: (data.options as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
-      validation: (data.validation as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
+      label: saved.label,
+      placeholder: saved.placeholder,
+      required: saved.required,
+      helpText: saved.helpText,
+      options: (saved.options as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
+      validation: (saved.validation as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     },
   });
 

@@ -7,6 +7,7 @@ import {
   addressRequiredParts,
   type AddressPart,
 } from "../../../embed/src/address";
+import { savedParts } from "@/lib/field-rules";
 import { PartRow, PartsRequiredHeading } from "./part-row";
 import { ConfigComponentProps } from "./types";
 
@@ -22,19 +23,18 @@ export function AddressConfig({
   const partLabels = value?.partLabels ?? {};
   const requiredParts = addressRequiredParts(value, fieldRequired) as AddressPart[];
 
-  const save = (next: Partial<AddressOptions>) => {
-    const nextParts = next.parts ?? parts;
-    // Labels and requirements stay only for the parts that stay.
-    const keep = (part: string) => nextParts.includes(part as AddressPart);
-    const labels = Object.fromEntries(
-      Object.entries(next.partLabels ?? partLabels).filter(([part]) => keep(part))
+  // Labels and requirements stay only for the parts that stay (savedParts).
+  const save = (next: Partial<AddressOptions>) =>
+    onChange(
+      savedParts(
+        {
+          parts: next.parts ?? parts,
+          partLabels: next.partLabels ?? partLabels,
+          requiredParts: next.requiredParts ?? requiredParts,
+        },
+        (order) => addressParts({ parts: order as AddressPart[] })
+      ) as AddressOptions
     );
-    onChange({
-      parts: addressParts({ parts: nextParts }),
-      requiredParts: addressParts({ parts: (next.requiredParts ?? requiredParts).filter(keep) }),
-      ...(Object.keys(labels).length > 0 && { partLabels: labels }),
-    });
-  };
 
   const toggle = (part: AddressPart, on: boolean) => {
     if (on) return save({ parts: [...parts, part] });
