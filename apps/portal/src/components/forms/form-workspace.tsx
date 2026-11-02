@@ -268,14 +268,17 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             </div>
           </div>
         ) : (
-          /* Editor tab: editor column + preview column */
+          /* Editor tab: editor column + preview column. Both are 600px and
+             shrink where the pair doesn't fit (lg up to 1200px): a centered
+             row wider than the window would spill off its left edge, where it
+             can't be scrolled to. */
           <div className="flex flex-1 min-h-0 justify-center">
             {/* Editor column — one section card at a time (progressive disclosure),
                 or the styling panel in its place. The flow stays mounted under
                 the panel so Done returns to the same step. */}
             <div
               ref={editorScrollRef}
-              className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6"
+              className="w-full lg:w-[600px] overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6"
             >
               <ScrollHoldContext.Provider value={scrollHold}>
                 <div ref={editorContentRef} className="max-w-[640px] mx-auto">
@@ -300,8 +303,8 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
               <div ref={editorSpacerRef} aria-hidden />
             </div>
 
-            {/* Preview column — fixed width, floating shadow on both sides */}
-            <div className="w-[600px] shrink-0 hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
+            {/* Preview column, floating shadow on both sides */}
+            <div className="w-[600px] hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
               <div className="shrink-0 flex items-center px-2 py-1 border-b bg-muted/30">
                 <StylingToggle />
               </div>
