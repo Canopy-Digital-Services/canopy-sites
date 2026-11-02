@@ -76,6 +76,7 @@ export function TextConfig({
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             value={validation.minLength?.toString() ?? ""}
             onChange={(e) => handleChange("minLength", e.target.value)}
@@ -83,6 +84,7 @@ export function TextConfig({
           />
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             value={validation.maxLength?.toString() ?? ""}
             onChange={(e) => handleChange("maxLength", e.target.value)}
