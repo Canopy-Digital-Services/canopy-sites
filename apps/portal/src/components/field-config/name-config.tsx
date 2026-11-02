@@ -10,6 +10,7 @@ import {
   orderNameParts,
   type NamePart,
 } from "../../../embed/src/name";
+import { savedParts } from "@/lib/field-rules";
 import { PartRow, PartsRequiredHeading } from "./part-row";
 import { ConfigComponentProps } from "./types";
 
@@ -38,19 +39,18 @@ export function NameConfig({
       ? "middleInitial"
       : null;
 
-  const save = (next: Partial<NameOptions>) => {
-    const nextParts = next.parts ?? parts;
-    // Labels and requirements stay only for the parts that stay.
-    const keep = (part: string) => nextParts.includes(part as NamePart);
-    const labels = Object.fromEntries(
-      Object.entries(next.partLabels ?? partLabels).filter(([part]) => keep(part))
+  // Labels and requirements stay only for the parts that stay (savedParts).
+  const save = (next: Partial<NameOptions>) =>
+    onChange(
+      savedParts(
+        {
+          parts: next.parts ?? parts,
+          partLabels: next.partLabels ?? partLabels,
+          requiredParts: next.requiredParts ?? requiredParts,
+        },
+        orderNameParts
+      ) as NameOptions
     );
-    onChange({
-      parts: orderNameParts(nextParts) as NamePart[],
-      requiredParts: orderNameParts((next.requiredParts ?? requiredParts).filter(keep)) as NamePart[],
-      ...(Object.keys(labels).length > 0 && { partLabels: labels }),
-    });
-  };
 
   const withoutMiddle = parts.filter((p) => p !== "middle" && p !== "middleInitial");
   const partFor = (row: Row): NamePart | null =>

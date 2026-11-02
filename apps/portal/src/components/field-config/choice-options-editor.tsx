@@ -13,23 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SortableList } from "@/components/ui/sortable-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { OTHER_LABEL, type ChoiceOption, type ChoiceOptions } from "../../../embed/src/choices";
-
-/** How options compare: to a visitor, "Red" and "red " are the same option. */
-const choiceKey = (text: string) => text.trim().toLowerCase();
-
-/** The options that clash with another, "Other" included, by key. */
-export function clashingChoices(config: ChoiceOptions): Set<string> {
-  const seen = new Set<string>(config.allowOther ? [choiceKey(OTHER_LABEL)] : []);
-  const clashes = new Set<string>();
-  for (const option of config.options) {
-    const key = choiceKey(option.label);
-    if (!key) continue;
-    if (seen.has(key)) clashes.add(key);
-    else seen.add(key);
-  }
-  return clashes;
-}
+import { isStarterOption } from "@/lib/field-rules";
+import {
+  OTHER_LABEL,
+  choiceKey,
+  clashingChoices,
+  type ChoiceOption,
+  type ChoiceOptions,
+} from "../../../embed/src/choices";
 
 const blank: ChoiceOption = { value: "", label: "" };
 
@@ -39,11 +30,6 @@ const blank: ChoiceOption = { value: "", label: "" };
 type Row = { id: string; option: ChoiceOption };
 let rowCount = 0;
 const newRowId = () => `option-${++rowCount}`;
-
-/** A new field's options, so it saves at once. Their text is a stand-in:
-    clicking into one selects it whole, so typing replaces it. */
-export const STARTER_OPTIONS: ChoiceOption[] = [1, 2].map((n) => ({ value: `Option ${n}`, label: `Option ${n}` }));
-const isStarter = (text: string) => /^Option \d+$/.test(text);
 
 export function ChoiceOptionsEditor({
   value,
@@ -173,7 +159,7 @@ export function ChoiceOptionsEditor({
                 onChange={(e) => rename(item.index, e.target.value)}
                 onFocus={(e) => {
                   onFocusOption?.(item.index);
-                  if (isStarter(item.label)) {
+                  if (isStarterOption(item.label)) {
                     e.currentTarget.select();
                     selectedOnFocus.current = true;
                   }

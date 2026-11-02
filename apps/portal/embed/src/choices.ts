@@ -37,6 +37,22 @@ export function choiceOptions(options: unknown): ChoiceOptions {
   return { ...rest, options: choiceList(options) };
 }
 
+/** How options compare: to a visitor, "Red" and "red " are the same option. */
+export const choiceKey = (text: string) => text.trim().toLowerCase();
+
+/** The options that clash with another, "Other" included, by key. */
+export function clashingChoices(config: ChoiceOptions): Set<string> {
+  const seen = new Set<string>(config.allowOther ? [choiceKey(OTHER_LABEL)] : []);
+  const clashes = new Set<string>();
+  for (const option of config.options) {
+    const key = choiceKey(option.label);
+    if (!key) continue;
+    if (seen.has(key)) clashes.add(key);
+    else seen.add(key);
+  }
+  return clashes;
+}
+
 export function allowsOther(options: unknown): boolean {
   return !Array.isArray(options) && (options as ChoiceOptions | null)?.allowOther === true;
 }

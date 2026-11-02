@@ -23,10 +23,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SortableItemRenderProps } from "@/components/ui/sortable-list";
 import { InlineRename } from "@/components/forms/inline-rename";
-import { DEFAULT_NAME_PARTS } from "../../../embed/src/name";
-import { ADDRESS_PARTS } from "../../../embed/src/address";
-import { DEFAULT_CHOICE_PROMPT, choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
-import { STARTER_OPTIONS, clashingChoices } from "@/components/field-config/choice-options-editor";
+import { DEFAULT_CHOICE_PROMPT } from "../../../embed/src/choices";
+import { anyPartRequired, defaultLabel, isComposite, isOptionsType } from "@/lib/field-rules";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { SCROLL_HOLD_RELEASE, SCROLL_HOLD_RESUME, type ScrollHoldFold } from "@/hooks/use-scroll-hold";
 import { FieldConfigRenderer } from "@/components/field-config";
@@ -35,18 +33,8 @@ import { cn } from "@/lib/utils";
 import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
 
 // ─── Field rules ────────────────────────────────────────────────────────────
-
-/** Types whose config lives in `options`; every other type keeps it in `validation`. */
-export const isOptionsType = (type: string) =>
-  type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS";
-
-export const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOXES";
-
-/** Types made of parts, each collected and required on its own. */
-const isComposite = (type: string) => type === "NAME" || type === "ADDRESS";
-
-/** A field's label when the user hasn't given one: its type's name. */
-export const defaultLabel = (type: string) => getFieldTypeLabel(type);
+// What a field saves and when it can't is in lib/field-rules; these are the
+// row's own.
 
 /** Types whose name already says what they ask for. They have no Label box:
     the label stays the default unless renamed with the pencil beside it in
@@ -56,60 +44,6 @@ const SELF_LABELED = new Set(["NAME", "EMAIL", "PHONE", "ADDRESS"]);
 /** Whether the user has given the field a label of their own. */
 const hasCustomLabel = (field: FieldState) =>
   field.label.trim() !== "" && field.label !== defaultLabel(field.type);
-
-/** What a new field of `type` starts with, so it is complete (and saved) the
-    moment it is created and the user only overrides what they need. */
-export function newFieldDefaults(type: string) {
-  return {
-    type,
-    label: defaultLabel(type),
-    // A form's names and addresses are nearly always required, all but
-    // the middle name and the apartment.
-    required: isComposite(type),
-    options: isChoiceType(type)
-      ? { options: STARTER_OPTIONS }
-      : type === "NAME"
-        ? { parts: DEFAULT_NAME_PARTS, requiredParts: DEFAULT_NAME_PARTS }
-        : type === "ADDRESS"
-          ? { parts: ADDRESS_PARTS, requiredParts: ADDRESS_PARTS.filter((p) => p !== "line2") }
-          : undefined,
-  };
-}
-
-/** Why the field as edited can't be saved yet, or null if it can. */
-export function fieldProblem(field: FieldState): string | null {
-  if (isChoiceType(field.type)) {
-    const config = choiceOptions(field.options);
-    // Blank options don't count: the field saves without them.
-    if (!config.options.some((o) => o.label.trim())) return "Add at least one option to save.";
-    if (clashingChoices(config).size > 0) return "Options must be different to save.";
-  }
-  if (field.type === "NAME") {
-    const parts = (field.options as { parts?: string[] } | null)?.parts;
-    if (parts && parts.length === 0) return "Choose at least one name part to save.";
-  }
-  if (field.type === "ADDRESS") {
-    const parts = (field.options as { parts?: string[] } | null)?.parts;
-    if (parts && parts.length === 0) return "Choose at least one address part to save.";
-  }
-  return null;
-}
-
-/** A choice field's options as saved: blanks dropped, text trimmed, and the
-    default kept only while its option is. */
-export function savedChoices(options: unknown): ChoiceOptions {
-  const config = choiceOptions(options);
-  const saved: ChoiceOptions = {
-    ...config,
-    options: config.options
-      .filter((o) => o.value.trim() && o.label.trim())
-      .map((o) => ({ value: o.value.trim(), label: o.label.trim() })),
-  };
-  const preset = saved.defaultValue?.trim();
-  if (preset && saved.options.some((o) => o.value === preset)) saved.defaultValue = preset;
-  else delete saved.defaultValue;
-  return saved;
-}
 
 // Fields whose placeholder input doesn't apply.
 const NO_PLACEHOLDER = new Set(["CHECKBOX", "CHECKBOXES", "NAME", "DATE", "ADDRESS"]);
@@ -421,9 +355,7 @@ function FieldSettings({
               if (!optionsType) return onChange({ validation: next ?? null });
               const patch: Partial<FieldState> = { options: next ?? null };
               // The field is required while any part is, for the list's asterisk.
-              if (isComposite(field.type)) {
-                patch.required = ((next as { requiredParts?: string[] } | null)?.requiredParts?.length ?? 0) > 0;
-              }
+              if (isComposite(field.type)) patch.required = anyPartRequired(next);
               onChange(patch);
             }}
           />

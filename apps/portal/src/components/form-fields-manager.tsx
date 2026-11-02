@@ -9,16 +9,8 @@ import { createField, deleteField, reorderFields, updateField } from "@/actions/
 import { useToast } from "@/hooks/use-toast";
 import { DeleteFieldDialog } from "@/components/delete-field-dialog";
 import { useFormContext, type FieldState } from "@/components/forms/form-context";
-import {
-  AddFieldRow,
-  FieldRow,
-  defaultLabel,
-  fieldProblem,
-  isChoiceType,
-  isOptionsType,
-  newFieldDefaults,
-  savedChoices,
-} from "@/components/forms/field-row";
+import { AddFieldRow, FieldRow } from "@/components/forms/field-row";
+import { fieldProblem, isOptionsType, newFieldDefaults, savedField } from "@/lib/field-rules";
 
 /** Quiet time after the last edit before a field saves. */
 const SAVE_DELAY_MS = 600;
@@ -40,16 +32,6 @@ const toFieldState = (f: FieldState): FieldState => ({
   validation: f.validation,
 });
 
-/** The field as the server action takes it. A blank label saves as the default. */
-const toFieldInput = (f: FieldState) => ({
-  type: f.type,
-  label: f.label.trim() || defaultLabel(f.type),
-  placeholder: f.placeholder,
-  required: f.required,
-  helpText: f.helpText,
-  options: isChoiceType(f.type) ? savedChoices(f.options) : isOptionsType(f.type) ? f.options : null,
-  validation: isOptionsType(f.type) ? null : f.validation,
-});
 
 /**
  * The Fields list: one row per field, at most one open, edits autosaving a
@@ -77,7 +59,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     const field = latest.current.find((f) => f.id === fieldId);
     if (!field || fieldProblem(field)) return;
     try {
-      await trackSave(updateField(formId, fieldId, toFieldInput(field)));
+      await trackSave(updateField(formId, fieldId, savedField(field)));
     } catch (error) {
       console.error(error);
       toast.error("Unable to save field. Please try again.");
@@ -133,11 +115,11 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     timers.current.set(fieldId, setTimeout(() => void save(fieldId), SAVE_DELAY_MS));
   };
 
-  // A row that closes shows its options as they saved, without the blanks.
+  // A row that closes shows its options as they saved (without blank options).
   const tidy = (fieldId: string | null) => {
     const field = latest.current.find((f) => f.id === fieldId);
-    if (!field || !isChoiceType(field.type) || fieldProblem(field)) return;
-    const options = savedChoices(field.options);
+    if (!field || !isOptionsType(field.type) || fieldProblem(field)) return;
+    const { options } = savedField(field);
     if (JSON.stringify(options) !== JSON.stringify(field.options)) patchField(field.id, { options });
   };
 
