@@ -37,6 +37,8 @@ export function NumberConfig({
       {/* Min/Max Value */}
       <div className="space-y-2">
         <Label>Value Range</Label>
+        {/* No number pad: a bound may be below zero, and iPhone pads have no
+            minus key. */}
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             type="number"

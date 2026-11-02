@@ -559,13 +559,11 @@ export class CanopyForm {
         numberInput.type = "number";
         numberInput.className = "canopy-input";
         const numValidation = field.validation;
-        if (numValidation?.integer) {
-          numberInput.setAttribute("inputmode", "numeric");
-          numberInput.setAttribute("step", "1");
-        } else {
-          numberInput.setAttribute("inputmode", "decimal");
-          numberInput.setAttribute("step", "any");
-        }
+        numberInput.setAttribute("step", numValidation?.integer ? "1" : "any");
+        // A phone's number pad, unless the field takes numbers below zero:
+        // iPhone pads have no minus key, which the full keyboard's numbers have.
+        const belowZero = numValidation?.min !== undefined && numValidation.min < 0;
+        if (!belowZero) numberInput.setAttribute("inputmode", numValidation?.integer ? "numeric" : "decimal");
         if (numValidation?.min !== undefined) {
           numberInput.setAttribute("min", String(numValidation.min));
         }

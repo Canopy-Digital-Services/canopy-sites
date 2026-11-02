@@ -343,6 +343,8 @@ Standard shadcn `Input`, `Label`, `Textarea`, `Select`. Spacing: `space-y-2` for
 
 **Dependent options**: when a checkbox only makes sense while its parent is on, render it inside the parent's conditional block rather than disabling it, and align hint text under the label with `ml-6` (checkbox width plus gap) so the hint belongs to that option, not the group. Reference: "Include responses in the email" in [after-submission-section.tsx](src/components/forms/after-submission-section.tsx).
 
+**Mobile keyboards follow the answer.** A box that takes only numbers asks for the phone's number pad (`inputmode="numeric"`, `"decimal"` for a Number field that isn't integers only; `type="tel"` for Phone), and ZIP gets the pad too. The exception is a box that takes numbers below zero (a Number field with a negative minimum, a Number field's own bounds in its settings): iPhone pads have no minus key, so those keep the full keyboard's numbers. Password boxes are `type="password"` with `current-password` or `new-password`, and shown as text they still don't capitalize or correct (`PasswordInput`). No attribute asks for a keyboard's number row: Android keyboards add one to password boxes themselves, and iPhone's have none.
+
 **Help text**: `text-xs text-muted-foreground` directly below an input or group; `text-sm text-muted-foreground` for page and section level description. A hint covering a group goes below the group, not repeated under each input.
 
 ### Admin and auth validation

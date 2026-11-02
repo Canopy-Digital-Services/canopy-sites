@@ -292,6 +292,7 @@ export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open
                   <Input
                     id="maxSubmissions"
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     value={state.maxSubmissions?.toString() ?? ""}
                     onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}
