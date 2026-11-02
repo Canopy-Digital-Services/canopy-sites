@@ -43,7 +43,7 @@ export function DropdownConfig({
       <ChoiceOptionsEditor
         value={config}
         onChange={onChange}
-        onFocusOption={(index) => markDropdown(index !== null)}
+        onFocusOption={(option) => markDropdown(option !== null)}
       />
       {choices.length > 0 && (
         <div className="space-y-2">

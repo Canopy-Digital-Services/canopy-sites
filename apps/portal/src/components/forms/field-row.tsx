@@ -10,6 +10,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import type { FieldType } from "@prisma/client";
 import { ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -300,14 +301,16 @@ function FieldSettings({
 
       {/* A Name or Address is required part by part, in its own settings. */}
       {!isComposite(field.type) && (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={id("required")}
             checked={field.required}
-            onChange={(e) => onChange({ required: e.target.checked })}
+            onCheckedChange={(checked) => onChange({ required: checked === true })}
           />
-          Required field
-        </label>
+          <Label htmlFor={id("required")} className="cursor-pointer font-normal">
+            Required field
+          </Label>
+        </div>
       )}
 
       {field.type !== "CHECKBOX" && (
