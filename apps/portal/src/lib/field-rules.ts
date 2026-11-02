@@ -46,7 +46,6 @@ export type FieldSettings = {
   type: string;
   label: string;
   required?: boolean;
-  placeholder?: string | null;
   helpText?: string | null;
   options?: unknown;
   validation?: unknown;
@@ -122,7 +121,6 @@ export function savedField(field: FieldSettings) {
   return {
     type: field.type,
     label: field.label.trim() || defaultLabel(field.type),
-    placeholder: field.placeholder?.trim() || null,
     helpText: field.helpText?.trim() || null,
     required: partsListed ? anyPartRequired(options) : Boolean(field.required),
     options,

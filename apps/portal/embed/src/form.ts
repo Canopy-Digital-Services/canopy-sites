@@ -2,7 +2,7 @@ import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resol
 import { FieldDefinition, validateSubmission, getEffectiveMaxLength, localDate, NameOptions } from "./validation";
 import type { AddressOptions } from "./validation";
 import {
-  DEFAULT_CHOICE_PROMPT,
+  CHOICE_PROMPT,
   OTHER_LABEL,
   OTHER_MAX_LENGTH,
   OTHER_VALUE,
@@ -15,6 +15,11 @@ import { US_STATES } from "./us-states";
 import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, orderNameParts } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
+
+/** Has a screen reader read a field's help text, if any, and its error with
+    `control` (its box, or the group of its parts or options). */
+const describe = (control: Element, help: HTMLElement | null, error: HTMLElement) =>
+  control.setAttribute("aria-describedby", help ? `${help.id} ${error.id}` : error.id);
 
 export type FormDefinition = {
   formId: string;
@@ -359,7 +364,7 @@ export class CanopyForm {
         // The prompt line stays in the list even under a default, greyed.
         const prompt = document.createElement("option");
         prompt.value = "";
-        prompt.textContent = field.placeholder || DEFAULT_CHOICE_PROMPT;
+        prompt.textContent = CHOICE_PROMPT;
         prompt.disabled = true;
         prompt.selected = !preset;
         select.appendChild(prompt);
@@ -427,19 +432,14 @@ export class CanopyForm {
         checkboxWrapper.appendChild(text);
         wrapper.appendChild(checkboxWrapper);
         
-        // Add help text if provided
-        if (field.helpText) {
-          const helpTextEl = document.createElement("p");
-          helpTextEl.className = "canopy-help-text";
-          helpTextEl.textContent = field.helpText;
-          wrapper.appendChild(helpTextEl);
-        }
-        
+        const help = this.createHelpText(field, fieldId);
+        if (help) wrapper.appendChild(help);
+
         const errorEl = document.createElement("span");
         errorEl.className = "canopy-error";
         errorEl.id = `${fieldId}-error`;
         wrapper.appendChild(errorEl);
-        checkbox.setAttribute("aria-describedby", errorEl.id);
+        describe(checkbox, help, errorEl);
         checkbox.setAttribute("aria-invalid", "false");
         return { wrapper, input: checkbox, errorEl };
       }
@@ -502,22 +502,20 @@ export class CanopyForm {
         pseudoCbInput.id = fieldId;
         pseudoCbInput.name = field.name;
 
+        // The options are one group, named by the field's label.
+        label.id = `${fieldId}-label`;
+        checkboxesWrapper.setAttribute("role", "group");
+        checkboxesWrapper.setAttribute("aria-labelledby", label.id);
+        const help = this.createHelpText(field, fieldId);
         wrapper.appendChild(label);
+        if (help) wrapper.appendChild(help);
         wrapper.appendChild(checkboxesWrapper);
-
-        // Add help text if provided
-        if (field.helpText) {
-          const helpTextEl = document.createElement("p");
-          helpTextEl.className = "canopy-help-text";
-          helpTextEl.textContent = field.helpText;
-          wrapper.appendChild(helpTextEl);
-        }
 
         const errorEl = document.createElement("span");
         errorEl.className = "canopy-error";
         errorEl.id = `${fieldId}-error`;
         wrapper.appendChild(errorEl);
-        pseudoCbInput.setAttribute("aria-describedby", errorEl.id);
+        describe(checkboxesWrapper, help, errorEl);
         pseudoCbInput.setAttribute("aria-invalid", "false");
         return { wrapper, input: pseudoCbInput, errorEl };
       }
@@ -595,11 +593,7 @@ export class CanopyForm {
     if (field.required) {
       input.setAttribute("aria-required", "true");
     }
-    // A dropdown's placeholder is its prompt line instead.
-    if (field.placeholder && !(input instanceof HTMLSelectElement)) {
-      input.setAttribute("placeholder", field.placeholder);
-    }
-    
+
     // Apply maxLength for browser-level enforcement
     const maxLength = getEffectiveMaxLength(field);
     if (maxLength && (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
@@ -614,27 +608,31 @@ export class CanopyForm {
     const errorEl = document.createElement("span");
     errorEl.className = "canopy-error";
     errorEl.id = `${fieldId}-error`;
-    input.setAttribute("aria-describedby", errorEl.id);
 
+    const help = this.createHelpText(field, fieldId);
     wrapper.appendChild(label);
+    if (help) wrapper.appendChild(help);
     wrapper.appendChild(input);
-    
+    describe(input, help, errorEl);
+
     // If this is a DROPDOWN with "Other" option, add the other input
     if ((input as SelectWithOther).__otherInput) {
       wrapper.appendChild((input as SelectWithOther).__otherInput!);
     }
-    
-    // Add help text if provided
-    if (field.helpText) {
-      const helpTextEl = document.createElement("p");
-      helpTextEl.className = "canopy-help-text";
-      helpTextEl.textContent = field.helpText;
-      wrapper.appendChild(helpTextEl);
-    }
-    
+
     wrapper.appendChild(errorEl);
 
     return { wrapper, input, errorEl };
+  }
+
+  /** The field's help text, or null; its id describes the field's controls. */
+  private createHelpText(field: FieldDefinition, fieldId: string) {
+    if (!field.helpText) return null;
+    const help = document.createElement("p");
+    help.className = "canopy-help-text";
+    help.id = `${fieldId}-help`;
+    help.textContent = field.helpText;
+    return help;
   }
 
   /** The box for a visitor's "Other" answer, hidden until they pick Other. */
@@ -676,6 +674,7 @@ export class CanopyForm {
     // Parts sit under the field's label ("Name" over "First" and "Last"); a
     // single input takes the label itself.
     const single = parts.includes("single");
+    const help = this.createHelpText(field, fieldId);
     if (single) {
       wrapper.setAttribute("aria-label", fieldLabel);
     } else {
@@ -686,6 +685,7 @@ export class CanopyForm {
       label.textContent = fieldLabel;
       // No top-level asterisk: the middle is optional, so markers go on the parts.
       wrapper.appendChild(label);
+      if (help) wrapper.appendChild(help);
       wrapper.setAttribute("aria-labelledby", label.id);
     }
 
@@ -742,20 +742,14 @@ export class CanopyForm {
       });
 
       partWrapper.appendChild(partLabel);
+      if (single && help) partWrapper.appendChild(help);
       partWrapper.appendChild(partInput);
       nameInputsWrapper.appendChild(partWrapper);
     });
 
     wrapper.appendChild(nameInputsWrapper);
-    
-    // Add help text if provided
-    if (field.helpText) {
-      const helpTextEl = document.createElement("p");
-      helpTextEl.className = "canopy-help-text";
-      helpTextEl.textContent = field.helpText;
-      wrapper.appendChild(helpTextEl);
-    }
-    
+    describe(wrapper, help, errorEl);
+
     wrapper.appendChild(errorEl);
 
     return { wrapper, input: pseudoInput, errorEl };
@@ -777,6 +771,8 @@ export class CanopyForm {
     // No top-level asterisk — required markers go on individual parts
 
     wrapper.appendChild(label);
+    const help = this.createHelpText(field, fieldId);
+    if (help) wrapper.appendChild(help);
 
     const partsWrapper = document.createElement("div");
     partsWrapper.className = "canopy-address-parts";
@@ -822,10 +818,10 @@ export class CanopyForm {
         const select = document.createElement("select");
         select.className = "canopy-select";
 
-        const placeholder = document.createElement("option");
-        placeholder.value = "";
-        placeholder.textContent = "Select...";
-        select.appendChild(placeholder);
+        const prompt = document.createElement("option");
+        prompt.value = "";
+        prompt.textContent = CHOICE_PROMPT;
+        select.appendChild(prompt);
 
         US_STATES.forEach((state) => {
           const opt = document.createElement("option");
@@ -874,13 +870,7 @@ export class CanopyForm {
     });
 
     wrapper.appendChild(partsWrapper);
-
-    if (field.helpText) {
-      const helpTextEl = document.createElement("p");
-      helpTextEl.className = "canopy-help-text";
-      helpTextEl.textContent = field.helpText;
-      wrapper.appendChild(helpTextEl);
-    }
+    describe(wrapper, help, errorEl);
 
     wrapper.appendChild(errorEl);
 

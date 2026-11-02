@@ -14,7 +14,6 @@ export type FieldState = {
   type: string;
   required: boolean;
   order: number;
-  placeholder: string | null;
   helpText: string | null;
   options: unknown;
   validation: unknown;
@@ -74,7 +73,6 @@ export const FIELD_PLACEHOLDERS: FieldState[] = [
   name: `placeholder_${order}`,
   required: false,
   order,
-  placeholder: null,
   helpText: null,
   options: null,
 }));
@@ -315,7 +313,6 @@ type FormProviderProps = {
       type: string;
       required: boolean;
       order: number;
-      placeholder: string | null;
       helpText: string | null;
       options: unknown;
       validation: unknown;
@@ -347,7 +344,6 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
       type: f.type,
       required: f.required,
       order: f.order,
-      placeholder: f.placeholder,
       helpText: f.helpText,
       options: f.options,
       validation: f.validation,

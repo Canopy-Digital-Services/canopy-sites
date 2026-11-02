@@ -11,8 +11,9 @@ export type ChoiceOptions = {
   allowOther?: boolean;
 };
 
-/** A dropdown's first line when the field has no placeholder. */
-export const DEFAULT_CHOICE_PROMPT = "Choose one...";
+/** A dropdown's first line, which no answer can be, so that nothing is
+    picked until the visitor picks it. */
+export const CHOICE_PROMPT = "Choose one...";
 
 export const OTHER_LABEL = "Other";
 

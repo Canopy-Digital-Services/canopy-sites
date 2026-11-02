@@ -191,7 +191,7 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 ### Adding a field type
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
-2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`, `noPlaceholder`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
+2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
 3. Render it in `embed/src/form.ts`.
 4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
 5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
@@ -319,6 +319,7 @@ After completing an epic or cutting a release, in order:
 3. `docs/epics/epic-N-name.md`: completion report.
 4. `docs/epics/README.md`: table row with version, date, link.
 5. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
+6. `prisma/schema.prisma`: a column documented as "Dropped by a migration in the next production release" is retired and no longer read. Before the release PR, remove it with its migration (section 5), so a running container never loses a column its code still selects.
 
 If a future change adds another file holding version-specific information, add it to this list at the same time.
 
@@ -340,7 +341,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
   │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId?)
-  │    └─ Field (name, type:FieldType, label, placeholder?, order, required,
+  │    └─ Field (name, type:FieldType, label, placeholder? (unused), order, required,
   │    │         options?, validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)

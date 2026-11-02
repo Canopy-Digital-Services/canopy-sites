@@ -51,11 +51,11 @@ describe("savedChoices", () => {
 
 describe("savedField", () => {
   it("trims text and gives a blank label the type's name", () => {
-    expect(savedField({ type: "EMAIL", label: "  ", placeholder: " ", helpText: " Work email " })).toMatchObject({
+    expect(savedField({ type: "EMAIL", label: "  ", helpText: " Work email " })).toMatchObject({
       label: "Email",
-      placeholder: null,
       helpText: "Work email",
     });
+    expect(savedField({ type: "EMAIL", label: "Email", helpText: " " }).helpText).toBeNull();
   });
 
   it("keeps only the config the type keeps", () => {

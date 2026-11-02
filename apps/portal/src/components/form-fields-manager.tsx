@@ -26,7 +26,6 @@ const toFieldState = (f: FieldState): FieldState => ({
   type: f.type,
   required: f.required,
   order: f.order,
-  placeholder: f.placeholder,
   helpText: f.helpText,
   options: f.options,
   validation: f.validation,
