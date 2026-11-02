@@ -10,11 +10,28 @@ import {
   choiceList,
   type ChoiceOptions,
 } from "./choices";
-import { ADDRESS_PART_MAX_LENGTH, addressPartLabel, addressParts, addressRequiredParts } from "./address";
+import { ADDRESS_PART_MAX_LENGTH, addressPartLabel, addressParts, addressRequiredParts, type AddressPart } from "./address";
 import { US_STATES } from "./us-states";
-import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, orderNameParts } from "./name";
+import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, orderNameParts, type NamePart } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
+
+/** What the browser may fill each part with from the visitor's own details
+    (HTML autofill tokens). A middle initial has none: the token means a whole
+    middle name, which a two-letter box would cut short. */
+const NAME_AUTOFILL: Partial<Record<NamePart, string>> = {
+  single: "name",
+  first: "given-name",
+  middle: "additional-name",
+  last: "family-name",
+};
+const ADDRESS_AUTOFILL: Record<AddressPart, string> = {
+  line1: "address-line1",
+  line2: "address-line2",
+  city: "address-level2",
+  region: "address-level1",
+  postalCode: "postal-code",
+};
 
 /** Has a screen reader read a field's help text, if any, and its error with
     `control` (its box, or the group of its parts or options). */
@@ -226,6 +243,13 @@ export class CanopyForm {
       }
       this.fieldElements.set(field.name, { input, errorEl });
     });
+
+    // The admin preview offers no autofill: it isn't where the owner's own
+    // name and address go.
+    if (this.options.preview) {
+      form.setAttribute("autocomplete", "off");
+      form.querySelectorAll("input, select, textarea").forEach((control) => control.setAttribute("autocomplete", "off"));
+    }
 
     const submit = document.createElement("button");
     submit.type = "submit";
@@ -522,6 +546,7 @@ export class CanopyForm {
       case "EMAIL": {
         const email = document.createElement("input");
         email.type = "email";
+        email.setAttribute("autocomplete", "email");
         email.className = "canopy-input";
         input = email;
         break;
@@ -731,6 +756,8 @@ export class CanopyForm {
       partInput.setAttribute("data-name-part", part);
       partInput.setAttribute("data-name-field", field.name);
       partInput.maxLength = namePartMaxLength(part);
+      const token = NAME_AUTOFILL[part as NamePart];
+      if (token) partInput.setAttribute("autocomplete", token);
       if (required) {
         partInput.setAttribute("aria-required", "true");
       }
@@ -858,6 +885,7 @@ export class CanopyForm {
       }
 
       partInput.id = partId;
+      partInput.setAttribute("autocomplete", ADDRESS_AUTOFILL[key]);
       partInput.setAttribute("data-address-part", key);
       partInput.setAttribute("data-address-field", field.name);
       if (required) {

@@ -347,6 +347,8 @@ Standard shadcn `Input`, `Label`, `Textarea`, `Select`. Spacing: `space-y-2` for
 
 **Mobile keyboards follow the answer.** A box that takes only numbers asks for the phone's number pad (`inputmode="numeric"`, `"decimal"` for a Number field that isn't integers only; `type="tel"` for Phone), and ZIP gets the pad too. The exception is a box that takes numbers below zero (a Number field with a negative minimum, a Number field's own bounds in its settings): iPhone pads have no minus key, so those keep the full keyboard's numbers. Password boxes are `type="password"` with `current-password` or `new-password`, and shown as text they still don't capitalize or correct (`PasswordInput`). No attribute asks for a keyboard's number row: Android keyboards add one to password boxes themselves, and iPhone's have none.
 
+**Autofill on live forms only.** Email, Phone, and each Name and Address part carry the HTML autofill token for what they collect (`email`, `tel`, `NAME_AUTOFILL` and `ADDRESS_AUTOFILL` in [form.ts](embed/src/form.ts)), so a visitor's browser or password manager can fill them. A middle initial has none: the token means a whole middle name, which its two-letter box would cut short. Other types collect what the owner defines and get none. The admin previews (`preview: true`) turn autofill off on the form and every control: the builder isn't where the owner's own name and address go.
+
 **Help text** in the admin UI: `text-xs text-muted-foreground` directly below an input or group; `text-sm text-muted-foreground` for page and section level description. A hint covering a group goes below the group, not repeated under each input.
 
 ### Admin and auth validation
