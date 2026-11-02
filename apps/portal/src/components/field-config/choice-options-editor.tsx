@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SortableList } from "@/components/ui/sortable-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSelectStandIn } from "@/hooks/use-select-stand-in";
 import { isStarterOption } from "@/lib/field-rules";
 import {
   OTHER_LABEL,
@@ -57,9 +58,7 @@ export function ChoiceOptionsEditor({
   const rows: Row[] = options.map((option, i) => ({ id: ids[i] ?? `pending-${i}`, option }));
   const items = rows.map((row, index) => ({ id: row.id, index, ...row.option }));
 
-  // The click that focuses a starter would drop its selection to a caret on
-  // mouseup, so that mouseup is skipped.
-  const selectedOnFocus = useRef(false);
+  const selectStarter = useSelectStandIn(isStarterOption);
 
   // The box to focus once the list has rendered its change.
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
@@ -70,7 +69,6 @@ export function ChoiceOptionsEditor({
     focusNext.current = null;
     input?.focus();
     input?.setSelectionRange(input.value.length, input.value.length);
-    selectedOnFocus.current = false;
   });
 
   const setRows = (next: Row[], focus?: number, defaultValue = value.defaultValue) => {
@@ -164,21 +162,9 @@ export function ChoiceOptionsEditor({
                   placeholder="Option"
                   aria-invalid={clashes.has(choiceKey(item.label)) || undefined}
                   onChange={(e) => rename(item.index, e.target.value)}
-                  onFocus={(e) => {
-                    onFocusOption?.(item.index);
-                    if (isStarterOption(item.label)) {
-                      e.currentTarget.select();
-                      selectedOnFocus.current = true;
-                    }
-                  }}
-                  onMouseUp={(e) => {
-                    if (selectedOnFocus.current) e.preventDefault();
-                    selectedOnFocus.current = false;
-                  }}
-                  onBlur={() => {
-                    selectedOnFocus.current = false;
-                    onFocusOption?.(null);
-                  }}
+                  {...selectStarter}
+                  onFocus={() => onFocusOption?.(item.index)}
+                  onBlur={() => onFocusOption?.(null)}
                   onPaste={(e) => paste(item.index, e)}
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;

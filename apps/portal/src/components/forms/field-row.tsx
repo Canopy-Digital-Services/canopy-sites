@@ -28,6 +28,7 @@ import { anyPartRequired, defaultLabel, isComposite, isOptionsType } from "@/lib
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { RowBody } from "@/components/forms/row-body";
 import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
+import { useSelectStandIn } from "@/hooks/use-select-stand-in";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
@@ -266,6 +267,8 @@ function FieldSettings({
   const optionsType = isOptionsType(field.type);
   // A self-labeled field is renamed from its row header instead.
   const selfLabeled = isSelfLabeled(field.type);
+  // A label still the type's name is a stand-in, as a starter option is.
+  const selectDefault = useSelectStandIn((text) => text === defaultLabel(field.type));
 
   return (
     <div className="space-y-4 px-3 pb-4 pt-2">
@@ -277,6 +280,7 @@ function FieldSettings({
             value={field.label}
             onChange={(e) => onChange({ label: e.target.value })}
             placeholder={defaultLabel(field.type)}
+            {...selectDefault}
             // While the box has focus, the preview marks the label alone.
             onFocus={() => onFocusPart("label")}
             onBlur={() => onFocusPart(null)}
