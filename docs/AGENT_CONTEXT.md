@@ -77,6 +77,8 @@ Three layers, all required:
 
 Length caps (`DEFAULT_MAX_LENGTHS`, `ABSOLUTE_MAX_LENGTHS` beside `validateField`): a field's `maxLength` counts only as a positive whole number, otherwise its type's default applies, and either is clamped to the type's absolute. The embed applies the absolute too, so a visitor can't type what the server would refuse.
 
+Dates compare as `YYYY-MM-DD` strings, never through `new Date` (a date-only string parses as UTC midnight, the previous day west of UTC). A bound of `"today"` is the visitor's own date in the embed; the server can't know the visitor's zone, so it accepts any date that is today somewhere (`anywhereToday`, UTC-12 to UTC+14).
+
 **Two validation dialects. Do not cross them.** Embed forms use native HTML5 popups via `setCustomValidity()`, one error at a time. Admin and auth forms use custom inline validation with the touched/submitted pattern and `noValidate` on the form.
 
 ### Public API contracts
