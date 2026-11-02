@@ -60,6 +60,8 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Number | Numeric input | Min/max bounds |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
+On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, and Address from their saved details, and phones show a number pad for Phone, Number, and ZIP. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
+
 ### Configuring a field
 
 Every field type has the same core options, plus type-specific ones.
