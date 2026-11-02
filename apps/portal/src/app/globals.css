@@ -278,23 +278,26 @@
 
 /* Inline field rows (src/components/forms/field-row.tsx): the open row's
  * settings slide down open and back up closed. Radix Collapsible keeps the
- * content mounted through the close animation and sets
- * --radix-collapsible-content-height. Opening uses the no-overshoot curve of
- * editor-reveal; closing uses the flow exit tokens. */
+ * content mounted through the close animation. Its
+ * --radix-collapsible-content-height is one measurement behind (taken as the
+ * row opened, before a Name's parts revealed or options were added), so the
+ * row keeps --field-row-height current instead and the fold starts from the
+ * settings' real height, not a snap to an old one. Opening uses the
+ * no-overshoot curve of editor-reveal; closing uses the flow exit tokens. */
 @keyframes field-row-open {
   from {
     height: 0;
     opacity: 0;
   }
   to {
-    height: var(--radix-collapsible-content-height);
+    height: var(--field-row-height, var(--radix-collapsible-content-height));
     opacity: 1;
   }
 }
 
 @keyframes field-row-close {
   from {
-    height: var(--radix-collapsible-content-height);
+    height: var(--field-row-height, var(--radix-collapsible-content-height));
     opacity: 1;
   }
   to {
@@ -311,8 +314,10 @@
   animation: field-row-open 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Held at its end until Radix unmounts the content: without `forwards` the
+ * settings snap back to full height for a frame first. */
 .field-row-body[data-state="closed"] {
-  animation: field-row-close var(--duration-flow-out) var(--ease-flow-out);
+  animation: field-row-close var(--duration-flow-out) var(--ease-flow-out) forwards;
 }
 
 /* Live preview stand-ins: placeholders shown in place of an empty title,
