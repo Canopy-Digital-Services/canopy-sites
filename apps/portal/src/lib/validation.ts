@@ -93,20 +93,9 @@ export function validateOrigin(
   }
 }
 
-/** RFC 5322 compliant address shape. */
-const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-/**
- * Validate an email address.
- * Rejects CR/LF outright — these values reach SMTP headers (Reply-To), where a
- * newline would let a submitter inject additional headers.
- */
-export function isValidEmail(value: string): boolean {
-  if (value.length > 320) return false;
-  if (/[\r\n]/.test(value)) return false;
-  return EMAIL_REGEX.test(value);
-}
+// The address check the embed runs on an Email field, so every email the app
+// accepts passes the same one.
+export { isValidEmail } from "../../embed/src/validation";
 
 /**
  * Canonical form for account emails. Stored emails are lowercase, so every

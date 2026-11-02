@@ -71,17 +71,11 @@ Identify which layer a change touches before starting.
 
 Three layers, all required:
 
-1. HTML `maxLength` on inputs.
-2. Client-side in the embed: `embed/src/validation.ts`.
-3. Server-side in `src/lib/public-submit.ts`, shared by the embed and submit routes. Per-type rules and length caps live here, not in the route files.
+1. HTML `maxLength` on inputs, from `getEffectiveMaxLength`.
+2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
+3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap and the gate order below. After validation passes it rewrites what is stored: an email trimmed (and lowercased when the field says so), a strict phone as E.164.
 
-Payload cap: 64KB. Length caps are three-tier (default applies when the field sets no `maxLength`; a configured `maxLength` is clamped to the absolute):
-
-| Type | Default | Absolute |
-|------|---------|----------|
-| TEXT | 200 | 500 |
-| EMAIL | 254 | 320 |
-| TEXTAREA | 2000 | 10000 |
+Length caps (`DEFAULT_MAX_LENGTHS`, `ABSOLUTE_MAX_LENGTHS` beside `validateField`): a field's `maxLength` counts only as a positive whole number, otherwise its type's default applies, and either is clamped to the type's absolute. The embed applies the absolute too, so a visitor can't type what the server would refuse.
 
 **Two validation dialects. Do not cross them.** Embed forms use native HTML5 popups via `setCustomValidity()`, one error at a time. Admin and auth forms use custom inline validation with the touched/submitted pattern and `noValidate` on the form.
 
@@ -116,7 +110,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 |------|------|
 | `embed/src/*` | Source of truth for the embed. **Never edit `public/embed.js` by hand.** |
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
-| `src/lib/public-submit.ts` | Where server-side submission validation and gates belong. Note the single-field route's divergence in section 2. |
+| `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
 | `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, locked fields, the contract, and rate limits are enforced here for every source (Editor, quick edit, later MCP). Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
@@ -197,8 +191,8 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
 2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`, `noPlaceholder`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
 3. Render it in `embed/src/form.ts`.
-4. Add client validation in `embed/src/validation.ts` if it has input constraints.
-5. Add server validation and any length cap in `src/lib/public-submit.ts`.
+4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
+5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
 6. Add a config panel in `src/components/field-config/` if it has options.
 7. Run `npm run embed:build` and commit `public/embed.js`.
 
