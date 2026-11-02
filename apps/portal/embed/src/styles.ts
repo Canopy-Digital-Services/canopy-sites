@@ -131,10 +131,12 @@ export const baseStyles = `
   opacity: 0.5;
 }
 
+/* Between a label and its box, as GOV.UK places hints: close under the
+   label, with room before the box. */
 .canopy-help-text {
   font-size: calc(var(--canopy-font-size, 16px) - 1px);
   color: var(--canopy-text, #18181b);
-  margin-top: 4px;
+  margin: 0 0 4px;
   line-height: 1.4;
 }
 

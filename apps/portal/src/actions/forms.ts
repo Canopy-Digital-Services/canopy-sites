@@ -24,7 +24,6 @@ type FieldInput = {
   name?: string; // Optional on create, ignored on update
   type: string;
   label: string;
-  placeholder?: string | null;
   required?: boolean;
   helpText?: string | null;
   options?: unknown;
@@ -84,7 +83,6 @@ export async function createField(formId: string, data: FieldInput) {
       name: fieldName,
       type: saved.type as FieldType,
       label: saved.label,
-      placeholder: saved.placeholder,
       required: saved.required,
       helpText: saved.helpText,
       order,
@@ -129,7 +127,6 @@ export async function updateField(
     where: { id: fieldId },
     data: {
       label: saved.label,
-      placeholder: saved.placeholder,
       required: saved.required,
       helpText: saved.helpText,
       options: (saved.options as Prisma.InputJsonValue | null) ?? Prisma.DbNull,

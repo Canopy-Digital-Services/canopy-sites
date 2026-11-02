@@ -27,7 +27,6 @@ type FieldDefinition = {
   name: string;
   type: string;
   label: string;
-  placeholder?: string;
   required: boolean;
   helpText?: string;
   options?: ChoiceOption[] | ChoiceOptions | NameOptions | AddressOptions;

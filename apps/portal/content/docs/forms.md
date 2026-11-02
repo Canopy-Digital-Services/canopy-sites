@@ -67,9 +67,8 @@ Every field type has the same core options, plus type-specific ones.
 **Core options:**
 
 - **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, and Address have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
-- **Placeholder**: optional hint text inside the empty input. On a Dropdown it's the first line, "Choose one..." unless you change it.
 - **Required**: toggles whether the field must be filled before the form can submit. Name and Address are required part by part instead, with a Required column beside their parts.
-- **Help text**: optional muted text shown below the field to guide the user.
+- **Help text**: optional text shown under the field's label, before the box, to guide the user, such as an example answer ("For example, kitchen remodel, about 200 sq ft"). It stays visible while people type, and screen readers read it with the field.
 
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 

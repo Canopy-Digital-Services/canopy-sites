@@ -95,7 +95,6 @@ export async function GET(
           name: field.name,
           type: field.type,
           label: field.label,
-          placeholder: field.placeholder,
           required: field.required,
           helpText: field.helpText,
           options: field.options,

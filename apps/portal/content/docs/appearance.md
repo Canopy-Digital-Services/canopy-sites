@@ -50,7 +50,7 @@ The label above each field. The same toolbar as Title, set separately (a bold ti
 The description, help text, option labels, and what people type into fields. Same toolbar as Title: font, color, and size.
 
 - **Font**: the body font. Hosted forms use Inter until you pick one. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font.
-- **Color**: placeholder text uses this color at reduced opacity.
+- **Color**: all of the above. The hint in an "Other" box uses it at reduced opacity.
 - **Size**: 14, 16, or 18 pixels. 16 is the default; on iPhones, fields with smaller text zoom in when tapped.
 
 ## Fields

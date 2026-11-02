@@ -23,7 +23,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SortableItemRenderProps } from "@/components/ui/sortable-list";
 import { InlineRename } from "@/components/forms/inline-rename";
-import { DEFAULT_CHOICE_PROMPT } from "../../../embed/src/choices";
 import { anyPartRequired, defaultLabel, isComposite, isOptionsType } from "@/lib/field-rules";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { RowBody } from "@/components/forms/row-body";
@@ -283,21 +282,6 @@ function FieldSettings({
             {...selectDefault}
             // While the box has focus, the preview marks the label alone.
             onFocus={() => onFocusPart("label")}
-            onBlur={() => onFocusPart(null)}
-          />
-        </div>
-      )}
-
-      {!fieldTypeHas(field.type, "noPlaceholder") && (
-        <div className="space-y-2">
-          <Label htmlFor={id("placeholder")}>Placeholder</Label>
-          <Input
-            id={id("placeholder")}
-            value={field.placeholder ?? ""}
-            onChange={(e) => onChange({ placeholder: e.target.value })}
-            // A dropdown's placeholder is its first line, which has a default.
-            placeholder={field.type === "DROPDOWN" ? DEFAULT_CHOICE_PROMPT : undefined}
-            onFocus={() => onFocusPart("input")}
             onBlur={() => onFocusPart(null)}
           />
         </div>

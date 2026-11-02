@@ -19,25 +19,24 @@ import { FieldType } from "@prisma/client";
  * - composite: made of parts, each collected and required on its own
  * - selfLabeled: its name says what it asks for, so no Label box; it's
  *   renamed with the pencil in its row header instead
- * - noPlaceholder: no Placeholder box (nothing to type into, or parts)
  * A choice or composite type keeps its config in `options`, any other in
  * `validation`.
  */
-type FieldTypeTrait = "choice" | "composite" | "selfLabeled" | "noPlaceholder";
+type FieldTypeTrait = "choice" | "composite" | "selfLabeled";
 type FieldTypeOption = { value: FieldType; label: string } & Partial<Record<FieldTypeTrait, true>>;
 
 export const FIELD_TYPE_OPTIONS = [
-  { value: "NAME" as const, label: "Name", composite: true, selfLabeled: true, noPlaceholder: true },
+  { value: "NAME" as const, label: "Name", composite: true, selfLabeled: true },
   { value: "EMAIL" as const, label: "Email", selfLabeled: true },
   { value: "PHONE" as const, label: "Phone", selfLabeled: true },
-  { value: "ADDRESS" as const, label: "Address", composite: true, selfLabeled: true, noPlaceholder: true },
-  { value: "DATE" as const, label: "Date", noPlaceholder: true },
+  { value: "ADDRESS" as const, label: "Address", composite: true, selfLabeled: true },
+  { value: "DATE" as const, label: "Date" },
   { value: "NUMBER" as const, label: "Number" },
   { value: "TEXT" as const, label: "Text" },
   { value: "TEXTAREA" as const, label: "Paragraph" },
   { value: "DROPDOWN" as const, label: "Dropdown", choice: true },
-  { value: "CHECKBOXES" as const, label: "Checkboxes", choice: true, noPlaceholder: true },
-  { value: "CHECKBOX" as const, label: "Yes / No", noPlaceholder: true },
+  { value: "CHECKBOXES" as const, label: "Checkboxes", choice: true },
+  { value: "CHECKBOX" as const, label: "Yes / No" },
 ] as const satisfies readonly FieldTypeOption[];
 
 const TRAITS = new Map<string, FieldTypeOption>(FIELD_TYPE_OPTIONS.map((option) => [option.value, option]));

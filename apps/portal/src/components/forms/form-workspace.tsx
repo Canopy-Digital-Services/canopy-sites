@@ -53,7 +53,6 @@ type WorkspaceForm = {
     type: string;
     required: boolean;
     order: number;
-    placeholder: string | null;
     helpText: string | null;
     options: unknown;
     validation: unknown;
