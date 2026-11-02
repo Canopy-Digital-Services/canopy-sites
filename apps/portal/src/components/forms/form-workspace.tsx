@@ -26,7 +26,7 @@ import { toggleFormPublished } from "@/actions/forms";
 import { getPlanErrorCode, PLAN_ERROR_CODES } from "@/lib/errors/plan-errors";
 import { toast } from "sonner";
 import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
-import { useScrollHold } from "@/hooks/use-scroll-hold";
+import { ScrollHoldContext, useScrollHold } from "@/hooks/use-scroll-hold";
 
 type WorkspaceForm = {
   id: string;
@@ -127,11 +127,12 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   const editing = activeTab === "editor";
 
   // Collapsing settings near the bottom of the editor column doesn't slide it
-  // under the pointer; a new step, or styling, starts at the top.
+  // under the pointer, and a field row closed from its foot steers it; a new
+  // step, or styling, starts at the top.
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const editorContentRef = useRef<HTMLDivElement>(null);
   const editorSpacerRef = useRef<HTMLDivElement>(null);
-  useScrollHold(
+  const scrollHold = useScrollHold(
     editorScrollRef,
     editorContentRef,
     editorSpacerRef,
@@ -276,24 +277,26 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
               ref={editorScrollRef}
               className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6"
             >
-              <div ref={editorContentRef} className="max-w-[640px] mx-auto">
-                {!styling && (
-                  <div className="lg:hidden mb-4">
-                    <StylingToggle />
-                  </div>
-                )}
-                <div hidden={styling}>
-                  <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
-                </div>
-                {styling && (
-                  <div className="space-y-4 editor-swoop-in">
-                    <StylingPanel />
-                    <div className="flex justify-end">
-                      <Button onClick={() => setStyling(false)}>Done</Button>
+              <ScrollHoldContext.Provider value={scrollHold}>
+                <div ref={editorContentRef} className="max-w-[640px] mx-auto">
+                  {!styling && (
+                    <div className="lg:hidden mb-4">
+                      <StylingToggle />
                     </div>
+                  )}
+                  <div hidden={styling}>
+                    <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
                   </div>
-                )}
-              </div>
+                  {styling && (
+                    <div className="space-y-4 editor-swoop-in">
+                      <StylingPanel />
+                      <div className="flex justify-end">
+                        <Button onClick={() => setStyling(false)}>Done</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollHoldContext.Provider>
               <div ref={editorSpacerRef} aria-hidden />
             </div>
 
