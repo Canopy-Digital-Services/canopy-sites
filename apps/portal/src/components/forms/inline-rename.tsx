@@ -53,6 +53,9 @@ export function InlineRename({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        // The pencil opens the input focused; text still the default is a
+        // stand-in, selected so typing replaces it.
+        onFocus={(e) => value === placeholder && e.currentTarget.select()}
         onBlur={() => setEditingTo(false)}
         onKeyDown={(e) => {
           e.stopPropagation();
