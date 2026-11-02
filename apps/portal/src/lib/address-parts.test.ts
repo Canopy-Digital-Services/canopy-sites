@@ -29,6 +29,13 @@ describe("addressError", () => {
     );
   });
 
+  it("holds each part, filled in or optional, to 200 characters", () => {
+    expect(addressError({ ...full, line1: "x".repeat(200) }, null, true)).toBeNull();
+    expect(addressError({ ...full, line1: "x".repeat(201) }, null, true)).toBe("Street must be at most 200 characters.");
+    expect(addressError({ ...full, line2: "x".repeat(201) }, null, true)).toBe("Apt, suite must be at most 200 characters.");
+    expect(addressError({ region: "x".repeat(201) }, null, false)).toBe("State must be at most 200 characters.");
+  });
+
   it("checks a ZIP that's filled in, naming the part as the user labeled it", () => {
     expect(
       addressError({ postalCode: "9581" }, { parts: ["postalCode"], partLabels: { postalCode: "Zip code" } }, false)

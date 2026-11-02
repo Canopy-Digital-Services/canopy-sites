@@ -45,10 +45,13 @@ export function addressRequiredParts(
   return fieldRequired ? addressParts(options).filter((p) => p !== "line2") : [];
 }
 
+/** The longest answer a part takes. */
+export const ADDRESS_PART_MAX_LENGTH = 200;
+
 const ZIP = /^\d{5}(-\d{4})?$/;
 
 /** Why `value` can't be submitted for an Address field, or null if it can:
-    a required part left empty, or a ZIP that isn't one. */
+    a required part left empty, a part too long, or a ZIP that isn't one. */
 export function addressError(
   value: Record<string, unknown> | undefined,
   options: AddressOptions | null | undefined,
@@ -56,10 +59,14 @@ export function addressError(
 ): string | null {
   const parts = addressParts(options);
   const required = addressRequiredParts(options, fieldRequired);
-  const text = (part: AddressPart) => String(value?.[part] ?? "").trim();
+  const raw = (part: AddressPart) => String(value?.[part] ?? "");
+  const text = (part: AddressPart) => raw(part).trim();
   for (const part of parts) {
     if (required.includes(part) && !text(part)) {
       return `${addressPartLabel(part, options?.partLabels)} is required.`;
+    }
+    if (raw(part).length > ADDRESS_PART_MAX_LENGTH) {
+      return `${addressPartLabel(part, options?.partLabels)} must be at most ${ADDRESS_PART_MAX_LENGTH} characters.`;
     }
   }
   if (parts.includes("postalCode") && text("postalCode") && !ZIP.test(text("postalCode"))) {

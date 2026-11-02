@@ -64,8 +64,27 @@ describe("validateField: length", () => {
     }
   });
 
+  it("holds Phone, Number and Date to their type's cap, whatever limit the field has stored", () => {
+    expect(getEffectiveMaxLength(field("PHONE"))).toBe(30);
+    expect(getEffectiveMaxLength(field("PHONE", { validation: { maxLength: 5 } }))).toBe(30);
+    expect(getEffectiveMaxLength(field("NUMBER", { validation: { maxLength: 1000 } }))).toBe(50);
+    expect(getEffectiveMaxLength(field("DATE"))).toBe(30);
+  });
+
+  it("refuses a Phone, Number or Date answer past its cap before checking what it says", () => {
+    expect(validateField(field("PHONE"), "5".repeat(30))).toBeNull();
+    expect(validateField(field("PHONE"), "5".repeat(60000))).toBe("Answer must be at most 30 characters.");
+    expect(validateField(field("PHONE", { validation: { format: "strict" } }), "5".repeat(31))).toBe(
+      "Answer must be at most 30 characters."
+    );
+    expect(validateField(field("NUMBER"), "1".repeat(50))).toBeNull();
+    expect(validateField(field("NUMBER"), "1".repeat(51))).toBe("Answer must be at most 50 characters.");
+    expect(validateField(field("DATE"), "2026-11-02T10:00:00.000-08:00", nov2)).toBeNull();
+    expect(validateField(field("DATE"), "x".repeat(31), nov2)).toBe("Answer must be at most 30 characters.");
+  });
+
   it("has no limit for types without one", () => {
-    expect(getEffectiveMaxLength(field("PHONE"))).toBeUndefined();
+    expect(getEffectiveMaxLength(field("DROPDOWN"))).toBeUndefined();
   });
 });
 
@@ -203,6 +222,28 @@ describe("validateField: composite and choice fields", () => {
     const sizes = { options: [{ value: "S", label: "S" }] };
     expect(validateField(field("DROPDOWN", { options: sizes }), "XL")).toBe("Answer must be one of its options.");
     expect(validateField(field("CHECKBOXES", { options: sizes }), "S")).toBe("Answer must be one of its options.");
+  });
+});
+
+describe("validateField: name parts", () => {
+  const full = field("NAME", { options: { parts: ["first", "middleInitial", "last"] } });
+
+  it("holds each part to 100 characters, naming it as the user labeled it", () => {
+    expect(validateField(full, { first: "x".repeat(100), middleInitial: "Q.", last: "Lee" })).toBeNull();
+    expect(validateField(full, { first: "x".repeat(101), last: "Lee" })).toBe("First must be at most 100 characters.");
+    const surname = field("NAME", { options: { parts: ["first", "last"], partLabels: { last: "Surname" } } });
+    expect(validateField(surname, { first: "Ann", last: "x".repeat(101) })).toBe("Surname must be at most 100 characters.");
+  });
+
+  it("holds an initial to two characters, room for its period", () => {
+    expect(validateField(full, { first: "Ann", middleInitial: "Qu.", last: "Lee" })).toBe(
+      "M.I. must be at most 2 characters."
+    );
+  });
+
+  it("names a single box by the field's label", () => {
+    const single = field("NAME", { options: { parts: ["single"] } });
+    expect(validateField(single, { single: "x".repeat(101) })).toBe("Answer must be at most 100 characters.");
   });
 });
 
