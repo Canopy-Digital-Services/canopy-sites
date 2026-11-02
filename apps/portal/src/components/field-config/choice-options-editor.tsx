@@ -5,12 +5,14 @@
 // The options a Dropdown or Checkboxes field offers, one box each. Enter adds
 // an option below, Backspace in an empty one removes it, and pasting several
 // lines makes one option per line. "Other", whose answer the visitor types,
-// sits last once added.
+// is a checkbox below the list: the form always lists it last.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { SortableList } from "@/components/ui/sortable-list";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isStarterOption } from "@/lib/field-rules";
@@ -38,9 +40,11 @@ export function ChoiceOptionsEditor({
 }: {
   value: ChoiceOptions;
   onChange: (next: ChoiceOptions) => void;
-  /** The option being edited, for the preview's mark; null on leaving it. */
-  onFocusOption?: (index: number | null) => void;
+  /** The option being edited (its index, or "other" while Other is
+      included), for the preview's mark; null on leaving it. */
+  onFocusOption?: (option: number | "other" | null) => void;
 }) {
+  const otherId = useId();
   const options = value.options;
   const clashes = clashingChoices(value);
 
@@ -127,133 +131,113 @@ export function ChoiceOptionsEditor({
     );
   };
 
-  const removeOther = () => {
+  const setOther = (on: boolean) => {
     const config = { ...value };
-    delete config.allowOther;
+    if (on) config.allowOther = true;
+    else delete config.allowOther;
     onChange(config);
+    onFocusOption?.(on ? "other" : null);
   };
 
   return (
-    <div className="space-y-2">
-      {options.length > 0 && (
-        <SortableList
-          items={items}
-          onReorder={reorder}
-          className="space-y-2"
-          renderItem={({ item, dragHandleProps }) => (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                {...dragHandleProps}
-                className="shrink-0 cursor-grab touch-none text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
-              >
-                <GripVertical className="h-4 w-4" />
-              </button>
-              <Input
-                ref={(el) => {
-                  inputs.current[item.index] = el;
-                }}
-                value={item.label}
-                placeholder="Option"
-                aria-invalid={clashes.has(choiceKey(item.label)) || undefined}
-                onChange={(e) => rename(item.index, e.target.value)}
-                onFocus={(e) => {
-                  onFocusOption?.(item.index);
-                  if (isStarterOption(item.label)) {
-                    e.currentTarget.select();
-                    selectedOnFocus.current = true;
-                  }
-                }}
-                onMouseUp={(e) => {
-                  if (selectedOnFocus.current) e.preventDefault();
-                  selectedOnFocus.current = false;
-                }}
-                onBlur={() => {
-                  selectedOnFocus.current = false;
-                  onFocusOption?.(null);
-                }}
-                onPaste={(e) => paste(item.index, e)}
-                onKeyDown={(e) => {
-                  if (e.nativeEvent.isComposing) return;
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (item.label.trim()) insert(item.index + 1, [blank], item.index + 1);
-                  } else if (e.key === "Backspace" && item.label === "" && options.length > 1) {
-                    e.preventDefault();
-                    remove(item.index, Math.max(0, item.index - 1));
-                  }
-                }}
-              />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Remove ${item.label.trim() || "option"}`}
-                    onClick={() => remove(item.index)}
-                    className="shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Remove option</TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-        />
-      )}
-
-      {value.allowOther && (
-        <div className="flex items-center gap-2">
-          {/* Lines up with the options above; Other always comes last. */}
-          <span className="w-4 shrink-0" aria-hidden />
-          <div className="flex h-9 flex-1 items-center rounded-md border border-dashed bg-card px-3 text-sm text-muted-foreground">
-            {OTHER_LABEL}
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Remove ${OTHER_LABEL}`}
-                onClick={removeOther}
-                className="shrink-0"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Remove option</TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
-      <div className="flex items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={addAtEnd}
-          className="-ml-3 text-primary hover:text-primary hover:bg-primary/10"
-        >
-          <Plus className="h-4 w-4" />
-          Add option
-        </Button>
-        {!value.allowOther && (
-          <>
-            <span className="text-sm text-muted-foreground">or</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onChange({ ...value, allowOther: true })}
-              className="px-2 text-primary hover:text-primary hover:bg-primary/10"
-            >
-              add &quot;{OTHER_LABEL}&quot;
-            </Button>
-          </>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {options.length > 0 && (
+          <SortableList
+            items={items}
+            onReorder={reorder}
+            className="space-y-2"
+            renderItem={({ item, dragHandleProps }) => (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  {...dragHandleProps}
+                  className="shrink-0 cursor-grab touch-none text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+                <Input
+                  ref={(el) => {
+                    inputs.current[item.index] = el;
+                  }}
+                  value={item.label}
+                  placeholder="Option"
+                  aria-invalid={clashes.has(choiceKey(item.label)) || undefined}
+                  onChange={(e) => rename(item.index, e.target.value)}
+                  onFocus={(e) => {
+                    onFocusOption?.(item.index);
+                    if (isStarterOption(item.label)) {
+                      e.currentTarget.select();
+                      selectedOnFocus.current = true;
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    if (selectedOnFocus.current) e.preventDefault();
+                    selectedOnFocus.current = false;
+                  }}
+                  onBlur={() => {
+                    selectedOnFocus.current = false;
+                    onFocusOption?.(null);
+                  }}
+                  onPaste={(e) => paste(item.index, e)}
+                  onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (item.label.trim()) insert(item.index + 1, [blank], item.index + 1);
+                    } else if (e.key === "Backspace" && item.label === "" && options.length > 1) {
+                      e.preventDefault();
+                      remove(item.index, Math.max(0, item.index - 1));
+                    }
+                  }}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${item.label.trim() || "option"}`}
+                      onClick={() => remove(item.index)}
+                      className="shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove option</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          />
         )}
+
+        {/* The list's last row, as Add field is the Fields list's, in line
+            with the boxes. */}
+        <div className="flex items-center gap-2">
+          <span className="w-4 shrink-0" aria-hidden />
+          <button
+            type="button"
+            onClick={addAtEnd}
+            className="flex h-9 flex-1 items-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-muted/50"
+          >
+            <Plus className="h-4 w-4" />
+            Add option
+          </button>
+          <span className="size-7 shrink-0" aria-hidden />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={otherId}
+          checked={value.allowOther === true}
+          onCheckedChange={(checked) => setOther(checked === true)}
+          onFocus={() => value.allowOther && onFocusOption?.("other")}
+          onBlur={() => onFocusOption?.(null)}
+        />
+        <Label htmlFor={otherId} className="cursor-pointer font-normal">
+          Include &quot;{OTHER_LABEL}&quot;
+        </Label>
       </div>
     </div>
   );

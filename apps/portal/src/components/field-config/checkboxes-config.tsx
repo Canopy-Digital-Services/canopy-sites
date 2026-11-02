@@ -14,7 +14,7 @@ export function CheckboxesConfig({
       value={choiceOptions(value)}
       onChange={onChange}
       // The preview marks the option being edited.
-      onFocusOption={(index) => onFocusPart?.(index === null ? null : `option-${index}`)}
+      onFocusOption={(option) => onFocusPart?.(option === null ? null : `option-${option}`)}
     />
   );
 }

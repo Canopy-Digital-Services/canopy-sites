@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { NameOptions } from "@/types/field-config";
@@ -28,6 +30,7 @@ export function NameConfig({
   onFocusPart,
   required: fieldRequired = false,
 }: ConfigComponentProps<NameOptions>) {
+  const requiredId = useId();
   const parts: NamePart[] = value?.parts ?? DEFAULT_NAME_PARTS;
   const partLabels = value?.partLabels ?? {};
   const requiredParts = nameRequiredParts(value, fieldRequired) as NamePart[];
@@ -95,14 +98,16 @@ export function NameConfig({
 
       {single ? (
         // One box has no part rows to carry the Required column.
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={requiredId}
             checked={requiredParts.includes("single")}
-            onChange={(e) => setRequired("single", e.target.checked)}
+            onCheckedChange={(checked) => setRequired("single", checked === true)}
           />
-          Required field
-        </label>
+          <Label htmlFor={requiredId} className="cursor-pointer font-normal">
+            Required field
+          </Label>
+        </div>
       ) : (
         <div className="editor-reveal">
           {/* The reveal grows a grid row; padding keeps focus rings clear of its clip. */}
