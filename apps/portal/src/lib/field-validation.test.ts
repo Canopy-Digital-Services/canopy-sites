@@ -1,0 +1,169 @@
+import { describe, expect, it } from "vitest";
+import {
+  getEffectiveMaxLength,
+  isValidEmail,
+  usPhoneDigits,
+  validateField,
+  validateSubmission,
+  type ValidatedField,
+} from "../../embed/src/validation";
+
+const field = (type: string, more: Partial<ValidatedField> = {}): ValidatedField => ({
+  name: type.toLowerCase(),
+  type,
+  label: "Answer",
+  required: false,
+  ...more,
+});
+
+describe("validateField: required", () => {
+  it("refuses a required answer left empty or blank, whatever the type", () => {
+    expect(validateField(field("TEXT", { required: true }), "  ")).toBe("Answer is required.");
+    expect(validateField(field("EMAIL", { required: true }), undefined)).toBe("Answer is required.");
+    expect(validateField(field("CHECKBOX", { required: true }), false)).toBe("Answer is required.");
+    expect(validateField(field("CHECKBOXES", { required: true }), [])).toBe("Answer is required.");
+  });
+
+  it("checks nothing else on an optional answer left empty", () => {
+    expect(validateField(field("EMAIL"), "")).toBeNull();
+    expect(validateField(field("DATE"), null)).toBeNull();
+    expect(validateField(field("CHECKBOXES"), [])).toBeNull();
+    expect(validateField(field("TEXT", { validation: { minLength: 5, format: "numbers" } }), "")).toBeNull();
+  });
+
+  it("names the field by its label, or by its name without one", () => {
+    expect(validateField(field("TEXT", { label: "", name: "city", required: true }), "")).toBe("city is required.");
+  });
+});
+
+describe("validateField: length", () => {
+  it("holds text to its type's default unless the field sets its own limit", () => {
+    expect(validateField(field("TEXT"), "x".repeat(201))).toBe("Answer must be at most 200 characters.");
+    expect(validateField(field("TEXT", { validation: { maxLength: 10 } }), "x".repeat(11))).toBe(
+      "Answer must be at most 10 characters."
+    );
+    expect(validateField(field("TEXT", { validation: { minLength: 3 } }), "xy")).toBe(
+      "Answer must be at least 3 characters."
+    );
+  });
+
+  it("never lets a field's own limit pass its type's absolute", () => {
+    expect(getEffectiveMaxLength(field("TEXT", { validation: { maxLength: 1000 } }))).toBe(500);
+    expect(getEffectiveMaxLength(field("TEXTAREA", { validation: { maxLength: 50000 } }))).toBe(10000);
+    expect(validateField(field("TEXT", { validation: { maxLength: 1000 } }), "x".repeat(501))).toBe(
+      "Answer must be at most 500 characters."
+    );
+  });
+
+  it("falls back to the default when the field's limit isn't a positive whole number", () => {
+    for (const maxLength of [0, -5, 2.5]) {
+      expect(getEffectiveMaxLength(field("TEXT", { validation: { maxLength } }))).toBe(200);
+    }
+  });
+
+  it("has no limit for types without one", () => {
+    expect(getEffectiveMaxLength(field("PHONE"))).toBeUndefined();
+  });
+});
+
+describe("validateField: text formats", () => {
+  const formatted = (format: string) => field("TEXT", { validation: { format } });
+
+  it("checks the format the field asks for", () => {
+    expect(validateField(formatted("numbers"), "12a")).toBe("Answer must contain only numbers.");
+    expect(validateField(formatted("letters"), "ab c")).toBe("Answer must contain only letters.");
+    expect(validateField(formatted("postal-us"), "1234")).toBe(
+      "Answer must be a valid US postal code (e.g., 12345 or 12345-6789)."
+    );
+    expect(validateField(formatted("postal-ca"), "K1A0B1")).toBeNull();
+    expect(validateField(formatted("alphanumeric"), "anything at all!")).toBeNull();
+  });
+
+  it("takes a URL without its protocol, but not a bare word", () => {
+    expect(validateField(formatted("url"), "example.com/page")).toBeNull();
+    expect(validateField(formatted("url"), "localhost")).toBe("Answer must be a valid URL.");
+  });
+});
+
+describe("validateField: email", () => {
+  it("checks the address with the spaces around it trimmed", () => {
+    expect(validateField(field("EMAIL"), " ann@example.com ")).toBeNull();
+    expect(validateField(field("EMAIL"), "ann@")).toBe("Enter a valid email address");
+  });
+
+  it("keeps to the field's allowed or blocked domains, in any case", () => {
+    const allow = field("EMAIL", { validation: { domainRules: { allow: ["Example.com"] } } });
+    expect(validateField(allow, "ann@EXAMPLE.com")).toBeNull();
+    expect(validateField(allow, "ann@other.com")).toBe("Answer must be from an allowed domain.");
+    const block = field("EMAIL", { validation: { domainRules: { block: ["mail.test"] } } });
+    expect(validateField(block, "ann@Mail.test")).toBe("Answer domain is not allowed.");
+  });
+});
+
+describe("isValidEmail", () => {
+  it("refuses a line break, which would reach an email header", () => {
+    expect(isValidEmail("ann@example.com\r\nBcc: x@example.com")).toBe(false);
+    expect(isValidEmail(`${"a".repeat(310)}@example.com`)).toBe(false);
+  });
+});
+
+describe("validateField: phone", () => {
+  it("takes any common way of writing a number when lenient, the default", () => {
+    expect(validateField(field("PHONE"), "+44 (20) 7946.0958")).toBeNull();
+    expect(validateField(field("PHONE"), "555-12")).toBe("Answer must be a valid phone number.");
+  });
+
+  it("takes only a US number when strict", () => {
+    const strict = field("PHONE", { validation: { format: "strict" } });
+    expect(validateField(strict, "1 (916) 555-0100")).toBeNull();
+    expect(validateField(strict, "+44 20 7946 0958")).toBe("Answer must be a valid US phone number (10 digits).");
+  });
+
+  it("reads the ten digits from a US number however it's written", () => {
+    expect(usPhoneDigits("+1 916 555 0100")).toBe("9165550100");
+    expect(usPhoneDigits("1-916-555-0100")).toBe("9165550100");
+    expect(usPhoneDigits("916.555.0100")).toBe("9165550100");
+    expect(usPhoneDigits("+44 916 555 0100")).toBeNull();
+    expect(usPhoneDigits("555 0100")).toBeNull();
+  });
+});
+
+describe("validateField: number", () => {
+  const ranged = field("NUMBER", { validation: { min: 1, max: 10, integer: true } });
+
+  it("keeps to the field's range and whole numbers", () => {
+    expect(validateField(ranged, "7")).toBeNull();
+    expect(validateField(ranged, "abc")).toBe("Answer must be a number.");
+    expect(validateField(ranged, "2.5")).toBe("Answer must be a whole number.");
+    expect(validateField(ranged, "0")).toBe("Answer must be at least 1.");
+    expect(validateField(ranged, "11")).toBe("Answer must be at most 10.");
+  });
+});
+
+describe("validateField: date", () => {
+  it("refuses a date that isn't one", () => {
+    expect(validateField(field("DATE"), "soon")).toBe("Answer must be a valid date.");
+  });
+});
+
+describe("validateField: composite and choice fields", () => {
+  it("leaves Name, Address and choices to their own rules", () => {
+    expect(validateField(field("NAME", { required: true }), { first: "Ann", last: " " })).toBe("Last is required.");
+    expect(validateField(field("ADDRESS"), { postalCode: "123" })).toBe(
+      "ZIP must be a US ZIP code, like 12345 or 12345-6789."
+    );
+    const sizes = { options: [{ value: "S", label: "S" }] };
+    expect(validateField(field("DROPDOWN", { options: sizes }), "XL")).toBe("Answer must be one of its options.");
+    expect(validateField(field("CHECKBOXES", { options: sizes }), "S")).toBe("Answer must be one of its options.");
+  });
+});
+
+describe("validateSubmission", () => {
+  it("reports each field's first error by name, and nothing for fields that pass", () => {
+    const fields = [field("TEXT", { required: true }), field("EMAIL"), field("NUMBER")];
+    expect(validateSubmission(fields, { email: "nope", number: "4" })).toEqual({
+      text: "Answer is required.",
+      email: "Enter a valid email address",
+    });
+  });
+});

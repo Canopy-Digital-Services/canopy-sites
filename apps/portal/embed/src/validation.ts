@@ -1,3 +1,9 @@
+/**
+ * The rules an answer must pass, field by field. The form checks them before
+ * it submits, and the server (src/lib/public-submit.ts) runs the same checks
+ * on every submission, with only its own guardrails (payload size) on top.
+ */
+
 import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions } from "./name";
 import { addressError, type AddressOptions } from "./address";
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
@@ -17,8 +23,6 @@ type FieldValidation = {
   integer?: boolean;
 };
 
-
-
 type FieldDefinition = {
   name: string;
   type: string;
@@ -30,320 +34,231 @@ type FieldDefinition = {
   validation?: FieldValidation;
 };
 
-// Default maximum lengths for field types
+/** What validation reads of a field: the form's definition and the server's
+    row both fit. */
+type ValidatedField = {
+  name: string;
+  type: string;
+  label: string;
+  required: boolean;
+  options?: unknown;
+  validation?: unknown;
+};
+
+/** The longest answer a type takes when the field sets no limit. */
 const DEFAULT_MAX_LENGTHS: Record<string, number> = {
   TEXT: 200,
   EMAIL: 254, // RFC 5321 standard
   TEXTAREA: 2000,
 };
 
-// Get effective max length for a field (configured or default)
-function getEffectiveMaxLength(field: FieldDefinition): number | undefined {
-  if (field.validation?.maxLength) {
-    return field.validation.maxLength;
-  }
-  return DEFAULT_MAX_LENGTHS[field.type];
-}
-
-type ValidationResult = {
-  [key: string]: string;
+/** The most a field of the type can be set to take. */
+const ABSOLUTE_MAX_LENGTHS: Record<string, number> = {
+  TEXT: 500,
+  EMAIL: 320, // Extended email format
+  TEXTAREA: 10000,
 };
 
-function getLabel(field: FieldDefinition) {
-  return field.label || field.name;
+function rulesOf(field: { validation?: unknown }): FieldValidation {
+  return typeof field.validation === "object" && field.validation !== null
+    ? (field.validation as FieldValidation)
+    : {};
 }
 
-export function validateSubmission(
-  fields: FieldDefinition[],
-  values: Record<string, unknown>
-): ValidationResult {
-  const errors: ValidationResult = {};
+/** The longest answer the field takes: its own limit when that's a positive
+    whole number, else its type's default, and never past its type's absolute. */
+function getEffectiveMaxLength(field: { type: string; validation?: unknown }): number | undefined {
+  const configured = rulesOf(field).maxLength;
+  const max = Number.isInteger(configured) && configured! > 0 ? configured : DEFAULT_MAX_LENGTHS[field.type];
+  const absolute = ABSOLUTE_MAX_LENGTHS[field.type];
+  return max !== undefined && absolute !== undefined ? Math.min(max, absolute) : max;
+}
 
-  fields.forEach((field) => {
-    const value = values[field.name];
-    const label = getLabel(field);
+/** RFC 5322 compliant address shape. */
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
-    if (field.required) {
-      if (field.type === "CHECKBOX") {
-        if (!value) {
-          errors[field.name] = `${label} is required.`;
-          return;
-        }
-      } else if (field.type === "CHECKBOXES") {
-        if (!Array.isArray(value) || value.length === 0) {
-          errors[field.name] = `${label} is required.`;
-          return;
-        }
-      } else if (field.type === "NAME") {
-        // NAME validation handled below
-      } else if (field.type === "ADDRESS") {
-        // ADDRESS validation handled below
-      } else if (
-        value === undefined ||
-        value === null ||
-        String(value).trim() === ""
-      ) {
-        errors[field.name] = `${label} is required.`;
-        return;
+/**
+ * Validate an email address.
+ * Rejects CR/LF outright: these values reach SMTP headers (Reply-To), where a
+ * newline would let a submitter inject additional headers.
+ */
+export function isValidEmail(value: string): boolean {
+  if (value.length > 320) return false;
+  if (/[\r\n]/.test(value)) return false;
+  return EMAIL_REGEX.test(value);
+}
+
+/** The ten digits of a US phone number, however it's written (a leading +1
+    or 1 is dropped), or null if it isn't one. */
+export function usPhoneDigits(value: string): string | null {
+  let digits = value.replace(/[^\d+]/g, "");
+  if (digits.startsWith("+1")) {
+    digits = digits.substring(2);
+  } else if (digits.startsWith("+")) {
+    return null;
+  } else if (digits.startsWith("1") && digits.length === 11) {
+    digits = digits.substring(1);
+  }
+  return /^\d{10}$/.test(digits) ? digits : null;
+}
+
+function lengthError(field: ValidatedField, text: string, label: string): string | null {
+  const { minLength } = rulesOf(field);
+  if (minLength && text.length < minLength) {
+    return `${label} must be at least ${minLength} characters.`;
+  }
+  const maxLength = getEffectiveMaxLength(field);
+  if (maxLength !== undefined && text.length > maxLength) {
+    return `${label} must be at most ${maxLength} characters.`;
+  }
+  return null;
+}
+
+/** Text and Textarea formats. "alphanumeric", the default, takes any text. */
+function formatError(format: string | undefined, text: string, label: string): string | null {
+  switch (format) {
+    case "numbers":
+      return /^\d+$/.test(text) ? null : `${label} must contain only numbers.`;
+    case "letters":
+      return /^[A-Za-z]+$/.test(text) ? null : `${label} must contain only letters.`;
+    case "url": {
+      // Visitors leave the protocol off, so check with one added.
+      try {
+        const url = new URL(text.startsWith("http") ? text : `https://${text}`);
+        if (url.hostname.includes(".")) return null;
+      } catch {
+        // Not a URL.
       }
+      return `${label} must be a valid URL.`;
+    }
+    case "postal-us":
+      return /^\d{5}(-\d{4})?$/.test(text)
+        ? null
+        : `${label} must be a valid US postal code (e.g., 12345 or 12345-6789).`;
+    case "postal-ca":
+      return /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(text)
+        ? null
+        : `${label} must be a valid Canadian postal code (e.g., K1A 0B1).`;
+    default:
+      return null;
+  }
+}
+
+/** Why `value` can't be submitted for the field, or null if it can. */
+export function validateField(field: ValidatedField, value: unknown): string | null {
+  const label = field.label || field.name;
+  const rules = rulesOf(field);
+
+  // Types whose answer isn't a single piece of text.
+  switch (field.type) {
+    case "CHECKBOX":
+      return field.required && !value ? `${label} is required.` : null;
+    case "CHECKBOXES":
+      if (!Array.isArray(value) || value.length === 0) {
+        if (field.required) return `${label} is required.`;
+        // Nothing picked. Anything else that isn't a list, choiceError refuses.
+        if (value === undefined || value === null || Array.isArray(value)) return null;
+      }
+      return choiceError("CHECKBOXES", value, field.options, label);
+    case "NAME": {
+      // Required per part, and no length or pattern checks on the parts.
+      const answer = value as Record<string, unknown> | null | undefined;
+      const options = (typeof field.options === "object" && field.options !== null ? field.options : {}) as NameOptions;
+      const required = nameRequiredParts(options, field.required);
+      for (const part of options.parts || DEFAULT_NAME_PARTS) {
+        const partValue = answer?.[part];
+        if (required.includes(part) && (!partValue || String(partValue).trim() === "")) {
+          return `${part === "single" ? label : namePartLabel(part, options.partLabels)} is required.`;
+        }
+      }
+      return null;
+    }
+    case "ADDRESS":
+      return addressError(
+        value as Record<string, unknown> | undefined,
+        field.options as AddressOptions | null | undefined,
+        field.required
+      );
+  }
+
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return field.required ? `${label} is required.` : null;
+  }
+  const text = String(value);
+
+  switch (field.type) {
+    case "DROPDOWN":
+      return choiceError("DROPDOWN", value, field.options, label);
+
+    case "PHONE": {
+      // Phone numbers skip the length checks.
+      const format = rules.format || "lenient";
+      if (format === "lenient" && !/^[\d\s\-\(\)\+\.]{7,}$/.test(text)) {
+        return `${label} must be a valid phone number.`;
+      }
+      if (format === "strict" && !usPhoneDigits(text)) {
+        return `${label} must be a valid US phone number (10 digits).`;
+      }
+      return null;
     }
 
-    if (field.type === "CHECKBOXES") {
-      if (Array.isArray(value) && value.length > 0) {
-        const error = choiceError("CHECKBOXES", value, field.options, label);
-        if (error) errors[field.name] = error;
-      }
-      return;
-    }
-
-    if (field.type === "NAME" || field.type === "ADDRESS") {
-      // NAME and ADDRESS are always validated (handle required per-part)
-    } else if (value === undefined || value === null || String(value).trim() === "") {
-      return;
-    }
-
-    if (field.type === "EMAIL") {
-      const stringValue = String(value);
-      
-      // RFC 5322 compliant (simplified but strict)
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-      
-      if (!emailRegex.test(stringValue)) {
-        errors[field.name] = `Enter a valid email address`;
-        return;
-      }
-      
-      // Check domain rules
-      const domainRules = field.validation?.domainRules;
-      if (domainRules) {
-        const domain = stringValue.split("@")[1]?.toLowerCase();
-        
-        if (domainRules.allow && domainRules.allow.length > 0) {
-          const allowed = domainRules.allow.map((d: string) => d.toLowerCase());
-          if (!allowed.includes(domain)) {
-            errors[field.name] = `${label} must be from an allowed domain.`;
-            return;
-          }
-        }
-        
-        if (domainRules.block && domainRules.block.length > 0) {
-          const blocked = domainRules.block.map((d: string) => d.toLowerCase());
-          if (blocked.includes(domain)) {
-            errors[field.name] = `${label} domain is not allowed.`;
-            return;
-          }
-        }
-      }
-    }
-
-    if (field.type === "PHONE") {
-      const stringValue = String(value);
-      const format = field.validation?.format || "lenient";
-      
-      if (format === "lenient") {
-        // Allow digits, spaces, dashes, parens, plus sign, min 7 chars
-        if (!/^[\d\s\-\(\)\+\.]{7,}$/.test(stringValue)) {
-          errors[field.name] = `${label} must be a valid phone number.`;
-          return;
-        }
-      } else if (format === "strict") {
-        // Strict US validation: must be 10 digits (with optional +1 prefix)
-        // Strip everything except digits and leading +
-        let cleaned = stringValue.replace(/[^\d+]/g, "");
-        
-        // Remove +1 prefix if present
-        if (cleaned.startsWith("+1")) {
-          cleaned = cleaned.substring(2);
-        } else if (cleaned.startsWith("+")) {
-          // Has + but not +1
-          errors[field.name] = `${label} must be a valid US phone number (10 digits).`;
-          return;
-        } else if (cleaned.startsWith("1") && cleaned.length === 11) {
-          // Has 1 prefix without +
-          cleaned = cleaned.substring(1);
-        }
-        
-        // Must be exactly 10 digits
-        if (!/^\d{10}$/.test(cleaned)) {
-          errors[field.name] = `${label} must be a valid US phone number (10 digits).`;
-          return;
-        }
-      }
-      
-      // Skip generic length checks for PHONE fields
-      return;
-    }
-
-    if (field.type === "DATE") {
-      const stringValue = String(value);
-      const dateValue = new Date(stringValue);
-      
-      if (isNaN(dateValue.getTime())) {
-        errors[field.name] = `${label} must be a valid date.`;
-        return;
-      }
-
+    case "DATE": {
+      const dateValue = new Date(text);
+      if (isNaN(dateValue.getTime())) return `${label} must be a valid date.`;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       dateValue.setHours(0, 0, 0, 0);
-
-      const validation = field.validation;
-
-      if (validation?.minDate) {
-        const minDate = new Date(
-          validation.minDate === "today"
-            ? today
-            : validation.minDate
-        );
+      if (rules.minDate) {
+        const minDate = new Date(rules.minDate === "today" ? today : rules.minDate);
         minDate.setHours(0, 0, 0, 0);
-        if (dateValue < minDate) {
-          errors[field.name] = `${label} must be on or after ${minDate.toLocaleDateString()}.`;
-          return;
-        }
+        if (dateValue < minDate) return `${label} must be on or after ${minDate.toLocaleDateString()}.`;
       }
-
-      if (validation?.maxDate) {
-        const maxDate = new Date(
-          validation.maxDate === "today"
-            ? today
-            : validation.maxDate
-        );
+      if (rules.maxDate) {
+        const maxDate = new Date(rules.maxDate === "today" ? today : rules.maxDate);
         maxDate.setHours(0, 0, 0, 0);
-        if (dateValue > maxDate) {
-          errors[field.name] = `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
-          return;
-        }
+        if (dateValue > maxDate) return `${label} must be on or before ${maxDate.toLocaleDateString()}.`;
       }
+      return null;
     }
 
-    if (field.type === "NUMBER") {
+    case "NUMBER": {
       const num = Number(value);
-      if (isNaN(num)) {
-        errors[field.name] = `${label} must be a number.`;
-        return;
+      if (isNaN(num)) return `${label} must be a number.`;
+      if (rules.integer && !Number.isInteger(num)) return `${label} must be a whole number.`;
+      if (rules.min !== undefined && num < rules.min) return `${label} must be at least ${rules.min}.`;
+      if (rules.max !== undefined && num > rules.max) return `${label} must be at most ${rules.max}.`;
+      return null;
+    }
+
+    case "EMAIL": {
+      const email = text.trim();
+      if (!isValidEmail(email)) return `Enter a valid email address`;
+      const domain = email.split("@")[1].toLowerCase();
+      const { allow, block } = rules.domainRules ?? {};
+      if (Array.isArray(allow) && allow.length > 0 && !allow.some((d) => String(d).toLowerCase() === domain)) {
+        return `${label} must be from an allowed domain.`;
       }
-      const numValidation = field.validation;
-      if (numValidation?.integer && !Number.isInteger(num)) {
-        errors[field.name] = `${label} must be a whole number.`;
-        return;
+      if (Array.isArray(block) && block.some((d) => String(d).toLowerCase() === domain)) {
+        return `${label} domain is not allowed.`;
       }
-      if (numValidation?.min !== undefined && num < numValidation.min) {
-        errors[field.name] = `${label} must be at least ${numValidation.min}.`;
-        return;
-      }
-      if (numValidation?.max !== undefined && num > numValidation.max) {
-        errors[field.name] = `${label} must be at most ${numValidation.max}.`;
-        return;
-      }
-      return;
+      return lengthError(field, email, label);
     }
 
-    if (field.type === "NAME") {
-      const nameValue = value as Record<string, string>;
-      const options = (field.options as NameOptions) || {};
-      const parts = options.parts || DEFAULT_NAME_PARTS;
-      const required = nameRequiredParts(options, field.required);
+    default:
+      return lengthError(field, text, label) ?? formatError(rules.format, text, label);
+  }
+}
 
-      // Validate each part
-      for (const part of parts) {
-        const partValue = nameValue?.[part];
-        if (required.includes(part) && (!partValue || partValue.trim() === "")) {
-          const partLabel = part === "single" ? label : namePartLabel(part, options.partLabels);
-          errors[field.name] = `${partLabel} is required.`;
-          return;
-        }
-      }
-      
-      // Skip further validation for NAME (no length/pattern checks on composite)
-      return;
-    }
-
-    if (field.type === "ADDRESS") {
-      const error = addressError(
-        value as Record<string, unknown> | undefined,
-        field.options as AddressOptions | undefined,
-        field.required
-      );
-      if (error) errors[field.name] = error;
-      return;
-    }
-
-    if (field.type === "DROPDOWN") {
-      const error = choiceError("DROPDOWN", value, field.options, label);
-      if (error) errors[field.name] = error;
-      return;
-    }
-
-    const stringValue = String(value);
-    const effectiveMaxLength = getEffectiveMaxLength(field);
-
-    // Check minLength if configured
-    if (
-      field.validation?.minLength &&
-      stringValue.length < field.validation.minLength
-    ) {
-      errors[field.name] = `${label} must be at least ${field.validation.minLength} characters.`;
-      return;
-    }
-
-    // Check maxLength (configured or default)
-    if (
-      effectiveMaxLength &&
-      stringValue.length > effectiveMaxLength
-    ) {
-      errors[field.name] = `${label} must be at most ${effectiveMaxLength} characters.`;
-      return;
-    }
-
-    // Check format if configured (for TEXT and TEXTAREA)
-    if (field.type === "TEXT" || field.type === "TEXTAREA") {
-      const format = field.validation?.format;
-      if (format && format !== "alphanumeric") {
-        let isValid = true;
-        let defaultMessage = `${label} is invalid.`;
-
-        switch (format) {
-          case "numbers":
-            isValid = /^\d+$/.test(stringValue);
-            defaultMessage = `${label} must contain only numbers.`;
-            break;
-          case "letters":
-            isValid = /^[A-Za-z]+$/.test(stringValue);
-            defaultMessage = `${label} must contain only letters.`;
-            break;
-          case "url": {
-            // Prepend protocol if missing for validation
-            const urlString = stringValue.startsWith("http")
-              ? stringValue
-              : `https://${stringValue}`;
-            try {
-              const url = new URL(urlString);
-              isValid = url.hostname.includes(".");
-            } catch {
-              isValid = false;
-            }
-            defaultMessage = `${label} must be a valid URL.`;
-            break;
-          }
-          case "postal-us":
-            isValid = /^\d{5}(-\d{4})?$/.test(stringValue);
-            defaultMessage = `${label} must be a valid US postal code (e.g., 12345 or 12345-6789).`;
-            break;
-          case "postal-ca":
-            isValid = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(stringValue);
-            defaultMessage = `${label} must be a valid Canadian postal code (e.g., K1A 0B1).`;
-            break;
-        }
-
-        if (!isValid) {
-          errors[field.name] = defaultMessage;
-        }
-      }
-    }
-  });
-
+/** Every field's error, by field name. */
+export function validateSubmission(fields: ValidatedField[], values: Record<string, unknown>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const field of fields) {
+    const error = validateField(field, values[field.name]);
+    if (error) errors[field.name] = error;
+  }
   return errors;
 }
 
-export type { FieldDefinition, FieldValidation, NameOptions, AddressOptions };
-export { getEffectiveMaxLength };
+export type { FieldDefinition, FieldValidation, ValidatedField, NameOptions, AddressOptions };
+export { getEffectiveMaxLength, DEFAULT_MAX_LENGTHS, ABSOLUTE_MAX_LENGTHS };

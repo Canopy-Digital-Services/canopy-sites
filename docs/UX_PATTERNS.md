@@ -391,13 +391,13 @@ Reference: [signup](src/app/(auth)/signup/page.tsx), [login](src/app/(auth)/logi
 
 The split is deliberate: the admin UI is an environment we fully control, and configuration errors often need several visible at once with context intact. The embed is injected into third-party sites, where native popups are lightweight, consistent, and bring their own focus handling and announcements.
 
-Embed specifics, in `embed/src/validation.ts`:
+Embed specifics, in `embed/src/form.ts` (the popups) and `embed/src/validation.ts` (the rules, which the server runs too; `docs/AGENT_CONTEXT.md` section 2):
 
 - **One error at a time.** Popup on the first invalid field, focus it, user resubmits for the next. The status strip shows the total: "Please fix N field(s) to continue."
 - Validation clears on typing: `input.addEventListener("input", () => input.setCustomValidity(""))`.
-- Messages are the browser's standard ones. Custom messages were removed in v3.7.2.
+- Messages are `validateField`'s fixed text, except where the browser's own check stops the submit first (an email's shape, a number's range). Per-field custom messages were removed in v3.7.2.
 - `.canopy-error` inline text is visually hidden but kept in the DOM for assistive tech; popups are the visible channel.
-- Per type: NAME shows its popup on the first visible part input; DROPDOWN "Other" inputs clear on typing; CHECKBOXES require at least one checked when required, with the server also checking submitted values against the option list; NUMBER validates numeric input, optional integer-only, and min/max on both sides.
+- Per type: NAME shows its popup on the first visible part input; DROPDOWN "Other" inputs clear on typing; CHECKBOXES require at least one checked when required, and only the field's options; NUMBER validates numeric input, optional integer-only, and min/max on both sides.
 - Server-side validation errors surface through the same native popups.
 
 ---
