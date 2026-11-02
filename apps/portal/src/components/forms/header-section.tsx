@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { SaveIndicator } from "@/components/forms/save-indicator";
 import { useFormContext, HEADER_PLACEHOLDERS } from "@/components/forms/form-context";
+import { STEP_TITLES } from "@/components/forms/editor-steps";
 
 type HeaderSectionProps = {
   /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
@@ -31,7 +32,7 @@ export function HeaderSection({ variant = "accordion", open = false, onOpenChang
             same thing in a sentence. The Title/Description inputs below are
             self-evident; the only thing worth saying is that they're skippable. */}
         <CardTitle className="flex items-baseline gap-2">
-          Header
+          {STEP_TITLES.header}
           <span className="text-sm font-normal tracking-normal text-muted-foreground">
             (Optional)
           </span>

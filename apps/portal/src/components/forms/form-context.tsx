@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { updateFormBasics, updateFormHeader, updateFormAppearance, updateAfterSubmission } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
+import type { EditorStepName } from "@/components/forms/editor-steps";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export const FIELD_PLACEHOLDERS: FieldState[] = [
 
 /** The editor-flow step on screen, which decides the preview's stand-ins.
     Null outside the flow. */
-export type EditorStep = "header" | "fields" | "settings" | null;
+export type EditorStep = EditorStepName | null;
 
 /** A part of the form the styling panel styles, picked in the panel or by
     clicking it in the preview. */

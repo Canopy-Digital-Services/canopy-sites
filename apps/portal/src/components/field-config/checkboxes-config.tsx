@@ -1,7 +1,6 @@
 "use client";
 
-import { CheckboxesOptions } from "@/types/field-config";
-import { choiceOptions } from "../../../embed/src/choices";
+import { choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
 import { ChoiceOptionsEditor } from "./choice-options-editor";
 import { ConfigComponentProps } from "./types";
 
@@ -9,7 +8,7 @@ export function CheckboxesConfig({
   value,
   onChange,
   onFocusPart,
-}: ConfigComponentProps<CheckboxesOptions | undefined>) {
+}: ConfigComponentProps<ChoiceOptions | undefined>) {
   return (
     <ChoiceOptionsEditor
       value={choiceOptions(value)}

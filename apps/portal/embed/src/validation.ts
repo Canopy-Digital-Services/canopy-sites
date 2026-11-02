@@ -2,8 +2,6 @@ import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, type NameOptions 
 import { addressError, type AddressOptions } from "./address";
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
 
-type FieldOption = ChoiceOption;
-
 type FieldValidation = {
   minLength?: number;
   maxLength?: number;
@@ -19,8 +17,6 @@ type FieldValidation = {
   integer?: boolean;
 };
 
-type DropdownOptions = ChoiceOptions;
-type CheckboxesOptions = ChoiceOptions;
 
 
 type FieldDefinition = {
@@ -30,7 +26,7 @@ type FieldDefinition = {
   placeholder?: string;
   required: boolean;
   helpText?: string;
-  options?: FieldOption[] | NameOptions | DropdownOptions | CheckboxesOptions | AddressOptions;
+  options?: ChoiceOption[] | ChoiceOptions | NameOptions | AddressOptions;
   validation?: FieldValidation;
 };
 
@@ -349,5 +345,5 @@ export function validateSubmission(
   return errors;
 }
 
-export type { FieldDefinition, FieldValidation, FieldOption, DropdownOptions, CheckboxesOptions, NameOptions, AddressOptions };
+export type { FieldDefinition, FieldValidation, NameOptions, AddressOptions };
 export { getEffectiveMaxLength };

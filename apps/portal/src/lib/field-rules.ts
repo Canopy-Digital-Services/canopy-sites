@@ -2,19 +2,17 @@
 // applies them as the user edits, and the server action applies them to
 // whatever reaches it, so a field reads the same however it was stored.
 
-import { getFieldTypeLabel } from "@/lib/field-types";
+import { fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
 import { DEFAULT_NAME_PARTS, orderNameParts } from "../../embed/src/name";
 import { ADDRESS_PARTS, addressParts, type AddressOptions } from "../../embed/src/address";
 import { choiceOptions, clashingChoices, type ChoiceOption, type ChoiceOptions } from "../../embed/src/choices";
 
+export const isChoiceType = (type: string) => fieldTypeHas(type, "choice");
+
+export const isComposite = (type: string) => fieldTypeHas(type, "composite");
+
 /** Types whose config lives in `options`; every other type keeps it in `validation`. */
-export const isOptionsType = (type: string) =>
-  type === "DROPDOWN" || type === "NAME" || type === "CHECKBOXES" || type === "ADDRESS";
-
-export const isChoiceType = (type: string) => type === "DROPDOWN" || type === "CHECKBOXES";
-
-/** Types made of parts, each collected and required on its own. */
-export const isComposite = (type: string) => type === "NAME" || type === "ADDRESS";
+export const isOptionsType = (type: string) => isChoiceType(type) || isComposite(type);
 
 /** A field's label when the user hasn't given one: its type's name. */
 export const defaultLabel = (type: string) => getFieldTypeLabel(type);

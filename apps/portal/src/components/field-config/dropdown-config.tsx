@@ -9,8 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DropdownOptions } from "@/types/field-config";
-import { choiceOptions } from "../../../embed/src/choices";
+import { choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
 import { ChoiceOptionsEditor } from "./choice-options-editor";
 import { ConfigComponentProps } from "./types";
 
@@ -20,7 +19,7 @@ export function DropdownConfig({
   value,
   onChange,
   onFocusPart,
-}: ConfigComponentProps<DropdownOptions | undefined>) {
+}: ConfigComponentProps<ChoiceOptions | undefined>) {
   const id = useId();
   const config = choiceOptions(value);
   // Each option once, as the form lists it.
