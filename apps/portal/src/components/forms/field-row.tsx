@@ -6,14 +6,13 @@
 // carries the field's settings in place, where the add/edit modal used to.
 // The list keeps one row open at a time and autosaves (form-fields-manager).
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { FieldType } from "@prisma/client";
 import { ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +25,8 @@ import { InlineRename } from "@/components/forms/inline-rename";
 import { DEFAULT_CHOICE_PROMPT } from "../../../embed/src/choices";
 import { anyPartRequired, defaultLabel, isComposite, isOptionsType } from "@/lib/field-rules";
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
-import { SCROLL_HOLD_RELEASE, SCROLL_HOLD_RESUME, type ScrollHoldFold } from "@/hooks/use-scroll-hold";
+import { RowBody } from "@/components/forms/row-body";
+import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
 import { FieldConfigRenderer } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
@@ -117,37 +117,18 @@ export function FieldRow({
   useMarkerUnderline(titleRef, open && !renaming);
 
   // The chevron at the foot, or Escape, closes the row and hands focus to its
-  // title, since what had it is folding away. The editor doesn't hold its
-  // scroll for this fold (the pointer was on what's going): it hands the
-  // scroll to the fold, which brings the row's summary into view as the
-  // settings fold, in one motion.
+  // title, since what had it is folding away. A row closed from its foot
+  // hands the editor's scroll to its fold, which brings the summary into view
+  // in one motion; one closed from its summary keeps that under the pointer.
+  const scrollHold = useContext(ScrollHoldContext);
   const summaryRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
   const refocus = useRef(false);
-  const released = useRef(false);
-  const close = (from: Element) => {
+  const fromFoot = useRef(false);
+  const close = () => {
     refocus.current = true;
-    if (summaryRef.current && bodyRef.current) {
-      released.current = true;
-      const detail: ScrollHoldFold = { folding: bodyRef.current, anchor: summaryRef.current };
-      from.dispatchEvent(new CustomEvent(SCROLL_HOLD_RELEASE, { bubbles: true, detail }));
-    }
+    fromFoot.current = true;
     onToggle();
   };
-  // The settings' height as it is now, for the fold to start from (see
-  // .field-row-body in globals.css): set before the first paint of an open
-  // row and kept current while it changes.
-  const settingsRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const body = bodyRef.current;
-    const settings = settingsRef.current;
-    if (!body || !settings) return;
-    const track = () => body.style.setProperty("--field-row-height", `${settings.offsetHeight}px`);
-    track();
-    const observer = new ResizeObserver(track);
-    observer.observe(settings);
-    return () => observer.disconnect();
-  }, [open]);
 
   useEffect(() => {
     if (open || !refocus.current) return;
@@ -173,8 +154,7 @@ export function FieldRow({
   );
 
   return (
-    <Collapsible
-      open={open}
+    <div
       className={cn(
         "border-b border-border/50 last:border-b-0 transition-colors",
         open && "bg-muted/30"
@@ -183,7 +163,7 @@ export function FieldRow({
         // A menu or popover inside takes its own Escape (and prevents it).
         if (!open || e.key !== "Escape" || e.defaultPrevented || e.nativeEvent.isComposing) return;
         e.preventDefault();
-        close(e.currentTarget);
+        close();
       }}
     >
       {/* Summary: the whole row toggles it; the grip alone drags. Closing
@@ -250,32 +230,22 @@ export function FieldRow({
         </div>
       </div>
 
-      <CollapsibleContent
-        ref={bodyRef}
-        className="field-row-body"
-        onAnimationEnd={(e) => {
-          if (e.target !== e.currentTarget || open || !released.current) return;
-          released.current = false;
-          e.currentTarget.dispatchEvent(new Event(SCROLL_HOLD_RESUME, { bubbles: true }));
+      <RowBody
+        open={open}
+        onFold={(fold, body) => {
+          if (fromFoot.current && summaryRef.current) scrollHold?.fold(fold, body, summaryRef.current);
+          fromFoot.current = false;
         }}
       >
-        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
-            controls stand off the open row's tint. */}
-        <div
-          ref={settingsRef}
-          className="-mx-1 px-1 [&_input]:bg-card [&_textarea]:bg-card [&_[role=combobox]:not(:hover)]:bg-card"
-        >
-          <FieldSettings
-            field={field}
-            problem={problem}
-            onChange={onChange}
-            onFocusPart={onFocusPart}
-            onClose={close}
-          />
-        </div>
-      </CollapsibleContent>
-
-    </Collapsible>
+        <FieldSettings
+          field={field}
+          problem={problem}
+          onChange={onChange}
+          onFocusPart={onFocusPart}
+          onClose={close}
+        />
+      </RowBody>
+    </div>
   );
 }
 
@@ -290,8 +260,8 @@ function FieldSettings({
   problem: string | null;
   onChange: (patch: Partial<FieldState>) => void;
   onFocusPart: (part: string | null) => void;
-  /** Closes the row, from the control that closed it; the field saves as it goes. */
-  onClose: (from: Element) => void;
+  /** Closes the row from its foot; the field saves as it goes. */
+  onClose: () => void;
 }) {
   const id = (part: string) => `field-${field.id}-${part}`;
   const optionsType = isOptionsType(field.type);
@@ -385,7 +355,7 @@ function FieldSettings({
               size="icon-sm"
               aria-label="Close field settings"
               className="ml-auto shrink-0 text-muted-foreground"
-              onClick={(e) => onClose(e.currentTarget)}
+              onClick={onClose}
             >
               <ChevronUp className="h-4 w-4" />
             </Button>

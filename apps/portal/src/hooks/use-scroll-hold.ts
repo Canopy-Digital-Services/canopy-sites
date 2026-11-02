@@ -11,19 +11,20 @@
 //
 // Content that folds from where the pointer is (a field row closed from the
 // foot of its settings) is the other way round: what was clicked goes, and
-// holding would leave the user looking at empty space below the content.
-// Dispatching SCROLL_HOLD_RELEASE from inside the container hands the scroll
-// to the fold until SCROLL_HOLD_RESUME: it moves with the fold, frame by
-// frame, to bring the fold's anchor into view.
+// holding would leave the user looking at empty space. Such a fold hands its
+// animation to `fold`, which moves the scroll along the animation's own
+// progress to bring an anchor into view, so the two read as one motion.
 
-import { useEffect, useRef } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 
-export const SCROLL_HOLD_RELEASE = "scroll-hold-release";
-export const SCROLL_HOLD_RESUME = "scroll-hold-resume";
+export type ScrollHold = {
+  /** Scroll along `animation` (folding `folding` away) to show `anchor`,
+      with its scroll-margin-top above it, instead of holding still. */
+  fold: (animation: Animation, folding: Element, anchor: Element) => void;
+};
 
-/** SCROLL_HOLD_RELEASE's detail: what folds, and what to bring into view
-    (with its scroll-margin-top above it) once it has. */
-export type ScrollHoldFold = { folding: Element; anchor: Element };
+/** The editor column's hold, for what folds inside it. */
+export const ScrollHoldContext = createContext<ScrollHold | null>(null);
 
 /**
  * `scroller` is the scroll container, `content` everything it scrolls but the
@@ -35,8 +36,12 @@ export function useScrollHold(
   content: React.RefObject<HTMLElement | null>,
   spacer: React.RefObject<HTMLElement | null>,
   resetKey: string
-) {
+): ScrollHold {
   const lastTop = useRef(0);
+  const foldImpl = useRef<ScrollHold["fold"] | null>(null);
+  const [hold] = useState<ScrollHold>(() => ({
+    fold: (...args) => foldImpl.current?.(...args),
+  }));
 
   useEffect(() => {
     const box = scroller.current;
@@ -56,12 +61,8 @@ export function useScrollHold(
     // it a scrollbar for nothing.
     const fit = (top: number) => (top <= 0 ? 0 : Math.max(0, Math.ceil(top + box.clientHeight - contentEnd())));
 
-    // Holds the box where the user left it, the spacer taking up the slack.
-    // Only a clamp is undone (the content got too short to stay scrolled
-    // there), never a scroll on its way that no event has reported yet:
-    // restoring would cancel it.
     let seenHeight = box.scrollHeight;
-    let released = false;
+    let steering = false;
 
     // Takes the scroll where it is, the user's or a clamp's, and gives back
     // spacer it no longer needs.
@@ -73,24 +74,12 @@ export function useScrollHold(
       seenHeight = box.scrollHeight;
     };
 
-    // A released fold's course: from where the scroll was to where the
-    // anchor shows, at the fold's own pace (its share folded so far), so the
-    // two read as one motion. A smooth scroll beside the fold ran on its own
-    // curve, finishing before the fold's fast end and then jumping with it.
-    let course: { from: number; to: number; folding: Element; height: number } | null = null;
-    const steer = (done = false) => {
-      if (!course) return;
-      const { from, to, folding, height } = course;
-      const left = done || !folding.isConnected ? 0 : folding.getBoundingClientRect().height;
-      const top = from + (to - from) * Math.min(1, Math.max(0, 1 - left / height));
-      pad.style.height = `${fit(top)}px`;
-      box.scrollTop = top;
-      lastTop.current = top;
-      seenHeight = box.scrollHeight;
-    };
-
+    // Holds the box where the user left it, the spacer taking up the slack.
+    // Only a clamp is undone (the content got too short to stay scrolled
+    // there), never a scroll on its way that no event has reported yet:
+    // restoring would cancel it.
     const hold = () => {
-      if (released) return course ? steer() : follow();
+      if (steering) return;
       const clamped = box.scrollHeight - box.clientHeight < lastTop.current - 1;
       pad.style.height = `${fit(lastTop.current)}px`;
       if (clamped) box.scrollTop = lastTop.current;
@@ -98,37 +87,50 @@ export function useScrollHold(
     };
 
     const onScroll = () => {
-      // The steered fold's own scrolling.
-      if (course) return;
+      if (steering) return;
       // Content that shrank pulled the scroll back, and Chrome can report it
       // before the observer below gets to hold it (a field row folding up
       // over several frames): that's no scroll of the user's.
-      if (!released && box.scrollHeight < seenHeight && box.scrollTop < lastTop.current) {
+      if (box.scrollHeight < seenHeight && box.scrollTop < lastTop.current) {
         hold();
         return;
       }
       follow();
     };
 
-    const release = (event: Event) => {
-      released = true;
-      follow();
-      const fold = (event as CustomEvent<ScrollHoldFold | undefined>).detail;
-      const height = fold?.folding.getBoundingClientRect().height ?? 0;
-      if (!fold || !height) return;
+    foldImpl.current = (animation, folding, anchor) => {
+      const height = folding.getBoundingClientRect().height;
+      if (!height) return;
       const from = box.scrollTop;
-      const margin = parseFloat(getComputedStyle(fold.anchor).scrollMarginTop) || 0;
+      const margin = parseFloat(getComputedStyle(anchor).scrollMarginTop) || 0;
       // Up to the anchor if it's above the view (or too near its top), and
       // no further than the folded content lets the box scroll.
-      const shown = Math.min(from, offset(fold.anchor) - margin);
+      const shown = Math.min(from, offset(anchor) - margin);
       const to = Math.max(0, Math.min(shown, contentEnd() - height - box.clientHeight));
-      course = { from, to, folding: fold.folding, height };
-    };
-    const resume = () => {
-      steer(true);
-      course = null;
-      released = false;
-      follow();
+      // Each frame, before its layout, at the animation's own eased progress.
+      const place = (progress: number) => {
+        const top = from + (to - from) * progress;
+        pad.style.height = `${fit(top)}px`;
+        box.scrollTop = top;
+        lastTop.current = top;
+        seenHeight = box.scrollHeight;
+      };
+      steering = true;
+      const step = () => {
+        if (!steering) return;
+        // No progress yet is a fold not started (it starts with the next frame).
+        place(animation.effect?.getComputedTiming().progress ?? 0);
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      const end = () => {
+        steering = false;
+        follow();
+      };
+      animation.finished.then(() => {
+        place(1);
+        end();
+      }, end);
     };
 
     // Runs after layout and before paint, so the clamp is undone unseen.
@@ -139,14 +141,12 @@ export function useScrollHold(
     box.style.setProperty("overflow-anchor", "none");
     lastTop.current = box.scrollTop;
     box.addEventListener("scroll", onScroll, { passive: true });
-    box.addEventListener(SCROLL_HOLD_RELEASE, release);
-    box.addEventListener(SCROLL_HOLD_RESUME, resume);
     observer.observe(inner);
     observer.observe(box);
     return () => {
+      steering = false;
+      foldImpl.current = null;
       box.removeEventListener("scroll", onScroll);
-      box.removeEventListener(SCROLL_HOLD_RELEASE, release);
-      box.removeEventListener(SCROLL_HOLD_RESUME, resume);
       observer.disconnect();
     };
     // The key also re-attaches to a container mounted anew (back on its tab).
@@ -161,4 +161,6 @@ export function useScrollHold(
     lastTop.current = 0;
     box.scrollTo({ top: 0 });
   }, [scroller, spacer, resetKey]);
+
+  return hold;
 }

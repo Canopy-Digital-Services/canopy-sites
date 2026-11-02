@@ -8,7 +8,7 @@
 // what the open row styles.
 
 import { useEffect, useRef } from "react";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { RowBody } from "@/components/forms/row-body";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -249,8 +249,7 @@ function StyleRow({
   }, [open]);
 
   return (
-    <Collapsible
-      open={open}
+    <div
       className={cn(
         "border-b border-border/50 last:border-b-0 transition-colors",
         open && "bg-muted/30"
@@ -278,14 +277,10 @@ function StyleRow({
         </div>
         {open && <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground mr-1.5" aria-hidden />}
       </div>
-      <CollapsibleContent className="field-row-body">
-        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
-            controls stand off the open row's tint. */}
-        <div className="-mx-1 px-1 [&_input]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
-          <div className="space-y-4 px-3 pb-4 pt-2">{children}</div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+      <RowBody open={open}>
+        <div className="space-y-4 px-3 pb-4 pt-2">{children}</div>
+      </RowBody>
+    </div>
   );
 }
 
