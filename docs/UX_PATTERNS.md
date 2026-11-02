@@ -403,7 +403,7 @@ Embed specifics, in `embed/src/form.ts` (the popups) and `embed/src/validation.t
 - Validation clears on typing: `input.addEventListener("input", () => input.setCustomValidity(""))`.
 - Messages are `validateField`'s fixed text, except where the browser's own check stops the submit first (an email's shape, a number's range). Per-field custom messages were removed in v3.7.2.
 - `.canopy-error` inline text is visually hidden but kept in the DOM for assistive tech; popups are the visible channel.
-- Per type: NAME and ADDRESS show the popup on the part that fails (required and empty, or longer than its cap), otherwise on the first part (an Address on its ZIP, whose format is the only other part check); DROPDOWN "Other" inputs clear on typing; CHECKBOXES require at least one checked when required, and only the field's options; NUMBER validates numeric input, optional integer-only, and min/max on both sides.
+- Per type: NAME and ADDRESS show the popup on the part that fails (required and empty, or longer than its cap), otherwise on the first part (an Address on its ZIP, whose format is the only other part check); DROPDOWN "Other" inputs clear on typing; CHECKBOXES require at least one checked when required, and only the field's options, each once; NUMBER validates numeric input, optional integer-only, and min/max on both sides.
 - Server-side validation errors surface through the same native popups.
 
 ---
