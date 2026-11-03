@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { validateOrigin, getClientIP, hashIP } from "@/lib/validation";
+import { validateOrigin, isAppOrigin, getClientIP, hashIP } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limit";
 import { queueNewSubmissionNotification } from "@/lib/email-queue";
 import { buildSubmissionEmailExtras } from "@/lib/submission-email";
@@ -64,7 +64,9 @@ export async function handlePublicSubmit({
     return jsonResponse({ error: "Form not found" }, 404, origin, allowMethods);
   }
 
-  if (form.type === "HOSTED") {
+  // A hosted form takes submissions only from its own page, on the portal's
+  // origin; an embed or HTML form on another site is refused.
+  if (form.type === "HOSTED" && !isAppOrigin(origin, referer)) {
     return jsonResponse(
       {
         error: "This form is only available at its hosted URL.",
