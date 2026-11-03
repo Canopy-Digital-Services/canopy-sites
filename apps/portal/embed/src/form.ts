@@ -590,21 +590,17 @@ export class CanopyForm {
         break;
       }
       case "NUMBER": {
+        // GOV.UK's number input: a text box with the phone's number pad, not
+        // type="number", which a scroll wheel changes, which drops leading
+        // zeros, and whose own range check would speak before validateField.
         const numberInput = document.createElement("input");
-        numberInput.type = "number";
+        numberInput.type = "text";
         numberInput.className = "canopy-input";
-        const numValidation = field.validation;
-        numberInput.setAttribute("step", numValidation?.integer ? "1" : "any");
-        // A phone's number pad, unless the field takes numbers below zero:
+        numberInput.spellcheck = false;
         // iPhone pads have no minus key, which the full keyboard's numbers have.
+        const numValidation = field.validation;
         const belowZero = numValidation?.min !== undefined && numValidation.min < 0;
         if (!belowZero) numberInput.setAttribute("inputmode", numValidation?.integer ? "numeric" : "decimal");
-        if (numValidation?.min !== undefined) {
-          numberInput.setAttribute("min", String(numValidation.min));
-        }
-        if (numValidation?.max !== undefined) {
-          numberInput.setAttribute("max", String(numValidation.max));
-        }
         input = numberInput;
         break;
       }

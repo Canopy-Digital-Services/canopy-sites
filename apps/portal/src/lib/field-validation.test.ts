@@ -3,6 +3,7 @@ import {
   anywhereToday,
   dateOfBirth,
   getEffectiveMaxLength,
+  numberAnswer,
   isValidEmail,
   usPhoneDigits,
   validateField,
@@ -152,14 +153,37 @@ describe("validateField: phone", () => {
 });
 
 describe("validateField: number", () => {
-  const ranged = field("NUMBER", { validation: { min: 1, max: 10, integer: true } });
+  const guests = field("NUMBER", { label: "Guests", validation: { min: 1, max: 20, integer: true } });
+  const budget = field("NUMBER", { label: "Budget", validation: { max: 500 } });
 
-  it("keeps to the field's range and whole numbers", () => {
-    expect(validateField(ranged, "7")).toBeNull();
-    expect(validateField(ranged, "abc")).toBe("Answer must be a number.");
-    expect(validateField(ranged, "2.5")).toBe("Answer must be a whole number.");
-    expect(validateField(ranged, "0")).toBe("Answer must be at least 1.");
-    expect(validateField(ranged, "11")).toBe("Answer must be at most 10.");
+  it("keeps to the field's range in GOV.UK's words, with an example it takes", () => {
+    expect(validateField(guests, "7")).toBeNull();
+    expect(validateField(guests, "twelve")).toBe("Guests must be a whole number, like 10.");
+    expect(validateField(guests, "2.5")).toBe("Guests must be a whole number, like 10.");
+    expect(validateField(guests, "0")).toBe("Guests must be between 1 and 20.");
+    expect(validateField(field("NUMBER", { label: "Guests", validation: { min: 50 } }), "x")).toBe(
+      "Guests must be a number, like 50."
+    );
+    expect(validateField(field("NUMBER", { label: "Guests", validation: { min: 50, integer: true } }), "2")).toBe(
+      "Guests must be 50 or more."
+    );
+  });
+
+  it("says fewer of a count and less of an amount", () => {
+    expect(validateField(field("NUMBER", { label: "Guests", validation: { max: 20, integer: true } }), "21")).toBe(
+      "Guests must be 20 or fewer."
+    );
+    expect(validateField(budget, "500.01")).toBe("Budget must be 500 or less.");
+  });
+
+  it("takes a number written with commas or spaces, and nothing else that isn't one", () => {
+    expect(validateField(budget, "1,000")).toBe("Budget must be 500 or less.");
+    expect(validateField(budget, " 499.5 ")).toBeNull();
+    expect(validateField(budget, "1e2")).toBe("Budget must be a number, like 10.");
+    expect(numberAnswer("1,250.50")).toBe("1250.50");
+    expect(numberAnswer("0042")).toBe("0042");
+    expect(numberAnswer("-.5")).toBe("-.5");
+    expect(numberAnswer("12 people")).toBeNull();
   });
 });
 

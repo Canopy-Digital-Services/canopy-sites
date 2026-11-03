@@ -162,6 +162,14 @@ export function dateOfBirth(text: string): string | null {
   return parts ? calendarDate(`${parts[1]}-${parts[2].padStart(2, "0")}-${parts[3].padStart(2, "0")}`) : null;
 }
 
+/** A Number answer as the number it names: digits, an optional minus and
+    decimal point, with any commas or spaces a large number is written with
+    left out. Null if it names none. */
+export function numberAnswer(value: string | number): string | null {
+  const typed = String(value).replace(/[,\s]/g, "");
+  return /^-?(\d+\.?\d*|\.\d+)$/.test(typed) ? typed : null;
+}
+
 function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
   return maxLength !== undefined && text.length > maxLength ? `${label} must be at most ${maxLength} characters.` : null;
 }
@@ -329,12 +337,18 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
     }
 
     case "NUMBER": {
-      const num = Number(value);
-      if (isNaN(num)) return `${label} must be a number.`;
-      if (rules.integer && !Number.isInteger(num)) return `${label} must be a whole number.`;
-      if (rules.min !== undefined && num < rules.min) return `${label} must be at least ${rules.min}.`;
-      if (rules.max !== undefined && num > rules.max) return `${label} must be at most ${rules.max}.`;
-      return null;
+      // GOV.UK's number errors, with an example the field takes.
+      const { min, max, integer } = rules;
+      const example = Math.min(Math.max(10, min ?? -Infinity), max ?? Infinity);
+      const typed = numberAnswer(value as string | number);
+      if (typed === null) return `${label} must be a ${integer ? "whole " : ""}number, like ${example}.`;
+      const num = Number(typed);
+      if (integer && !Number.isInteger(num)) return `${label} must be a whole number, like ${example}.`;
+      const outside = (min !== undefined && num < min) || (max !== undefined && num > max);
+      if (!outside) return null;
+      if (min !== undefined && max !== undefined) return `${label} must be between ${min} and ${max}.`;
+      // Fewer of a count, less of an amount.
+      return min !== undefined ? `${label} must be ${min} or more.` : `${label} must be ${max} or ${integer ? "fewer" : "less"}.`;
     }
 
     case "EMAIL": {
