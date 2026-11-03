@@ -27,6 +27,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "NAME" as const, label: "Name", composite: true },
   { value: "EMAIL" as const, label: "Email" },
   { value: "PHONE" as const, label: "Phone" },
+  { value: "WEBSITE" as const, label: "Website" },
   { value: "ADDRESS" as const, label: "Address", composite: true },
   { value: "DATE_OF_BIRTH" as const, label: "Date of birth" },
   { value: "DATE" as const, label: "Date" },

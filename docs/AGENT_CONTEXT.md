@@ -371,7 +371,7 @@ User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
 
 Enums:
 
-- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH`. Display labels in `src/lib/field-types.ts`.
+- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
 - `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
