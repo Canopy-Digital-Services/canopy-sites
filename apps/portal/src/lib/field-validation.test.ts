@@ -163,34 +163,31 @@ describe("validateField: number", () => {
 });
 
 describe("validateField: date", () => {
-  const between = field("DATE", { validation: { minDate: "2026-11-10", maxDate: "2026-11-20" } });
-  const fromToday = field("DATE", { validation: { minDate: "today" } });
-  const untilToday = field("DATE", { validation: { maxDate: "today" } });
+  const future = field("DATE", { validation: { minDate: "today" } });
+  const past = field("DATE", { validation: { maxDate: "today" } });
 
   it("refuses a date that isn't one, including a day the month doesn't have", () => {
-    expect(validateField(field("DATE"), "soon", nov2)).toBe("Answer must be a valid date.");
-    expect(validateField(field("DATE"), "2026-02-30", nov2)).toBe("Answer must be a valid date.");
+    expect(validateField(field("DATE"), "soon", nov2)).toBe("Answer must be a real date.");
+    expect(validateField(field("DATE"), "2026-02-30", nov2)).toBe("Answer must be a real date.");
   });
 
-  it("keeps to the field's dates, inclusive", () => {
-    expect(validateField(between, "2026-11-10", nov2)).toBeNull();
-    expect(validateField(between, "2026-11-20", nov2)).toBeNull();
-    expect(validateField(between, "2026-11-09", nov2)).toMatch(/^Answer must be on or after /);
-    expect(validateField(between, "2026-11-21", nov2)).toMatch(/^Answer must be on or before /);
+  it("keeps a Future Date to today or later, and a Past Date to today or earlier", () => {
+    expect(validateField(future, "2026-11-02", nov2)).toBeNull();
+    expect(validateField(past, "2026-11-02", nov2)).toBeNull();
+    expect(validateField(future, "2026-11-01", nov2)).toBe("Answer must be today or in the future.");
+    expect(validateField(past, "2026-11-03", nov2)).toBe("Answer must be today or in the past.");
   });
 
-  it("counts today itself as on or after today, and on or before it", () => {
-    expect(validateField(fromToday, "2026-11-02", nov2)).toBeNull();
-    expect(validateField(untilToday, "2026-11-02", nov2)).toBeNull();
-    expect(validateField(fromToday, "2026-11-01", nov2)).toMatch(/^Answer must be on or after /);
-    expect(validateField(untilToday, "2026-11-03", nov2)).toMatch(/^Answer must be on or before /);
+  it("takes any date when an older field holds a fixed one", () => {
+    const fixed = field("DATE", { validation: { minDate: "2026-11-10", maxDate: "2026-11-20" } });
+    expect(validateField(fixed, "2020-01-01", nov2)).toBeNull();
   });
 
   it("on the server, takes any date that is today somewhere", () => {
     const today = anywhereToday(new Date("2026-11-02T20:00:00Z"));
     expect(today).toEqual({ earliest: "2026-11-02", latest: "2026-11-03" });
-    expect(validateField(untilToday, "2026-11-03", today)).toBeNull();
-    expect(validateField(untilToday, "2026-11-04", today)).toMatch(/^Answer must be on or before /);
+    expect(validateField(past, "2026-11-03", today)).toBeNull();
+    expect(validateField(past, "2026-11-04", today)).toBe("Answer must be today or in the past.");
     expect(anywhereToday(new Date("2026-11-02T06:00:00Z"))).toEqual({ earliest: "2026-11-01", latest: "2026-11-02" });
   });
 
@@ -203,12 +200,10 @@ describe("validateField: date", () => {
       process.env.TZ = zone;
     });
 
-    it("compares the day the visitor picked, and names the field's date as set", () => {
+    it("compares the day the visitor picked", () => {
       expect(new Date(2026, 10, 2).getTimezoneOffset()).toBe(480);
-      expect(validateField(fromToday, "2026-11-02", nov2)).toBeNull();
-      expect(validateField(between, "2026-11-09", nov2)).toBe(
-        `Answer must be on or after ${new Date(2026, 10, 10).toLocaleDateString()}.`
-      );
+      expect(validateField(future, "2026-11-02", nov2)).toBeNull();
+      expect(validateField(future, "2026-11-01", nov2)).toBe("Answer must be today or in the future.");
     });
   });
 });

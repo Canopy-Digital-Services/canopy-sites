@@ -52,7 +52,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Email | Email address | Validates format automatically |
 | Paragraph | Multi-line text | For longer responses |
 | Phone | Phone number | Lenient or strict format |
-| Date | Date picker | Optional min / max, no-future, no-past rules |
+| Date | Date picker | Past dates only, future dates only, or any date |
 | Name | Person's name | One box, or separate first, middle, and last parts |
 | Dropdown | Single select | Configure options; can offer "Other" |
 | Yes / No | Single checkbox | For consent-style prompts |
@@ -77,7 +77,7 @@ Every field type has the same core options, plus type-specific ones.
 - Text, Paragraph: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length.
 - Email: **Domain Rules** (allow only, or block, a list of domains) and **Store in lowercase**.
 - Phone: lenient, or strict US format.
-- Date: min date, max date, "no future", "no past".
+- Date: **Past Date** (today or earlier, for something that already happened), **Future Date** (today or later, for an appointment or event), or **Any Date**.
 - Dropdown, Checkboxes: the options, one box each. Click **Add option** or press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Tick **Include "Other"** to let visitors type their own answer, which is saved in place of "Other". A Dropdown can also start on a **Default choice**.
 - Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.
 - Address: which parts to collect: Street (with an optional Apt, suite), City, State, ZIP. Collect only what you need, for example ZIP alone for a service-area question. Tick a part in the Required column to require it, for example only ZIP; a new Address requires every part but Apt, suite. Rename a part with the pencil beside it. Addresses are US only: State is a list of US states and ZIP must be 5 or 9 digits.

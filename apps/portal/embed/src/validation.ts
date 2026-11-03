@@ -13,7 +13,9 @@ type FieldValidation = {
   minLength?: number;
   maxLength?: number;
   format?: "lenient" | "strict" | "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
+  /** "today": a Future Date. A fixed date, which older fields may hold, is no rule. */
   minDate?: string;
+  /** "today": a Past Date. */
   maxDate?: string;
   domainRules?: {
     allow?: string[];
@@ -139,7 +141,7 @@ export function anywhereToday(now = new Date()): Today {
   return { earliest: dateAt(-12), latest: dateAt(14) };
 }
 
-/** The day an answer or bound names, as YYYY-MM-DD, or null if it names none.
+/** The day an answer names, as YYYY-MM-DD, or null if it names none.
     A date written as the date input writes it is read as written; any other
     way of writing one is read on this machine's calendar. */
 function calendarDate(value: string): string | null {
@@ -150,17 +152,6 @@ function calendarDate(value: string): string | null {
   }
   const date = new Date(value);
   return isNaN(date.getTime()) ? null : localDate(date);
-}
-
-/** A YYYY-MM-DD date in the reader's own format. A date-time without an
-    offset is local, so the day stays the one named. */
-function formatDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString();
-}
-
-function dateBound(bound: string | undefined, today: string): string | null {
-  if (!bound) return null;
-  return bound === "today" ? today : calendarDate(bound);
 }
 
 function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
@@ -309,11 +300,10 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
 
     case "DATE": {
       const date = calendarDate(text);
-      if (!date) return `${label} must be a valid date.`;
-      const minDate = dateBound(rules.minDate, today.earliest);
-      if (minDate && date < minDate) return `${label} must be on or after ${formatDate(minDate)}.`;
-      const maxDate = dateBound(rules.maxDate, today.latest);
-      if (maxDate && date > maxDate) return `${label} must be on or before ${formatDate(maxDate)}.`;
+      // Worded as GOV.UK words date errors.
+      if (!date) return `${label} must be a real date.`;
+      if (rules.minDate === "today" && date < today.earliest) return `${label} must be today or in the future.`;
+      if (rules.maxDate === "today" && date > today.latest) return `${label} must be today or in the past.`;
       return null;
     }
 
