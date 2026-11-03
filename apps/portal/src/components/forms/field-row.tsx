@@ -11,7 +11,6 @@ import type { FieldType } from "@prisma/client";
 import { ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,20 +26,14 @@ import { anyPartRequired, defaultLabel, isComposite, isOptionsType } from "@/lib
 import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { RowBody } from "@/components/forms/row-body";
 import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
-import { useSelectStandIn } from "@/hooks/use-select-stand-in";
 import { FieldConfigRenderer, hasTypeSettings } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
-import { FIELD_TYPE_OPTIONS, fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
+import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
 
 // ─── Field rules ────────────────────────────────────────────────────────────
 // What a field saves and when it can't is in lib/field-rules; these are the
 // row's own.
-
-/** A type whose name already says what it asks for has no Label box: the
-    label stays the default unless renamed with the pencil beside it in the
-    row header, where the user can see what they are renaming. */
-const isSelfLabeled = (type: string) => fieldTypeHas(type, "selfLabeled");
 
 /** Whether the user has given the field a label of their own. */
 const hasCustomLabel = (field: FieldState) =>
@@ -87,6 +80,9 @@ type FieldRowProps = {
   open: boolean;
   /** Why the field can't save yet, shown under its type's settings. */
   problem: string | null;
+  /** Just added: it opens with its label in the rename box, selected, so
+      typing names it. */
+  naming: boolean;
   dragHandleProps: SortableItemRenderProps["dragHandleProps"];
   onToggle: () => void;
   onChange: (patch: Partial<FieldState>) => void;
@@ -100,6 +96,7 @@ export function FieldRow({
   field,
   open,
   problem,
+  naming,
   dragHandleProps,
   onToggle,
   onChange,
@@ -185,13 +182,15 @@ export function FieldRow({
           </span>
         )}
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          {open && isSelfLabeled(field.type) ? (
+          {/* The label is renamed where it's shown, here in the header. */}
+          {open ? (
             <InlineRename
               value={field.label}
               placeholder={defaultLabel(field.type)}
               onChange={(text) => onChange({ label: text })}
               name="Rename field"
-              className="h-8 max-w-64 font-heading text-base font-semibold"
+              defaultEditing={naming}
+              className="font-heading text-base md:text-base font-semibold"
               onEditingChange={(editing) => {
                 setRenaming(editing);
                 onFocusPart(editing ? "label" : null);
@@ -264,29 +263,9 @@ function FieldSettings({
 }) {
   const id = (part: string) => `field-${field.id}-${part}`;
   const optionsType = isOptionsType(field.type);
-  // A self-labeled field is renamed from its row header instead.
-  const selfLabeled = isSelfLabeled(field.type);
-  // A label still the type's name is a stand-in, as a starter option is.
-  const selectDefault = useSelectStandIn((text) => text === defaultLabel(field.type));
 
   return (
     <div className="space-y-4 px-3 pb-4 pt-2">
-      {!selfLabeled && (
-        <div className="space-y-2">
-          <Label htmlFor={id("label")}>Label</Label>
-          <Input
-            id={id("label")}
-            value={field.label}
-            onChange={(e) => onChange({ label: e.target.value })}
-            placeholder={defaultLabel(field.type)}
-            {...selectDefault}
-            // While the box has focus, the preview marks the label alone.
-            onFocus={() => onFocusPart("label")}
-            onBlur={() => onFocusPart(null)}
-          />
-        </div>
-      )}
-
       {/* A Name or Address is required part by part, in its own settings. */}
       {!isComposite(field.type) && (
         <div className="flex items-center gap-2">

@@ -42,6 +42,8 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     useFormContext();
   const fields = useMemo(() => [...state.fields].sort((a, b) => a.order - b.order), [state.fields]);
   const [openId, setOpenId] = useState<string | null>(null);
+  // The field just added, which opens with its label ready to type over.
+  const [namingId, setNamingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletingField, setDeletingField] = useState<FieldState | null>(null);
   const { toast } = useToast();
@@ -126,12 +128,14 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     flush(openId);
     tidy(openId);
     setOpenId(openId === fieldId ? null : fieldId);
+    setNamingId(null);
   };
 
   const closeOpen = () => {
     flush(openId);
     tidy(openId);
     setOpenId(null);
+    setNamingId(null);
   };
 
   const create = async (type: FieldType) => {
@@ -140,6 +144,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
       const created = await trackSave(createField(formId, newFieldDefaults(type)));
       addField(toFieldState(created));
       setOpenId(created.id);
+      setNamingId(created.id);
     } catch (error) {
       console.error(error);
       toast.error("Unable to add field. Please try again.");
@@ -195,6 +200,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
                 field={field}
                 open={openId === field.id}
                 problem={openId === field.id ? fieldProblem(field) : null}
+                naming={namingId === field.id}
                 dragHandleProps={dragHandleProps}
                 onToggle={() => toggle(field.id)}
                 onChange={(patch) => change(field.id, patch)}
