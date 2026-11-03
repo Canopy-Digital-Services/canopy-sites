@@ -99,6 +99,10 @@ describe("savedField", () => {
     expect(savedField({ type: "TEXTAREA", label: "Message", validation: { minLength: 2 } }).validation).toBeNull();
   });
 
+  it("keeps no rules for a Website, which checks the address itself", () => {
+    expect(savedField({ type: "WEBSITE", label: "Website", validation: { format: "url" } }).validation).toBeNull();
+  });
+
   it("keeps no rules for a Date of birth, which has none to set", () => {
     expect(savedField({ type: "DATE_OF_BIRTH", label: " ", validation: { maxDate: "today" } })).toMatchObject({
       label: "Date of birth",

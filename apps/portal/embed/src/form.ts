@@ -584,6 +584,20 @@ export class CanopyForm {
         input = phone;
         break;
       }
+      case "WEBSITE": {
+        // A text box with the phone's web keyboard (its / and .com), not
+        // type="url", whose own check refuses an address without https://.
+        const website = document.createElement("input");
+        website.type = "text";
+        website.className = "canopy-input";
+        website.setAttribute("inputmode", "url");
+        website.setAttribute("autocomplete", "url");
+        website.setAttribute("autocapitalize", "none");
+        website.setAttribute("autocorrect", "off");
+        website.spellcheck = false;
+        input = website;
+        break;
+      }
       case "DATE": {
         const date = document.createElement("input");
         date.type = "date";

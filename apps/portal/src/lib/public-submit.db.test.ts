@@ -18,6 +18,7 @@ async function contactForm(opts: { withFields?: boolean } = {}) {
         { formId: form.id, name: "name", type: "NAME", label: "Name", order: 2 },
         { formId: form.id, name: "born", type: "DATE_OF_BIRTH", label: "Date of birth", order: 3 },
         { formId: form.id, name: "budget", type: "NUMBER", label: "Budget", order: 4 },
+        { formId: form.id, name: "site", type: "WEBSITE", label: "Company site", order: 5 },
       ],
     });
   }
@@ -53,12 +54,13 @@ describe("handlePublicSubmit: what is stored", () => {
       name: { first: "Ann", last: "Lee" },
       born: "1980-3-7",
       budget: "1,250.50",
+      site: " example.com/about ",
       website: "",
     });
 
     expect(res.status).toBe(200);
     const submission = await prisma.submission.findFirstOrThrow({ where: { formId: form.id } });
-    expect(submission.data).toEqual({ email: "ann@example.com", name: { first: "Ann", last: "Lee" }, born: "1980-03-07", budget: "1250.50" });
+    expect(submission.data).toEqual({ email: "ann@example.com", name: { first: "Ann", last: "Lee" }, born: "1980-03-07", budget: "1250.50", site: "https://example.com/about" });
     expect(submission.isSpam).toBe(false);
   });
 
