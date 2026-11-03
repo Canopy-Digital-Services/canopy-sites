@@ -354,6 +354,7 @@ enum FieldType {
   NUMBER
   ADDRESS
   DATE_OF_BIRTH
+  WEBSITE
 }
 
 enum FormType {
