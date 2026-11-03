@@ -9,7 +9,7 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
-import { anywhereToday, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
+import { answerOf, anywhereToday, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
 
 type RateLimitConfig = {
   max: number;
@@ -157,48 +157,58 @@ export async function handlePublicSubmit({
         allowMethods
       );
     }
-    formData = JSON.parse(text) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("Not an object");
+    }
+    formData = parsed as Record<string, unknown>;
   } catch {
     return jsonResponse({ error: "Invalid JSON" }, 400, origin, allowMethods);
   }
 
-  if (form.fields.length > 0) {
-    // The form's own checks. The server can't know the visitor's date, so a
-    // bound of "today" takes any date it is somewhere.
-    const errors = validateSubmission(form.fields, formData, anywhereToday());
-
-    if (Object.keys(errors).length > 0) {
-      return jsonResponse(
-        { error: "Validation failed", fields: errors },
-        400,
-        origin,
-        allowMethods
-      );
+  // A key is a field's answer or the honeypot; anything else is refused.
+  // The form's own checks follow. The server can't know the visitor's date,
+  // so a bound of "today" takes any date it is somewhere.
+  const fieldNames = new Set(form.fields.map((field) => field.name));
+  const errors: Record<string, string> = {};
+  for (const key of Object.keys(formData)) {
+    if (!fieldNames.has(key) && key !== form.honeypotField) {
+      errors[key] = "This form has no field by that name.";
     }
+  }
+  Object.assign(errors, validateSubmission(form.fields, formData, anywhereToday()));
 
-    // Stored as checked: an email trimmed, and lowercased when the field
-    // normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX).
-    form.fields.forEach((field) => {
-      const value = formData[field.name];
-      if (value === undefined || value === null || String(value).trim() === "") return;
-      const rules =
-        typeof field.validation === "object" && field.validation !== null
-          ? (field.validation as { format?: string; normalize?: boolean })
-          : {};
-
-      if (field.type === "EMAIL") {
-        const email = String(value).trim();
-        formData[field.name] = rules.normalize ? email.toLowerCase() : email;
-      } else if (field.type === "PHONE" && rules.format === "strict") {
-        formData[field.name] = `+1${usPhoneDigits(String(value))}`;
-      }
-    });
+  if (Object.keys(errors).length > 0) {
+    return jsonResponse(
+      { error: "Validation failed", fields: errors },
+      400,
+      origin,
+      allowMethods
+    );
   }
 
-  let isSpam = false;
-  if (form.honeypotField && formData[form.honeypotField]) {
-    isSpam = true;
+  // Only the fields are stored, as checked: an email trimmed, and lowercased
+  // when the field normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX).
+  const data: Record<string, unknown> = {};
+  for (const field of form.fields) {
+    const value = answerOf(formData, field.name);
+    if (value === undefined) continue;
+    data[field.name] = value;
+    if (typeof value !== "string" || value.trim() === "") continue;
+    const rules =
+      typeof field.validation === "object" && field.validation !== null
+        ? (field.validation as { format?: string; normalize?: boolean })
+        : {};
+
+    if (field.type === "EMAIL") {
+      const email = value.trim();
+      data[field.name] = rules.normalize ? email.toLowerCase() : email;
+    } else if (field.type === "PHONE" && rules.format === "strict") {
+      data[field.name] = `+1${usPhoneDigits(value)}`;
+    }
   }
+
+  const isSpam = Boolean(form.honeypotField && formData[form.honeypotField]);
 
   const meta = {
     ipHash,
@@ -210,7 +220,7 @@ export async function handlePublicSubmit({
   const submission = await prisma.submission.create({
     data: {
       formId: form.id,
-      data: formData as Prisma.InputJsonValue,
+      data: data as Prisma.InputJsonValue,
       meta: meta as Prisma.InputJsonValue,
       isSpam,
       status: "NEW",
@@ -220,7 +230,7 @@ export async function handlePublicSubmit({
   // Send notification to all listed recipients if enabled
   if (!isSpam && form.emailNotificationsEnabled && form.notifyEmails.length > 0) {
     const extras = form.emailIncludeResponses
-      ? buildSubmissionEmailExtras(form.fields, formData, form.honeypotField)
+      ? buildSubmissionEmailExtras(form.fields, data, form.honeypotField)
       : null;
 
     queueNewSubmissionNotification({

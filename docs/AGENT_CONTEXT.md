@@ -73,7 +73,7 @@ Three layers, all required:
 
 1. HTML `maxLength` on inputs, from `getEffectiveMaxLength`.
 2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
-3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap and the gate order below. After validation passes it rewrites what is stored: an email trimmed (and lowercased when the field says so), a strict phone as E.164.
+3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap, the gate order below, and the body's keys. The body must be a JSON object whose every key is a field's name or `form.honeypotField`; any other key is a 400 with the key in `fields`, beside the fields' own errors. It stores only the fields' answers (never the honeypot, which is read from the body first), rewritten as checked: an email trimmed (and lowercased when the field says so), a strict phone as E.164.
 
 Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), a Checkbox `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Checkboxes a list of strings naming each option once, and a Name or Address an object of only the field's parts, each a string. A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
 
@@ -85,7 +85,7 @@ Dates compare as `YYYY-MM-DD` strings, never through `new Date` (a date-only str
 
 ### Public API contracts
 
-`handlePublicSubmit` in `src/lib/public-submit.ts` is the full gate order, shared by the **embed and submit routes only**: type gate → published gate → origin → rate limit → `stopAt` → `maxSubmissions` → payload size → field validation → honeypot → store → queue email. Add a new submission-side rule here so both routes get it. The embed route's GET carries its own copies of the type and published gates.
+`handlePublicSubmit` in `src/lib/public-submit.ts` is the full gate order, shared by the **embed and submit routes only**: type gate → published gate → origin → rate limit → `stopAt` → `maxSubmissions` → payload size → keys and field validation → honeypot → store the fields → queue email. Add a new submission-side rule here so both routes get it. The embed route's GET carries its own copies of the type and published gates.
 
 - **Embed API**: GET returns the embed-safe definition plus ordered fields. POST runs the full gate order. Rate limits: GET 60/min, POST 10/min per hashed IP. The IP comes from `clientIPFromHeaders` (`src/lib/validation.ts`), which trusts Cloudflare's `CF-Connecting-IP` first because the origin is reachable only through the tunnel; never put a client-controlled header such as the first `X-Forwarded-For` entry ahead of it, or every rate limit becomes bypassable.
 - **Submit API**: POST only, for white-box HTML forms that never fetch a schema.
