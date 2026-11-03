@@ -18,7 +18,7 @@ Hosted forms do not show allowed origins or the embed snippet — they aren't re
 ## Publishing a form
 
 1. Open your form and switch to the **Publish** tab.
-2. Click **Publish**. The status changes to Live.
+2. Click **Publish**. The status changes to Live. A form needs at least one field before it can be published.
 3. You can **Unpublish** at any time. Once unpublished, hosted forms show a "Form Not Available" page; embed snippets show the same message.
 
 ## Allowed origins (embedded forms only)

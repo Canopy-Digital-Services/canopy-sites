@@ -272,7 +272,7 @@ With `asChild`, put props on the element itself. A wrapper component breaks ref 
 </TooltipTrigger>
 ```
 
-Only when the disabled state has a reason worth showing. Loading and in-flight states need no tooltip. Reference: [publish-content.tsx](src/components/forms/publish-content.tsx) at the `maxPublishedForms` cap.
+Only when the disabled state has a reason worth showing. Loading and in-flight states need no tooltip. Reference: [publish-content.tsx](src/components/forms/publish-content.tsx) on a form with no fields, or at the `maxPublishedForms` cap.
 
 ### Toasts
 
@@ -532,6 +532,7 @@ Layout: the Editor tab is a two-column split, Publish and Submissions are single
 - Forward exits left, back exits right.
 - Section cards are plain `Card`s with no accent bar (see rule 22).
 - **The buttons name where they go** (Header, Fields, Submission Settings, Publish; `STEP_TITLES` in [editor-steps.ts](src/components/forms/editor-steps.ts), which the cards' titles read too). A bare Continue under the Fields list read as "done with this field" and moved on to the next step instead. Header's forward button says Fields whether or not it's filled (rule 25), and no "All set" card stands between the last step and Publish.
+- **Fields' forward button is disabled until the form has a field**, since a form can't be published without one (`docs/AGENT_CONTEXT.md` section 2, Data model). It carries no tooltip: the empty Fields list is the reason.
 
 **Live preview stand-ins.** The flow reports its step through `editorStep` in `FormContext`, and `FormPreview` fills empty parts so the user always edits something visible: `HEADER_PLACEHOLDERS` on the Header step, `FIELD_PLACEHOLDERS` on every later step while the form has no fields, and both in styling mode. Stand-ins are preview-only and never saved, so they must not look saved: they get `.preview-placeholder` (faded text with a skeleton shimmer built from `--canopy-text`) and stand-in fields `.preview-placeholder-field` (faded, inert inputs), both in `globals.css`. The embed's own skeleton shows only outside the flow.
 
