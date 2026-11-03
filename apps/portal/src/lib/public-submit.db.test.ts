@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { resetRateLimits } from "@/lib/rate-limit";
@@ -22,10 +22,11 @@ async function contactForm(opts: { withFields?: boolean } = {}) {
   return form;
 }
 
-function submit(formId: string, body: unknown) {
+/** POSTs the body from `origin`, by default a site on localhost; null sends no Origin. */
+function submit(formId: string, body: unknown, origin: string | null = "http://localhost:4321") {
   const request = new NextRequest(`http://localhost:3006/api/embed/${formId}`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "http://localhost:4321" },
+    headers: { "content-type": "application/json", ...(origin ? { origin } : {}) },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
   return handlePublicSubmit({
@@ -112,6 +113,39 @@ describe("handlePublicSubmit: what is refused", () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).fields).toEqual({ message: "This form has no field by that name." });
+    expect(await prisma.submission.count()).toBe(0);
+  });
+});
+
+describe("handlePublicSubmit: a hosted form", () => {
+  beforeEach(() => vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://forms.example.com"));
+  afterEach(() => vi.unstubAllEnvs());
+
+  async function hostedForm() {
+    const { account, user } = await createAccount();
+    const form = await createForm(account.id, user.id, { type: "HOSTED", published: true });
+    await prisma.field.create({ data: { formId: form.id, name: "email", type: "EMAIL", label: "Email", order: 1 } });
+    return form;
+  }
+
+  it("takes a submission from its hosted page", async () => {
+    const form = await hostedForm();
+
+    const res = await submit(form.id, { email: "ann@example.com" }, "https://forms.example.com");
+
+    expect(res.status).toBe(200);
+    const submission = await prisma.submission.findFirstOrThrow({ where: { formId: form.id } });
+    expect(submission.data).toEqual({ email: "ann@example.com" });
+  });
+
+  it("refuses a submission from any other site, localhost included", async () => {
+    const form = await hostedForm();
+
+    for (const origin of ["https://example.com", "https://forms.example.com.evil.test", "http://localhost:4321", null]) {
+      const res = await submit(form.id, { email: "ann@example.com" }, origin);
+      expect(res.status).toBe(403);
+      expect((await res.json()).code).toBe("FORM_HOSTED_ONLY");
+    }
     expect(await prisma.submission.count()).toBe(0);
   });
 });

@@ -1,5 +1,16 @@
 import * as crypto from "crypto";
 
+/** The request's Origin, else the Referer's origin: browsers don't send Origin on every same-origin request. */
+function sourceOrigin(origin: string | null, referer?: string | null): string | null {
+  if (origin) return origin;
+  if (!referer) return null;
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Validate that the origin matches one of the allowed domains
  * Handles apex and www variants, case-insensitive
@@ -9,18 +20,7 @@ export function validateOrigin(
   allowedOrigins: string[],
   referer?: string | null
 ): boolean {
-  // For same-origin requests, browsers don't send Origin header
-  // Use Referer as fallback to extract the origin
-  let effectiveOrigin = origin;
-  if (!effectiveOrigin && referer) {
-    try {
-      const refererUrl = new URL(referer);
-      effectiveOrigin = refererUrl.origin;
-    } catch {
-      // Invalid referer URL
-    }
-  }
-  
+  const effectiveOrigin = sourceOrigin(origin, referer);
   if (!effectiveOrigin) {
     return false;
   }
@@ -88,6 +88,22 @@ export function validateOrigin(
     }
 
     return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a request comes from the portal's own pages (NEXT_PUBLIC_APP_URL),
+ * as a hosted form's page does. The whole origin must match: localhost on
+ * another port is some other site.
+ */
+export function isAppOrigin(origin: string | null, referer?: string | null): boolean {
+  const source = sourceOrigin(origin, referer);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!source || !appUrl) return false;
+  try {
+    return new URL(source).origin === new URL(appUrl).origin;
   } catch {
     return false;
   }
