@@ -35,8 +35,8 @@ const CARD = "[data-preview-card]";
 
 /** A hosted form's content width in the preview, as a share of the pane:
     Wide fills it edge to edge, and the others keep their proportion to Wide.
-    The pane is narrower than Medium and Wide, so at their real widths they
-    would render the same. */
+    The pane is Wide's width, so each renders at its real width until a
+    narrow window shrinks the pane. */
 const previewWidth = (width: keyof typeof CONTENT_WIDTH_MAP) =>
   `${(parseInt(CONTENT_WIDTH_MAP[width], 10) / parseInt(CONTENT_WIDTH_MAP.lg, 10)) * 100}%`;
 
