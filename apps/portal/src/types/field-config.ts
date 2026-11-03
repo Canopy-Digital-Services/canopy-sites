@@ -11,12 +11,9 @@ import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
 // Dropdown and Checkboxes share one shape; only a Dropdown has a default.
 export type { NameOptions, AddressOptions, ChoiceOption, ChoiceOptions };
 
-// Base validation (shared by TEXT, EMAIL, TEXTAREA)
-export type BaseValidation = {
-  minLength?: number;
-  maxLength?: number;
-  format?: "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
-};
+/** A Paragraph's character limit; without one it takes the most a Paragraph
+    takes. */
+export type ParagraphValidation = { maxLength: number };
 
 // Type-specific validation extensions
 export type EmailValidation = {
@@ -45,7 +42,7 @@ export type NumberValidation = {
 export type FieldConfig =
   | {
       type: "TEXT";
-      validation?: BaseValidation;
+      validation?: never;
       options?: never;
     }
   | {
@@ -55,7 +52,7 @@ export type FieldConfig =
     }
   | {
       type: "TEXTAREA";
-      validation?: BaseValidation;
+      validation?: ParagraphValidation;
       options?: never;
     }
   | {

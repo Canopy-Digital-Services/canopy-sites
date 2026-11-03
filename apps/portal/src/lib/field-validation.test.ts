@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   anywhereToday,
   dateOfBirth,
-  getEffectiveMaxLength,
+  characterLimit,
   numberAnswer,
   isValidEmail,
   usPhoneDigits,
@@ -33,7 +33,7 @@ describe("validateField: required", () => {
     expect(validateField(field("EMAIL"), "")).toBeNull();
     expect(validateField(field("DATE"), null)).toBeNull();
     expect(validateField(field("CHECKBOXES"), [])).toBeNull();
-    expect(validateField(field("TEXT", { validation: { minLength: 5, format: "numbers" } }), "")).toBeNull();
+    expect(validateField(field("TEXTAREA", { validation: { maxLength: 5 } }), "")).toBeNull();
   });
 
   it("names the field by its label, or by its name without one", () => {
@@ -42,70 +42,41 @@ describe("validateField: required", () => {
 });
 
 describe("validateField: length", () => {
-  it("holds text to its type's default unless the field sets its own limit", () => {
-    expect(validateField(field("TEXT"), "x".repeat(201))).toBe("Answer must be at most 200 characters.");
-    expect(validateField(field("TEXT", { validation: { maxLength: 10 } }), "x".repeat(11))).toBe(
-      "Answer must be at most 10 characters."
-    );
-    expect(validateField(field("TEXT", { validation: { minLength: 3 } }), "xy")).toBe(
-      "Answer must be at least 3 characters."
-    );
+  it("holds Text to 200 characters, whatever rules an older field has stored", () => {
+    expect(validateField(field("TEXT"), "x".repeat(200))).toBeNull();
+    expect(validateField(field("TEXT"), "x".repeat(201))).toBe("Answer must be 200 characters or fewer.");
+    const older = field("TEXT", { validation: { minLength: 5, maxLength: 3, format: "numbers" } as never });
+    expect(validateField(older, "ab")).toBeNull();
   });
 
-  it("never lets a field's own limit pass its type's absolute", () => {
-    expect(getEffectiveMaxLength(field("TEXT", { validation: { maxLength: 1000 } }))).toBe(500);
-    expect(getEffectiveMaxLength(field("TEXTAREA", { validation: { maxLength: 50000 } }))).toBe(10000);
-    expect(validateField(field("TEXT", { validation: { maxLength: 1000 } }), "x".repeat(501))).toBe(
-      "Answer must be at most 500 characters."
-    );
+  it("holds a Paragraph to its character limit, in GOV.UK's words", () => {
+    const message = field("TEXTAREA", { label: "Message", validation: { maxLength: 1 } });
+    expect(validateField(message, "x")).toBeNull();
+    expect(validateField(message, "xy")).toBe("Message must be 1 character or fewer.");
+    const story = field("TEXTAREA", { label: "Story", validation: { maxLength: 2000 } });
+    expect(validateField(story, "x".repeat(2001))).toBe("Story must be 2,000 characters or fewer.");
   });
 
-  it("falls back to the default when the field's limit isn't a positive whole number", () => {
-    for (const maxLength of [0, -5, 2.5]) {
-      expect(getEffectiveMaxLength(field("TEXT", { validation: { maxLength } }))).toBe(200);
+  it("takes a Paragraph's limit only as a whole number from 1 to 10,000, else up to 10,000", () => {
+    expect(characterLimit(field("TEXTAREA", { validation: { maxLength: 240 } }))).toBe(240);
+    for (const maxLength of [0, -5, 2.5, 10001]) {
+      expect(characterLimit(field("TEXTAREA", { validation: { maxLength } }))).toBeUndefined();
     }
-  });
-
-  it("holds Phone, Number and Date to their type's cap, whatever limit the field has stored", () => {
-    expect(getEffectiveMaxLength(field("PHONE"))).toBe(30);
-    expect(getEffectiveMaxLength(field("PHONE", { validation: { maxLength: 5 } }))).toBe(30);
-    expect(getEffectiveMaxLength(field("NUMBER", { validation: { maxLength: 1000 } }))).toBe(50);
-    expect(getEffectiveMaxLength(field("DATE"))).toBe(30);
+    expect(characterLimit(field("TEXT", { validation: { maxLength: 240 } }))).toBeUndefined();
+    expect(validateField(field("TEXTAREA"), "x".repeat(10000))).toBeNull();
+    expect(validateField(field("TEXTAREA"), "x".repeat(10001))).toBe("Answer must be 10,000 characters or fewer.");
   });
 
   it("refuses a Phone, Number or Date answer past its cap before checking what it says", () => {
     expect(validateField(field("PHONE"), "5".repeat(30))).toBeNull();
-    expect(validateField(field("PHONE"), "5".repeat(60000))).toBe("Answer must be at most 30 characters.");
-    expect(validateField(field("PHONE", { validation: { format: "strict" } }), "5".repeat(31))).toBe(
-      "Answer must be at most 30 characters."
+    expect(validateField(field("PHONE"), "5".repeat(60000))).toBe("Answer must be 30 characters or fewer.");
+    expect(validateField(field("PHONE", { validation: { format: "strict", maxLength: 5 } }), "5".repeat(31))).toBe(
+      "Answer must be 30 characters or fewer."
     );
     expect(validateField(field("NUMBER"), "1".repeat(50))).toBeNull();
-    expect(validateField(field("NUMBER"), "1".repeat(51))).toBe("Answer must be at most 50 characters.");
+    expect(validateField(field("NUMBER"), "1".repeat(51))).toBe("Answer must be 50 characters or fewer.");
     expect(validateField(field("DATE"), "2026-11-02T10:00:00.000-08:00", nov2)).toBeNull();
-    expect(validateField(field("DATE"), "x".repeat(31), nov2)).toBe("Answer must be at most 30 characters.");
-  });
-
-  it("has no limit for types without one", () => {
-    expect(getEffectiveMaxLength(field("DROPDOWN"))).toBeUndefined();
-  });
-});
-
-describe("validateField: text formats", () => {
-  const formatted = (format: string) => field("TEXT", { validation: { format } });
-
-  it("checks the format the field asks for", () => {
-    expect(validateField(formatted("numbers"), "12a")).toBe("Answer must contain only numbers.");
-    expect(validateField(formatted("letters"), "ab c")).toBe("Answer must contain only letters.");
-    expect(validateField(formatted("postal-us"), "1234")).toBe(
-      "Answer must be a valid US postal code (e.g., 12345 or 12345-6789)."
-    );
-    expect(validateField(formatted("postal-ca"), "K1A0B1")).toBeNull();
-    expect(validateField(formatted("alphanumeric"), "anything at all!")).toBeNull();
-  });
-
-  it("takes a URL without its protocol, but not a bare word", () => {
-    expect(validateField(formatted("url"), "example.com/page")).toBeNull();
-    expect(validateField(formatted("url"), "localhost")).toBe("Answer must be a valid URL.");
+    expect(validateField(field("DATE"), "x".repeat(31), nov2)).toBe("Answer must be 30 characters or fewer.");
   });
 });
 
@@ -287,20 +258,20 @@ describe("validateField: name parts", () => {
 
   it("holds each part to 100 characters, naming it as the user labeled it", () => {
     expect(validateField(full, { first: "x".repeat(100), middleInitial: "Q.", last: "Lee" })).toBeNull();
-    expect(validateField(full, { first: "x".repeat(101), last: "Lee" })).toBe("First must be at most 100 characters.");
+    expect(validateField(full, { first: "x".repeat(101), last: "Lee" })).toBe("First must be 100 characters or fewer.");
     const surname = field("NAME", { options: { parts: ["first", "last"], partLabels: { last: "Surname" } } });
-    expect(validateField(surname, { first: "Ann", last: "x".repeat(101) })).toBe("Surname must be at most 100 characters.");
+    expect(validateField(surname, { first: "Ann", last: "x".repeat(101) })).toBe("Surname must be 100 characters or fewer.");
   });
 
   it("holds an initial to two characters, room for its period", () => {
     expect(validateField(full, { first: "Ann", middleInitial: "Qu.", last: "Lee" })).toBe(
-      "M.I. must be at most 2 characters."
+      "M.I. must be 2 characters or fewer."
     );
   });
 
   it("names a single box by the field's label", () => {
     const single = field("NAME", { options: { parts: ["single"] } });
-    expect(validateField(single, { single: "x".repeat(101) })).toBe("Answer must be at most 100 characters.");
+    expect(validateField(single, { single: "x".repeat(101) })).toBe("Answer must be 100 characters or fewer.");
   });
 });
 

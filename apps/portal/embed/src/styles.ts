@@ -140,9 +140,23 @@ export const baseStyles = `
   line-height: 1.4;
 }
 
-.canopy-error {
-  /* Hidden - using native HTML5 validation popups instead */
-  /* Keep in DOM for screen reader accessibility */
+/* A Paragraph's character count, under its box; bold once it's over. */
+.canopy-count {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  color: var(--canopy-text, #18181b);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.canopy-count[data-over] {
+  font-weight: 700;
+}
+
+/* Errors show in native HTML5 validation popups, so their elements are
+   hidden, kept in the DOM for screen readers, as is what only screen
+   readers hear. */
+.canopy-error,
+.canopy-visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;

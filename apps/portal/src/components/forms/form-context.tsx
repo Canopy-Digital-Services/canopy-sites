@@ -65,8 +65,7 @@ export const HEADER_PLACEHOLDERS = {
 export const FIELD_PLACEHOLDERS: FieldState[] = [
   { label: "Name", type: "TEXT", validation: null },
   { label: "Email", type: "EMAIL", validation: null },
-  // A short limit keeps the embed's textarea at its four-row minimum.
-  { label: "Message", type: "TEXTAREA", validation: { maxLength: 240 } },
+  { label: "Message", type: "TEXTAREA", validation: null },
 ].map((f, order) => ({
   ...f,
   id: `placeholder-${order}`,

@@ -39,6 +39,15 @@ describe("fieldProblem", () => {
     expect(problem(4, 5)).toBeNull();
   });
 
+  it("refuses a Paragraph limit it can't take", () => {
+    const problem = (maxLength: number) => fieldProblem({ type: "TEXTAREA", options: null, validation: { maxLength } });
+    expect(problem(0)).toBe("Character limit must be between 1 and 10,000.");
+    expect(problem(10001)).toBe("Character limit must be between 1 and 10,000.");
+    expect(problem(2.5)).toBe("Character limit must be between 1 and 10,000.");
+    expect(problem(10000)).toBeNull();
+    expect(fieldProblem({ type: "TEXTAREA", options: null, validation: null })).toBeNull();
+  });
+
   it("needs a Name or Address to collect a part", () => {
     expect(fieldProblem({ type: "NAME", options: { parts: [] } })).toBe("Choose at least one name part to save.");
     expect(fieldProblem({ type: "ADDRESS", options: { parts: [] } })).toBe("Choose at least one address part to save.");
@@ -67,7 +76,7 @@ describe("savedField", () => {
 
   it("keeps only the config the type keeps", () => {
     expect(savedField({ type: "TEXT", label: "Text", options: { options: [] }, validation: { maxLength: 5 } })).toMatchObject(
-      { options: null, validation: { maxLength: 5 } }
+      { options: null, validation: null }
     );
     expect(savedField({ type: "DROPDOWN", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
       { validation: null }
@@ -81,6 +90,13 @@ describe("savedField", () => {
       min: 1,
     });
     expect(savedField({ type: "NUMBER", label: "Guests", validation: { integer: false, maxLength: 5 } }).validation).toBeNull();
+  });
+
+  it("keeps a Paragraph's character limit alone", () => {
+    expect(savedField({ type: "TEXTAREA", label: "Message", validation: { maxLength: 500, minLength: 2, format: "letters" } }).validation).toEqual({
+      maxLength: 500,
+    });
+    expect(savedField({ type: "TEXTAREA", label: "Message", validation: { minLength: 2 } }).validation).toBeNull();
   });
 
   it("keeps no rules for a Date of birth, which has none to set", () => {

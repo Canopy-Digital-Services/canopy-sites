@@ -10,9 +10,10 @@ import { addressError, addressPartLabel, addressParts, type AddressOptions } fro
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
 
 type FieldValidation = {
-  minLength?: number;
+  /** A Paragraph's character limit. */
   maxLength?: number;
-  format?: "lenient" | "strict" | "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
+  /** A Phone's. */
+  format?: "lenient" | "strict";
   /** "today": a Future Date. A fixed date, which older fields may hold, is no rule. */
   minDate?: string;
   /** "today": a Past Date. */
@@ -47,19 +48,12 @@ type ValidatedField = {
   validation?: unknown;
 };
 
-/** The longest answer a type takes when the field sets no limit. Only these
-    types take a limit of their own. */
-const DEFAULT_MAX_LENGTHS: Record<string, number> = {
+/** The longest answer a type takes: a box's maxlength, so a visitor can't
+    type past what the server would refuse. A Paragraph's own limit is
+    counted instead (`characterLimit`). */
+const MAX_LENGTHS: Record<string, number> = {
   TEXT: 200,
-  EMAIL: 254, // RFC 5321 standard
-  TEXTAREA: 2000,
-};
-
-/** The most a field of the type can be set to take, or, for a type without
-    a default, the longest answer it takes. */
-const ABSOLUTE_MAX_LENGTHS: Record<string, number> = {
-  TEXT: 500,
-  EMAIL: 320, // Extended email format
+  EMAIL: 254, // RFC 5321
   TEXTAREA: 10000,
   PHONE: 30,
   NUMBER: 50,
@@ -73,18 +67,16 @@ function rulesOf(field: { validation?: unknown }): FieldValidation {
     : {};
 }
 
-/** The longest answer the field takes: its own limit when that's a positive
-    whole number, else its type's default, and never past its type's absolute.
-    A type without a default has no length setting, so it takes its absolute
-    whatever the field has stored. */
-function getEffectiveMaxLength(field: { type: string; validation?: unknown }): number | undefined {
-  const fallback = DEFAULT_MAX_LENGTHS[field.type];
-  const absolute = ABSOLUTE_MAX_LENGTHS[field.type];
-  if (fallback === undefined) return absolute;
-  const configured = rulesOf(field).maxLength;
-  const max = Number.isInteger(configured) && configured! > 0 ? configured! : fallback;
-  return absolute !== undefined ? Math.min(max, absolute) : max;
+/** A Paragraph's character limit: its own, when that's a whole number from 1
+    to the most a Paragraph takes. No other type has one. */
+export function characterLimit(field: { type: string; validation?: unknown }): number | undefined {
+  if (field.type !== "TEXTAREA") return undefined;
+  const limit = rulesOf(field).maxLength;
+  return Number.isInteger(limit) && limit! >= 1 && limit! <= MAX_LENGTHS.TEXTAREA ? limit : undefined;
 }
+
+/** "1 character", "2,000 characters". */
+export const characters = (count: number) => `${count.toLocaleString("en-US")} character${count === 1 ? "" : "s"}`;
 
 /** RFC 5322 compliant address shape. */
 const EMAIL_REGEX =
@@ -171,45 +163,7 @@ export function numberAnswer(value: string | number): string | null {
 }
 
 function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
-  return maxLength !== undefined && text.length > maxLength ? `${label} must be at most ${maxLength} characters.` : null;
-}
-
-function lengthError(field: ValidatedField, text: string, label: string): string | null {
-  const { minLength } = rulesOf(field);
-  if (minLength && text.length < minLength) {
-    return `${label} must be at least ${minLength} characters.`;
-  }
-  return tooLongError(text, getEffectiveMaxLength(field), label);
-}
-
-/** Text and Textarea formats. "alphanumeric", the default, takes any text. */
-function formatError(format: string | undefined, text: string, label: string): string | null {
-  switch (format) {
-    case "numbers":
-      return /^\d+$/.test(text) ? null : `${label} must contain only numbers.`;
-    case "letters":
-      return /^[A-Za-z]+$/.test(text) ? null : `${label} must contain only letters.`;
-    case "url": {
-      // Visitors leave the protocol off, so check with one added.
-      try {
-        const url = new URL(text.startsWith("http") ? text : `https://${text}`);
-        if (url.hostname.includes(".")) return null;
-      } catch {
-        // Not a URL.
-      }
-      return `${label} must be a valid URL.`;
-    }
-    case "postal-us":
-      return /^\d{5}(-\d{4})?$/.test(text)
-        ? null
-        : `${label} must be a valid US postal code (e.g., 12345 or 12345-6789).`;
-    case "postal-ca":
-      return /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(text)
-        ? null
-        : `${label} must be a valid Canadian postal code (e.g., K1A 0B1).`;
-    default:
-      return null;
-  }
+  return maxLength !== undefined && text.length > maxLength ? `${label} must be ${characters(maxLength)} or fewer.` : null;
 }
 
 /** Why a Name or Address answer isn't an object of only the field's own
@@ -293,11 +247,9 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
     return field.required ? `${label} is required.` : null;
   }
 
-  // A type without a length setting is held to its cap before its own rules.
-  if (DEFAULT_MAX_LENGTHS[field.type] === undefined) {
-    const tooLong = tooLongError(text, getEffectiveMaxLength(field), label);
-    if (tooLong) return tooLong;
-  }
+  // Held to its length before its type's own rules.
+  const tooLong = tooLongError(text, characterLimit(field) ?? MAX_LENGTHS[field.type], label);
+  if (tooLong) return tooLong;
 
   switch (field.type) {
     case "DROPDOWN":
@@ -362,11 +314,11 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       if (Array.isArray(block) && block.some((d) => String(d).toLowerCase() === domain)) {
         return `${label} domain is not allowed.`;
       }
-      return lengthError(field, email, label);
+      return null;
     }
 
     default:
-      return lengthError(field, text, label) ?? formatError(rules.format, text, label);
+      return null;
   }
 }
 
@@ -391,4 +343,4 @@ export function answerOf(values: Record<string, unknown>, name: string): unknown
 }
 
 export type { FieldDefinition, FieldValidation, ValidatedField, NameOptions, AddressOptions };
-export { getEffectiveMaxLength, DEFAULT_MAX_LENGTHS, ABSOLUTE_MAX_LENGTHS };
+export { MAX_LENGTHS };

@@ -1,5 +1,13 @@
 import { applyTheme, ensureFontsLoaded, ensureFontLoaded, getDensityClass, resolveTheme } from "./theme";
-import { FieldDefinition, validateSubmission, getEffectiveMaxLength, localDate, NameOptions } from "./validation";
+import {
+  FieldDefinition,
+  validateSubmission,
+  characterLimit,
+  characters,
+  MAX_LENGTHS,
+  localDate,
+  NameOptions,
+} from "./validation";
 import type { AddressOptions } from "./validation";
 import {
   CHOICE_PROMPT,
@@ -51,10 +59,14 @@ const joinDateOfBirth = (boxes: HTMLInputElement[]) => {
   return `${year}-${pad(month)}-${pad(day)}`;
 };
 
-/** Has a screen reader read a field's help text, if any, and its error with
-    `control` (its box, or the group of its parts or options). */
-const describe = (control: Element, help: HTMLElement | null, error: HTMLElement) =>
-  control.setAttribute("aria-describedby", help ? `${help.id} ${error.id}` : error.id);
+/** Has a screen reader read a field's help text, if any, a Paragraph's
+    limit, and its error with `control` (its box, or the group of its parts
+    or options). */
+const describe = (control: Element, help: HTMLElement | null, error: HTMLElement, limit?: HTMLElement) =>
+  control.setAttribute(
+    "aria-describedby",
+    [help, limit, error].flatMap((note) => (note ? [note.id] : [])).join(" ")
+  );
 
 export type FormDefinition = {
   formId: string;
@@ -379,16 +391,10 @@ export class CanopyForm {
       case "TEXTAREA": {
         const textarea = document.createElement("textarea");
         textarea.className = "canopy-textarea";
-        
-        // Auto-size based on character limit (roughly 60 chars per row)
-        const maxLength = getEffectiveMaxLength(field);
-        if (maxLength) {
-          const estimatedRows = Math.min(Math.max(Math.ceil(maxLength / 60), 4), 15);
-          textarea.rows = estimatedRows;
-        } else {
-          textarea.rows = 4;
-        }
-        
+        // Sized to the answer expected, as GOV.UK sizes it: from the limit at
+        // about 60 characters a row, else GOV.UK's 5 rows.
+        const limit = characterLimit(field);
+        textarea.rows = limit ? Math.min(Math.max(Math.ceil(limit / 60), 4), 15) : 5;
         input = textarea;
         break;
       }
@@ -630,8 +636,7 @@ export class CanopyForm {
       input.setAttribute("aria-required", "true");
     }
 
-    // Apply maxLength for browser-level enforcement
-    const maxLength = getEffectiveMaxLength(field);
+    const maxLength = MAX_LENGTHS[field.type];
     if (maxLength && (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
       input.maxLength = maxLength;
     }
@@ -649,7 +654,10 @@ export class CanopyForm {
     wrapper.appendChild(label);
     if (help) wrapper.appendChild(help);
     wrapper.appendChild(input);
-    describe(input, help, errorEl);
+    const limit = characterLimit(field);
+    const limitNote =
+      limit && input instanceof HTMLTextAreaElement ? this.addCharacterCount(wrapper, input, limit, fieldId) : undefined;
+    describe(input, help, errorEl, limitNote);
 
     // If this is a DROPDOWN with "Other" option, add the other input
     if ((input as SelectWithOther).__otherInput) {
@@ -669,6 +677,41 @@ export class CanopyForm {
     help.id = `${fieldId}-help`;
     help.textContent = field.helpText;
     return help;
+  }
+
+  /**
+   * GOV.UK's character count, under a Paragraph with a limit: the characters
+   * left, or how many too many. It never stops typing (the submit check holds
+   * the limit), and a screen reader hears it once typing pauses rather than
+   * at every key. Returns the note of the limit, which describes the box.
+   */
+  private addCharacterCount(wrapper: HTMLElement, textarea: HTMLTextAreaElement, limit: number, fieldId: string) {
+    const note = document.createElement("p");
+    note.className = "canopy-visually-hidden";
+    note.id = `${fieldId}-limit`;
+    note.textContent = `You can enter up to ${characters(limit)}`;
+
+    const count = document.createElement("p");
+    count.className = "canopy-count";
+    count.setAttribute("aria-hidden", "true");
+    const heard = document.createElement("p");
+    heard.className = "canopy-visually-hidden";
+    heard.setAttribute("aria-live", "polite");
+
+    const show = () => {
+      const left = limit - textarea.value.length;
+      count.textContent = `You have ${characters(Math.abs(left))} ${left < 0 ? "too many" : "remaining"}`;
+      count.toggleAttribute("data-over", left < 0);
+    };
+    let pause: ReturnType<typeof setTimeout> | undefined;
+    textarea.addEventListener("input", () => {
+      show();
+      clearTimeout(pause);
+      pause = setTimeout(() => (heard.textContent = count.textContent), 1000);
+    });
+    show();
+    wrapper.append(note, count, heard);
+    return note;
   }
 
   /** The box for a visitor's "Other" answer, hidden until they pick Other. */
