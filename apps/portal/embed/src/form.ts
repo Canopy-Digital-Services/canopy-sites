@@ -1248,13 +1248,6 @@ export class CanopyForm {
       return;
     }
 
-    // Preview mode: HTML5 validation has already passed (browser only fires
-    // submit when required fields are filled), so the user has felt the
-    // validation flow. Stop here — no fetch, no submission.
-    if (this.options.preview) {
-      return;
-    }
-
     this.setStatus("", "info");
     
     // Clear any previous validation state (including visible inputs for pseudo-input fields)
@@ -1283,6 +1276,10 @@ export class CanopyForm {
       this.setStatus(`Please fix ${count} field${count > 1 ? "s" : ""} to continue.`, "error");
       return;
     }
+
+    // The preview checks answers as the live form does, and stops there: no
+    // submission.
+    if (this.options.preview) return;
 
     if (this.submitButton) {
       this.submitButton.disabled = true;
