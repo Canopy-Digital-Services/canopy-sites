@@ -6,6 +6,7 @@ import { fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
 import { DEFAULT_NAME_PARTS, orderNameParts } from "../../embed/src/name";
 import { ADDRESS_PARTS, addressParts, type AddressOptions } from "../../embed/src/address";
 import { choiceOptions, clashingChoices, type ChoiceOption, type ChoiceOptions } from "../../embed/src/choices";
+import { characterLimit, MAX_LENGTHS } from "../../embed/src/validation";
 import type { DateValidation, NumberValidation } from "@/types/field-config";
 
 export const isChoiceType = (type: string) => fieldTypeHas(type, "choice");
@@ -65,6 +66,9 @@ export function fieldProblem(field: Pick<FieldSettings, "type" | "options" | "va
     if (clashingChoices(config).size > 0) return "Options must be different to save.";
   }
   if (field.type === "NUMBER" && rangeBackwards(field.validation)) return "Minimum must be lower than maximum.";
+  if (field.type === "TEXTAREA" && limitOutOfRange(field.validation)) {
+    return `Character limit must be between 1 and ${MAX_LENGTHS.TEXTAREA.toLocaleString("en-US")}.`;
+  }
   if (isComposite(field.type)) {
     const parts = (field.options as Parts | null)?.parts;
     const noun = field.type === "NAME" ? "name" : "address";
@@ -121,6 +125,13 @@ export function rangeBackwards(validation: unknown): boolean {
   return min !== undefined && max !== undefined && min >= max;
 }
 
+/** Whether a Paragraph has a character limit it can't take: not a whole
+    number from 1 to the most a Paragraph takes. */
+export function limitOutOfRange(validation: unknown): boolean {
+  const set = (validation as { maxLength?: unknown } | null)?.maxLength !== undefined;
+  return set && characterLimit({ type: "TEXTAREA", validation }) === undefined;
+}
+
 /** Which dates a Date field takes, as its settings name them. */
 export type DateWhen = "past" | "future" | "any";
 
@@ -149,6 +160,11 @@ function savedValidation(field: FieldSettings): unknown {
       return dateRule(dateWhen(field.validation));
     case "NUMBER":
       return savedNumberRule(field.validation);
+    case "TEXTAREA": {
+      const limit = characterLimit(field);
+      return limit ? { maxLength: limit } : null;
+    }
+    case "TEXT":
     case "DATE_OF_BIRTH":
       return null;
     default:

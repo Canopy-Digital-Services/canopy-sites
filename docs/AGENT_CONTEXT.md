@@ -72,13 +72,13 @@ Identify which layer a change touches before starting.
 
 Three layers, all required:
 
-1. HTML `maxLength` on inputs, from `getEffectiveMaxLength`.
+1. HTML `maxLength` on inputs, from `MAX_LENGTHS`.
 2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
 3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap, the gate order below, and the body's keys. The body must be a JSON object whose every key is a field's name or `form.honeypotField`; any other key is a 400 with the key in `fields`, beside the fields' own errors. It stores only the fields' answers (never the honeypot, which is read from the body first), rewritten as checked: an email trimmed (and lowercased when the field says so), a strict phone as E.164.
 
 Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), a Checkbox `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Checkboxes a list of strings naming each option once, and a Name or Address an object of only the field's parts, each a string. A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
 
-Length caps (`DEFAULT_MAX_LENGTHS`, `ABSOLUTE_MAX_LENGTHS` beside `validateField`): a type with a default takes a field's `maxLength` only as a positive whole number, otherwise its default, and either is clamped to the type's absolute. A type with only an absolute has no length setting and is held to it whatever the field stores. Name and Address parts are capped per part beside their rules (`embed/src/name.ts`, `embed/src/address.ts`), and an "Other" answer in `embed/src/choices.ts`. The embed sets each cap as the input's `maxlength` (number and date inputs ignore it), so a visitor can't type past what the server would refuse.
+Length caps (`MAX_LENGTHS` beside `validateField`): every type that takes one piece of text is held to its cap whatever the field stores. The one length setting is a Paragraph's character limit (`characterLimit`), taken only as a whole number from 1 to the Paragraph cap; the form counts it down rather than stopping typing at it, and `validateField` refuses an answer past it. Name and Address parts are capped per part beside their rules (`embed/src/name.ts`, `embed/src/address.ts`), and an "Other" answer in `embed/src/choices.ts`. The embed sets each cap as the input's `maxlength` (number and date inputs ignore it), so a visitor can't type past what the server would refuse.
 
 Dates compare as `YYYY-MM-DD` strings, never through `new Date` (a date-only string parses as UTC midnight, the previous day west of UTC). A bound of `"today"` is the visitor's own date in the embed; the server can't know the visitor's zone, so it accepts any date that is today somewhere (`anywhereToday`, UTC-12 to UTC+14).
 

@@ -50,7 +50,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 |---|---|---|
 | Text | Single line of text | General-purpose input |
 | Email | Email address | Validates format automatically |
-| Paragraph | Multi-line text | For longer responses |
+| Paragraph | Multi-line text | For longer responses, with an optional character limit |
 | Phone | Phone number | Lenient or strict format |
 | Date | Date picker | Past dates only, future dates only, or any date |
 | Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
@@ -75,7 +75,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 
-- Text, Paragraph: format rules (letters only, numbers only, URL, postal codes, etc.), min and max length.
+- Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Text has no settings of its own: for a number use Number, and for a ZIP code an Address with only ZIP.
 - Email: **Domain Rules** (allow only, or block, a list of domains) and **Store in lowercase**.
 - Phone: lenient, or strict US format.
 - Date: **Past Date** (today or earlier, for something that already happened), **Future Date** (today or later, for an appointment or event), or **Any Date**.

@@ -66,7 +66,7 @@ export function addressError(
       return `${addressPartLabel(part, options?.partLabels)} is required.`;
     }
     if (raw(part).length > ADDRESS_PART_MAX_LENGTH) {
-      return `${addressPartLabel(part, options?.partLabels)} must be at most ${ADDRESS_PART_MAX_LENGTH} characters.`;
+      return `${addressPartLabel(part, options?.partLabels)} must be ${ADDRESS_PART_MAX_LENGTH} characters or fewer.`;
     }
   }
   if (parts.includes("postalCode") && text("postalCode") && !ZIP.test(text("postalCode"))) {

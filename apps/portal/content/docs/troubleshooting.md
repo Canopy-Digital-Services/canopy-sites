@@ -68,7 +68,7 @@ Quick fixes for the most common problems. If none of these match, check the brow
 
 ## Validation errors I didn't expect
 
-- Text-type fields have default character limits that apply when you don't set one explicitly: Text 200, Email 254, Paragraph 2000. A limit you set higher is held to 500, 320, and 10000 respectively: the field stops taking text there, and the server refuses anything longer.
+- Text takes up to 200 characters, Email 254, and Paragraph 10,000: the field stops taking text there, and the server refuses anything longer. A Paragraph with a **Character limit** counts down under its box instead, and the form won't submit while it's over.
 - Dropdown and Checkboxes fields reject values that aren't in the configured options list. If you renamed an option, older embeds cached in browsers may still submit the old value until they re-fetch the definition.
 
 ## I changed my password and got signed out on another device
