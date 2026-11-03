@@ -564,16 +564,10 @@ export class CanopyForm {
         const date = document.createElement("input");
         date.type = "date";
         date.className = "canopy-input";
-        // Apply min/max from validation if present
-        const validation = field.validation;
-        if (validation) {
-          if (validation.minDate) {
-            date.min = this.resolveDate(validation.minDate);
-          }
-          if (validation.maxDate) {
-            date.max = this.resolveDate(validation.maxDate);
-          }
-        }
+        // The picker greys out the days a Future or Past Date doesn't take.
+        // "Today" is the visitor's date, as validateSubmission reads it.
+        if (field.validation?.minDate === "today") date.min = localDate();
+        if (field.validation?.maxDate === "today") date.max = localDate();
         input = date;
         break;
       }
@@ -676,14 +670,6 @@ export class CanopyForm {
       otherInput.setCustomValidity("");
     });
     return otherInput;
-  }
-
-  // "today" is the visitor's date, as validateSubmission reads it.
-  private resolveDate(dateValue: string): string {
-    if (dateValue === "today") {
-      return localDate();
-    }
-    return dateValue;
   }
 
   private createNameField(field: FieldDefinition) {

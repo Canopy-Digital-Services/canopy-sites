@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldProblem, newFieldDefaults, savedChoices, savedField } from "./field-rules";
+import { dateRule, dateWhen, fieldProblem, newFieldDefaults, savedChoices, savedField } from "./field-rules";
 
 const options = (...labels: string[]) => labels.map((l) => ({ value: l, label: l }));
 
@@ -65,6 +65,17 @@ describe("savedField", () => {
     expect(savedField({ type: "DROPDOWN", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
       { validation: null }
     );
+  });
+
+  it("keeps a Date's choice of past or future dates, and drops a fixed date", () => {
+    expect(savedField({ type: "DATE", label: "Date", validation: { minDate: "today" } }).validation).toEqual({ minDate: "today" });
+    expect(savedField({ type: "DATE", label: "Date", validation: { maxDate: "today" } }).validation).toEqual({ maxDate: "today" });
+    expect(savedField({ type: "DATE", label: "Date", validation: { minDate: "2026-01-01", maxDate: "today" } }).validation).toEqual({
+      maxDate: "today",
+    });
+    expect(savedField({ type: "DATE", label: "Date", validation: { minDate: "2026-01-01" } }).validation).toBeNull();
+    expect(dateRule(dateWhen({ minDate: "today" }))).toEqual({ minDate: "today" });
+    expect(dateRule("any")).toBeNull();
   });
 
   it("keeps a Name's labels and requirements to the parts it collects, in form order", () => {

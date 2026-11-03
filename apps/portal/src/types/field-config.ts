@@ -31,10 +31,9 @@ export type PhoneValidation = {
   format?: "lenient" | "strict";
 };
 
-export type DateValidation = {
-  minDate?: string; // ISO string or "today"
-  maxDate?: string; // ISO string or "today"
-};
+/** A Future Date takes today or later (`minDate`), a Past Date today or
+    earlier (`maxDate`); an Any Date field stores no rule. */
+export type DateValidation = { minDate: "today" } | { maxDate: "today" };
 
 export type NumberValidation = {
   min?: number;

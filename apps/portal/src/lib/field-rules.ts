@@ -6,6 +6,7 @@ import { fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
 import { DEFAULT_NAME_PARTS, orderNameParts } from "../../embed/src/name";
 import { ADDRESS_PARTS, addressParts, type AddressOptions } from "../../embed/src/address";
 import { choiceOptions, clashingChoices, type ChoiceOption, type ChoiceOptions } from "../../embed/src/choices";
+import type { DateValidation } from "@/types/field-config";
 
 export const isChoiceType = (type: string) => fieldTypeHas(type, "choice");
 
@@ -99,6 +100,22 @@ export function savedChoices(options: unknown): ChoiceOptions {
   return saved;
 }
 
+/** Which dates a Date field takes, as its settings name them. */
+export type DateWhen = "past" | "future" | "any";
+
+/** A Date field's stored rule, read as a choice. A fixed date, which older
+    fields may hold, is no rule. */
+export function dateWhen(validation: unknown): DateWhen {
+  const rule = validation as { minDate?: unknown; maxDate?: unknown } | null;
+  if (rule?.minDate === "today") return "future";
+  if (rule?.maxDate === "today") return "past";
+  return "any";
+}
+
+/** The rule a Date field stores for `when`. */
+export const dateRule = (when: DateWhen): DateValidation | null =>
+  when === "future" ? { minDate: "today" } : when === "past" ? { maxDate: "today" } : null;
+
 /** Whether a Name or Address asks for any part: the field's `required`,
     which the list's asterisk reads. */
 export const anyPartRequired = (options: unknown) => ((options as Parts | null)?.requiredParts?.length ?? 0) > 0;
@@ -124,6 +141,10 @@ export function savedField(field: FieldSettings) {
     helpText: field.helpText?.trim() || null,
     required: partsListed ? anyPartRequired(options) : Boolean(field.required),
     options,
-    validation: optionsType ? null : (field.validation ?? null),
+    validation: optionsType
+      ? null
+      : field.type === "DATE"
+        ? dateRule(dateWhen(field.validation))
+        : (field.validation ?? null),
   };
 }
