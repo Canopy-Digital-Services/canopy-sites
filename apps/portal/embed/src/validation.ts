@@ -1,7 +1,8 @@
 /**
  * The rules an answer must pass, field by field. The form checks them before
  * it submits, and the server (src/lib/public-submit.ts) runs the same checks
- * on every submission, with only its own guardrails (payload size) on top.
+ * on every submission, with only its own guardrails (payload size, keys that
+ * aren't fields) on top.
  */
 
 import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, type NameOptions } from "./name";

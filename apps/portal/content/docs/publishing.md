@@ -165,6 +165,12 @@ The Publish tab shows this endpoint for your form. Below is a complete example y
 </script>
 ```
 
+**Field names.** Every key you send must be one of your form's field names, or the honeypot's. A submission with any other key is refused with `400`, and the response names the key. Most fields take text. A Checkbox takes `true`, `false`, or `on` (what a checked box sends). Name and Address take an object of only the parts the field collects, which `FormData` can't build, so write that JSON yourself:
+
+```json
+{ "name": { "first": "Ann", "last": "Lee" }, "email": "ann@example.com" }
+```
+
 **Honeypot.** If the form has a honeypot field configured, include it as a hidden input in your HTML. Legitimate users won't fill it; bots that do get marked as spam.
 
 ```html
@@ -174,7 +180,8 @@ The Publish tab shows this endpoint for your form. Below is a complete example y
 **Response shape.**
 
 - `200 OK`: `{ "success": true, "id": "<submission-id>" }`
-- `400 Bad Request` with validation errors: `{ "error": "Validation failed", "fields": { "email": "Email must be valid" } }`
+- `400 Bad Request` with validation errors: `{ "error": "Validation failed", "fields": { "email": "Enter a valid email address", "phone_number": "This form has no field by that name." } }`
+- `400 Bad Request` when the body isn't a JSON object: `{ "error": "Invalid JSON" }`
 - `403 Forbidden`: `{ "error": "Origin not allowed" }`
 - `413 Payload Too Large`: payload exceeds 64KB
 - `429 Too Many Requests`: rate limit hit
@@ -198,9 +205,9 @@ POST https://forms.canopyds.com/api/submit/YOUR_FORM_ID/<field-name>
 ## What happens on submit
 
 1. The origin is validated against Allowed Origins (localhost is always allowed).
-2. Each field is validated server-side against its configuration (required, format, length).
+2. Every key must be a field's name or the honeypot's, and each field is validated server-side against its configuration (required, format, length).
 3. If a honeypot is configured and filled, the submission is marked as spam.
-4. The submission is stored with NEW status and timestamped.
+4. The fields' answers are stored with NEW status and timestamped. The honeypot's value isn't kept.
 5. If email notifications are on (and the submission isn't spam), an email is sent to each recipient.
 6. The hosted page (or embed) shows the configured success message, or redirects to the URL you set.
 
