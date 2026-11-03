@@ -9,7 +9,15 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
-import { answerOf, anywhereToday, dateOfBirth, numberAnswer, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
+import {
+  answerOf,
+  anywhereToday,
+  dateOfBirth,
+  numberAnswer,
+  usPhoneDigits,
+  validateSubmission,
+  websiteAddress,
+} from "../../embed/src/validation";
 
 type RateLimitConfig = {
   max: number;
@@ -192,7 +200,8 @@ export async function handlePublicSubmit({
   // Only the fields are stored, as checked: an email trimmed, and lowercased
   // when the field normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX);
   // a date of birth as YYYY-MM-DD, like a Date's answer; a number without the
-  // commas or spaces it was written with.
+  // commas or spaces it was written with; a website with https:// when typed
+  // without one.
   const data: Record<string, unknown> = {};
   for (const field of form.fields) {
     const value = answerOf(formData, field.name);
@@ -213,6 +222,8 @@ export async function handlePublicSubmit({
       data[field.name] = dateOfBirth(value) ?? value;
     } else if (field.type === "NUMBER") {
       data[field.name] = numberAnswer(value) ?? value;
+    } else if (field.type === "WEBSITE") {
+      data[field.name] = websiteAddress(value) ?? value;
     }
   }
 

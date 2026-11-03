@@ -165,6 +165,7 @@ function savedValidation(field: FieldSettings): unknown {
       return limit ? { maxLength: limit } : null;
     }
     case "TEXT":
+    case "WEBSITE":
     case "DATE_OF_BIRTH":
       return null;
     default:

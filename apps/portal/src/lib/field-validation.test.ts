@@ -4,6 +4,7 @@ import {
   dateOfBirth,
   characterLimit,
   numberAnswer,
+  websiteAddress,
   isValidEmail,
   usPhoneDigits,
   validateField,
@@ -77,6 +78,28 @@ describe("validateField: length", () => {
     expect(validateField(field("NUMBER"), "1".repeat(51))).toBe("Answer must be 50 characters or fewer.");
     expect(validateField(field("DATE"), "2026-11-02T10:00:00.000-08:00", nov2)).toBeNull();
     expect(validateField(field("DATE"), "x".repeat(31), nov2)).toBe("Answer must be 30 characters or fewer.");
+  });
+});
+
+describe("validateField: website", () => {
+  const site = field("WEBSITE", { label: "Website" });
+
+  it("takes an address with or without its https://", () => {
+    for (const address of ["example.com", "www.example.co.uk/about?ref=1", "https://example.com", "HTTP://example.com:8080", "httpbin.org"]) {
+      expect(validateField(site, address)).toBeNull();
+    }
+  });
+
+  it("refuses what isn't a web address, in GOV.UK's words", () => {
+    for (const address of ["localhost", "example", "example.com.", "ftp://example.com", "javascript:alert(1)", "ann@example.com", "my site.com"]) {
+      expect(validateField(site, address)).toBe("Website must be a web address, like example.com.");
+    }
+  });
+
+  it("gives an address without one https://, and leaves one with it as typed", () => {
+    expect(websiteAddress(" example.com/about ")).toBe("https://example.com/about");
+    expect(websiteAddress("http://Example.com")).toBe("http://Example.com");
+    expect(websiteAddress("example")).toBeNull();
   });
 });
 

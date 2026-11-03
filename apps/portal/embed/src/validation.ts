@@ -59,6 +59,7 @@ const MAX_LENGTHS: Record<string, number> = {
   NUMBER: 50,
   DATE: 30,
   DATE_OF_BIRTH: 10, // YYYY-MM-DD
+  WEBSITE: 2000,
 };
 
 function rulesOf(field: { validation?: unknown }): FieldValidation {
@@ -160,6 +161,23 @@ export function dateOfBirth(text: string): string | null {
 export function numberAnswer(value: string | number): string | null {
   const typed = String(value).replace(/[,\s]/g, "");
   return /^-?(\d+\.?\d*|\.\d+)$/.test(typed) ? typed : null;
+}
+
+/** A Website answer as a full address: https:// added when it has no http://
+    or https:// of its own. Null if it isn't a web address: no host with a
+    dot, another scheme, a space, or a name and password (an email typed in
+    the wrong box reads as one). */
+export function websiteAddress(value: string): string | null {
+  const typed = value.trim();
+  if (/\s/.test(typed)) return null;
+  const full = /^https?:\/\//i.test(typed) ? typed : `https://${typed}`;
+  try {
+    const url = new URL(full);
+    const named = url.hostname.split(".");
+    return named.length > 1 && named.every(Boolean) && !url.username && !url.password ? full : null;
+  } catch {
+    return null;
+  }
 }
 
 function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
@@ -302,6 +320,9 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       // Fewer of a count, less of an amount.
       return min !== undefined ? `${label} must be ${min} or more.` : `${label} must be ${max} or ${integer ? "fewer" : "less"}.`;
     }
+
+    case "WEBSITE":
+      return websiteAddress(text) ? null : `${label} must be a web address, like example.com.`;
 
     case "EMAIL": {
       const email = text.trim();

@@ -52,6 +52,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Email | Email address | Validates format automatically |
 | Paragraph | Multi-line text | For longer responses, with an optional character limit |
 | Phone | Phone number | Lenient or strict format |
+| Website | Web address | Visitors can leave off https://; it's added when saved |
 | Date | Date picker | Past dates only, future dates only, or any date |
 | Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
 | Name | Person's name | One box, or separate first, middle, and last parts |
@@ -61,7 +62,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Number | Numeric input | Whole number or decimal, with an optional minimum and maximum |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
-On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Address, and Date of birth from their saved details, and phones show a number pad for Phone, Number, ZIP, and Date of birth. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
+On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Website, Address, and Date of birth from their saved details. Phones show a number pad for Phone, Number, ZIP, and Date of birth, and a keyboard with / and .com for Website. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
 
 ### Configuring a field
 
@@ -75,7 +76,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 
-- Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Text has no settings of its own: for a number use Number, and for a ZIP code an Address with only ZIP.
+- Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Text has no settings of its own: for a number use Number, for a web address Website, and for a ZIP code an Address with only ZIP.
 - Email: **Domain Rules** (allow only, or block, a list of domains) and **Store in lowercase**.
 - Phone: lenient, or strict US format.
 - Date: **Past Date** (today or earlier, for something that already happened), **Future Date** (today or later, for an appointment or event), or **Any Date**.
