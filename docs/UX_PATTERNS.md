@@ -404,7 +404,7 @@ The split is deliberate: the admin UI is an environment we fully control, and co
 
 Embed specifics, in `embed/src/form.ts` (the popups) and `embed/src/validation.ts` (the rules, which the server runs too; `docs/AGENT_CONTEXT.md` section 2):
 
-- **One error at a time.** Popup on the first invalid field, focus it, user resubmits for the next. The status strip shows the total: "Please fix N field(s) to continue."
+- **One error at a time.** Popup on the first invalid field, focus it, user resubmits for the next. The status strip shows the total: "Please fix N field(s) to continue." The editor's preview runs the same checks on Submit and stops before sending.
 - Validation clears on typing: `input.addEventListener("input", () => input.setCustomValidity(""))`.
 - Messages are `validateField`'s fixed text, except where the browser's own check stops the submit first (an email's shape, a Date's range, which its picker's greyed-out days mostly keep visitors from). Per-field custom messages were removed in v3.7.2.
 - `.canopy-error` inline text is visually hidden but kept in the DOM for assistive tech; popups are the visible channel.
