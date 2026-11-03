@@ -30,6 +30,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "EMAIL" as const, label: "Email", selfLabeled: true },
   { value: "PHONE" as const, label: "Phone", selfLabeled: true },
   { value: "ADDRESS" as const, label: "Address", composite: true, selfLabeled: true },
+  { value: "DATE_OF_BIRTH" as const, label: "Date of birth", selfLabeled: true },
   { value: "DATE" as const, label: "Date" },
   { value: "NUMBER" as const, label: "Number" },
   { value: "TEXT" as const, label: "Text" },
