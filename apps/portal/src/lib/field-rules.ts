@@ -145,6 +145,8 @@ export function savedField(field: FieldSettings) {
       ? null
       : field.type === "DATE"
         ? dateRule(dateWhen(field.validation))
-        : (field.validation ?? null),
+        : field.type === "DATE_OF_BIRTH"
+          ? null
+          : (field.validation ?? null),
   };
 }

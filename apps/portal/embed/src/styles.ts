@@ -220,6 +220,28 @@ export const baseStyles = `
   color: var(--canopy-text, #18181b);
 }
 
+/* Month, Day, and Year, each box as wide as its digits. */
+.canopy-dob-parts {
+  display: flex;
+  gap: 12px;
+}
+
+.canopy-dob-part {
+  display: grid;
+  gap: 4px;
+  width: 4.5em;
+}
+
+.canopy-dob-part-year {
+  width: 6em;
+}
+
+.canopy-dob-part-label {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
 .canopy-root .canopy-submit {
   display: block;
   width: var(--canopy-button-width, 100%);

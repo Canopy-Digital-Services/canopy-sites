@@ -53,6 +53,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Paragraph | Multi-line text | For longer responses |
 | Phone | Phone number | Lenient or strict format |
 | Date | Date picker | Past dates only, future dates only, or any date |
+| Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
 | Name | Person's name | One box, or separate first, middle, and last parts |
 | Dropdown | Single select | Configure options; can offer "Other" |
 | Yes / No | Single checkbox | For consent-style prompts |
@@ -60,7 +61,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Number | Numeric input | Min/max bounds |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
-On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, and Address from their saved details, and phones show a number pad for Phone, Number, and ZIP. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
+On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Address, and Date of birth from their saved details, and phones show a number pad for Phone, Number, ZIP, and Date of birth. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
 
 ### Configuring a field
 
@@ -68,7 +69,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Core options:**
 
-- **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, and Address have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
+- **Label**: what the user sees. A new field starts with its type as the label (an Email field is labeled "Email"); change it if you need to, or clear it to go back to the default. Name, Email, Phone, Address, and Date of birth have no Label box; rename one with the pencil beside its label at the top of its settings. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
 - **Required**: toggles whether the field must be filled before the form can submit. Name and Address are required part by part instead, with a Required column beside their parts.
 - **Help text**: optional text shown under the field's label, before the box, to guide the user, such as an example answer ("For example, kitchen remodel, about 200 sq ft"). It stays visible while people type, and screen readers read it with the field.
 

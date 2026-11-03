@@ -64,6 +64,7 @@ const ABSOLUTE_MAX_LENGTHS: Record<string, number> = {
   PHONE: 30,
   NUMBER: 50,
   DATE: 30,
+  DATE_OF_BIRTH: 10, // YYYY-MM-DD
 };
 
 function rulesOf(field: { validation?: unknown }): FieldValidation {
@@ -152,6 +153,13 @@ function calendarDate(value: string): string | null {
   }
   const date = new Date(value);
   return isNaN(date.getTime()) ? null : localDate(date);
+}
+
+/** A Date of birth's answer as the date it names, YYYY-MM-DD, or null if it
+    names none. The form joins its Month, Day and Year boxes as YYYY-M-D. */
+export function dateOfBirth(text: string): string | null {
+  const parts = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text);
+  return parts ? calendarDate(`${parts[1]}-${parts[2].padStart(2, "0")}-${parts[3].padStart(2, "0")}`) : null;
 }
 
 function tooLongError(text: string, maxLength: number | undefined, label: string): string | null {
@@ -305,6 +313,19 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       if (rules.minDate === "today" && date < today.earliest) return `${label} must be today or in the future.`;
       if (rules.maxDate === "today" && date > today.latest) return `${label} must be today or in the past.`;
       return null;
+    }
+
+    case "DATE_OF_BIRTH": {
+      // GOV.UK's date errors, a missing box first. An empty box joins as an
+      // empty piece ("1980--27").
+      const [year = "", month = "", day = ""] = text.split("-");
+      if (!month.trim()) return `${label} must include a month.`;
+      if (!day.trim()) return `${label} must include a day.`;
+      if (!year.trim()) return `${label} must include a year.`;
+      if (!/^\d{4}$/.test(year)) return "Year must include 4 numbers.";
+      const date = dateOfBirth(text);
+      if (!date) return `${label} must be a real date.`;
+      return date >= today.latest ? `${label} must be in the past.` : null;
     }
 
     case "NUMBER": {
