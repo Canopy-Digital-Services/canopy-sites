@@ -62,7 +62,7 @@ export function PartRow({
           value={label}
           placeholder={defaultLabel}
           onChange={onRename}
-          name={`Rename ${defaultLabel}`}
+          name={`Rename ${label || defaultLabel}`}
           className="max-w-40"
           onEditingChange={onRenaming}
         >

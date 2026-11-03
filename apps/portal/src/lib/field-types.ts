@@ -17,20 +17,18 @@ import { FieldType } from "@prisma/client";
  * the traits the editor and the save rules go by:
  * - choice: picked from a list of options (Dropdown, Checkboxes)
  * - composite: made of parts, each collected and required on its own
- * - selfLabeled: its name says what it asks for, so no Label box; it's
- *   renamed with the pencil in its row header instead
  * A choice or composite type keeps its config in `options`, any other in
  * `validation`.
  */
-type FieldTypeTrait = "choice" | "composite" | "selfLabeled";
+type FieldTypeTrait = "choice" | "composite";
 type FieldTypeOption = { value: FieldType; label: string } & Partial<Record<FieldTypeTrait, true>>;
 
 export const FIELD_TYPE_OPTIONS = [
-  { value: "NAME" as const, label: "Name", composite: true, selfLabeled: true },
-  { value: "EMAIL" as const, label: "Email", selfLabeled: true },
-  { value: "PHONE" as const, label: "Phone", selfLabeled: true },
-  { value: "ADDRESS" as const, label: "Address", composite: true, selfLabeled: true },
-  { value: "DATE_OF_BIRTH" as const, label: "Date of birth", selfLabeled: true },
+  { value: "NAME" as const, label: "Name", composite: true },
+  { value: "EMAIL" as const, label: "Email" },
+  { value: "PHONE" as const, label: "Phone" },
+  { value: "ADDRESS" as const, label: "Address", composite: true },
+  { value: "DATE_OF_BIRTH" as const, label: "Date of birth" },
   { value: "DATE" as const, label: "Date" },
   { value: "NUMBER" as const, label: "Number" },
   { value: "TEXT" as const, label: "Text" },
