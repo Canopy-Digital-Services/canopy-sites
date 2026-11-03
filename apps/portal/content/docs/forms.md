@@ -131,7 +131,7 @@ Leave both blank for no limit.
 
 A honeypot field is an invisible field that most bots will fill in automatically, but humans won't see. When the honeypot field is non-empty in a submission, the submission is saved but marked as spam and will not trigger an email notification.
 
-If you embed using the snippet, the honeypot is handled for you once configured. If you use the manual HTML approach, you need to add the hidden field yourself; see [Publishing](./publishing.md) for the snippet.
+The honeypot is for the manual HTML approach: add the hidden field to your own form; see [Publishing](./publishing.md) for the snippet. The embed snippet and hosted page don't include one.
 
 ## Renaming and deleting
 
