@@ -6,7 +6,7 @@ import { fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
 import { DEFAULT_NAME_PARTS, orderNameParts } from "../../embed/src/name";
 import { ADDRESS_PARTS, addressParts, type AddressOptions } from "../../embed/src/address";
 import { choiceOptions, clashingChoices, type ChoiceOption, type ChoiceOptions } from "../../embed/src/choices";
-import type { DateValidation } from "@/types/field-config";
+import type { DateValidation, NumberValidation } from "@/types/field-config";
 
 export const isChoiceType = (type: string) => fieldTypeHas(type, "choice");
 
@@ -39,6 +39,8 @@ export function newFieldDefaults(type: string) {
         : type === "ADDRESS"
           ? { parts: ADDRESS_PARTS, requiredParts: ADDRESS_PARTS.filter((p) => p !== "line2") }
           : undefined,
+    // Nearly every number a form asks for is a count: guests, quantity, years.
+    validation: type === "NUMBER" ? { integer: true } : undefined,
   };
 }
 
@@ -55,13 +57,14 @@ export type FieldSettings = {
 type Parts = { parts?: string[]; partLabels?: Record<string, string>; requiredParts?: string[] };
 
 /** Why the field can't be saved as it is, or null if it can. */
-export function fieldProblem(field: Pick<FieldSettings, "type" | "options">): string | null {
+export function fieldProblem(field: Pick<FieldSettings, "type" | "options" | "validation">): string | null {
   if (isChoiceType(field.type)) {
     const config = choiceOptions(field.options);
     // Blank options don't count: the field saves without them.
     if (!config.options.some((o) => o.label.trim())) return "Add at least one option to save.";
     if (clashingChoices(config).size > 0) return "Options must be different to save.";
   }
+  if (field.type === "NUMBER" && rangeBackwards(field.validation)) return "Minimum must be lower than maximum.";
   if (isComposite(field.type)) {
     const parts = (field.options as Parts | null)?.parts;
     const noun = field.type === "NAME" ? "name" : "address";
@@ -100,6 +103,24 @@ export function savedChoices(options: unknown): ChoiceOptions {
   return saved;
 }
 
+/** A Number field's rule as stored: whole numbers or not, and the bounds
+    that are numbers. */
+export function savedNumberRule(validation: unknown): NumberValidation | null {
+  const rule = (validation ?? {}) as Record<string, unknown>;
+  const bound = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
+  const saved: NumberValidation = {};
+  if (rule.integer === true) saved.integer = true;
+  if (bound(rule.min) !== undefined) saved.min = bound(rule.min);
+  if (bound(rule.max) !== undefined) saved.max = bound(rule.max);
+  return Object.keys(saved).length > 0 ? saved : null;
+}
+
+/** Whether a Number's minimum is no lower than its maximum, so it has no range. */
+export function rangeBackwards(validation: unknown): boolean {
+  const { min, max } = savedNumberRule(validation) ?? {};
+  return min !== undefined && max !== undefined && min >= max;
+}
+
 /** Which dates a Date field takes, as its settings name them. */
 export type DateWhen = "past" | "future" | "any";
 
@@ -119,6 +140,21 @@ export const dateRule = (when: DateWhen): DateValidation | null =>
 /** Whether a Name or Address asks for any part: the field's `required`,
     which the list's asterisk reads. */
 export const anyPartRequired = (options: unknown) => ((options as Parts | null)?.requiredParts?.length ?? 0) > 0;
+
+/** The settings a type keeps in `validation`, as stored. */
+function savedValidation(field: FieldSettings): unknown {
+  if (isOptionsType(field.type)) return null;
+  switch (field.type) {
+    case "DATE":
+      return dateRule(dateWhen(field.validation));
+    case "NUMBER":
+      return savedNumberRule(field.validation);
+    case "DATE_OF_BIRTH":
+      return null;
+    default:
+      return field.validation ?? null;
+  }
+}
 
 /** The field as it's stored: text trimmed, a blank label back to the default,
     options tidied by type, and only the config its type keeps. */
@@ -141,12 +177,6 @@ export function savedField(field: FieldSettings) {
     helpText: field.helpText?.trim() || null,
     required: partsListed ? anyPartRequired(options) : Boolean(field.required),
     options,
-    validation: optionsType
-      ? null
-      : field.type === "DATE"
-        ? dateRule(dateWhen(field.validation))
-        : field.type === "DATE_OF_BIRTH"
-          ? null
-          : (field.validation ?? null),
+    validation: savedValidation(field),
   };
 }

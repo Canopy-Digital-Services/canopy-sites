@@ -58,7 +58,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Dropdown | Single select | Configure options; can offer "Other" |
 | Yes / No | Single checkbox | For consent-style prompts |
 | Checkboxes | Multi-select checkboxes | Configure options; can offer "Other"; submitted value is an array |
-| Number | Numeric input | Min/max bounds |
+| Number | Numeric input | Whole number or decimal, with an optional minimum and maximum |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
 On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Address, and Date of birth from their saved details, and phones show a number pad for Phone, Number, ZIP, and Date of birth. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
@@ -82,7 +82,7 @@ Every field type has the same core options, plus type-specific ones.
 - Dropdown, Checkboxes: the options, one box each. Click **Add option** or press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Tick **Include "Other"** to let visitors type their own answer, which is saved in place of "Other". A Dropdown can also start on a **Default choice**.
 - Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.
 - Address: which parts to collect: Street (with an optional Apt, suite), City, State, ZIP. Collect only what you need, for example ZIP alone for a service-area question. Tick a part in the Required column to require it, for example only ZIP; a new Address requires every part but Apt, suite. Rename a part with the pencil beside it. Addresses are US only: State is a list of US states and ZIP must be 5 or 9 digits.
-- Number: min, max, integers only.
+- Number: **Whole Number** (the default) or **Decimal**, and an optional **Minimum** and **Maximum**. Visitors can type 1,250 with its comma.
 
 ### Internal key behavior
 

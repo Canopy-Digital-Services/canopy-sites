@@ -32,6 +32,13 @@ describe("fieldProblem", () => {
     );
   });
 
+  it("refuses a Number range that runs backwards or closes up", () => {
+    const problem = (min: number, max: number) => fieldProblem({ type: "NUMBER", options: null, validation: { min, max } });
+    expect(problem(10, 5)).toBe("Minimum must be lower than maximum.");
+    expect(problem(5, 5)).toBe("Minimum must be lower than maximum.");
+    expect(problem(4, 5)).toBeNull();
+  });
+
   it("needs a Name or Address to collect a part", () => {
     expect(fieldProblem({ type: "NAME", options: { parts: [] } })).toBe("Choose at least one name part to save.");
     expect(fieldProblem({ type: "ADDRESS", options: { parts: [] } })).toBe("Choose at least one address part to save.");
@@ -65,6 +72,15 @@ describe("savedField", () => {
     expect(savedField({ type: "DROPDOWN", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
       { validation: null }
     );
+  });
+
+  it("keeps a Number's kind and the bounds that are numbers", () => {
+    expect(newFieldDefaults("NUMBER").validation).toEqual({ integer: true });
+    expect(savedField({ type: "NUMBER", label: "Guests", validation: { integer: true, min: 1, max: null } }).validation).toEqual({
+      integer: true,
+      min: 1,
+    });
+    expect(savedField({ type: "NUMBER", label: "Guests", validation: { integer: false, maxLength: 5 } }).validation).toBeNull();
   });
 
   it("keeps no rules for a Date of birth, which has none to set", () => {
