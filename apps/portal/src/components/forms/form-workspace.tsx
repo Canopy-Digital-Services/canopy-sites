@@ -262,7 +262,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                 published={published}
                 isPublishing={isPublishing}
                 onPublishToggle={handlePublishToggle}
-                publishDisabledReason={publishDisabledReason}
+                publishDisabledReason={state.fields.length === 0 ? "Add a field first." : publishDisabledReason}
               />
             </div>
           </div>

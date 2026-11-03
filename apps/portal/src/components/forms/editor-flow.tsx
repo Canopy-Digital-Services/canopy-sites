@@ -30,7 +30,9 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
 
   const current = EDITOR_STEPS[step];
   const last = step === EDITOR_STEPS.length - 1;
-  const { setEditorStep } = useFormContext();
+  const { setEditorStep, state } = useFormContext();
+  // A form can't be published without a field, so the flow doesn't go past one.
+  const blocked = current === "fields" && state.fields.length === 0;
 
   // The preview picks its stand-ins by step.
   useEffect(() => {
@@ -113,7 +115,7 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
             <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={() => go("forward")} disabled={exiting !== null}>
+          <Button onClick={() => go("forward")} disabled={exiting !== null || blocked}>
             {STEP_TITLES[EDITOR_STEPS[step + 1]]}
             <ArrowRight className="h-4 w-4" />
           </Button>

@@ -408,6 +408,11 @@ export async function toggleFormPublished(formId: string, published: boolean) {
   // Unpublishing is always allowed; it releases a slot and cannot violate a
   // plan limit. Re-publishing an already-published form is also a no-op.
   if (published && !form.published) {
+    // Submissions store only fields, so a form without one has nothing to take.
+    if ((await prisma.field.count({ where: { formId } })) === 0) {
+      throw new Error("A form needs a field before it can be published.");
+    }
+
     const entitlements = await getAccountEntitlements(accountId);
 
     if (entitlements.requiresPlanResolution) {
