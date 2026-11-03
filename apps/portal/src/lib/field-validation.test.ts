@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   anywhereToday,
+  dateOfBirth,
   getEffectiveMaxLength,
   isValidEmail,
   usPhoneDigits,
@@ -205,6 +206,43 @@ describe("validateField: date", () => {
       expect(validateField(future, "2026-11-02", nov2)).toBeNull();
       expect(validateField(future, "2026-11-01", nov2)).toBe("Answer must be today or in the future.");
     });
+  });
+});
+
+describe("validateField: date of birth", () => {
+  const born = field("DATE_OF_BIRTH", { label: "Date of birth" });
+
+  it("takes a real date before today, written as its boxes join it", () => {
+    expect(validateField(born, "1980-3-27", nov2)).toBeNull();
+    expect(validateField(born, "2026-11-01", nov2)).toBeNull();
+    expect(validateField(born, "", nov2)).toBeNull();
+    expect(validateField({ ...born, required: true }, "", nov2)).toBe("Date of birth is required.");
+  });
+
+  it("names the box that's missing, a month first, as GOV.UK does", () => {
+    expect(validateField(born, "1980--27", nov2)).toBe("Date of birth must include a month.");
+    expect(validateField(born, "1980-03-", nov2)).toBe("Date of birth must include a day.");
+    expect(validateField(born, "-03-27", nov2)).toBe("Date of birth must include a year.");
+    expect(validateField(born, "80-03-27", nov2)).toBe("Year must include 4 numbers.");
+  });
+
+  it("refuses a date that isn't one, and today or later", () => {
+    expect(validateField(born, "1980-02-30", nov2)).toBe("Date of birth must be a real date.");
+    expect(validateField(born, "1980-13-01", nov2)).toBe("Date of birth must be a real date.");
+    expect(validateField(born, "2026-11-02", nov2)).toBe("Date of birth must be in the past.");
+    expect(validateField(born, "2030-01-01", nov2)).toBe("Date of birth must be in the past.");
+  });
+
+  it("on the server, takes a date before today anywhere", () => {
+    const today = anywhereToday(new Date("2026-11-02T20:00:00Z"));
+    expect(validateField(born, "2026-11-02", today)).toBeNull();
+    expect(validateField(born, "2026-11-03", today)).toBe("Date of birth must be in the past.");
+  });
+
+  it("reads the date its boxes name", () => {
+    expect(dateOfBirth("1980-3-7")).toBe("1980-03-07");
+    expect(dateOfBirth("1980-02-30")).toBeNull();
+    expect(dateOfBirth("1980--7")).toBeNull();
   });
 });
 

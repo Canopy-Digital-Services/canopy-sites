@@ -9,7 +9,7 @@ import {
   upsertLimitNotification,
   upsertSubmissionNotification,
 } from "@/lib/data-access/notifications";
-import { answerOf, anywhereToday, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
+import { answerOf, anywhereToday, dateOfBirth, usPhoneDigits, validateSubmission } from "../../embed/src/validation";
 
 type RateLimitConfig = {
   max: number;
@@ -188,7 +188,8 @@ export async function handlePublicSubmit({
   }
 
   // Only the fields are stored, as checked: an email trimmed, and lowercased
-  // when the field normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX).
+  // when the field normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX);
+  // a date of birth as YYYY-MM-DD, like a Date's answer.
   const data: Record<string, unknown> = {};
   for (const field of form.fields) {
     const value = answerOf(formData, field.name);
@@ -205,6 +206,8 @@ export async function handlePublicSubmit({
       data[field.name] = rules.normalize ? email.toLowerCase() : email;
     } else if (field.type === "PHONE" && rules.format === "strict") {
       data[field.name] = `+1${usPhoneDigits(value)}`;
+    } else if (field.type === "DATE_OF_BIRTH") {
+      data[field.name] = dateOfBirth(value) ?? value;
     }
   }
 

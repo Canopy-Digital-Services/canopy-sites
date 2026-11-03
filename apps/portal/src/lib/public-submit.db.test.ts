@@ -6,7 +6,7 @@ import { handlePublicSubmit } from "./public-submit";
 import { createAccount, createForm, resetDatabase } from "../../test/db";
 
 /** A published embedded form with the honeypot "website", an Email field
-    that lowercases, and a Name field of first and last. */
+    that lowercases, a Name field of first and last, and a Date of birth. */
 async function contactForm(opts: { withFields?: boolean } = {}) {
   const { account, user } = await createAccount();
   const form = await createForm(account.id, user.id, { type: "EMBEDDED", published: true, honeypotField: "website" });
@@ -15,6 +15,7 @@ async function contactForm(opts: { withFields?: boolean } = {}) {
       data: [
         { formId: form.id, name: "email", type: "EMAIL", label: "Email", order: 1, validation: { normalize: true } },
         { formId: form.id, name: "name", type: "NAME", label: "Name", order: 2 },
+        { formId: form.id, name: "born", type: "DATE_OF_BIRTH", label: "Date of birth", order: 3 },
       ],
     });
   }
@@ -47,12 +48,13 @@ describe("handlePublicSubmit: what is stored", () => {
     const res = await submit(form.id, {
       email: " Ann@Example.com ",
       name: { first: "Ann", last: "Lee" },
+      born: "1980-3-7",
       website: "",
     });
 
     expect(res.status).toBe(200);
     const submission = await prisma.submission.findFirstOrThrow({ where: { formId: form.id } });
-    expect(submission.data).toEqual({ email: "ann@example.com", name: { first: "Ann", last: "Lee" } });
+    expect(submission.data).toEqual({ email: "ann@example.com", name: { first: "Ann", last: "Lee" }, born: "1980-03-07" });
     expect(submission.isSpam).toBe(false);
   });
 

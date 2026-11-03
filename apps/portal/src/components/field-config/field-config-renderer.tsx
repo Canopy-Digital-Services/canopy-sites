@@ -28,6 +28,9 @@ const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
   ADDRESS: AddressConfig,
 };
 
+/** Whether a field type has settings of its own, below the common ones. */
+export const hasTypeSettings = (type: string) => type in configRegistry;
+
 type FieldConfigRendererProps = {
   type: FieldType;
   value: unknown;

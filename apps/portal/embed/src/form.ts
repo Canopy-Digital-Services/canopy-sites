@@ -33,6 +33,24 @@ const ADDRESS_AUTOFILL: Record<AddressPart, string> = {
   postalCode: "postal-code",
 };
 
+/** A Date of birth's boxes, in US order: each part, its label, its length
+    and its autofill token. */
+const DATE_OF_BIRTH_PARTS = [
+  ["month", "Month", 2, "bday-month"],
+  ["day", "Day", 2, "bday-day"],
+  ["year", "Year", 4, "bday-year"],
+] as const;
+
+/** A Date of birth's answer, YYYY-MM-DD, joined from its boxes as typed: a
+    one-digit month or day gets its zero, and an empty box is an empty piece,
+    for validateField to name. Nothing typed is no answer. */
+const joinDateOfBirth = (boxes: HTMLInputElement[]) => {
+  const [month, day, year] = boxes.map((box) => box.value.trim());
+  if (!month && !day && !year) return "";
+  const pad = (part: string) => (/^\d$/.test(part) ? `0${part}` : part);
+  return `${year}-${pad(month)}-${pad(day)}`;
+};
+
 /** Has a screen reader read a field's help text, if any, and its error with
     `control` (its box, or the group of its parts or options). */
 const describe = (control: Element, help: HTMLElement | null, error: HTMLElement) =>
@@ -597,6 +615,9 @@ export class CanopyForm {
       case "ADDRESS": {
         return this.createAddressField(field);
       }
+      case "DATE_OF_BIRTH": {
+        return this.createDateOfBirthField(field);
+      }
       default: {
         const text = document.createElement("input");
         text.type = "text";
@@ -891,6 +912,86 @@ export class CanopyForm {
     return { wrapper, input: pseudoInput, errorEl };
   }
 
+  /** Month, Day and Year boxes: GOV.UK's pattern for a date people know by
+      heart, rather than a calendar to page back through decades. */
+  private createDateOfBirthField(field: FieldDefinition) {
+    const fieldId = `${this.instanceId}-${field.name}`;
+    const wrapper = document.createElement("div");
+    wrapper.className = "canopy-field canopy-dob-group";
+    wrapper.setAttribute("role", "group");
+
+    const label = document.createElement("span");
+    label.id = `${fieldId}-group-label`;
+    label.className = "canopy-label";
+    label.dataset.fieldPart = "label";
+    label.textContent = field.label || field.name;
+    if (field.required) {
+      const required = document.createElement("span");
+      required.className = "canopy-required";
+      required.textContent = " *";
+      required.setAttribute("aria-hidden", "true");
+      label.appendChild(required);
+    }
+    wrapper.appendChild(label);
+    wrapper.setAttribute("aria-labelledby", label.id);
+    const help = this.createHelpText(field, fieldId);
+    if (help) wrapper.appendChild(help);
+
+    const boxes = document.createElement("div");
+    boxes.className = "canopy-dob-parts";
+
+    const pseudoInput = document.createElement("input");
+    pseudoInput.type = "hidden";
+    pseudoInput.id = fieldId;
+    pseudoInput.name = field.name;
+
+    const errorEl = document.createElement("span");
+    errorEl.className = "canopy-error";
+    errorEl.id = `${fieldId}-error`;
+
+    DATE_OF_BIRTH_PARTS.forEach(([part, text, length, token]) => {
+      const partWrapper = document.createElement("div");
+      partWrapper.className = `canopy-dob-part canopy-dob-part-${part}`;
+
+      const partId = `${fieldId}-${part}`;
+      const partLabel = document.createElement("label");
+      partLabel.className = "canopy-dob-part-label";
+      partLabel.htmlFor = partId;
+      partLabel.textContent = text;
+
+      const box = document.createElement("input");
+      box.type = "text";
+      box.className = "canopy-input";
+      box.id = partId;
+      box.name = `${field.name}.${part}`;
+      box.maxLength = length;
+      box.setAttribute("inputmode", "numeric");
+      box.setAttribute("autocomplete", token);
+      box.setAttribute("data-dob-part", part);
+      box.setAttribute("data-dob-field", field.name);
+      if (field.required) box.setAttribute("aria-required", "true");
+      // The error can be on any box.
+      box.addEventListener("input", () => this.partsOf(field.name).forEach((el) => el.setCustomValidity("")));
+
+      partWrapper.appendChild(partLabel);
+      partWrapper.appendChild(box);
+      boxes.appendChild(partWrapper);
+    });
+
+    wrapper.appendChild(boxes);
+    describe(wrapper, help, errorEl);
+    wrapper.appendChild(errorEl);
+
+    return { wrapper, input: pseudoInput, errorEl };
+  }
+
+  /** The boxes and lists of a field made of parts (Name, Address, Date of birth). */
+  private partsOf(name: string) {
+    return this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+      `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"], input[data-dob-field="${name}"]`
+    );
+  }
+
   private collectValues() {
     const data: Record<string, unknown> = {};
     this.fieldElements.forEach((element, name) => {
@@ -902,7 +1003,11 @@ export class CanopyForm {
           const checkboxGroup = this.container.querySelector(
             `[data-checkbox-group="${name}"]`
           );
-          if (checkboxGroup) {
+          // A Date of birth joins its boxes.
+          const dateOfBirthBoxes = this.container.querySelectorAll<HTMLInputElement>(`input[data-dob-field="${name}"]`);
+          if (dateOfBirthBoxes.length > 0) {
+            data[name] = joinDateOfBirth([...dateOfBirthBoxes]);
+          } else if (checkboxGroup) {
             const checked: string[] = [];
             checkboxGroup.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").forEach((cb) => {
               if (cb.value !== OTHER_VALUE) {
@@ -970,6 +1075,16 @@ export class CanopyForm {
    * the first subfield if none fails.
    */
   private findFailingInput(name: string): HTMLInputElement | HTMLSelectElement | null {
+    // DATE_OF_BIRTH: the first empty box, else a year short of 4 numbers,
+    // else Month, for the date as a whole.
+    const dateOfBirthBoxes = [...this.container.querySelectorAll<HTMLInputElement>(`input[data-dob-field="${name}"]`)];
+    if (dateOfBirthBoxes.length > 0) {
+      const [month, , year] = dateOfBirthBoxes;
+      return (
+        dateOfBirthBoxes.find((box) => !box.value.trim()) ?? (/^\d{4}$/.test(year.value.trim()) ? month : year)
+      );
+    }
+
     // NAME field
     const nameInputs = this.container.querySelectorAll<HTMLInputElement>(
       `input[data-name-field="${name}"]`
@@ -1024,10 +1139,7 @@ export class CanopyForm {
             target.setCustomValidity(message);
           } else {
             // Clear: reset all subfield validities
-            const allSub = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-              `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"]`
-            );
-            allSub.forEach(el => el.setCustomValidity(""));
+            this.partsOf(name).forEach((el) => el.setCustomValidity(""));
           }
         }
       } else {
@@ -1104,10 +1216,7 @@ export class CanopyForm {
           if (firstCb) firstCb.setCustomValidity("");
         } else {
           // Clear all subfield validities (validity may be on any subfield)
-          const allSub = this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-            `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"]`
-          );
-          allSub.forEach(el => el.setCustomValidity(""));
+          this.partsOf(name).forEach((el) => el.setCustomValidity(""));
         }
       }
     });

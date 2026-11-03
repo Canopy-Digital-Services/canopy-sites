@@ -28,7 +28,7 @@ import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { RowBody } from "@/components/forms/row-body";
 import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
 import { useSelectStandIn } from "@/hooks/use-select-stand-in";
-import { FieldConfigRenderer } from "@/components/field-config";
+import { FieldConfigRenderer, hasTypeSettings } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
 import { FIELD_TYPE_OPTIONS, fieldTypeHas, getFieldTypeLabel } from "@/lib/field-types";
@@ -301,7 +301,7 @@ function FieldSettings({
         </div>
       )}
 
-      {field.type !== "CHECKBOX" && (
+      {hasTypeSettings(field.type) && (
         // The type's own settings, set off from the common ones above them;
         // a Name or Address has none above.
         <div className={isComposite(field.type) ? undefined : "border-t pt-4"}>

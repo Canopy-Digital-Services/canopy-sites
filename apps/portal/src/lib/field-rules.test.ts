@@ -5,7 +5,7 @@ const options = (...labels: string[]) => labels.map((l) => ({ value: l, label: l
 
 describe("newFieldDefaults", () => {
   it("starts every field complete enough to save", () => {
-    for (const type of ["TEXT", "DROPDOWN", "CHECKBOXES", "NAME", "ADDRESS"]) {
+    for (const type of ["TEXT", "DROPDOWN", "CHECKBOXES", "NAME", "ADDRESS", "DATE_OF_BIRTH"]) {
       expect(fieldProblem(newFieldDefaults(type))).toBeNull();
     }
   });
@@ -65,6 +65,13 @@ describe("savedField", () => {
     expect(savedField({ type: "DROPDOWN", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
       { validation: null }
     );
+  });
+
+  it("keeps no rules for a Date of birth, which has none to set", () => {
+    expect(savedField({ type: "DATE_OF_BIRTH", label: " ", validation: { maxDate: "today" } })).toMatchObject({
+      label: "Date of birth",
+      validation: null,
+    });
   });
 
   it("keeps a Date's choice of past or future dates, and drops a fixed date", () => {
