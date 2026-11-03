@@ -85,7 +85,7 @@ function TypeMenu({
 type FieldRowProps = {
   field: FieldState;
   open: boolean;
-  /** Why the field can't save yet, shown under its settings. */
+  /** Why the field can't save yet, shown under its type's settings. */
   problem: string | null;
   dragHandleProps: SortableItemRenderProps["dragHandleProps"];
   onToggle: () => void;
@@ -318,6 +318,9 @@ function FieldSettings({
               onChange(patch);
             }}
           />
+          {/* What keeps a field from saving is always in its type's settings,
+              so it's said right under them. */}
+          {problem && <p className="mt-2 text-sm text-destructive">{problem}</p>}
         </div>
       )}
 
@@ -334,8 +337,7 @@ function FieldSettings({
       {/* An open row's chevron is down here, where the user is when they
           finish, rather than in its header, which a long panel scrolls away.
           It lines up with the trash buttons above it. */}
-      <div className="flex items-start gap-3">
-        {problem && <p className="flex-1 text-sm text-destructive">{problem}</p>}
+      <div className="flex justify-end">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -343,7 +345,7 @@ function FieldSettings({
               variant="ghost"
               size="icon-sm"
               aria-label="Close field settings"
-              className="ml-auto shrink-0 text-muted-foreground"
+              className="text-muted-foreground"
               onClick={onClose}
             >
               <ChevronUp className="h-4 w-4" />
