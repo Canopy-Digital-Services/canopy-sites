@@ -82,19 +82,16 @@ export function NameConfig({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
-        <Label id="name-format-label">Format</Label>
-        <ToggleGroup
-          type="single"
-          value={single ? "single" : "parts"}
-          // Pressing the pressed button would clear the choice; a setting always has one.
-          onValueChange={(v) => v && pickFormat(v === "single")}
-          aria-labelledby="name-format-label"
-        >
-          <ToggleGroupItem value="single">Full name</ToggleGroupItem>
-          <ToggleGroupItem value="parts">Separate parts</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+      <ToggleGroup
+        type="single"
+        value={single ? "single" : "parts"}
+        // Pressing the pressed button would clear the choice; a setting always has one.
+        onValueChange={(v) => v && pickFormat(v === "single")}
+        aria-label="Name format"
+      >
+        <ToggleGroupItem value="single">Full name</ToggleGroupItem>
+        <ToggleGroupItem value="parts">Separate parts</ToggleGroupItem>
+      </ToggleGroup>
 
       {single ? (
         // One box has no part rows to carry the Required column.
