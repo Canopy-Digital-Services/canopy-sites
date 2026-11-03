@@ -34,21 +34,28 @@ type FieldInput = {
 // FIELD ACTIONS
 // ============================================================================
 
-async function generateUniqueName(formId: string, baseSlug: string): Promise<string> {
+// The honeypot's name is taken too: a filled honeypot marks the submission
+// as spam, so a field by that name would mark every answer to it as spam.
+async function generateUniqueName(
+  formId: string,
+  honeypotField: string | null,
+  baseSlug: string
+): Promise<string> {
   const existing = await prisma.field.findMany({
     where: { formId },
     select: { name: true },
   });
-  
-  const existingNames = new Set(existing.map(f => f.name));
-  
-  if (!existingNames.has(baseSlug)) {
+
+  const takenNames = new Set(existing.map(f => f.name));
+  if (honeypotField) takenNames.add(honeypotField);
+
+  if (!takenNames.has(baseSlug)) {
     return baseSlug;
   }
-  
+
   // Find next available suffix
   let counter = 2;
-  while (existingNames.has(`${baseSlug}_${counter}`)) {
+  while (takenNames.has(`${baseSlug}_${counter}`)) {
     counter++;
   }
   return `${baseSlug}_${counter}`;
@@ -56,7 +63,7 @@ async function generateUniqueName(formId: string, baseSlug: string): Promise<str
 
 export async function createField(formId: string, data: FieldInput) {
   const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const form = await getOwnedFormMinimal(formId, accountId);
 
   // The same rules the editor keeps, whatever sent the field.
   const problem = fieldProblem(data);
@@ -66,8 +73,12 @@ export async function createField(formId: string, data: FieldInput) {
   // Generate unique name from label if not provided
   const fieldName = data.name?.trim() || await generateUniqueName(
     formId,
+    form.honeypotField,
     slugify(saved.label)
   );
+  if (fieldName === form.honeypotField) {
+    throw new Error(`"${fieldName}" is this form's honeypot, so no field can use it.`);
+  }
 
   const lastField = await prisma.field.findFirst({
     where: { formId },
@@ -258,7 +269,13 @@ export async function updateFormBasics(
   }
 
   if (data.honeypotField !== undefined) {
-    updateData.honeypotField = data.honeypotField?.trim() || null;
+    const honeypotField = data.honeypotField?.trim() || null;
+    // A filled honeypot marks the submission as spam, so a honeypot named
+    // for a field would mark every answer to that field as spam.
+    if (honeypotField && await prisma.field.count({ where: { formId, name: honeypotField } })) {
+      throw new Error(`A field is already named "${honeypotField}", so the honeypot can't be.`);
+    }
+    updateData.honeypotField = honeypotField;
   }
 
   await prisma.form.update({
