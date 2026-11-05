@@ -268,6 +268,10 @@ export class CanopyForm {
 
     const form = document.createElement("form");
     form.className = "canopy-form";
+    // Every Submit runs validateField, top to bottom: the browser's own
+    // checks (a Date's range, an error left on a box not yet touched) would
+    // stop the submit first, in their own words and order.
+    form.noValidate = true;
     form.addEventListener("submit", (event) => this.handleSubmit(event));
     this.formEl = form;
 
