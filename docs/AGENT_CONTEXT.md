@@ -344,8 +344,8 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
   │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId?)
-  │    └─ Field (name, type:FieldType, label, placeholder? (unused), order, required,
-  │    │         options?, validation?, helpText?)
+  │    └─ Field (name, type:FieldType, label, order, required, options?,
+  │    │         validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
