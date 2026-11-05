@@ -151,7 +151,12 @@ interface SiteRead {
 }
 
 async function readSite(site: Site): Promise<SiteRead> {
-  const { commit, content, guide } = await builderCall(() => fetchContent(builderSite(site)));
+  const { commit, content, guide, contractVersion } = await builderCall(() => fetchContent(builderSite(site)));
+  // The repo owns its contract version (PRD D24); a Canopy push can move it
+  // without the portal publishing anything, so every read records it.
+  if (contractVersion && contractVersion !== site.contractVersion) {
+    await prisma.site.update({ where: { id: site.id }, data: { contractVersion } });
+  }
   return { commit, published: content, guide: guideOf(guide, site.slug) };
 }
 
