@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/password";
 import { createAccount, resetDatabase } from "../../../test/db";
 import { resetRequest, signInAs } from "../../../test/next-request";
 
@@ -27,14 +26,17 @@ describe("addAccountMember", () => {
     const { account } = await createAccount({ planCode: "SITES" });
     await signInAsAdmin();
 
-    expect(await addAccountMember(account.id, " Partner@Example.com ")).toEqual({ success: true, email: "partner@example.com" });
+    expect(await addAccountMember(account.id, " Partner@Example.com ")).toMatchObject({
+      success: true,
+      email: "partner@example.com",
+      claimUrl: expect.stringMatching(/\/claim\?token=[a-f0-9]{64}$/),
+    });
 
     const member = await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" }, include: { memberships: true } });
     expect(member.memberships).toMatchObject([{ accountId: account.id, role: "MEMBER" }]);
     expect(member.roleCode).toBe("USER");
-    // No usable password until they set one through "Forgot password".
-    expect(member.password).toEqual(expect.any(String));
-    expect(await verifyPassword("", member.password as string)).toBe(false);
+    // No password until they claim, with the link or through Forgot password (PRD D49).
+    expect(member.password).toBeNull();
 
     resetRequest();
     await signInAs(member.id);

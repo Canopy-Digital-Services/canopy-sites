@@ -2,7 +2,7 @@ import { sendNewSubmissionNotification } from "./email";
 import type { ResponseLine } from "./submission-email";
 import { getAccountEntitlements } from "./data-access/entitlements";
 import { listAccountMemberEmails } from "./data-access/memberships";
-import { appUrlFor, productNameFor } from "./product";
+import { appUrlFor, productNameFor, senderFor } from "./product";
 
 /**
  * Queue notifications to all listed recipients.
@@ -38,6 +38,7 @@ export function queueNewSubmissionNotification(options: {
     const entitlements = await getEmailEntitlements(accountId);
     const appUrl = appUrlFor(entitlements);
     const productName = productNameFor(entitlements);
+    const from = senderFor(entitlements);
 
     for (const email of notifyEmails) {
       try {
@@ -53,6 +54,7 @@ export function queueNewSubmissionNotification(options: {
           canUseDashboard: dashboardEmails.has(email.trim().toLowerCase()),
           appUrl,
           productName,
+          from,
         });
 
         if (success) {

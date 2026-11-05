@@ -17,6 +17,10 @@ Create an account at `/signup`:
 
 Your email is also the contact address used for email notifications, so use an address you actually read.
 
+## Your first sign-in to Canopy Sites
+
+Canopy sets up your Canopy Sites account when your site goes live, and sends you a link (by text or email) to set your password. Open it, choose a password, and you're signed in. The link works once and lasts a week. If it has expired, the page offers to email you a new one.
+
 ## Signing in
 
 Sign in at `/login` with your email and password. Login errors are intentionally generic ("Invalid email or password") to avoid revealing whether an account exists for a given address.
@@ -52,7 +56,7 @@ If you can't sign in:
 1. Click **Forgot password?** on the login page, or go to `/forgot-password`.
 2. Enter your email.
 3. You'll see a confirmation message whether or not the address is registered (this prevents someone from probing for accounts).
-4. If an account exists, you'll receive an email with a reset link.
+4. If an account exists, you'll receive an email with a reset link. If you haven't set a password yet, the email is your link to set one instead.
 5. The link lands on `/reset-password` and is valid for **one hour**. Each link can only be used once, and requesting a new one cancels any earlier link.
 6. Enter a new password and confirm it. On success you're signed out on every device and redirected to the login page.
 

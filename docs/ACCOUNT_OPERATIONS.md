@@ -62,7 +62,16 @@ Flow:
 
 ### Operator link (PRD D49)
 
-A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES`, its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (Epic 38, section 4.4). Until the claim ships, Forgot password's reset sets it; replace this sentence when it does.
+A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES`, its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
+
+### Claim (PRD D49)
+
+**Route:** `/claim?token=...` on the account's home host
+**Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` in `src/actions/admin/claims.ts`
+
+An owner with no password gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the site's Owner card to text it, or has the portal email it (`emailedAt`); Forgot password for an unclaimed owner emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
+
+Opening the page reads the token and consumes nothing, so a messaging app's link preview can't use it up. Setting the password consumes it with one conditional update (a claim token, unused, unexpired) and sets the password only where it is still null, in one transaction; then a "keep me signed in" session starts and `lastLoginAt` is set. An expired link offers to email a new one to the same address (`resendClaimLink`, under the reset throttle); a used one points to sign-in.
 
 ### Password storage
 
@@ -93,6 +102,7 @@ Flow:
 | Signup | 5 per IP per hour | Same error |
 | Reset request | 3 per email, 10 per IP, per hour | The usual generic success, and no email sent |
 | Password change | 5 per user per 15 min | Same error |
+| Claim (setting a first password) | 10 per IP per 15 min | Same error |
 
 A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
@@ -153,8 +163,8 @@ Flow:
 Flow:
 1. User submits email on `/forgot-password`
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
-3. Unless throttled, if the user exists: generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and mark the user's earlier unused tokens used, so only the newest link works
-4. Send reset email with link to `/reset-password?token=...`
+3. Unless throttled, if the user exists: an owner who hasn't claimed (no password) gets the claim email instead (Claim, above). Otherwise generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and retire the user's earlier unused tokens by moving their expiry to now, so only the newest link works (`issuePasswordToken` in `src/lib/claim.ts`)
+4. Send reset email with link to `/reset-password?token=...`, from the account's sender (`senderFor`)
 5. User sets new password → server consumes the token with one conditional update (a reset token, unused and unexpired; a claim link, PRD D49, is refused here), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
 6. Redirect to `/login?reset=success`
 
@@ -226,6 +236,7 @@ The operator console shows metadata only:
 - No form content, submission data, or field definitions are ever exposed
 
 Non-admins are silently redirected to their home (`/forms` or `/editor`).
+
 
 ### Role system
 
