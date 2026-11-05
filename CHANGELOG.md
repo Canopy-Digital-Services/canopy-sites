@@ -5,6 +5,14 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.1] - 2026-11-05
+
+### Fixed
+
+- Editor: a new field opens with its label ready to type over every time. The Add field menu took focus back while it faded out; menus now close at once
+- Forms: every Submit checks answers in form order and in Canopy's words. A Date's own browser check spoke first, and an error left on an untouched box stopped the next Submit before the count and the later fields were checked
+- Forms: a required Approval shows its asterisk
+
 ## [5.11.0] - 2026-11-05
 
 ### Added
