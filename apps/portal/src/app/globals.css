@@ -316,21 +316,21 @@
   opacity: 0.5;
 }
 
-/* Styling mode: the preview picks what to style, so clicks never reach the
+/* Appearance mode: the preview picks what to style, so clicks never reach the
  * form. Stand-in fields can be picked too, and the Submit button's
  * preview-only tooltip stays out of the way. */
-.preview-styling,
-.preview-styling * {
+.preview-appearance,
+.preview-appearance * {
   cursor: pointer !important;
   user-select: none;
 }
 
-.preview-styling .canopy-root .preview-placeholder-field {
+.preview-appearance .canopy-root .preview-placeholder-field {
   pointer-events: auto;
 }
 
-.preview-styling .canopy-root .canopy-submit-preview::before,
-.preview-styling .canopy-root .canopy-submit-preview::after {
+.preview-appearance .canopy-root .canopy-submit-preview::before,
+.preview-appearance .canopy-root .canopy-submit-preview::after {
   display: none;
 }
 

@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { EditorFlow } from "@/components/forms/editor-flow";
-import { StylingPanel } from "@/components/forms/styling-panel";
+import { AppearancePanel } from "@/components/forms/appearance-panel";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -110,7 +110,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName, styling, setStyling, editorStep } = useFormContext();
+  const { state, saveStatus, updateName, appearanceMode, setAppearanceMode, editorStep } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -127,7 +127,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
 
   // Collapsing settings near the bottom of the editor column doesn't slide it
   // under the pointer, and a field row closed from its foot steers it; a new
-  // step, or styling, starts at the top.
+  // step, or appearance mode, starts at the top.
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const editorContentRef = useRef<HTMLDivElement>(null);
   const editorSpacerRef = useRef<HTMLDivElement>(null);
@@ -135,7 +135,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
     editorScrollRef,
     editorContentRef,
     editorSpacerRef,
-    `${activeTab}:${editorStep}:${styling}`
+    `${activeTab}:${editorStep}:${appearanceMode}`
   );
 
   useThumbnailCapture({
@@ -274,7 +274,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
              to. */
           <div className="flex flex-1 min-h-0 justify-center">
             {/* Editor column — one section card at a time (progressive disclosure),
-                or the styling panel in its place. The flow stays mounted under
+                or the appearance panel in its place. The flow stays mounted under
                 the panel so Done returns to the same step. */}
             <div
               ref={editorScrollRef}
@@ -282,19 +282,19 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             >
               <ScrollHoldContext.Provider value={scrollHold}>
                 <div ref={editorContentRef} className="max-w-[640px] mx-auto">
-                  {!styling && (
+                  {!appearanceMode && (
                     <div className="lg:hidden mb-4">
-                      <StylingToggle />
+                      <AppearanceToggle />
                     </div>
                   )}
-                  <div hidden={styling}>
+                  <div hidden={appearanceMode}>
                     <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
                   </div>
-                  {styling && (
+                  {appearanceMode && (
                     <div className="space-y-4 editor-swoop-in">
-                      <StylingPanel />
+                      <AppearancePanel />
                       <div className="flex justify-end">
-                        <Button onClick={() => setStyling(false)}>Done</Button>
+                        <Button onClick={() => setAppearanceMode(false)}>Done</Button>
                       </div>
                     </div>
                   )}
@@ -306,7 +306,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
             {/* Preview column, floating shadow on both sides */}
             <div className="w-[768px] hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
               <div className="shrink-0 flex items-center px-2 py-1 border-b bg-muted/30">
-                <StylingToggle />
+                <AppearanceToggle />
               </div>
               <div ref={previewContainerRef} className="flex-1 overflow-y-auto flex flex-col">
                 <FormPreview live mode={previewMode} />
@@ -342,18 +342,18 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   );
 }
 
-/** Enters styling mode, and leaves it again while pressed. */
-function StylingToggle() {
-  const { styling, setStyling } = useFormContext();
+/** Enters appearance mode, and leaves it again while pressed. */
+function AppearanceToggle() {
+  const { appearanceMode, setAppearanceMode } = useFormContext();
   return (
     <Button
-      variant={styling ? "secondary" : "ghost"}
+      variant={appearanceMode ? "secondary" : "ghost"}
       size="sm"
-      aria-pressed={styling}
-      onClick={() => setStyling(!styling)}
+      aria-pressed={appearanceMode}
+      onClick={() => setAppearanceMode(!appearanceMode)}
     >
       <Palette className="h-4 w-4" />
-      Change styling
+      Change appearance
     </Button>
   );
 }

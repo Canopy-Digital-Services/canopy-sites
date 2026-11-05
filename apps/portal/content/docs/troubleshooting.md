@@ -51,10 +51,10 @@ Quick fixes for the most common problems. If none of these match, check the brow
 - Open **Edit → Submission Settings** and check **Include responses in the email**. Notifications leave submitted values out by default.
 - Recipients without an account on this workspace don't get the dashboard link, so this setting is what they need in order to see responses at all.
 
-## Styling clashes with my site
+## The form clashes with my site's look
 
 - The embed uses scoped CSS (`.canopy-*` classes) to avoid touching your site's styles. If something looks off, check your own stylesheet for broad selectors (for example, `input { … }`, `button { … }`) that might be overriding embed styles.
-- Use **Change styling** on the Edit tab to change embed styling. For one-off overrides, add a `data-theme` attribute to the embed container (see [Styling](./appearance.md)).
+- Use **Change appearance** on the Edit tab to change how the embed looks. For one-off overrides, add a `data-theme` attribute to the embed container (see [Appearance](./appearance.md)).
 
 ## The form submits, but values look wrong in the dashboard
 

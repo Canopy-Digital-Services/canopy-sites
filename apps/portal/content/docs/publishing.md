@@ -121,7 +121,7 @@ Look for a **Custom HTML**, **Code**, or **Embed** block and paste the snippet i
 
 ## Manual HTML (advanced)
 
-If you want to control the HTML yourself (for example, to blend the form into a custom layout without the embed's styling), submit directly to the API.
+If you want to control the HTML yourself (for example, to blend the form into a custom layout without the embed's own styles), submit directly to the API.
 
 **Endpoint:**
 
