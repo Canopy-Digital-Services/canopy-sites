@@ -25,7 +25,7 @@ The Account is the tenant boundary: forms, submissions, and fields belong to it.
 ```
 Account (id, createdAt, planCode, ...)
   ├── Memberships[] (role) ──→ User (email, password?, roleCode, ...)
-  │                               └── PasswordResetTokens[]
+  │                               └── PasswordTokens[] (reset or claim)
   └── Forms[]
         ├── Fields[]
         └── Submissions[]
@@ -151,7 +151,7 @@ Flow:
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
 3. Unless throttled, if the user exists: generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and mark the user's earlier unused tokens used, so only the newest link works
 4. Send reset email with link to `/reset-password?token=...`
-5. User sets new password → server consumes the token with one conditional update (unused and unexpired), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
+5. User sets new password → server consumes the token with one conditional update (a reset token, unused and unexpired; a claim link, PRD D49, is refused here), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
 6. Redirect to `/login?reset=success`
 
 ### Important: no account-level guard
@@ -173,7 +173,7 @@ Both paths call `deleteAccountAndSoleMembers(accountId)` (`src/lib/data-access/m
 prisma.account.delete()
   → Memberships, Forms → Fields, Submissions, Notifications (cascade)
 prisma.user.deleteMany()   // users whose only membership was this account
-  → PasswordResetTokens (cascade)
+  → PasswordTokens (cascade)
 ```
 
 A user who also belongs to another account keeps their login. No tombstones.

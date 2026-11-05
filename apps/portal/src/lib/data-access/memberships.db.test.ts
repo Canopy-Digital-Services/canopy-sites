@@ -57,7 +57,7 @@ describe("deleteAccountAndSoleMembers", () => {
   it("removes the account, its forms, and users who belonged only to it", async () => {
     const { account, user } = await createAccount();
     await createForm(account.id, user.id, { published: true });
-    await prisma.passwordResetToken.create({
+    await prisma.passwordToken.create({
       data: { userId: user.id, tokenHash: "t", expiresAt: new Date(Date.now() + 60_000) },
     });
 
@@ -66,7 +66,7 @@ describe("deleteAccountAndSoleMembers", () => {
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(0);
     expect(await prisma.user.count({ where: { id: user.id } })).toBe(0);
     expect(await prisma.form.count()).toBe(0);
-    expect(await prisma.passwordResetToken.count()).toBe(0);
+    expect(await prisma.passwordToken.count()).toBe(0);
   });
 
   it("keeps a user who also belongs to another account, and that account", async () => {

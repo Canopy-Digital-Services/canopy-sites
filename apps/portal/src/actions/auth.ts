@@ -226,13 +226,14 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
     const token = generateToken(32);
     const now = new Date();
     await prisma.$transaction([
-      prisma.passwordResetToken.updateMany({
+      prisma.passwordToken.updateMany({
         where: { userId: user.id, usedAt: null },
         data: { usedAt: now },
       }),
-      prisma.passwordResetToken.create({
+      prisma.passwordToken.create({
         data: {
           userId: user.id,
+          purpose: "RESET",
           tokenHash: hashToken(token),
           expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
         },
@@ -305,12 +306,13 @@ export async function validateResetToken(token: string) {
     return { valid: false, error: "Token is required" };
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
+  const resetToken = await prisma.passwordToken.findUnique({
     where: { tokenHash: hashToken(token) },
     include: { user: { select: { email: true } } },
   });
 
-  if (!resetToken) {
+  // A claim link (PRD D49) is not a reset link, here or in resetPassword.
+  if (!resetToken || resetToken.purpose !== "RESET") {
     return { valid: false, error: "Invalid or expired reset link" };
   }
 
@@ -356,11 +358,11 @@ export async function resetPassword(formData: FormData) {
     // the same link cannot both succeed. Then set the password and sign the
     // user out everywhere: whoever held the old password loses their sessions.
     const done = await prisma.$transaction(async (tx) => {
-      const resetToken = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      const resetToken = await tx.passwordToken.findUnique({ where: { tokenHash } });
       if (!resetToken) return false;
 
-      const consumed = await tx.passwordResetToken.updateMany({
-        where: { id: resetToken.id, usedAt: null, expiresAt: { gt: now } },
+      const consumed = await tx.passwordToken.updateMany({
+        where: { id: resetToken.id, purpose: "RESET", usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
       });
       if (consumed.count !== 1) return false;
