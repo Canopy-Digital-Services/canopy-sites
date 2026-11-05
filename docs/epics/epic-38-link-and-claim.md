@@ -1,6 +1,6 @@
 # Epic 38: Link and claim
 
-**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1.
+**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1 done on `dev` (2026-11-05); 4.3 next.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Toro Z)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** T1, Toro Z Muay Thai (login `torozmuaythai@gmail.com`), the first client to be linked and to claim
@@ -250,6 +250,7 @@ Not started.
   - Site repo access: the org's Coolify App is read-only, so a push needs a new App (4.2).
 - 2026-11-05 (later): Michael's answers on the first draft (section 6). Created in Migadu: `sites@canopyds.com` as a send-only identity named "Canopy Sites" on the `forms` mailbox, and an alias `sites@` → `clients@` for replies; the Migadu page says so. The portal has no volume and runs as uid 1001 (prod and dev, checked), so 4.6 adds one. Deleted the superseded Pillars & Product Architecture page from Nextcloud and fixed Monthly Reports, its one inbound link, which also cited the July plan's PRD sections.
 - 2026-11-05 (later): Approved, with the welcome video (and the volume above) moved to E39, whose ROADMAP brief carries its design. D49 and the E38 and E39 ROADMAP entries landed.
+- 2026-11-05 (later): 4.1 on `dev` (`c6466b2`, `f216ad0`, `d2073c2`, docs `6c2c262`), built in a worktree against its own database. Three migrations, each read: `users.password` nullable; `password_reset_tokens` gains `purpose` (existing rows `RESET`), `createdByUserId` and `emailedAt`, with the model renamed `PasswordToken`; `act_as` and `sessions.actAsId`. Code that reads them: sign-in treats a null password as wrong, changing a password refuses a user with none, and reset accepts only a `RESET` token. Database tests cover each, and the claim-link and no-password tests fail with their guards removed. Lint, 37 test files, and the production build pass on the tree rebased onto 5.10.0. Applied to the shared dev database, with the shared Prisma client regenerated. Note for 4.4 and 4.7: retiring older tokens sets their `usedAt`, so "claimed" reads from a claim token only where it can't have been retired (the owner's password being set is the plain signal).
 
 ## 10. Docs this makes stale
 
