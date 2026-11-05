@@ -1,13 +1,11 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { updateSite } from "@/actions/admin/sites";
 import {
@@ -20,9 +18,9 @@ import {
   type FieldErrors,
   type SiteSettingsInput,
 } from "@/lib/sites";
+import { ListInput, type Row } from "../list-input";
 
 type Field = keyof SiteSettingsInput;
-type Row = { id: string; value: string };
 
 export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial: SiteSettingsInput }) {
   const { toast } = useToast();
@@ -70,7 +68,7 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
     });
   }
 
-  function text(f: "name" | "repoUrl" | "defaultBranch" | "contractVersion" | "umamiWebsiteId", label: string, opts: {
+  function text(f: "name" | "repoUrl" | "defaultBranch" | "umamiWebsiteId", label: string, opts: {
     required?: boolean;
     maxLength?: number;
     placeholder?: string;
@@ -111,7 +109,6 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
             placeholder: "https://github.com/org/repo",
           })}
           {text("defaultBranch", "Default branch", { required: true, maxLength: SITE_BRANCH_MAX_LENGTH, mono: true })}
-          {text("contractVersion", "Contract version", { placeholder: "0.1.0", mono: true })}
 
           <ListInput
             label="Production hostnames"
@@ -177,68 +174,5 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
         </CardFooter>
       </form>
     </Card>
-  );
-}
-
-type ListInputProps = {
-  label: string;
-  hint: string;
-  placeholder: string;
-  addLabel: string;
-  removeLabel: string;
-  rows: Row[];
-  error?: string | false;
-  mono?: boolean;
-  maxLength?: number;
-  onChange: (rows: Row[]) => void;
-  onBlur: () => void;
-  newRow: () => Row;
-};
-
-/** One input per value, a remove button per row, and the Add button below the list. */
-function ListInput({ label, hint, placeholder, addLabel, removeLabel, rows, error, mono, maxLength, onChange, onBlur, newRow }: ListInputProps) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {rows.map((row, index) => (
-        <div key={row.id} className="flex items-center gap-2">
-          <Input
-            value={row.value}
-            placeholder={placeholder}
-            maxLength={maxLength}
-            aria-label={`${label} ${index + 1}`}
-            aria-invalid={!!error}
-            className={mono ? "font-mono" : undefined}
-            onChange={(e) => onChange(rows.map((r) => (r.id === row.id ? { ...r, value: e.target.value } : r)))}
-            onBlur={onBlur}
-          />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={removeLabel}
-                onClick={() => onChange(rows.filter((r) => r.id !== row.id))}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{removeLabel}</TooltipContent>
-          </Tooltip>
-        </div>
-      ))}
-      {error ? <p className="text-sm text-destructive">{error}</p> : <p className="text-xs text-muted-foreground">{hint}</p>}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="-ml-3 text-primary hover:text-primary hover:bg-primary/10"
-        onClick={() => onChange([...rows, newRow()])}
-      >
-        <Plus className="h-4 w-4" />
-        {addLabel}
-      </Button>
-    </div>
   );
 }
