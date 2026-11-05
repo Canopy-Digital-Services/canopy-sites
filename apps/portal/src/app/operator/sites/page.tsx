@@ -8,12 +8,17 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { LinkSiteButton } from "./link-site-button";
+import { listAppRepos } from "@/lib/builder-client";
+import { normalizeGitHubRepo } from "@/lib/sites";
 
 export default async function SitesPage() {
   await requireGlobalAdmin();
 
-  const sites = await listSitesForOperator();
-  const linkSite = <LinkSiteButton />;
+  const [sites, appRepos] = await Promise.all([listSitesForOperator(), listAppRepos()]);
+  // The picker offers the repos the GitHub App reaches that no site uses yet.
+  const linked = new Set(sites.map((s) => normalizeGitHubRepo(s.repoUrl ?? "")?.toLowerCase()));
+  const repos = appRepos && appRepos.filter((r) => !linked.has(r.url.toLowerCase()));
+  const linkSite = <LinkSiteButton repos={repos} />;
 
   const columns = [
     {

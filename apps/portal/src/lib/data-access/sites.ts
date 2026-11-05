@@ -39,6 +39,7 @@ export async function listSitesForOperator() {
       slug: true,
       productionHostnames: true,
       contractVersion: true,
+      repoUrl: true,
       createdAt: true,
       account: { select: { id: true, ...ownerEmail } },
     },

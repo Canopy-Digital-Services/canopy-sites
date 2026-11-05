@@ -139,7 +139,7 @@ enum AccountStatus {
 model Site {
   id                  String   @id @default(cuid())
   accountId           String   @unique
-  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> and the builder's GIT_TOKEN_<SLUG>
+  slug                String   @unique // Fixed at creation: names /srv/sites/<slug> (and the builder's GIT_TOKEN_<SLUG> fallback)
   name                String
   repoUrl             String?
   defaultBranch       String   @default("main")
