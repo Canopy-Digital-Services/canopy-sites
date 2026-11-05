@@ -44,7 +44,11 @@ export async function createMember(
 }
 
 /** A form on the account, created by its user. */
-export async function createForm(accountId: string, userId: string, opts: { published?: boolean } = {}) {
+export async function createForm(
+  accountId: string,
+  userId: string,
+  opts: { published?: boolean; type?: "HOSTED" | "EMBEDDED"; honeypotField?: string } = {}
+) {
   seq += 1;
   return prisma.form.create({
     data: {
@@ -52,8 +56,9 @@ export async function createForm(accountId: string, userId: string, opts: { publ
       createdByUserId: userId,
       name: `Form ${seq}`,
       slug: `form-${seq}`,
-      type: "HOSTED",
+      type: opts.type ?? "HOSTED",
       published: opts.published ?? false,
+      honeypotField: opts.honeypotField,
     },
   });
 }

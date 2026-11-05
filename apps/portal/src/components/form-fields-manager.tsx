@@ -9,14 +9,8 @@ import { createField, deleteField, reorderFields, updateField } from "@/actions/
 import { useToast } from "@/hooks/use-toast";
 import { DeleteFieldDialog } from "@/components/delete-field-dialog";
 import { useFormContext, type FieldState } from "@/components/forms/form-context";
-import {
-  AddFieldRow,
-  FieldRow,
-  defaultLabel,
-  fieldProblem,
-  isOptionsType,
-  newFieldDefaults,
-} from "@/components/forms/field-row";
+import { AddFieldRow, FieldRow } from "@/components/forms/field-row";
+import { fieldProblem, isOptionsType, newFieldDefaults, savedField } from "@/lib/field-rules";
 
 /** Quiet time after the last edit before a field saves. */
 const SAVE_DELAY_MS = 600;
@@ -32,22 +26,11 @@ const toFieldState = (f: FieldState): FieldState => ({
   type: f.type,
   required: f.required,
   order: f.order,
-  placeholder: f.placeholder,
   helpText: f.helpText,
   options: f.options,
   validation: f.validation,
 });
 
-/** The field as the server action takes it. A blank label saves as the default. */
-const toFieldInput = (f: FieldState) => ({
-  type: f.type,
-  label: f.label.trim() || defaultLabel(f.type),
-  placeholder: f.placeholder,
-  required: f.required,
-  helpText: f.helpText,
-  options: isOptionsType(f.type) ? f.options : null,
-  validation: isOptionsType(f.type) ? null : f.validation,
-});
 
 /**
  * The Fields list: one row per field, at most one open, edits autosaving a
@@ -55,12 +38,13 @@ const toFieldInput = (f: FieldState) => ({
  * changes). Adding happens in the list's last row.
  */
 export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
-  const { state, setFields, updateField: patchField, addField, removeField, setPreviewFocus } =
+  const { state, setFields, updateField: patchField, addField, removeField, setPreviewFocus, trackSave } =
     useFormContext();
   const fields = useMemo(() => [...state.fields].sort((a, b) => a.order - b.order), [state.fields]);
   const [openId, setOpenId] = useState<string | null>(null);
+  // The field just added, which opens with its label ready to type over.
+  const [namingId, setNamingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [saving, setSaving] = useState(0);
   const [deletingField, setDeletingField] = useState<FieldState | null>(null);
   const { toast } = useToast();
 
@@ -75,14 +59,11 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     timers.current.delete(fieldId);
     const field = latest.current.find((f) => f.id === fieldId);
     if (!field || fieldProblem(field)) return;
-    setSaving((n) => n + 1);
     try {
-      await updateField(formId, fieldId, toFieldInput(field));
+      await trackSave(updateField(formId, fieldId, savedField(field)));
     } catch (error) {
       console.error(error);
       toast.error("Unable to save field. Please try again.");
-    } finally {
-      setSaving((n) => n - 1);
     }
   };
 
@@ -107,11 +88,26 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The open field is the one the preview marks.
+  // The open field is the one the preview marks, narrowed to the part whose
+  // settings have focus. Moving from one box to the next blurs one before
+  // focusing the other, so going back to the whole field waits a beat: two
+  // boxes marking the same part (a Dropdown's options all mark the dropdown)
+  // leave the mark as drawn instead of redrawing it.
+  const partLeft = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const focusPart = (name: string, part: string | null) => {
+    clearTimeout(partLeft.current);
+    if (part) setPreviewFocus(`field:${name}#${part}`);
+    else partLeft.current = setTimeout(() => setPreviewFocus(`field:${name}`), 0);
+  };
   const openName = fields.find((f) => f.id === openId)?.name ?? null;
   useEffect(() => {
+    // A closing row's last blur (its focus going to the title) mustn't mark it.
+    clearTimeout(partLeft.current);
     setPreviewFocus(openName ? `field:${openName}` : null);
-    return () => setPreviewFocus(null);
+    return () => {
+      clearTimeout(partLeft.current);
+      setPreviewFocus(null);
+    };
   }, [openName, setPreviewFocus]);
 
   const change = (fieldId: string, patch: Partial<FieldState>) => {
@@ -120,22 +116,35 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     timers.current.set(fieldId, setTimeout(() => void save(fieldId), SAVE_DELAY_MS));
   };
 
+  // A row that closes shows its options as they saved (without blank options).
+  const tidy = (fieldId: string | null) => {
+    const field = latest.current.find((f) => f.id === fieldId);
+    if (!field || !isOptionsType(field.type) || fieldProblem(field)) return;
+    const { options } = savedField(field);
+    if (JSON.stringify(options) !== JSON.stringify(field.options)) patchField(field.id, { options });
+  };
+
   const toggle = (fieldId: string) => {
     flush(openId);
+    tidy(openId);
     setOpenId(openId === fieldId ? null : fieldId);
+    setNamingId(null);
   };
 
   const closeOpen = () => {
     flush(openId);
+    tidy(openId);
     setOpenId(null);
+    setNamingId(null);
   };
 
   const create = async (type: FieldType) => {
     setCreating(true);
     try {
-      const created = await createField(formId, newFieldDefaults(type));
+      const created = await trackSave(createField(formId, newFieldDefaults(type)));
       addField(toFieldState(created));
       setOpenId(created.id);
+      setNamingId(created.id);
     } catch (error) {
       console.error(error);
       toast.error("Unable to add field. Please try again.");
@@ -154,7 +163,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     const previous = [...state.fields];
     removeField(fieldId);
     try {
-      await deleteField(formId, fieldId, purgeData);
+      await trackSave(deleteField(formId, fieldId, purgeData));
     } catch (error) {
       console.error(error);
       toast.error("Unable to delete field. Please try again.");
@@ -170,7 +179,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
       .map((field, index) => ({ ...field, order: index + 1 }));
     setFields(reordered);
     try {
-      await reorderFields(formId, fieldIds);
+      await trackSave(reorderFields(formId, fieldIds));
     } catch (error) {
       console.error(error);
       toast.error("Unable to reorder fields. Please try again.");
@@ -191,10 +200,12 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
                 field={field}
                 open={openId === field.id}
                 problem={openId === field.id ? fieldProblem(field) : null}
+                naming={namingId === field.id}
                 dragHandleProps={dragHandleProps}
                 onToggle={() => toggle(field.id)}
                 onChange={(patch) => change(field.id, patch)}
                 onDelete={() => setDeletingField(field)}
+                onFocusPart={(part) => focusPart(field.name, part)}
               />
             )}
           />
@@ -215,7 +226,6 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
           onConfirm={(purge) => void handleDeleteConfirm(purge)}
         />
       )}
-      {saving > 0 && <p className="text-xs text-muted-foreground">Saving changes...</p>}
     </div>
   );
 }

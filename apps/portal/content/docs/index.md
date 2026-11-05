@@ -23,10 +23,10 @@ Canopy Forms is a forms platform for static sites. Build a form in the dashboard
 
 1. Sign up at `forms.canopyds.com`, then log in.
 2. Click **Create Form**, name it, pick **Hosted** or **Embedded**, and you'll land in the form workspace.
-3. On the **Edit** tab, fill in the optional Header or click **No Header** to skip it, then add the fields you need under **Fields**.
-4. Click **Change styling** above the preview to match your site's brand, then **Done** to carry on.
-5. Continue to **Submission Settings** to choose what happens after submission and turn on email notifications.
-6. Switch to the **Publish** tab:
+3. On the **Edit** tab, fill in the optional Header or leave it blank, then click **Fields** and add the fields you need.
+4. Click **Change appearance** above the preview to match your site's brand, then **Done** to carry on.
+5. Click **Submission Settings** to choose what happens after submission and turn on email notifications.
+6. Click **Publish** to go to the Publish tab:
    - For an embedded form, add your site's domain under **Allowed Origins**. Hosted forms skip this.
    - Click **Publish**.
    - Copy the embed snippet (or the hosted-form link).

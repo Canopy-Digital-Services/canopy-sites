@@ -5,19 +5,19 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  Save,
-  Check,
   Pencil,
+  Check,
   Eye,
   Palette,
 } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormProvider, useFormContext } from "@/components/forms/form-context";
 import { FormPreview } from "@/components/forms/form-preview";
 import { EditorFlow } from "@/components/forms/editor-flow";
-import { StylingPanel } from "@/components/forms/styling-panel";
+import { AppearancePanel } from "@/components/forms/appearance-panel";
 import { PublishContent } from "@/components/forms/publish-content";
 import { SubmissionsContent } from "@/components/forms/submissions-content";
 import { RightPanel } from "@/components/patterns/right-panel";
@@ -26,6 +26,7 @@ import { toggleFormPublished } from "@/actions/forms";
 import { getPlanErrorCode, PLAN_ERROR_CODES } from "@/lib/errors/plan-errors";
 import { toast } from "sonner";
 import { useThumbnailCapture } from "@/hooks/use-thumbnail-capture";
+import { ScrollHoldContext, useScrollHold } from "@/hooks/use-scroll-hold";
 
 type WorkspaceForm = {
   id: string;
@@ -52,7 +53,6 @@ type WorkspaceForm = {
     type: string;
     required: boolean;
     order: number;
-    placeholder: string | null;
     helpText: string | null;
     options: unknown;
     validation: unknown;
@@ -110,7 +110,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName, styling, setStyling } = useFormContext();
+  const { state, saveStatus, updateName, appearanceMode, setAppearanceMode, editorStep } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -124,6 +124,19 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const editing = activeTab === "editor";
+
+  // Collapsing settings near the bottom of the editor column doesn't slide it
+  // under the pointer, and a field row closed from its foot steers it; a new
+  // step, or appearance mode, starts at the top.
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+  const editorContentRef = useRef<HTMLDivElement>(null);
+  const editorSpacerRef = useRef<HTMLDivElement>(null);
+  const scrollHold = useScrollHold(
+    editorScrollRef,
+    editorContentRef,
+    editorSpacerRef,
+    `${activeTab}:${editorStep}:${appearanceMode}`
+  );
 
   useThumbnailCapture({
     formId: form.id,
@@ -218,22 +231,7 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
 
               {/* Right: contextual actions */}
               <div className="flex items-center gap-2 shrink-0">
-                {editing && (
-                  <>
-                    {saveStatus === "saving" && (
-                      <span className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Save className="h-4 w-4 animate-pulse" />
-                        Saving...
-                      </span>
-                    )}
-                    {saveStatus === "saved" && (
-                      <span className="text-sm text-success-strong flex items-center gap-2">
-                        <Check className="h-4 w-4" />
-                        Saved
-                      </span>
-                    )}
-                  </>
-                )}
+                {editing && <SaveIndicator status={saveStatus} />}
               </div>
             </div>
 
@@ -264,41 +262,51 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                 published={published}
                 isPublishing={isPublishing}
                 onPublishToggle={handlePublishToggle}
-                publishDisabledReason={publishDisabledReason}
+                publishDisabledReason={state.fields.length === 0 ? "Add a field first." : publishDisabledReason}
               />
             </div>
           </div>
         ) : (
-          /* Editor tab: editor column + preview column */
+          /* Editor tab: a 520px editor column + a 768px preview column (a
+             Wide hosted form at its real width). Both shrink where the pair
+             doesn't fit (lg up to 1288px): a centered row wider than the
+             window would spill off its left edge, where it can't be scrolled
+             to. */
           <div className="flex flex-1 min-h-0 justify-center">
             {/* Editor column — one section card at a time (progressive disclosure),
-                or the styling panel in its place. The flow stays mounted under
+                or the appearance panel in its place. The flow stays mounted under
                 the panel so Done returns to the same step. */}
-            <div className="w-full lg:w-[600px] shrink-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
-              <div className="max-w-[640px] mx-auto">
-                {!styling && (
-                  <div className="lg:hidden mb-4">
-                    <StylingToggle />
-                  </div>
-                )}
-                <div hidden={styling}>
-                  <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
-                </div>
-                {styling && (
-                  <div className="space-y-4 editor-swoop-in">
-                    <StylingPanel />
-                    <div className="flex justify-end">
-                      <Button onClick={() => setStyling(false)}>Done</Button>
+            <div
+              ref={editorScrollRef}
+              className="w-full lg:w-[520px] overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6"
+            >
+              <ScrollHoldContext.Provider value={scrollHold}>
+                <div ref={editorContentRef} className="max-w-[640px] mx-auto">
+                  {!appearanceMode && (
+                    <div className="lg:hidden mb-4">
+                      <AppearanceToggle />
                     </div>
+                  )}
+                  <div hidden={appearanceMode}>
+                    <EditorFlow formId={form.id} ownerEmail={ownerEmail} />
                   </div>
-                )}
-              </div>
+                  {appearanceMode && (
+                    <div className="space-y-4 editor-swoop-in">
+                      <AppearancePanel />
+                      <div className="flex justify-end">
+                        <Button onClick={() => setAppearanceMode(false)}>Done</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollHoldContext.Provider>
+              <div ref={editorSpacerRef} aria-hidden />
             </div>
 
-            {/* Preview column — fixed width, floating shadow on both sides */}
-            <div className="w-[600px] shrink-0 hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
+            {/* Preview column, floating shadow on both sides */}
+            <div className="w-[768px] hidden lg:flex flex-col overflow-hidden shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.08),8px_0_16px_-4px_rgba(0,0,0,0.08)] dark:shadow-[-8px_0_16px_-4px_rgba(0,0,0,0.3),8px_0_16px_-4px_rgba(0,0,0,0.3)]">
               <div className="shrink-0 flex items-center px-2 py-1 border-b bg-muted/30">
-                <StylingToggle />
+                <AppearanceToggle />
               </div>
               <div ref={previewContainerRef} className="flex-1 overflow-y-auto flex flex-col">
                 <FormPreview live mode={previewMode} />
@@ -334,18 +342,18 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
   );
 }
 
-/** Enters styling mode, and leaves it again while pressed. */
-function StylingToggle() {
-  const { styling, setStyling } = useFormContext();
+/** Enters appearance mode, and leaves it again while pressed. */
+function AppearanceToggle() {
+  const { appearanceMode, setAppearanceMode } = useFormContext();
   return (
     <Button
-      variant={styling ? "secondary" : "ghost"}
+      variant={appearanceMode ? "secondary" : "ghost"}
       size="sm"
-      aria-pressed={styling}
-      onClick={() => setStyling(!styling)}
+      aria-pressed={appearanceMode}
+      onClick={() => setAppearanceMode(!appearanceMode)}
     >
       <Palette className="h-4 w-4" />
-      Change styling
+      Change appearance
     </Button>
   );
 }

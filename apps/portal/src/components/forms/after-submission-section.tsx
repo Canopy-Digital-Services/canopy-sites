@@ -13,13 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronRight, Trash2, Check, Save } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFormContext } from "@/components/forms/form-context";
+import { STEP_TITLES } from "@/components/forms/editor-steps";
 
 const MAX_NOTIFY_EMAILS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -113,22 +115,11 @@ export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open
   const headerInner = (
     <div className="flex items-start justify-between">
       <div>
-        <CardTitle>Submission Settings</CardTitle>
+        <CardTitle>{STEP_TITLES.settings}</CardTitle>
         <CardDescription>Control responses, notifications, and limits</CardDescription>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {saveStatus === "saving" && (
-          <span className="text-sm text-muted-foreground flex items-center gap-2">
-            <Save className="h-4 w-4 animate-pulse" />
-            Saving...
-          </span>
-        )}
-        {saveStatus === "saved" && (
-          <span className="text-sm text-success-strong flex items-center gap-2">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
+        <SaveIndicator status={saveStatus} />
         {!isFlow &&
           (open ? (
             <ChevronDown className="h-4 w-4" />
@@ -301,6 +292,7 @@ export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open
                   <Input
                     id="maxSubmissions"
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     value={state.maxSubmissions?.toString() ?? ""}
                     onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}

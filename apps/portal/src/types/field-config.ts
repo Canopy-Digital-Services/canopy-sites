@@ -4,30 +4,23 @@
  * stored in the Field model for each FieldType.
  */
 
-// Base validation (shared by TEXT, EMAIL, TEXTAREA)
-export type BaseValidation = {
-  minLength?: number;
-  maxLength?: number;
-  format?: "alphanumeric" | "numbers" | "letters" | "url" | "postal-us" | "postal-ca";
-};
+import type { NameOptions } from "../../embed/src/name";
+import type { AddressOptions } from "../../embed/src/address";
+import type { PhoneOptions } from "../../embed/src/phone";
+import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
+
+// Dropdown and Checkboxes share one shape; only a Dropdown has a default.
+export type { NameOptions, AddressOptions, PhoneOptions, ChoiceOption, ChoiceOptions };
+
+/** A Paragraph's character limit; without one it takes the most a Paragraph
+    takes. */
+export type ParagraphValidation = { maxLength: number };
 
 // Type-specific validation extensions
-export type EmailValidation = {
-  domainRules?: {
-    allow?: string[];
-    block?: string[];
-  };
-  normalize?: boolean; // Auto-lowercase
-};
 
-export type PhoneValidation = {
-  format?: "lenient" | "strict";
-};
-
-export type DateValidation = {
-  minDate?: string; // ISO string or "today"
-  maxDate?: string; // ISO string or "today"
-};
+/** A Future Date takes today or later (`minDate`), a Past Date today or
+    earlier (`maxDate`); an Any Date field stores no rule. */
+export type DateValidation = { minDate: "today" } | { maxDate: "today" };
 
 export type NumberValidation = {
   min?: number;
@@ -35,52 +28,26 @@ export type NumberValidation = {
   integer?: boolean;
 };
 
-// Type-specific options
-export type DropdownOption = {
-  value: string;
-  label: string;
-};
-
-export type DropdownOptions = {
-  options: DropdownOption[];
-  defaultValue?: string;
-  allowOther?: boolean;
-};
-
-export type NameOptions = {
-  parts: ("first" | "last" | "middle" | "middleInitial" | "single")[];
-  partLabels?: Record<string, string>;
-  partsRequired?: Record<string, boolean>;
-};
-
-export type CheckboxesOptions = {
-  options: DropdownOption[];
-};
-
-export type AddressOptions = {
-  showLine2?: boolean;
-};
-
 // Field configuration discriminated union
 export type FieldConfig =
   | {
       type: "TEXT";
-      validation?: BaseValidation;
+      validation?: never;
       options?: never;
     }
   | {
       type: "EMAIL";
-      validation?: EmailValidation;
+      validation?: never;
       options?: never;
     }
   | {
       type: "TEXTAREA";
-      validation?: BaseValidation;
+      validation?: ParagraphValidation;
       options?: never;
     }
   | {
       type: "PHONE";
-      validation?: PhoneValidation;
+      validation?: PhoneOptions;
       options?: never;
     }
   | {
@@ -96,7 +63,7 @@ export type FieldConfig =
   | {
       type: "DROPDOWN";
       validation?: never;
-      options: DropdownOptions;
+      options: ChoiceOptions;
     }
   | {
       type: "CHECKBOX";
@@ -106,7 +73,7 @@ export type FieldConfig =
   | {
       type: "CHECKBOXES";
       validation?: never;
-      options: CheckboxesOptions;
+      options: ChoiceOptions;
     }
   | {
       type: "NUMBER";

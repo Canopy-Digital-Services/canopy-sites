@@ -131,16 +131,32 @@ export const baseStyles = `
   opacity: 0.5;
 }
 
+/* Between a label and its box, as GOV.UK places hints: close under the
+   label, with room before the box. */
 .canopy-help-text {
   font-size: calc(var(--canopy-font-size, 16px) - 1px);
   color: var(--canopy-text, #18181b);
-  margin-top: 4px;
+  margin: 0 0 4px;
   line-height: 1.4;
 }
 
-.canopy-error {
-  /* Hidden - using native HTML5 validation popups instead */
-  /* Keep in DOM for screen reader accessibility */
+/* A Paragraph's character count, under its box; bold once it's over. */
+.canopy-count {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  color: var(--canopy-text, #18181b);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.canopy-count[data-over] {
+  font-weight: 700;
+}
+
+/* Errors show in native HTML5 validation popups, so their elements are
+   hidden, kept in the DOM for screen readers, as is what only screen
+   readers hear. */
+.canopy-error,
+.canopy-visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -165,14 +181,20 @@ export const baseStyles = `
 }
 
 .canopy-name-parts {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .canopy-name-part {
   display: grid;
   gap: 4px;
+  flex: 1 1 150px;
+}
+
+/* One or two characters: a full-width box would look like a mistake. */
+.canopy-name-part-initial {
+  flex: 0 0 4.5em;
 }
 
 .canopy-name-part-label {
@@ -182,16 +204,83 @@ export const baseStyles = `
 }
 
 .canopy-address-parts {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
 .canopy-address-part {
   display: grid;
   gap: 4px;
+  flex: 1 1 100%;
+}
+
+/* City, State, and ZIP share a row, wrapping on a narrow form. */
+.canopy-address-part-city {
+  flex: 2 1 10em;
+}
+
+.canopy-address-part-region {
+  flex: 1 1 8em;
+}
+
+.canopy-address-part-postalCode {
+  flex: 0 1 7em;
 }
 
 .canopy-address-part-label {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
+/* The number takes the row, the extension a short box beside it with its
+   label before it; on a narrow form the extension wraps under. */
+.canopy-phone-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.canopy-root .canopy-phone-parts > .canopy-input {
+  flex: 1 1 12em;
+  width: auto;
+}
+
+.canopy-phone-extension {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canopy-root .canopy-phone-extension .canopy-input {
+  width: 6em;
+}
+
+.canopy-phone-extension-label {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
+/* Month, Day, and Year, each box as wide as its digits. */
+.canopy-dob-parts {
+  display: flex;
+  gap: 12px;
+}
+
+.canopy-dob-part {
+  display: grid;
+  gap: 4px;
+  width: 4.5em;
+}
+
+.canopy-dob-part-year {
+  width: 6em;
+}
+
+.canopy-dob-part-label {
   font-size: calc(var(--canopy-font-size, 16px) - 1px);
   font-weight: 500;
   color: var(--canopy-text, #18181b);

@@ -17,7 +17,7 @@ A site's install and build run as that site's own unprivileged user (`src/sandbo
 | Variable | Notes |
 |---|---|
 | `BUILDER_TOKEN` | Required, at least 32 characters; the portal sends the same value |
-| `GIT_TOKEN_<SLUG>` | Per site, a fine-grained GitHub token limited to its repo with Contents read and write; slug uppercased, hyphens as underscores. The org disables deploy keys, so this is the only way in |
+| `GIT_TOKEN_<SLUG>` | Per site, a fine-grained GitHub token limited to its repo with Contents read and write; slug uppercased, hyphens as underscores. The org disables deploy keys, so the builder needs a token; this per-site PAT is what's built (as of 2026-11-05), and a GitHub App's installation token is the other way in |
 | `SITES_ROOT` | Default `/srv/sites`, a persistent volume |
 | `BUILDS_RETAINED` | Default 5; `current` and `preview` targets are always kept |
 | `FETCH_TTL_SECONDS` | Default 60: how stale a content read may be before it fetches the branch |

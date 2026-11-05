@@ -5,4 +5,4 @@
 
 // Re-export types
 export type { ConfigComponentProps } from "./types";
-export { FieldConfigRenderer } from "./field-config-renderer";
+export { FieldConfigRenderer, hasTypeSettings } from "./field-config-renderer";
