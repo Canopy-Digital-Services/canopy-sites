@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { generateToken, hashToken } from "@/lib/auth-utils";
+import { hashToken } from "@/lib/auth-utils";
 import { hashPassword, needsRehash, verifyPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
 import { redirect } from "next/navigation";
@@ -15,10 +15,11 @@ import {
   setSessionCookie,
 } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
+import { createClaimLink, issuePasswordToken } from "@/lib/claim";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getSoleMembership } from "@/lib/data-access/memberships";
-import { appUrlFor, productNameFor, signInElsewhere, signupElsewhere } from "@/lib/product";
+import { appUrlFor, productNameFor, senderFor, signInElsewhere, signupElsewhere } from "@/lib/product";
 import {
   clearPasswordChangeThrottle,
   clearSignInThrottle,
@@ -221,24 +222,17 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
   }
 
   try {
+    // An owner who hasn't claimed the account the operator linked has no
+    // password to reset: they get the claim email instead (PRD D49), under
+    // the same throttle and with the same answer.
+    if (user.password === null) {
+      await createClaimLink(user.id, { email: true });
+      return genericSuccess;
+    }
+
     // The email carries the token; the database keeps only its hash. A new
     // link retires any earlier unused ones, so only the latest email works.
-    const token = generateToken(32);
-    const now = new Date();
-    await prisma.$transaction([
-      prisma.passwordToken.updateMany({
-        where: { userId: user.id, usedAt: null },
-        data: { usedAt: now },
-      }),
-      prisma.passwordToken.create({
-        data: {
-          userId: user.id,
-          purpose: "RESET",
-          tokenHash: hashToken(token),
-          expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
-        },
-      }),
-    ]);
+    const { token } = await issuePasswordToken(user.id, "RESET");
 
     // Send password reset email. The account, not the request host, picks
     // the link host and product name (see appUrlFor).
@@ -251,6 +245,7 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
     
     await sendEmail({
       to: email,
+      from: senderFor(entitlements),
       subject: `Password Reset Request - ${productName}`,
       text: `
 You requested a password reset for your ${productName} account.

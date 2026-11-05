@@ -4,22 +4,21 @@
  * Global-Admin-gated: add a person to an existing account as a MEMBER, e.g. a
  * partner on the shared demo account (PRD D23). v1 gives each user exactly one
  * membership (getCurrentAccountId asserts it), so only a new email can be
- * added. The user is created with an unusable random password and sets their
- * own through "Forgot password" on the account's home host. Not an invite
- * flow: no email is sent from here.
+ * added. The user starts with no password, like a linked site's owner (PRD
+ * D49), and the operator gets a claim link to pass on; Forgot password sends
+ * them one too. Not an invite flow: no email is sent from here.
  */
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
-import { hashPassword } from "@/lib/password";
+import { createClaimLink } from "@/lib/claim";
 import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 export async function addAccountMember(
   accountId: string,
   email: string
-): Promise<{ success: true; email: string } | { error: string }> {
+): Promise<{ success: true; email: string; claimUrl: string } | { error: string }> {
   const session = await requireGlobalAdmin();
 
   const normalized = normalizeEmail(String(email ?? ""));
@@ -34,7 +33,7 @@ export async function addAccountMember(
   const user = await prisma.user.create({
     data: {
       email: normalized,
-      password: await hashPassword(randomBytes(32).toString("base64url")),
+      password: null,
       memberships: { create: { accountId: account.id, role: "MEMBER" } },
     },
     select: { id: true },
@@ -49,6 +48,7 @@ export async function addAccountMember(
       at: new Date().toISOString(),
     })
   );
+  const { url } = await createClaimLink(user.id, { createdByUserId: session.user.id });
   revalidatePath("/operator/accounts");
-  return { success: true, email: normalized };
+  return { success: true, email: normalized, claimUrl: url };
 }

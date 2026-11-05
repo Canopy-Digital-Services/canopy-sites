@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { UserPlus } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,17 +15,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addAccountMember } from "@/actions/admin/members";
+import { CopyLinkField } from "../copy-link-field";
 
 export function AddMemberButton({ accountId, email }: { accountId: string; email: string }) {
   const [open, setOpen] = useState(false);
   const [memberEmail, setMemberEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState<{ email: string; claimUrl: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleOpenChange(next: boolean) {
     if (next) {
       setMemberEmail("");
       setError(null);
+      setAdded(null);
     }
     setOpen(next);
   }
@@ -39,8 +41,7 @@ export function AddMemberButton({ accountId, email }: { accountId: string; email
         setError(result.error);
         return;
       }
-      toast.success(`${result.email} added. They set a password with "Forgot password".`);
-      setOpen(false);
+      setAdded({ email: result.email, claimUrl: result.claimUrl });
     });
   }
 
@@ -53,12 +54,25 @@ export function AddMemberButton({ accountId, email }: { accountId: string; email
         </Button>
       </DialogTrigger>
       <DialogContent>
+        {added ? (
+          <div className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>{added.email} added</DialogTitle>
+              <DialogDescription>Their link to set a password works once, for a week.</DialogDescription>
+            </DialogHeader>
+            <CopyLinkField url={added.claimUrl} label="Claim link" />
+            <DialogFooter>
+              <Button type="button" onClick={() => setOpen(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <DialogHeader>
             <DialogTitle>Add member</DialogTitle>
             <DialogDescription>
-              Adds a new person to <strong>{email}</strong>&apos;s account. They sign in at the account&apos;s home address after
-              setting a password with &quot;Forgot password&quot;.
+              Adds a new person to <strong>{email}</strong>&apos;s account, with a link to set their password.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -87,6 +101,7 @@ export function AddMemberButton({ accountId, email }: { accountId: string; email
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
