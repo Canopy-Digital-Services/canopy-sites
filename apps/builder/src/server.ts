@@ -96,9 +96,9 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   // GET /v1/repos: the repos the Canopy Sites GitHub App is installed on, for
   // the portal's Link a site picker. 404 when the App isn't configured.
   if (req.method === "GET" && url.pathname === "/v1/repos") {
-    const app = appConfig();
-    if (!app) return json(res, 404, { error: "The Canopy Sites GitHub App isn't configured on the builder" });
     try {
+      const app = appConfig();
+      if (!app) return json(res, 404, { error: "The Canopy Sites GitHub App isn't configured on the builder" });
       return json(res, 200, { repos: await installationRepos(app) });
     } catch (err) {
       if (err instanceof AppAccessError) return json(res, 502, { error: err.message });

@@ -34,7 +34,11 @@ export function appConfig(env: Record<string, string | undefined> = process.env)
   const raw = env.GITHUB_APP_PRIVATE_KEY?.trim();
   if (!appId || !installationId || !raw) return null;
   const pem = raw.startsWith("-----BEGIN") ? raw.replace(/\\n/g, "\n") : Buffer.from(raw, "base64").toString("utf8");
-  return { appId, installationId, key: createPrivateKey(pem) };
+  try {
+    return { appId, installationId, key: createPrivateKey(pem) };
+  } catch {
+    throw new AppAccessError("The Canopy Sites GitHub App's private key on the builder can't be read");
+  }
 }
 
 const base64url = (data: Buffer | string) => Buffer.from(data).toString("base64url");
