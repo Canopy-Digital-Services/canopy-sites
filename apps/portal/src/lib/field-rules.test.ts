@@ -99,10 +99,8 @@ describe("savedField", () => {
     expect(savedField({ type: "TEXTAREA", label: "Message", validation: { minLength: 2 } }).validation).toBeNull();
   });
 
-  it("keeps an Email's work-only choice, and a Phone's extension", () => {
-    expect(savedField({ type: "EMAIL", label: "Email", validation: { workOnly: true, normalize: true } }).validation).toEqual({
-      workOnly: true,
-    });
+  it("keeps nothing for an Email, and a Phone's extension", () => {
+    expect(savedField({ type: "EMAIL", label: "Email", validation: { workOnly: true, normalize: true } }).validation).toBeNull();
     expect(savedField({ type: "EMAIL", label: "Email", validation: { domainRules: { allow: ["a.com"] } } }).validation).toBeNull();
     expect(savedField({ type: "PHONE", label: "Phone", validation: { format: "strict" } }).validation).toBeNull();
     expect(

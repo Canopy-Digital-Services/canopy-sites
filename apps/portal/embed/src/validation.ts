@@ -17,8 +17,6 @@ type FieldValidation = {
   minDate?: string;
   /** "today": a Past Date. */
   maxDate?: string;
-  /** An Email that refuses personal addresses (Gmail and the like). */
-  workOnly?: boolean;
   min?: number;
   max?: number;
   integer?: boolean;
@@ -89,19 +87,6 @@ export function isValidEmail(value: string): boolean {
   if (/[\r\n]/.test(value)) return false;
   return EMAIL_REGEX.test(value);
 }
-
-/** Free personal email providers, which a Work emails only field refuses:
-    the big webmail services and the US internet providers that give their
-    customers an address. */
-const PERSONAL_EMAIL_DOMAINS = new Set([
-  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "ymail.com", "rocketmail.com",
-  "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com", "aol.com",
-  "icloud.com", "me.com", "mac.com", "proton.me", "protonmail.com", "pm.me",
-  "gmx.com", "gmx.net", "mail.com", "zoho.com", "yandex.com", "fastmail.com", "hey.com", "tutanota.com",
-  "comcast.net", "verizon.net", "att.net", "sbcglobal.net", "bellsouth.net", "cox.net", "charter.net",
-  "earthlink.net", "juno.com", "optonline.net", "frontier.com", "centurylink.net",
-  "qq.com", "163.com", "naver.com", "web.de", "orange.fr", "free.fr", "libero.it", "mail.ru",
-]);
 
 // Dates are compared as YYYY-MM-DD strings, the way the date input writes
 // them. Parsing one with `new Date` reads it as UTC midnight, which is the
@@ -316,15 +301,8 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
     case "WEBSITE":
       return websiteAddress(text) ? null : `${label} must be a web address, like example.com.`;
 
-    case "EMAIL": {
-      const email = text.trim();
-      if (!isValidEmail(email)) return `${label} must be an email address, like name@example.com.`;
-      const domain = email.slice(email.lastIndexOf("@") + 1).toLowerCase();
-      if (rules.workOnly === true && PERSONAL_EMAIL_DOMAINS.has(domain)) {
-        return `${label} must be a work email address, not a personal one like Gmail.`;
-      }
-      return null;
-    }
+    case "EMAIL":
+      return isValidEmail(text.trim()) ? null : `${label} must be an email address, like name@example.com.`;
 
     default:
       return null;

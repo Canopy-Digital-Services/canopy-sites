@@ -17,8 +17,6 @@ export type { NameOptions, AddressOptions, PhoneOptions, ChoiceOption, ChoiceOpt
 export type ParagraphValidation = { maxLength: number };
 
 // Type-specific validation extensions
-/** An Email that refuses personal addresses (Gmail and the like). */
-export type EmailValidation = { workOnly: true };
 
 /** A Future Date takes today or later (`minDate`), a Past Date today or
     earlier (`maxDate`); an Any Date field stores no rule. */
@@ -39,7 +37,7 @@ export type FieldConfig =
     }
   | {
       type: "EMAIL";
-      validation?: EmailValidation;
+      validation?: never;
       options?: never;
     }
   | {

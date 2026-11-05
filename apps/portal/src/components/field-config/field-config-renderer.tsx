@@ -1,6 +1,5 @@
 import { FieldType } from "@prisma/client";
 import { ParagraphConfig } from "./paragraph-config";
-import { EmailConfig } from "./email-config";
 import { DropdownConfig } from "./dropdown-config";
 import { DateConfig } from "./date-config";
 import { PhoneConfig } from "./phone-config";
@@ -16,7 +15,6 @@ import { ConfigComponentProps } from "./types";
 type AnyConfigComponent = React.ComponentType<ConfigComponentProps<any>>;
 
 const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
-  EMAIL: EmailConfig,
   TEXTAREA: ParagraphConfig,
   DROPDOWN: DropdownConfig,
   PHONE: PhoneConfig,
