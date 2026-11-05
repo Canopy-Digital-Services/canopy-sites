@@ -340,6 +340,8 @@ Role (code PK, displayName, description?, isPublic, sortOrder)
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
          status:AccountStatus, billingRef?)
   └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
+  └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
+  │        as the account (PRD D49); deleting the operator keeps the row
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
@@ -360,13 +362,15 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
                         cacheWriteTokens, costUsd)
 
-User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
+User (email, password? (null until the owner claims, PRD D49),
+      roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
   └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
-  │           absoluteExpiresAt)
+  │           absoluteExpiresAt, actAsId?→ActAs)
   └─ SessionHandoff (id = SHA-256 of a one-time token, rememberMe, targetHost,
   │                  expiresAt), Forms-host sign-in to a Sites-host session
-  └─ PasswordResetToken (tokenHash, expiresAt, usedAt?)
+  └─ PasswordToken (purpose:PasswordTokenPurpose, tokenHash, expiresAt, usedAt?,
+                    createdByUserId?→User, emailedAt?), table password_reset_tokens
 ```
 
 Enums:
@@ -376,6 +380,7 @@ Enums:
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
+- `PasswordTokenPurpose`: `RESET | CLAIM`. A claim link sets an unclaimed owner's first password (PRD D49); `/reset-password` accepts only `RESET`.
 - `ChangeSetSource`: `QUICK_EDIT | OPERATOR | EDITOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED | SUPERSEDED`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 
