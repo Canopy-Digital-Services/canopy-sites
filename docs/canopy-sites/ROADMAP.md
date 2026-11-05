@@ -16,7 +16,7 @@ Phase 1  Content contract + H&H       [site-contract, H&H] C1 → H1 → H2 → 
 Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, C1)
 Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E34 → E35 (needs E30; E33 first, below)
 Phase 4  Production on Caddy          [webber]             E36                        (needs E33 stable)
-Phase 5  Toro Z migration             [toroz]              T1                         (follows canopyds.com's path, E37; not gated on E36)
+Phase 5  Toro Z migration             [toroz]              T1                         (needs E38; follows canopyds.com's path, E37; not gated on E36)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -34,6 +34,10 @@ E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/d
 ### canopyds.com on Sites (decided 2026-10-19)
 
 E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, the canvas for client sites, which loads a site's assets from its live address, and a preview page that opens a draft full-window in a new tab, without the Sites chrome, for every site, so there are no preview hostnames (D47). Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
+
+### Link and claim before Toro Z (decided 2026-11-05)
+
+E38 lets the operator link a live site, which creates the client's account, and lets the client claim it from a link, so Toro Z is the first client set up that way (PRD D49). E39, the per-client welcome video, follows it. The epic doc, `docs/epics/epic-38-link-and-claim.md`, carries the requirements.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -190,7 +194,7 @@ Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 - `requestHelp` and a `HelpRequest` table; operator view lists open requests (PRD D34)
 - `Conversation` persisted with tokens in/out and cost estimate. Add `Plan.monthlyAiBudgetCents` (meaning in PRD D21), with the `SITES` value set from the cost per edit this epic measures; soft-stop at 100% with operator notification
 - UI: the Quick Edit tab, and the canvas popover from E33 (the same chat scoped to one field, PRD D37). Each assistant turn that produces a change shows Preview inline; Publish is on the preview page (PRD D47)
-- Operator: token usage per account/site/month; "edit as client" opens the same chat with operator identity recorded on the ChangeSet
+- Operator: token usage per account/site/month (acting as the client is E38's)
 - Acceptance: scripted edits on H&H (hours, announcement with quoted text, announcement without, price change, gallery add with HEIC, low-resolution photo, hero copy with a typo, a design request) each produce the right preview or reply; cost per edit recorded and reported. The script is the regression suite for any change to the guidance
 
 ### E33 · Visual editor
@@ -219,6 +223,19 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 - Acceptance: H&H stats match the Umami dashboard for the same range
 
 ---
+
+### E38 · Link and claim
+
+From `docs/epics/epic-38-link-and-claim.md`. The operator links a live site by its repo, which creates the client's account and site; the client claims it from a link. Act as client (E32's "edit as client", smaller), the operator's view of where each client stands, tabs that follow what the account has, and a GitHub App in place of per-site tokens. Toro Z is its first client (PRD D49).
+
+### E39 · Welcome video
+
+Goal: each client's portal opens on a walkthrough Michael recorded for them, because each portal shows different things depending on what the site has. Builds on what E38 left ready (its section 4.6). Decided by Michael, 2026-11-05: the portal hosts the video (no third-party player); it's recorded in any tool that exports MP4 (Snagit, Loom, Google Vids); captions are required; how much was watched is good to have, not essential.
+
+- Storage: a Coolify persistent volume on the prod and dev portal apps at `/app/media`, created in the Dockerfile owned by `nextjs` (uid 1001; the portal had no volume as of 2026-11-05), named by `MEDIA_DIR` (unset means no videos). Files `welcome/<siteId>/<key>.mp4` and `<key>.vtt`, the key a hash of the MP4; a replacement writes a new key and deletes the old pair. Not in the nightly backups, which cover databases; a lost video is re-uploaded from Michael's original
+- Upload on the operator site page: the MP4 and a WebVTT captions file, both required. A route handler behind `requireGlobalAdmin` streams to disk and refuses over 100 MB (Cloudflare's per-request limit on Free and Pro); it checks the MP4's `ftyp` box and the VTT's `WEBVTT` header. Captions come from the recording tool, or Claude Code transcribes the MP4 with Whisper on Michael's workstation and he reads the VTT; a bigger video is re-encoded with `ffmpeg` first
+- Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for members of the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying, opened once on the owner's first session after claiming, never while the operator acts as the client. The furthest point reached and the video's length on the owner's Membership; the operator's owner card shows "Watched 4:12 of 5:03". The help bubble reopens it
+- Acceptance: on the owner's phone the video opens once, silent until played, with captions, and seeks; the operator page shows how far they got; signed out or as another account, its files 404
 
 ## Phase 4 — Production on Caddy
 
@@ -251,7 +268,7 @@ Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Run
 - Tool tabs, build-time (PRD D39): Gallery (D41), Calendar for announcements and events (D42), blog, newsletter
 - A demo-account home with a switcher between several demo sites (PRD D44)
 - Invite flow and member roles UI (Membership exists from E28)
-- New-site onboarding automation (repo from template, DNS, Umami website, Caddy entry)
+- Creating a site's repo, DNS, Umami website, or Caddy entry from the portal (the operator links a live site, E38)
 - Stripe or FreshBooks sync
 - SEO/report tier tooling
 - SMS intake
