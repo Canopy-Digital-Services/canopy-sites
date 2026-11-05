@@ -54,7 +54,7 @@
 - Public MCP endpoint with per-account API keys
 - Stats: white-boxed Umami dashboard for all accounts
 - Operator: accounts, sites, build log, token usage, edit-as-client
-- Hair & Harvest migrated to the template as testbed
+- Toro Z Muay Thai on Sites, the first client site, following canopyds.com's path (ROADMAP T1)
 - A demo site at `sites.canopyds.com/demo` on its own account, for sales calls and partner sandboxes (D23)
 - canopyds.com on Sites under Michael's account, the first site that isn't the demo (D46)
 
@@ -73,7 +73,7 @@
 | SEO tier report | +$75 tier is a service, not software, in v1 |
 | New-site onboarding automation | Michael creates sites in operator by hand |
 | DNS / domain automation | Cloudflare by hand, per `deploy-to-webber.md` pattern |
-| Toro Z migration | Fast-follow after H&H is stable on the new path |
+| Hair & Harvest's own site on Sites | H&H is on Sites only as the demo's copy (D23); the `hair-and-harvest` repo was never converted (checked 2026-11-05). Not scheduled |
 
 ---
 
@@ -106,7 +106,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D21 | **A column lands with its first reader when its values would otherwise be guesses.** `Build` and `ChangeSet` arrive in E30; `analyticsTier` is not in v1; the token budget becomes `Plan.monthlyAiBudgetCents` in E32 (estimated model spend in US cents per calendar month, UTC, per account; `null` = no ceiling), because models and cache reads price tokens differently; `Site.status` arrives in E36 (E29) | M/R |
 | D22 | **Each account has a home host**, the one its emails already use: Sites accounts on `sites.canopyds.com`, every other account on `forms.canopyds.com`, so Forms stays a standalone product at its own address. A signed-in page on the other host redirects home (sessions are per host, so that is one more sign-in). Sign-in on the Forms host for a Sites customer shows "you use Forms through your Sites dashboard" with a **Go to Canopy Sites** button that signs them in there through a one-time handoff; a Forms customer signing in on the Sites host is told where to sign in. Signup is on the Forms host. Supersedes D2's "either host, no redirects", whose reasons (Forms-host email links, NextAuth's single URL) E27 and E28 removed. Shared cross-subdomain cookies rejected: client sites run on other `canopyds.com` hostnames, www.canopyds.com among them (E29, D46) | M/R |
 | D23 | **The demo is its own site on its own account**, never a client's: publishing on a call must never change a real client's live site. A dedicated Sites account (partners join it as members) owns a demo site in its own private repo, served at `sites.canopyds.com/demo`; its drafts preview like every site's (D47). Until a dedicated demo site is built, its content and design are a copy of H&H's (Sierra agreed, as part of her free site); it never touches H&H's repo, analytics, or search presence. `Site.isDemo` turns on sample stats and reset | M/R |
-| D24 | **No `canopy.json`.** The `Site` row owns `slug` (it names build directories and hostnames, and two sites may build from one repo) and `lockedFields` (guardrails are server-side, D9); the repo owns the contract version, as whatever `@canopy/site-contract` it installs, which the builder records on `Site.contractVersion` | R |
+| D24 | **No `canopy.json`.** The `Site` row owns `slug` (it names build directories and hostnames, and two sites may build from one repo) and `lockedFields` (guardrails are server-side, D9); the repo owns the contract version, as whatever `@canopy/site-contract` it installs. The builder reports it on every content read, but only the operator's Build and publish (and the operator's settings form, typed by hand) writes it to `Site.contractVersion`, so the column lags a site whose repo moves to a new contract by a Canopy push: canopyds.com's read 0.2.0 while the site ran 0.4.0 (2026-11-05) | R |
 | D25 | **A `canopyds.com` name a site uses sits one level under the zone** (`<slug>.canopyds.com`, never `<slug>.sites.canopyds.com`): Cloudflare's Universal SSL covers the apex and one level only, so a second-level name gets no certificate without Advanced Certificate Manager. The demo needs none: it lives at its own URL (D23) | R |
 | D26 | **`site-contract` ships from this repo** (was Q1): `packages/site-contract` is packed into a tarball attached to a GitHub release `site-contract-vX.Y.Z` on this repo, which site repos install by URL (npm cannot install a subdirectory of a git repo). The portal and builder use the workspace copy | R |
 | D27 | **D6 stands** (was Q9). Cloudflare Pages would replace only the serving half; a builder that applies ChangeSets and runs `astro build` is needed either way, and the positioning is "we run our own stack" | R |

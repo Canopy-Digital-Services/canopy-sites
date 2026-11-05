@@ -15,11 +15,13 @@ Phase 0  Portal foundation            [this repo]         E27 → E28 → E29
 Phase 1  Content contract + H&H       [site-contract, H&H] C1 → H1 → H2 → H3         (parallel with Phase 0)
 Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, C1)
 Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E34 → E35 (needs E30; E33 first, below)
-Phase 4  H&H production cutover       [webber]             E36                        (needs E33 stable)
-Phase 5  Toro Z migration             [toroz]              T1                         (needs E36 stable a week)
+Phase 4  Production on Caddy          [webber]             E36                        (needs E33 stable)
+Phase 5  Toro Z migration             [toroz]              T1                         (follows canopyds.com's path, E37; not gated on E36)
 ```
 
-Production H&H keeps deploying through its current Coolify app until E36. Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). During Phase 3, publish = commit to `main` → Coolify rebuilds (the fallback path), which is correct behavior until E36 makes publish a symlink swap.
+Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
+
+Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harvest` repo was never converted (Astro 5, no contract, checked 2026-11-05), so H1 to H3 are unscheduled and gate nothing. canopyds.com (Epic 37) is the precedent every site follows onto Sites.
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -114,7 +116,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 - Gallery images stay in `src/assets`; gallery entries name them by path under `src/assets`
 - Pages render from collections; no business data in templates (the Toro Z `site.ts` rule, applied through collections)
 - Locked fields (phone, email, address) are set on the `Site` row (PRD D24)
-- Write H&H's `SITE_GUIDE.md` (PRD D31, D40). The demo site uses the same guide, as a copy in its repo, since it carries H&H's content and design (D23)
+- Write H&H's `SITE_GUIDE.md` (PRD D31, D40). `canopy-demo-site` has no copy of one (checked 2026-11-05): quick edit takes the demo's rules from its `Site.runbookOverlay`
 - Acceptance: `validateSite` passes; `astro check` clean; visual parity
 
 ### H3 · H&H → tokens
@@ -218,18 +220,18 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 
 ---
 
-## Phase 4 — H&H production cutover
+## Phase 4 — Production on Caddy
 
 ### E36 · Production on Caddy, publish by swap
 
-Preconditions: E33 stable on preview for at least a week of real use.
+Preconditions: E33 stable on preview for at least a week of real use. Which site goes first is decided when E36 starts (canopyds.com is the lower-stakes candidate, epic-37 section 7); each site on Sites then follows the same steps.
 
 Add `Site.status` here (deferred from E29, PRD D21), with values naming which sites Caddy serves in production.
 
-1. Portal adds `hairandharvest.com` + `www` to Caddy config → `current` symlink (pointing at the latest published build)
-2. Traefik: route both hostnames to the Caddy container instead of the H&H nginx app. Verify `curl -sI https://hairandharvest.com/` 200 and content parity
+1. Portal adds the site's production hostnames to Caddy config → `current` symlink (pointing at the latest published build)
+2. Traefik: route those hostnames to the Caddy container instead of the site's nginx app. Verify `curl -sI https://<hostname>/` 200 and content parity
 3. Flip `publish` behavior: symlink swap first, commit + push async. Restore publishes like any other change (PRD §4.5)
-4. Confirm for a week. Delete the old Coolify app. Update `hair-and-harvest` deploy docs
+4. Confirm for a week. Delete the site's Coolify app, and its Fox copy for a Tier 1 site. Update the site repo's deploy docs
 5. Undo path at any step: route Traefik back to the nginx app
 
 Acceptance: publish from quick edit is live in seconds; restore brings back a previous version in seconds; the GitHub repo reflects every published change.
@@ -240,7 +242,7 @@ Acceptance: publish from quick edit is live in seconds; restore brings back a pr
 
 ### T1 · Toro Z onto the template (`toroz`)
 
-Same as H1–H3 plus E36 steps 1–5 for `torozmuaythai.com`. Specifics: `site.ts` → collections (schedule logic becomes contract-schema'd `schedule` + derived views in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule).
+Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (schedule logic becomes contract-schema'd `schedule` + derived views in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule).
 
 ---
 
