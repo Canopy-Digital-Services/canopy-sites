@@ -2,7 +2,7 @@
 
 // UI: see docs/UX_PATTERNS.md ("Inline field rows").
 //
-// The settings of a row in the editor's lists (Fields, Styling): they open
+// The settings of a row in the editor's lists (Fields, Appearance): they open
 // below the row's summary and fold back into it. The animation runs on
 // grid-template-rows (0fr to 1fr), which follows the settings' height as it
 // changes (a Name's parts revealing, an option added) without measuring it,

@@ -1,8 +1,8 @@
 "use client";
 
-// UI: see docs/UX_PATTERNS.md ("Styling mode", "Styling panel").
+// UI: see docs/UX_PATTERNS.md ("Appearance mode", "Appearance panel").
 //
-// The styling-mode panel: one row per part of the form you can click in the
+// The appearance-mode panel: one row per part of the form you can click in the
 // preview, in the order they appear there, built like the Fields list. One
 // row is open at a time (styleGroup in FormContext), and the preview marks
 // what the open row styles.
@@ -286,7 +286,7 @@ function StyleRow({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function StylingPanel() {
+export function AppearancePanel() {
   const { state, saveStatus, updateTheme } = useFormContext();
   const isHosted = state.type === "HOSTED";
 
@@ -462,7 +462,7 @@ export function StylingPanel() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Styling</CardTitle>
+          <CardTitle>Appearance</CardTitle>
           <SaveIndicator status={saveStatus} />
         </div>
       </CardHeader>

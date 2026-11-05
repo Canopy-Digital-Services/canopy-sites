@@ -1,8 +1,8 @@
 "use client";
 
-// UI: see docs/UX_PATTERNS.md ("Inline field rows", "Styling panel").
+// UI: see docs/UX_PATTERNS.md ("Inline field rows", "Appearance panel").
 //
-// The title of a row in the editor's lists (Fields, Styling): one look for
+// The title of a row in the editor's lists (Fields, Appearance): one look for
 // both, and the coral marker underline under the open row's title.
 
 import { useEffect } from "react";

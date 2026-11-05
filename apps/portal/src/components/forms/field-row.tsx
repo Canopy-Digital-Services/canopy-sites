@@ -105,7 +105,7 @@ export function FieldRow({
   const label = field.label.trim() || defaultLabel(field.type);
   const typeName = getFieldTypeLabel(field.type);
 
-  // The open row's title is underlined in coral, as a styling row's is; not
+  // The open row's title is underlined in coral, as an appearance row's is; not
   // while it is being renamed, since the input replaces it.
   const titleRef = useRef<HTMLButtonElement>(null);
   const [renaming, setRenaming] = useState(false);

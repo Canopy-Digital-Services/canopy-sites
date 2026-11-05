@@ -23,7 +23,7 @@ A URL-friendly slug is generated automatically from the name and shown below it.
 
 Every form opens to a three-tab workspace:
 
-- **Edit**: the builder, which walks through Header, Fields, and Submission Settings one section at a time. The buttons under the card are named for the section they take you to, and the dots above it show where you are. On desktop, a live preview sits to the right, with **Change styling** above it for the form's look (see [Styling](./appearance.md)). The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
+- **Edit**: the builder, which walks through Header, Fields, and Submission Settings one section at a time. The buttons under the card are named for the section they take you to, and the dots above it show where you are. On desktop, a live preview sits to the right, with **Change appearance** above it for the form's look (see [Appearance](./appearance.md)). The preview is locked to the form's type — hosted forms preview as the standalone page, embedded forms preview as they'd appear inside another site.
 - **Publish**: publish status and the controls that apply to your form type — the hosted form link for hosted forms, allowed origins and embed snippet for embedded ones. See [Publishing](./publishing.md).
 - **Submissions**: every entry the form has received, with filters and export. See [Submissions](./submissions.md).
 

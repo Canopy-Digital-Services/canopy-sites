@@ -22,7 +22,7 @@ type PreviewOutlineProps = {
 };
 
 /**
- * A thin outline hugging each target in the live preview: what styling mode
+ * A thin outline hugging each target in the live preview: what appearance mode
  * shows on hover, as builders and the browser's inspector do. It follows the
  * element's own corner radius, a few px out.
  */
