@@ -268,6 +268,10 @@ export class CanopyForm {
 
     const form = document.createElement("form");
     form.className = "canopy-form";
+    // Every Submit runs validateField, top to bottom: the browser's own
+    // checks (a Date's range, an error left on a box not yet touched) would
+    // stop the submit first, in their own words and order.
+    form.noValidate = true;
     form.addEventListener("submit", (event) => this.handleSubmit(event));
     this.formEl = form;
 
@@ -478,6 +482,13 @@ export class CanopyForm {
         const text = document.createElement("span");
         text.dataset.fieldPart = "label";
         text.textContent = field.label || field.name;
+        if (field.required) {
+          const required = document.createElement("span");
+          required.className = "canopy-required";
+          required.textContent = " *";
+          required.setAttribute("aria-hidden", "true");
+          text.appendChild(required);
+        }
         checkboxWrapper.appendChild(text);
         wrapper.appendChild(checkboxWrapper);
         
