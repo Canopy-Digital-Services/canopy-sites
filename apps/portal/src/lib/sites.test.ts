@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHostname, parseNewSite, parseSiteSettings, suggestSlug, type SiteSettingsInput } from "./sites";
+import {
+  normalizeGitHubRepo,
+  normalizeHostname,
+  parseLinkSite,
+  parseSiteSettings,
+  suggestSlug,
+  suggestSlugFromRepo,
+  type LinkSiteInput,
+  type SiteSettingsInput,
+} from "./sites";
 
 const valid: SiteSettingsInput = {
   name: "Fern & Fig",
   repoUrl: "https://github.com/example-org/example-site",
   defaultBranch: "main",
   productionHostnames: ["example.com", "www.example.com"],
-  contractVersion: "0.1.0",
   umamiWebsiteId: "",
   runbookOverlay: "",
   lockedFields: ["site.contact.phone"],
@@ -17,27 +25,77 @@ function errorsOf(input: Partial<SiteSettingsInput>) {
   return result.ok ? {} : result.errors;
 }
 
-describe("parseNewSite", () => {
-  it("lowercases the slug and trims both fields", () => {
-    expect(parseNewSite({ name: "  Fern & Fig ", slug: " Fern-And-Fig " })).toEqual({
+const link: LinkSiteInput = {
+  email: " Owner@Example.com ",
+  name: " Fern & Fig ",
+  repoUrl: "https://github.com/Canopy-Digital-Services/fern-and-fig.git",
+  slug: " Fern-And-Fig ",
+  productionHostnames: ["FernAndFig.com", " ", "www.fernandfig.com"],
+  umamiWebsiteId: "",
+};
+
+function linkErrors(input: Partial<LinkSiteInput>) {
+  const result = parseLinkSite({ ...link, ...input });
+  return result.ok ? {} : result.errors;
+}
+
+describe("parseLinkSite", () => {
+  it("normalizes the email, name, repo, slug, and hostnames; a blank Umami ID is null", () => {
+    expect(parseLinkSite(link)).toEqual({
       ok: true,
-      value: { name: "Fern & Fig", slug: "fern-and-fig" },
+      value: {
+        email: "owner@example.com",
+        name: "Fern & Fig",
+        repoUrl: "https://github.com/Canopy-Digital-Services/fern-and-fig",
+        slug: "fern-and-fig",
+        productionHostnames: ["fernandfig.com", "www.fernandfig.com"],
+        umamiWebsiteId: null,
+      },
     });
   });
 
+  it("requires every field but the Umami ID, and a hostname", () => {
+    expect(linkErrors({ email: "", name: " ", repoUrl: "", slug: "", productionHostnames: [" "] })).toEqual({
+      email: "Email is required",
+      name: "Name is required",
+      repoUrl: "Repository is required",
+      slug: "Slug is required",
+      productionHostnames: "Add the site's hostname",
+    });
+  });
+
+  it("refuses an email, repo, hostname, or Umami ID in the wrong shape", () => {
+    expect(linkErrors({ email: "owner@" })).toEqual({ email: "Enter a valid email address" });
+    const repos = [
+      "https://gitlab.com/org/repo",
+      "ssh://github.com/org/repo.git",
+      "https://github.com/org",
+      "https://x:t@github.com/org/repo",
+    ];
+    for (const repoUrl of repos) {
+      expect(linkErrors({ repoUrl })).toHaveProperty("repoUrl");
+    }
+    expect(linkErrors({ productionHostnames: ["https://fernandfig.com"] })).toHaveProperty("productionHostnames");
+    expect(linkErrors({ umamiWebsiteId: "not-a-uuid" })).toHaveProperty("umamiWebsiteId");
+  });
+
   it.each([
-    ["", "Slug is required"],
     ["-leading", "Use lowercase letters, digits, and inner hyphens"],
-    ["trailing-", "Use lowercase letters, digits, and inner hyphens"],
     ["has space", "Use lowercase letters, digits, and inner hyphens"],
     ["../etc", "Use lowercase letters, digits, and inner hyphens"],
     ["a".repeat(41), "Slug must be 40 characters or fewer"],
   ])("refuses slug %j", (slug, message) => {
-    expect(parseNewSite({ name: "x", slug })).toEqual({ ok: false, errors: { slug: message } });
+    expect(linkErrors({ slug })).toEqual({ slug: message });
   });
+});
 
-  it("requires a name", () => {
-    expect(parseNewSite({ name: " ", slug: "ok" })).toEqual({ ok: false, errors: { name: "Name is required" } });
+describe("normalizeGitHubRepo and suggestSlugFromRepo", () => {
+  it("keep one form of a GitHub repo URL, and suggest its name as the slug", () => {
+    expect(normalizeGitHubRepo(" https://github.com/Org/My.Site.git/ ")).toBe("https://github.com/Org/My.Site");
+    expect(normalizeGitHubRepo("https://github.com/org/repo/tree/main")).toBeNull();
+    expect(suggestSlugFromRepo("https://github.com/Canopy-Digital-Services/toroz")).toBe("toroz");
+    expect(suggestSlugFromRepo("https://github.com/org/My.Site")).toBe("my-site");
+    expect(suggestSlugFromRepo("https://github.com/org")).toBe("");
   });
 });
 
@@ -66,7 +124,6 @@ describe("parseSiteSettings", () => {
     const result = parseSiteSettings({
       ...valid,
       repoUrl: " ",
-      contractVersion: "v0.2.1",
       productionHostnames: ["Example.com", " "],
       lockedFields: ["", "site.contact.email"],
       runbookOverlay: "Voice: warm.\r\n\r\n",
@@ -78,7 +135,6 @@ describe("parseSiteSettings", () => {
         repoUrl: null,
         defaultBranch: "main",
         productionHostnames: ["example.com"],
-        contractVersion: "0.2.1",
         umamiWebsiteId: null,
         runbookOverlay: "Voice: warm.",
         lockedFields: ["site.contact.email"],
@@ -116,8 +172,7 @@ describe("parseSiteSettings", () => {
     });
   });
 
-  it("refuses a contract version or Umami ID in the wrong format, and an overlay over the cap", () => {
-    expect(errorsOf({ contractVersion: "1.0" })).toHaveProperty("contractVersion");
+  it("refuses an Umami ID in the wrong format, and an overlay over the cap", () => {
     expect(errorsOf({ umamiWebsiteId: "not-a-uuid" })).toHaveProperty("umamiWebsiteId");
     expect(errorsOf({ umamiWebsiteId: "3F2504E0-4F89-41D3-9A0C-0305E82C3301" })).toEqual({});
     expect(errorsOf({ runbookOverlay: "x".repeat(20_001) })).toHaveProperty("runbookOverlay");

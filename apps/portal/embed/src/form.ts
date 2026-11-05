@@ -16,7 +16,7 @@ import {
   OTHER_VALUE,
   allowsOther,
   choiceList,
-  type ChoiceOptions,
+  showsAsButtons,
 } from "./choices";
 import { ADDRESS_PART_MAX_LENGTH, addressPartLabel, addressParts, addressRequiredParts, type AddressPart } from "./address";
 import { US_STATES } from "./us-states";
@@ -405,32 +405,26 @@ export class CanopyForm {
         input = textarea;
         break;
       }
-      case "DROPDOWN": {
+      case "CHOOSE_ONE": {
+        if (showsAsButtons(field.options)) return this.createChoiceGroup(field, wrapper, label, fieldId, "radio");
         const options = choiceList(field.options);
-        const defaultValue = Array.isArray(field.options)
-          ? undefined
-          : (field.options as ChoiceOptions | undefined)?.defaultValue;
-        const preset = options.some((o) => o.value === defaultValue);
         const allowOther = allowsOther(field.options);
 
         const select = document.createElement("select");
         select.className = "canopy-select";
 
-        // The prompt line stays in the list even under a default, greyed.
+        // The prompt line, greyed, until the visitor picks.
         const prompt = document.createElement("option");
         prompt.value = "";
         prompt.textContent = CHOICE_PROMPT;
         prompt.disabled = true;
-        prompt.selected = !preset;
+        prompt.selected = true;
         select.appendChild(prompt);
 
         options.forEach((option) => {
           const opt = document.createElement("option");
           opt.value = option.value;
           opt.textContent = option.label;
-          if (preset && option.value === defaultValue) {
-            opt.selected = true;
-          }
           select.appendChild(opt);
         });
         
@@ -467,9 +461,9 @@ export class CanopyForm {
         
         break;
       }
-      case "CHECKBOX": {
+      case "APPROVAL": {
         const checkboxWrapper = document.createElement("label");
-        checkboxWrapper.className = "canopy-checkbox";
+        checkboxWrapper.className = "canopy-choice";
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.id = fieldId;
@@ -498,81 +492,8 @@ export class CanopyForm {
         checkbox.setAttribute("aria-invalid", "false");
         return { wrapper, input: checkbox, errorEl };
       }
-      case "CHECKBOXES": {
-        const checkboxesWrapper = document.createElement("div");
-        checkboxesWrapper.className = "canopy-checkboxes";
-        checkboxesWrapper.setAttribute("data-checkbox-group", field.name);
-
-        // showErrors sets validity on the first checkbox in the group, so
-        // clear it there (not on the hidden pseudo-input)
-        const clearError = () => {
-          const firstCb = checkboxesWrapper.querySelector("input[type=checkbox]") as HTMLInputElement;
-          if (firstCb) firstCb.setCustomValidity("");
-        };
-
-        const addChoice = (value: string, text: string, part: string) => {
-          const itemLabel = document.createElement("label");
-          itemLabel.className = "canopy-checkbox";
-          itemLabel.dataset.fieldPart = part;
-
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.name = field.name;
-          cb.value = value;
-          cb.addEventListener("change", clearError);
-
-          const span = document.createElement("span");
-          span.textContent = text;
-
-          itemLabel.appendChild(cb);
-          itemLabel.appendChild(span);
-          checkboxesWrapper.appendChild(itemLabel);
-          return cb;
-        };
-
-        choiceList(field.options).forEach((option, index) => {
-          addChoice(option.value, option.label, `option-${index}`);
-        });
-
-        if (allowsOther(field.options)) {
-          const otherCb = addChoice(OTHER_VALUE, OTHER_LABEL, "option-other");
-          const otherInput = this.createOtherInput(field);
-          otherInput.dataset.choiceOther = field.name;
-          otherInput.addEventListener("input", clearError);
-          otherCb.addEventListener("change", () => {
-            if (otherCb.checked) {
-              otherInput.style.setProperty("display", "block", "important");
-              otherInput.focus();
-            } else {
-              otherInput.style.setProperty("display", "none", "important");
-              otherInput.value = "";
-            }
-          });
-          checkboxesWrapper.appendChild(otherInput);
-        }
-
-        // Hidden pseudo-input for fieldElements map (like NAME pattern)
-        const pseudoCbInput = document.createElement("input");
-        pseudoCbInput.type = "hidden";
-        pseudoCbInput.id = fieldId;
-        pseudoCbInput.name = field.name;
-
-        // The options are one group, named by the field's label.
-        label.id = `${fieldId}-label`;
-        checkboxesWrapper.setAttribute("role", "group");
-        checkboxesWrapper.setAttribute("aria-labelledby", label.id);
-        const help = this.createHelpText(field, fieldId);
-        wrapper.appendChild(label);
-        if (help) wrapper.appendChild(help);
-        wrapper.appendChild(checkboxesWrapper);
-
-        const errorEl = document.createElement("span");
-        errorEl.className = "canopy-error";
-        errorEl.id = `${fieldId}-error`;
-        wrapper.appendChild(errorEl);
-        describe(checkboxesWrapper, help, errorEl);
-        pseudoCbInput.setAttribute("aria-invalid", "false");
-        return { wrapper, input: pseudoCbInput, errorEl };
+      case "CHOOSE_SEVERAL": {
+        return this.createChoiceGroup(field, wrapper, label, fieldId, "checkbox");
       }
       case "EMAIL": {
         // A text box with the phone's email keyboard, not type="email",
@@ -680,7 +601,7 @@ export class CanopyForm {
       limit && input instanceof HTMLTextAreaElement ? this.addCharacterCount(wrapper, input, limit, fieldId) : undefined;
     describe(input, help, errorEl, limitNote);
 
-    // If this is a DROPDOWN with "Other" option, add the other input
+    // A long Choose one's "Other" box, under its dropdown
     if ((input as SelectWithOther).__otherInput) {
       wrapper.appendChild((input as SelectWithOther).__otherInput!);
     }
@@ -733,6 +654,96 @@ export class CanopyForm {
     show();
     wrapper.append(note, count, heard);
     return note;
+  }
+
+  /**
+   * A choice's options in sight, as one group under the field's label:
+   * checkboxes for Choose several, radio buttons for a short Choose one (two
+   * options side by side, more stacked). "Other" opens a box for the
+   * visitor's own answer.
+   */
+  private createChoiceGroup(
+    field: FieldDefinition,
+    wrapper: HTMLElement,
+    label: HTMLLabelElement,
+    fieldId: string,
+    kind: "checkbox" | "radio"
+  ) {
+    const options = choiceList(field.options);
+    const group = document.createElement("div");
+    group.className = "canopy-choices";
+    if (kind === "radio" && options.length === 2 && !allowsOther(field.options)) group.classList.add("canopy-choices-inline");
+    group.setAttribute("data-choice-group", field.name);
+    if (kind === "radio") group.setAttribute("data-choice-one", "");
+
+    // showErrors sets validity on the group's first box, so clear it there
+    // (not on the hidden pseudo-input).
+    const clearError = () => group.querySelector("input")?.setCustomValidity("");
+
+    const addChoice = (value: string, text: string, part: string) => {
+      const itemLabel = document.createElement("label");
+      itemLabel.className = "canopy-choice";
+      itemLabel.dataset.fieldPart = part;
+
+      const box = document.createElement("input");
+      box.type = kind;
+      box.name = field.name;
+      box.value = value;
+      box.addEventListener("change", clearError);
+
+      const span = document.createElement("span");
+      span.textContent = text;
+
+      itemLabel.append(box, span);
+      group.appendChild(itemLabel);
+      return box;
+    };
+
+    options.forEach((option, index) => addChoice(option.value, option.label, `option-${index}`));
+
+    if (allowsOther(field.options)) {
+      const otherBox = addChoice(OTHER_VALUE, OTHER_LABEL, "option-other");
+      const otherInput = this.createOtherInput(field);
+      otherInput.dataset.choiceOther = field.name;
+      otherInput.addEventListener("input", clearError);
+      // A radio button hears nothing when another is picked, so the group
+      // listens for any change.
+      group.addEventListener("change", () => {
+        if (otherBox.checked) {
+          if (otherInput.style.display === "none") {
+            otherInput.style.setProperty("display", "block", "important");
+            otherInput.focus();
+          }
+        } else {
+          otherInput.style.setProperty("display", "none", "important");
+          otherInput.value = "";
+        }
+      });
+      group.appendChild(otherInput);
+    }
+
+    // Hidden pseudo-input for fieldElements map (like NAME pattern)
+    const pseudoInput = document.createElement("input");
+    pseudoInput.type = "hidden";
+    pseudoInput.id = fieldId;
+    pseudoInput.name = field.name;
+
+    // The options are one group, named by the field's label.
+    label.id = `${fieldId}-label`;
+    group.setAttribute("role", kind === "radio" ? "radiogroup" : "group");
+    group.setAttribute("aria-labelledby", label.id);
+    const help = this.createHelpText(field, fieldId);
+    wrapper.appendChild(label);
+    if (help) wrapper.appendChild(help);
+    wrapper.appendChild(group);
+
+    const errorEl = document.createElement("span");
+    errorEl.className = "canopy-error";
+    errorEl.id = `${fieldId}-error`;
+    wrapper.appendChild(errorEl);
+    describe(group, help, errorEl);
+    pseudoInput.setAttribute("aria-invalid", "false");
+    return { wrapper, input: pseudoInput, errorEl };
   }
 
   /** The box for a visitor's "Other" answer, hidden until they pick Other. */
@@ -1142,10 +1153,8 @@ export class CanopyForm {
         if (element.input.type === "checkbox") {
           data[name] = element.input.checked;
         } else if (element.input.type === "hidden") {
-          // Check if this is a CHECKBOXES field
-          const checkboxGroup = this.container.querySelector(
-            `[data-checkbox-group="${name}"]`
-          );
+          // A choice shown as boxes or buttons
+          const choiceGroup = this.container.querySelector<HTMLElement>(`[data-choice-group="${name}"]`);
           // A Date of birth joins its boxes.
           const dateOfBirthBoxes = this.container.querySelectorAll<HTMLInputElement>(`input[data-dob-field="${name}"]`);
           // A Phone sends its parts.
@@ -1154,18 +1163,19 @@ export class CanopyForm {
             data[name] = joinDateOfBirth([...dateOfBirthBoxes]);
           } else if (phoneBoxes.length > 0) {
             data[name] = Object.fromEntries([...phoneBoxes].map((box) => [box.dataset.phonePart, box.value]));
-          } else if (checkboxGroup) {
+          } else if (choiceGroup) {
             const checked: string[] = [];
-            checkboxGroup.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").forEach((cb) => {
-              if (cb.value !== OTHER_VALUE) {
-                checked.push(cb.value);
+            choiceGroup.querySelectorAll<HTMLInputElement>("input:checked").forEach((box) => {
+              if (box.value !== OTHER_VALUE) {
+                checked.push(box.value);
                 return;
               }
               // Other counts once the visitor has typed it.
-              const typed = checkboxGroup.querySelector<HTMLInputElement>("[data-choice-other]")?.value.trim();
+              const typed = choiceGroup.querySelector<HTMLInputElement>("[data-choice-other]")?.value.trim();
               if (typed) checked.push(typed);
             });
-            data[name] = checked;
+            // Choose one answers with its one pick, as its dropdown does.
+            data[name] = choiceGroup.hasAttribute("data-choice-one") ? (checked[0] ?? "") : checked;
           } else {
             // Check if this is a NAME field by looking for part inputs
             const partInputs = this.container.querySelectorAll(
@@ -1274,15 +1284,15 @@ export class CanopyForm {
     this.fieldElements.forEach((element, name) => {
       const message = errors[name] || "";
 
-      // For hidden pseudo-inputs (NAME, CHECKBOXES, ADDRESS), set validity on the right visible input
+      // For hidden pseudo-inputs (choices and fields of parts), set validity on the right visible input
       if (element.input.type === "hidden") {
-        const checkboxGroup = this.container.querySelector(
-          `[data-checkbox-group="${name}"]`
+        const choiceGroup = this.container.querySelector(
+          `[data-choice-group="${name}"]`
         );
-        if (checkboxGroup) {
-          const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
-          if (firstCb) {
-            firstCb.setCustomValidity(message);
+        if (choiceGroup) {
+          const firstBox = choiceGroup.querySelector("input") as HTMLInputElement;
+          if (firstBox) {
+            firstBox.setCustomValidity(message);
           }
         } else {
           const target = message ? this.findFailingInput(name) : null;
@@ -1308,14 +1318,14 @@ export class CanopyForm {
       const firstErrorField = this.fieldElements.get(errorKeys[0]);
       if (firstErrorField) {
         if (firstErrorField.input.type === "hidden") {
-          const checkboxGroup = this.container.querySelector(
-            `[data-checkbox-group="${errorKeys[0]}"]`
+          const choiceGroup = this.container.querySelector(
+            `[data-choice-group="${errorKeys[0]}"]`
           );
-          if (checkboxGroup) {
-            const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
-            if (firstCb) {
-              firstCb.reportValidity();
-              firstCb.focus();
+          if (choiceGroup) {
+            const firstBox = choiceGroup.querySelector("input") as HTMLInputElement;
+            if (firstBox) {
+              firstBox.reportValidity();
+              firstBox.focus();
             }
           } else {
             const target = this.findFailingInput(errorKeys[0]);
@@ -1352,12 +1362,12 @@ export class CanopyForm {
     this.fieldElements.forEach((element, name) => {
       element.input.setCustomValidity("");
       if (element.input.type === "hidden") {
-        const checkboxGroup = this.container.querySelector(
-          `[data-checkbox-group="${name}"]`
+        const choiceGroup = this.container.querySelector(
+          `[data-choice-group="${name}"]`
         );
-        if (checkboxGroup) {
-          const firstCb = checkboxGroup.querySelector("input[type=checkbox]") as HTMLInputElement;
-          if (firstCb) firstCb.setCustomValidity("");
+        if (choiceGroup) {
+          const firstBox = choiceGroup.querySelector("input") as HTMLInputElement;
+          if (firstBox) firstBox.setCustomValidity("");
         } else {
           // Clear all subfield validities (validity may be on any subfield)
           this.partsOf(name).forEach((el) => el.setCustomValidity(""));

@@ -5,7 +5,7 @@ const options = (...labels: string[]) => labels.map((l) => ({ value: l, label: l
 
 describe("newFieldDefaults", () => {
   it("starts every field complete enough to save", () => {
-    for (const type of ["TEXT", "DROPDOWN", "CHECKBOXES", "NAME", "ADDRESS", "DATE_OF_BIRTH"]) {
+    for (const type of ["TEXT", "CHOOSE_ONE", "CHOOSE_SEVERAL", "NAME", "ADDRESS", "DATE_OF_BIRTH"]) {
       expect(fieldProblem(newFieldDefaults(type))).toBeNull();
     }
   });
@@ -19,15 +19,15 @@ describe("newFieldDefaults", () => {
 
 describe("fieldProblem", () => {
   it("needs a choice field to offer one option, blanks not counting", () => {
-    expect(fieldProblem({ type: "DROPDOWN", options: { options: options("", " ") } })).toBe("Add at least one option to save.");
-    expect(fieldProblem({ type: "DROPDOWN", options: { options: options("Small", "") } })).toBeNull();
+    expect(fieldProblem({ type: "CHOOSE_ONE", options: { options: options("", " ") } })).toBe("Add at least one option to save.");
+    expect(fieldProblem({ type: "CHOOSE_ONE", options: { options: options("Small", "") } })).toBeNull();
   });
 
   it("refuses options a visitor couldn't tell apart, Other included", () => {
-    expect(fieldProblem({ type: "CHECKBOXES", options: { options: options("Red", "red ") } })).toBe(
+    expect(fieldProblem({ type: "CHOOSE_SEVERAL", options: { options: options("Red", "red ") } })).toBe(
       "Options must be different to save."
     );
-    expect(fieldProblem({ type: "CHECKBOXES", options: { options: options("Other"), allowOther: true } })).toBe(
+    expect(fieldProblem({ type: "CHOOSE_SEVERAL", options: { options: options("Other"), allowOther: true } })).toBe(
       "Options must be different to save."
     );
   });
@@ -56,12 +56,8 @@ describe("fieldProblem", () => {
 });
 
 describe("savedChoices", () => {
-  it("drops blanks, trims, and keeps a default only while its option is there", () => {
-    expect(savedChoices({ options: options(" Small ", "", "Large"), defaultValue: "Small " })).toEqual({
-      options: options("Small", "Large"),
-      defaultValue: "Small",
-    });
-    expect(savedChoices({ options: options("Small"), defaultValue: "Huge" })).toEqual({ options: options("Small") });
+  it("drops blanks and trims", () => {
+    expect(savedChoices({ options: options(" Small ", "", "Large") })).toEqual({ options: options("Small", "Large") });
   });
 });
 
@@ -78,7 +74,7 @@ describe("savedField", () => {
     expect(savedField({ type: "TEXT", label: "Text", options: { options: [] }, validation: { maxLength: 5 } })).toMatchObject(
       { options: null, validation: null }
     );
-    expect(savedField({ type: "DROPDOWN", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
+    expect(savedField({ type: "CHOOSE_ONE", label: "Size", options: { options: options("S") }, validation: { x: 1 } })).toMatchObject(
       { validation: null }
     );
   });

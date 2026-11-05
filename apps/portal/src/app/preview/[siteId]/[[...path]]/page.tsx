@@ -7,6 +7,7 @@ import { requireHomeHost } from "@/lib/product";
 import { builderConfigured } from "@/lib/builder-client";
 import { previewableSite, previewStartPath } from "@/lib/site-tools";
 import { liveSite } from "@/lib/site-live";
+import { ActingBanner } from "@/components/acting-banner";
 import { PreviewView } from "./preview-view";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ siteId
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   await requireHomeHost(await getAccountEntitlements(accountId));
-  const site = await previewableSite(session.user.id, siteId);
+  const site = await previewableSite(session, siteId);
   const live = site ? liveSite(site) : null;
   if (!site || !live || !builderConfigured()) notFound();
 
@@ -38,6 +39,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ siteId
       // site is live once its own deploy finishes, until E36 serves it from builds too.
       liveNow={site.isDemo}
       host={site.isDemo ? null : (site.productionHostnames[0] ?? null)}
+      banner={<ActingBanner />}
     />
   );
 }

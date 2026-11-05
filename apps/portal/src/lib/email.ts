@@ -10,6 +10,8 @@ export interface EmailOptions {
   text: string;
   html?: string;
   replyTo?: string;
+  /** The sender, from `senderFor` on the recipient's account; unset means `SMTP_FROM`. */
+  from?: string;
 }
 
 /**
@@ -52,7 +54,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: options.from || process.env.SMTP_FROM || process.env.SMTP_USER,
       to: recipients,
       replyTo: options.replyTo,
       subject: options.subject,
@@ -85,6 +87,8 @@ export async function sendNewSubmissionNotification(options: {
   appUrl: string;
   /** Product the footer names, from `productNameFor` on the form's account. */
   productName: string;
+  /** The sender, from `senderFor` on the form's account. */
+  from?: string;
 }): Promise<boolean> {
 
   const { text, html } = renderNotificationEmail({
@@ -103,5 +107,6 @@ export async function sendNewSubmissionNotification(options: {
     text,
     html,
     replyTo: options.replyTo ?? undefined,
+    from: options.from,
   });
 }

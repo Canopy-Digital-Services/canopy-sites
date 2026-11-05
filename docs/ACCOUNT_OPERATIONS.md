@@ -24,8 +24,8 @@ The Account is the tenant boundary: forms, submissions, and fields belong to it.
 
 ```
 Account (id, createdAt, planCode, ...)
-  ├── Memberships[] (role) ──→ User (email, password, roleCode, ...)
-  │                               └── PasswordResetTokens[]
+  ├── Memberships[] (role) ──→ User (email, password?, roleCode, ...)
+  │                               └── PasswordTokens[] (reset or claim)
   └── Forms[]
         ├── Fields[]
         └── Submissions[]
@@ -60,6 +60,19 @@ Flow:
 4. Create User, Account, and an `OWNER` Membership in one write
 5. Create a session and set the cookie
 
+### Operator link (PRD D49)
+
+A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES`, its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
+
+### Claim (PRD D49)
+
+**Route:** `/claim?token=...` on the account's home host
+**Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` in `src/actions/admin/claims.ts`
+
+An owner with no password gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the site's Owner card to text it, or has the portal email it (`emailedAt`); Forgot password for an unclaimed owner emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
+
+Opening the page reads the token and consumes nothing, so a messaging app's link preview can't use it up. Setting the password consumes it with one conditional update (a claim token, unused, unexpired) and sets the password only where it is still null, in one transaction; then a "keep me signed in" session starts and `lastLoginAt` is set. An expired link offers to email a new one to the same address (`resendClaimLink`, under the reset throttle); a used one points to sign-in.
+
 ### Password storage
 
 `src/lib/password.ts`. New hashes are scrypt, N=2^15, r=8, p=3 (OWASP's 32 MiB option, about 140 ms), stored as `scrypt$15$8$3$<salt>$<key>` so the parameters can be raised later. Hashes from before Epic 28 are bcrypt; they still verify, and a successful sign-in re-hashes them (`needsRehash`). scrypt does not truncate, unlike bcrypt's 72 bytes. Client components import the length limits from `password-policy.ts`, never `password.ts` (Node-only).
@@ -74,8 +87,8 @@ Flow:
 Flow:
 1. Refuse if throttled (below), before any lookup or password check
 2. Look up the User by normalized email
-3. Verify the password. An unknown email is verified against a dummy hash so the response takes as long as for a real account
-4. On failure (wrong password, unknown email, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
+3. Verify the password. An unknown email, and an owner who hasn't claimed their account (`password` null, PRD D49), are verified against a dummy hash so the response takes as long as for a real account
+4. On failure (wrong password, unknown email, an unclaimed owner, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
 5. On success: reset the failed count and the email's throttle, set `lastLoginAt`, create a new session, set the cookie
 6. The client navigates to `/`, which resolves the account's home
 
@@ -89,6 +102,7 @@ Flow:
 | Signup | 5 per IP per hour | Same error |
 | Reset request | 3 per email, 10 per IP, per hour | The usual generic success, and no email sent |
 | Password change | 5 per user per 15 min | Same error |
+| Claim (setting a first password) | 10 per IP per 15 min | Same error |
 
 A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
 
@@ -121,7 +135,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 
 | Event | Sessions ended |
 |-------|----------------|
-| Sign-out | This browser's |
+| Sign-out | This browser's (and its acting as a client) |
 | Password change | Every other session; this browser stays signed in |
 | Password reset | All of the user's |
 | User or account deletion | All, by cascade |
@@ -134,7 +148,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 **Action:** `changePassword()` in `src/actions/auth.ts`
 
 Flow:
-1. Verify the current password
+1. Verify the current password. A user with none (an unclaimed owner, PRD D49) is refused: a first password comes from the claim
 2. Hash and store the new one (`passwordChangedAt = now`)
 3. Delete every other session of the user; this one stays
 4. The client shows a success toast and clears the form
@@ -149,9 +163,9 @@ Flow:
 Flow:
 1. User submits email on `/forgot-password`
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
-3. Unless throttled, if the user exists: generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and mark the user's earlier unused tokens used, so only the newest link works
-4. Send reset email with link to `/reset-password?token=...`
-5. User sets new password → server consumes the token with one conditional update (unused and unexpired), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
+3. Unless throttled, if the user exists: an owner who hasn't claimed (no password) gets the claim email instead (Claim, above). Otherwise generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and retire the user's earlier unused tokens by moving their expiry to now, so only the newest link works (`issuePasswordToken` in `src/lib/claim.ts`)
+4. Send reset email with link to `/reset-password?token=...`, from the account's sender (`senderFor`)
+5. User sets new password → server consumes the token with one conditional update (a reset token, unused and unexpired; a claim link, PRD D49, is refused here), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
 6. Redirect to `/login?reset=success`
 
 ### Important: no account-level guard
@@ -171,9 +185,9 @@ Both paths call `deleteAccountAndSoleMembers(accountId)` (`src/lib/data-access/m
 
 ```
 prisma.account.delete()
-  → Memberships, Forms → Fields, Submissions, Notifications (cascade)
+  → Memberships, Forms → Fields, Submissions, Notifications, ActAs records (cascade)
 prisma.user.deleteMany()   // users whose only membership was this account
-  → PasswordResetTokens (cascade)
+  → PasswordTokens (cascade)
 ```
 
 A user who also belongs to another account keeps their login. No tombstones.
@@ -222,6 +236,12 @@ The operator console shows metadata only:
 - No form content, submission data, or field definitions are ever exposed
 
 Non-admins are silently redirected to their home (`/forms` or `/editor`).
+
+### Acting as a client (PRD D49)
+
+A Global Admin opens a Sites client's account from the site's Owner card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
+
+A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section, and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author. The `ActAs` row is the record for the rest.
 
 ### Role system
 

@@ -13,8 +13,9 @@
  *
  * In "edit" mode (the canvas) it also marks every element carrying
  * `data-canopy-field`, reports a click on one as a selection, and edits its
- * text in place when the Editor asks, kept within the limit the Editor sends,
- * copying each keystroke to the field's other appearances on the page. In
+ * text in place when the Editor asks, copying each keystroke to the field's
+ * other appearances on the page and marking any text past the limit the
+ * Editor sends. In
  * "view" mode (the preview page) nothing is marked or selectable.
  *
  * Nothing the page sends can write: the portal saves and publishes through
@@ -25,6 +26,7 @@ const MARKS = `<style>
 [data-canopy-field]:hover{outline:2px solid #005f6a;outline-offset:3px;background-color:rgba(95,212,140,.16)}
 [data-canopy-field].canopy-selected,[data-canopy-field].canopy-editing{outline:2px solid #005f6a;outline-offset:3px;background-color:rgba(95,212,140,.12);text-decoration:none!important}
 [data-canopy-field].canopy-editing{cursor:text!important}
+::highlight(canopy-over){color:oklch(0.5 0.2 25);background-color:oklch(0.68 0.21 25 / .2)}
 @media (prefers-reduced-motion:reduce){[data-canopy-field]{transition:none}}
 </style>`;
 
@@ -57,6 +59,7 @@ export function canvasBridge(mode: "edit" | "view"): string {
     if (!editing) return;
     var e = editing;
     editing = null;
+    markOver();
     e.el.removeAttribute("contenteditable");
     e.el.classList.remove("canopy-editing");
     var text = typeof value === "string" ? value : e.original;
@@ -96,25 +99,66 @@ export function canvasBridge(mode: "edit" | "view"): string {
   }, true);
   document.addEventListener("submit", function (e) { e.preventDefault(); }, true);
 
-  // In-place editing: plain text, one line, within the limit the Editor sent.
+  // Where the text passes the limit, counted as the Editor counts it: each run
+  // of whitespace as one space, none at either end. -1 while it fits.
+  function overflowStart(text, limit) {
+    var count = 0;
+    var space = -1;
+    for (var i = 0; i < text.length; i++) {
+      if (/\\s/.test(text[i])) {
+        if (count > 0 && space < 0) space = i;
+        continue;
+      }
+      if (space >= 0) {
+        count++;
+        if (count > limit) return space;
+        space = -1;
+      }
+      count++;
+      if (count > limit) return i;
+    }
+    return -1;
+  }
+  // Marks the text past the limit in the field itself, where the owner is typing.
+  function markOver() {
+    if (!window.CSS || !CSS.highlights || typeof Highlight === "undefined") return;
+    CSS.highlights.delete("canopy-over");
+    if (!editing || !editing.limit) return;
+    var start = overflowStart(editing.el.textContent, editing.limit);
+    if (start < 0) return;
+    var range = document.createRange();
+    var walker = document.createTreeWalker(editing.el, NodeFilter.SHOW_TEXT);
+    var seen = 0;
+    var placed = false;
+    var last = null;
+    var node;
+    while ((node = walker.nextNode())) {
+      if (!placed && start < seen + node.data.length) {
+        range.setStart(node, start - seen);
+        placed = true;
+      }
+      seen += node.data.length;
+      last = node;
+    }
+    if (!placed) return;
+    range.setEnd(last, last.data.length);
+    CSS.highlights.set("canopy-over", new Highlight(range));
+  }
+
+  // In-place editing: plain text, one line. Typing past a limit is allowed, so
+  // text can be written first and trimmed after; the overflow shows marked.
   document.addEventListener("beforeinput", function (e) {
     if (!editing || e.target !== editing.el) return;
     if (e.inputType === "insertParagraph" || e.inputType === "insertLineBreak") {
       e.preventDefault();
       post({ type: "commit" });
-      return;
-    }
-    if (editing.limit && e.inputType.indexOf("insert") === 0) {
-      var data = e.data || (e.dataTransfer && e.dataTransfer.getData("text/plain")) || "";
-      var sel = window.getSelection();
-      var replaced = sel && sel.rangeCount ? sel.toString().length : 0;
-      if (editing.el.textContent.length - replaced + data.length > editing.limit) e.preventDefault();
     }
   }, true);
   document.addEventListener("input", function (e) {
     if (!editing || e.target !== editing.el) return;
     var value = editing.el.textContent;
     fieldsAt(editing.address).forEach(function (o) { if (o !== editing.el) o.textContent = value; });
+    markOver();
     post({ type: "input", address: editing.address, value: value, rect: rectOf(editing.el) });
   }, true);
   document.addEventListener("keydown", function (e) {
@@ -138,6 +182,7 @@ export function canvasBridge(mode: "edit" | "view"): string {
     var m = e.data;
     if (m.type === "edit" && !VIEW && selected && selected.getAttribute("data-canopy-field") === m.address) {
       editing = { el: selected, address: m.address, original: selected.textContent, limit: m.limit || 0 };
+      markOver();
       selected.setAttribute("contenteditable", "plaintext-only");
       selected.classList.add("canopy-editing");
       selected.focus();

@@ -63,6 +63,22 @@ describe("operator site builds", () => {
     expect((await prisma.site.findUniqueOrThrow({ where: { id: site.id } })).contractVersion).toBe("0.1.0");
   });
 
+  it("record a build that fails before the builder starts, such as a repo it can't read, so the site page shows it", async () => {
+    const site = await demoSite(false);
+    const { user } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    await signInAs(user.id);
+    const { BuilderError, fetchContent } = await import("@/lib/builder-client");
+    vi.mocked(fetchContent).mockRejectedValueOnce(new BuilderError("No credentials for this site's repo"));
+
+    expect(await publishSiteFromRepo(site.id)).toEqual({ error: "No credentials for this site's repo" });
+    expect(calls.publish).toBe(0);
+    expect(await prisma.build.findFirstOrThrow({ where: { siteId: site.id } })).toMatchObject({
+      status: "FAILED",
+      error: "No credentials for this site's repo",
+      baseCommit: null,
+    });
+  });
+
   it("reset only a demo site, clearing its change history and conversations", async () => {
     const { user } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     await signInAs(user.id);

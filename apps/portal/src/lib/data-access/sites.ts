@@ -52,15 +52,22 @@ export async function listSitesForOperator() {
 
 export type OperatorSiteListItem = Awaited<ReturnType<typeof listSitesForOperator>>[number];
 
-/** Operator only. One site with every field, or null. */
+/** Operator only. One site with every field and its newest build, or null. */
 export async function getSiteForOperator(siteId: string) {
   const site = await prisma.site.findUnique({
     where: { id: siteId },
-    include: { account: { select: { id: true, ...ownerEmail } } },
+    include: {
+      account: { select: { id: true, ...ownerEmail } },
+      builds: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true, error: true, createdAt: true, finishedAt: true },
+      },
+    },
   });
   if (!site) return null;
-  const { account, ...rest } = site;
-  return { ...rest, ownerEmail: account.memberships[0]?.user.email ?? null };
+  const { account, builds, ...rest } = site;
+  return { ...rest, ownerEmail: account.memberships[0]?.user.email ?? null, latestBuild: builds[0] ?? null };
 }
 
 export type OperatorSite = NonNullable<Awaited<ReturnType<typeof getSiteForOperator>>>;

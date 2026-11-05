@@ -4,7 +4,7 @@ import { choiceOptions, type ChoiceOptions } from "../../../embed/src/choices";
 import { ChoiceOptionsEditor } from "./choice-options-editor";
 import { ConfigComponentProps } from "./types";
 
-export function CheckboxesConfig({
+export function ChooseSeveralConfig({
   value,
   onChange,
   onFocusPart,

@@ -26,14 +26,19 @@ describe("validateField: required", () => {
   it("refuses a required answer left empty or blank, whatever the type", () => {
     expect(validateField(field("TEXT", { required: true }), "  ")).toBe("Answer is required.");
     expect(validateField(field("EMAIL", { required: true }), undefined)).toBe("Answer is required.");
-    expect(validateField(field("CHECKBOX", { required: true }), false)).toBe("Answer is required.");
-    expect(validateField(field("CHECKBOXES", { required: true }), [])).toBe("Answer is required.");
+  });
+
+  it("asks a choice or an Approval for its answer without repeating its label, a question or a statement", () => {
+    expect(validateField(field("APPROVAL", { required: true }), false)).toBe("Check the box to continue.");
+    expect(validateField(field("CHOOSE_SEVERAL", { required: true }), [])).toBe("Choose at least one.");
+    expect(validateField(field("CHOOSE_ONE", { required: true }), "")).toBe("Choose an answer.");
+    expect(validateField(field("CHOOSE_ONE", { required: true }), undefined)).toBe("Choose an answer.");
   });
 
   it("checks nothing else on an optional answer left empty", () => {
     expect(validateField(field("EMAIL"), "")).toBeNull();
     expect(validateField(field("DATE"), null)).toBeNull();
-    expect(validateField(field("CHECKBOXES"), [])).toBeNull();
+    expect(validateField(field("CHOOSE_SEVERAL"), [])).toBeNull();
     expect(validateField(field("TEXTAREA", { validation: { maxLength: 5 } }), "")).toBeNull();
   });
 
@@ -283,8 +288,8 @@ describe("validateField: composite and choice fields", () => {
       "ZIP must be a US ZIP code, like 12345 or 12345-6789."
     );
     const sizes = { options: [{ value: "S", label: "S" }] };
-    expect(validateField(field("DROPDOWN", { options: sizes }), "XL")).toBe("Answer must be one of its options.");
-    expect(validateField(field("CHECKBOXES", { options: sizes }), "S")).toBe("Answer must be one of its options.");
+    expect(validateField(field("CHOOSE_ONE", { options: sizes }), "XL")).toBe("Answer must be one of its options.");
+    expect(validateField(field("CHOOSE_SEVERAL", { options: sizes }), "S")).toBe("Answer must be one of its options.");
   });
 });
 
@@ -342,10 +347,10 @@ describe("validateField: answer shapes", () => {
   });
 
   it("takes true, false, or what an HTML checkbox sends, for a checkbox", () => {
-    expect(validateField(field("CHECKBOX"), true)).toBeNull();
-    expect(validateField(field("CHECKBOX"), false)).toBeNull();
-    expect(validateField(field("CHECKBOX"), "on")).toBeNull();
-    expect(validateField(field("CHECKBOX"), "x".repeat(1000))).toBe("Answer must be true or false.");
+    expect(validateField(field("APPROVAL"), true)).toBeNull();
+    expect(validateField(field("APPROVAL"), false)).toBeNull();
+    expect(validateField(field("APPROVAL"), "on")).toBeNull();
+    expect(validateField(field("APPROVAL"), "x".repeat(1000))).toBe("Answer must be true or false.");
   });
 });
 

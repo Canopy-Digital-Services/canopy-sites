@@ -5,6 +5,23 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.11.0] - 2026-11-05
+
+### Added
+
+- Sites: **Link a site** in the operator console (Epic 38, PRD D49). The client's email, the business name, the GitHub repo, the hostnames, and the Umami id make the client's Sites account, an owner with no password yet, and the site, then the first Build and publish runs. It replaces New site
+- Sites: **claim links**. The site's Owner card copies a link to text the owner, or emails it; the owner opens it, sees their site and email, sets a password, and stays signed in. A link works once for a week, a new one replaces it, and an expired one offers a fresh one by email. Forgot password sends an owner who hasn't claimed their link instead of a reset
+- Sites: **Act as client** on the Owner card opens the client's portal for acceptance, support, or building a form, under a banner with Stop. Password changes and account deletion are refused while acting, and edits name the operator
+- The operator's site page shows the owner's claim, the latest claim link, and their last sign-in, and the latest build's outcome, including a failure before the builder started
+- Email to a Sites account comes from Canopy Sites (`SMTP_FROM_SITES`)
+
+### Changed
+
+- Forms: choice fields are named for what they do. Yes / No is **Approval**, Dropdown is **Choose one** (up to 6 choices as radio buttons, a longer list as a dropdown), Checkboxes is **Choose several**, and Text is labeled **Short answer**. Nothing starts picked: Default choice is gone. Saved forms are converted
+- Editor: typing past a field's limit marks the overflow in red instead of refusing keystrokes; Done waits until the text fits
+- A site's contract version is recorded on every content read, so the operator console shows what the repo installs; the settings field for it is gone
+- A member the operator adds starts with no password and a claim link to pass on
+
 ## [5.10.0] - 2026-11-05
 
 ### Added

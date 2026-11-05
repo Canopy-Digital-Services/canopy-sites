@@ -37,6 +37,7 @@ export function PreviewView({
   startPath,
   liveNow,
   host,
+  banner,
 }: {
   siteId: string;
   siteName: string;
@@ -44,6 +45,8 @@ export function PreviewView({
   startPath: string;
   liveNow: boolean;
   host: string | null;
+  /** The acting-as-client banner (PRD D49), above the site; null for the owner. */
+  banner?: React.ReactNode;
 }) {
   const frames = useRef<Array<HTMLIFrameElement | null>>([null, null]);
   const [slots, setSlots] = useState<Array<Slot | null>>([null, null]);
@@ -219,6 +222,7 @@ export function PreviewView({
 
   return (
     <div className="fixed inset-0 flex flex-col bg-background">
+      {banner}
       <div className="relative flex-1">
         {slots.map((slot, i) =>
           slot ? (

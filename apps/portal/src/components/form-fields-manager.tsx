@@ -91,7 +91,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
   // The open field is the one the preview marks, narrowed to the part whose
   // settings have focus. Moving from one box to the next blurs one before
   // focusing the other, so going back to the whole field waits a beat: two
-  // boxes marking the same part (a Dropdown's options all mark the dropdown)
+  // boxes marking the same part (a long Choose one's options all mark its dropdown)
   // leave the mark as drawn instead of redrawing it.
   const partLeft = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusPart = (name: string, part: string | null) => {
