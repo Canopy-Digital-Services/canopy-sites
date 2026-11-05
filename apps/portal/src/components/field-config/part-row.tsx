@@ -2,9 +2,10 @@
 
 // UI: see docs/UX_PATTERNS.md ("Inline field rows").
 //
-// One part of a composite field (Name, Address) in its settings: a checkbox
-// to collect it and, while collected, its label on the form with a pencil to
-// rename it, and a checkbox in the Required column (PartsRequiredHeading).
+// One part of a field in its settings (Name's, Address's, Phone's extension):
+// a checkbox to collect it and, while collected, its label on the form with a
+// pencil to rename it, and a checkbox in the Required column
+// (PartsRequiredHeading) when the part can be required.
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -24,8 +25,9 @@ type PartRowProps = {
   onRename: (label: string) => void;
   /** While renaming, for the preview to mark the part's label. */
   onRenaming?: (renaming: boolean) => void;
-  required: boolean;
-  onRequiredChange: (required: boolean) => void;
+  /** The Required column, left out for a part that is never required. */
+  required?: boolean;
+  onRequiredChange?: (required: boolean) => void;
   /** A control for the part itself, before the Required column. */
   children?: React.ReactNode;
   className?: string;
@@ -78,15 +80,17 @@ export function PartRow({
       <span className="flex-1" />
       {checked && children}
       {/* Only a collected part can be required. */}
-      <span className="flex w-16 shrink-0 justify-center">
-        {checked && (
-          <Checkbox
-            checked={required}
-            onCheckedChange={(c) => onRequiredChange(c === true)}
-            aria-label={`${label || defaultLabel} is required`}
-          />
-        )}
-      </span>
+      {onRequiredChange && (
+        <span className="flex w-16 shrink-0 justify-center">
+          {checked && (
+            <Checkbox
+              checked={required}
+              onCheckedChange={(c) => onRequiredChange(c === true)}
+              aria-label={`${label || defaultLabel} is required`}
+            />
+          )}
+        </span>
+      )}
     </div>
   );
 }

@@ -14,11 +14,12 @@ async function contactForm(opts: { withFields?: boolean } = {}) {
   if (opts.withFields !== false) {
     await prisma.field.createMany({
       data: [
-        { formId: form.id, name: "email", type: "EMAIL", label: "Email", order: 1, validation: { normalize: true } },
+        { formId: form.id, name: "email", type: "EMAIL", label: "Email", order: 1 },
         { formId: form.id, name: "name", type: "NAME", label: "Name", order: 2 },
         { formId: form.id, name: "born", type: "DATE_OF_BIRTH", label: "Date of birth", order: 3 },
         { formId: form.id, name: "budget", type: "NUMBER", label: "Budget", order: 4 },
         { formId: form.id, name: "site", type: "WEBSITE", label: "Company site", order: 5 },
+        { formId: form.id, name: "phone", type: "PHONE", label: "Phone", order: 6 },
       ],
     });
   }
@@ -55,12 +56,20 @@ describe("handlePublicSubmit: what is stored", () => {
       born: "1980-3-7",
       budget: "1,250.50",
       site: " example.com/about ",
+      phone: { number: "(201) 555-0123" },
       website: "",
     });
 
     expect(res.status).toBe(200);
     const submission = await prisma.submission.findFirstOrThrow({ where: { formId: form.id } });
-    expect(submission.data).toEqual({ email: "ann@example.com", name: { first: "Ann", last: "Lee" }, born: "1980-03-07", budget: "1250.50", site: "https://example.com/about" });
+    expect(submission.data).toEqual({
+      email: "Ann@Example.com",
+      name: { first: "Ann", last: "Lee" },
+      born: "1980-03-07",
+      budget: "1250.50",
+      site: "https://example.com/about",
+      phone: { number: "+12015550123" },
+    });
     expect(submission.isSpam).toBe(false);
   });
 
@@ -85,7 +94,7 @@ describe("handlePublicSubmit: what is refused", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).fields).toEqual({
       junk: "This form has no field by that name.",
-      email: "Enter a valid email address",
+      email: "Email must be an email address, like name@example.com.",
     });
     expect(await prisma.submission.count()).toBe(0);
   });

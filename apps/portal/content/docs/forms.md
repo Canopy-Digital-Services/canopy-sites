@@ -49,9 +49,9 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Type | Label | Notes |
 |---|---|---|
 | Text | Single line of text | General-purpose input |
-| Email | Email address | Validates format automatically |
+| Email | Email address | Can take work addresses only |
 | Paragraph | Multi-line text | For longer responses, with an optional character limit |
-| Phone | Phone number | Lenient or strict format |
+| Phone | Phone number | A US or Canadian number with its area code, or another country's starting with +; saved in one format; can ask for an extension |
 | Website | Web address | Visitors can leave off https://; it's added when saved |
 | Date | Date picker | Past dates only, future dates only, or any date |
 | Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
@@ -62,7 +62,7 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Number | Numeric input | Whole number or decimal, with an optional minimum and maximum |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
 
-On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Website, Address, and Date of birth from their saved details. Phones show a number pad for Phone, Number, ZIP, and Date of birth, and a keyboard with / and .com for Website. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
+On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Website, Address, and Date of birth from their saved details. Phones show a number pad for Phone, Number, ZIP, and Date of birth, a keyboard with @ for Email, and one with / and .com for Website. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
 
 ### Configuring a field
 
@@ -77,8 +77,8 @@ Every field type has the same core options, plus type-specific ones.
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 
 - Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Text has no settings of its own: for a number use Number, for a web address Website, and for a ZIP code an Address with only ZIP.
-- Email: **Domain Rules** (allow only, or block, a list of domains) and **Store in lowercase**.
-- Phone: lenient, or strict US format.
+- Phone: tick **Extension** to add a short box for one beside the number, labeled "Ext." (rename it with the pencil). The number and the extension are saved, and exported, separately.
+- Email: **Work emails only** refuses personal addresses from Gmail, Yahoo, Outlook, iCloud, internet providers and the like. Leave it off to collect anyone's address.
 - Date: **Past Date** (today or earlier, for something that already happened), **Future Date** (today or later, for an appointment or event), or **Any Date**.
 - Dropdown, Checkboxes: the options, one box each. Click **Add option** or press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Tick **Include "Other"** to let visitors type their own answer, which is saved in place of "Other". A Dropdown can also start on a **Default choice**.
 - Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.

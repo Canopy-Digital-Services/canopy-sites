@@ -1,58 +1,36 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PhoneValidation } from "@/types/field-config";
+// UI: see docs/UX_PATTERNS.md ("Inline field rows").
+//
+// A Phone's one setting: an extension box beside the number, as Address's
+// Apt, suite is Street's. The number is the field itself, named by its label
+// and required by its Required field box.
+
+import { PHONE_EXTENSION_LABEL, type PhoneOptions } from "../../../embed/src/phone";
+import { PartRow } from "./part-row";
 import { ConfigComponentProps } from "./types";
 
-// TODO: International number validation not yet supported. Currently assumes US-centric formatting.
+export function PhoneConfig({ value, onChange, onFocusPart }: ConfigComponentProps<PhoneOptions | undefined>) {
+  const extension = value?.parts?.includes("extension") ?? false;
+  const label = value?.partLabels?.extension ?? "";
 
-export function PhoneConfig({
-  value,
-  onChange,
-}: ConfigComponentProps<PhoneValidation | undefined>) {
-  const validation = value || {};
-
-  const handleChange = (newValue: string) => {
-    if (newValue && newValue !== "lenient") {
-      onChange({ format: newValue as "lenient" | "strict" });
-    } else {
-      onChange(undefined); // Default to lenient
-    }
-  };
+  const save = (on: boolean, extensionLabel: string) =>
+    onChange(
+      on
+        ? { parts: ["number", "extension"], ...(extensionLabel.trim() && { partLabels: { extension: extensionLabel } }) }
+        : undefined
+    );
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="phone-format">Validation</Label>
-        <Select
-          value={validation.format || "lenient"}
-          onValueChange={handleChange}
-        >
-          <SelectTrigger id="phone-format">
-            <SelectValue placeholder="Select validation" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="lenient">
-              Lenient (allow any format)
-            </SelectItem>
-            <SelectItem value="strict">
-              Strict US format
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          {validation.format === "strict"
-            ? "10 digits, stored as +1XXXXXXXXXX."
-            : "At least 7 characters."}
-        </p>
-      </div>
-    </div>
+    <PartRow
+      id="phone-part-extension"
+      name="Extension"
+      checked={extension}
+      onCheckedChange={(on) => save(on, label)}
+      label={label}
+      defaultLabel={PHONE_EXTENSION_LABEL}
+      onRename={(text) => save(true, text)}
+      onRenaming={(renaming) => onFocusPart?.(renaming ? "label-extension" : null)}
+    />
   );
 }

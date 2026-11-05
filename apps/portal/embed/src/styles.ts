@@ -234,6 +234,36 @@ export const baseStyles = `
   color: var(--canopy-text, #18181b);
 }
 
+/* The number takes the row, the extension a short box beside it with its
+   label before it; on a narrow form the extension wraps under. */
+.canopy-phone-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.canopy-root .canopy-phone-parts > .canopy-input {
+  flex: 1 1 12em;
+  width: auto;
+}
+
+.canopy-phone-extension {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canopy-root .canopy-phone-extension .canopy-input {
+  width: 6em;
+}
+
+.canopy-phone-extension-label {
+  font-size: calc(var(--canopy-font-size, 16px) - 1px);
+  font-weight: 500;
+  color: var(--canopy-text, #18181b);
+}
+
 /* Month, Day, and Year, each box as wide as its digits. */
 .canopy-dob-parts {
   display: flex;

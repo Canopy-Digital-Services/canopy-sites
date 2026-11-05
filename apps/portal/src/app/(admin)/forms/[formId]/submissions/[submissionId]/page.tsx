@@ -4,8 +4,7 @@ import { SubmissionStatus } from "@prisma/client";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { formatCompositeValue } from "@/lib/composite-format";
-import { isComposite } from "@/lib/field-rules";
+import { answerHasParts, formatCompositeValue } from "@/lib/composite-format";
 import { PageHeader } from "@/components/patterns/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -141,7 +140,7 @@ export default async function SubmissionDetailPage({
                       : Array.isArray(value)
                       ? (value as string[]).join(", ")
                       : typeof value === "object" && value !== null
-                      ? fieldInfo && isComposite(fieldInfo.type)
+                      ? fieldInfo && answerHasParts(fieldInfo.type)
                         ? formatCompositeValue(
                             fieldInfo.type,
                             value as Record<string, unknown>,

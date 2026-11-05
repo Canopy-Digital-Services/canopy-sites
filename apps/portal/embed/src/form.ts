@@ -20,6 +20,13 @@ import {
 } from "./choices";
 import { ADDRESS_PART_MAX_LENGTH, addressPartLabel, addressParts, addressRequiredParts, type AddressPart } from "./address";
 import { US_STATES } from "./us-states";
+import {
+  PHONE_EXTENSION_MAX_LENGTH,
+  PHONE_NUMBER_MAX_LENGTH,
+  phoneExtensionLabel,
+  phoneNumber,
+  phoneParts,
+} from "./phone";
 import { DEFAULT_NAME_LABEL, DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, orderNameParts, type NamePart } from "./name";
 
 type SelectWithOther = HTMLSelectElement & { __otherInput?: HTMLInputElement };
@@ -568,20 +575,17 @@ export class CanopyForm {
         return { wrapper, input: pseudoCbInput, errorEl };
       }
       case "EMAIL": {
+        // A text box with the phone's email keyboard, not type="email",
+        // whose own check would speak before validateField.
         const email = document.createElement("input");
-        email.type = "email";
-        email.setAttribute("autocomplete", "email");
+        email.type = "text";
         email.className = "canopy-input";
+        email.setAttribute("inputmode", "email");
+        email.setAttribute("autocomplete", "email");
+        email.setAttribute("autocapitalize", "none");
+        email.setAttribute("autocorrect", "off");
+        email.spellcheck = false;
         input = email;
-        break;
-      }
-      case "PHONE": {
-        const phone = document.createElement("input");
-        phone.type = "tel";
-        phone.setAttribute("inputmode", "tel");
-        phone.setAttribute("autocomplete", "tel");
-        phone.className = "canopy-input";
-        input = phone;
         break;
       }
       case "WEBSITE": {
@@ -633,6 +637,9 @@ export class CanopyForm {
       }
       case "DATE_OF_BIRTH": {
         return this.createDateOfBirthField(field);
+      }
+      case "PHONE": {
+        return this.createPhoneField(field);
       }
       default: {
         const text = document.createElement("input");
@@ -1038,10 +1045,93 @@ export class CanopyForm {
     return { wrapper, input: pseudoInput, errorEl };
   }
 
-  /** The boxes and lists of a field made of parts (Name, Address, Date of birth). */
+  /** The number box under the field's label, and, when the field asks for
+      one, a short extension box beside it with its own label. */
+  private createPhoneField(field: FieldDefinition) {
+    const fieldId = `${this.instanceId}-${field.name}`;
+    const wrapper = document.createElement("div");
+    wrapper.className = "canopy-field";
+
+    const label = document.createElement("label");
+    label.className = "canopy-label";
+    label.dataset.fieldPart = "label";
+    label.htmlFor = `${fieldId}-number`;
+    label.textContent = field.label || field.name;
+    if (field.required) {
+      const required = document.createElement("span");
+      required.className = "canopy-required";
+      required.textContent = " *";
+      required.setAttribute("aria-hidden", "true");
+      label.appendChild(required);
+    }
+    wrapper.appendChild(label);
+    const help = this.createHelpText(field, fieldId);
+    if (help) wrapper.appendChild(help);
+
+    const pseudoInput = document.createElement("input");
+    pseudoInput.type = "hidden";
+    pseudoInput.id = fieldId;
+    pseudoInput.name = field.name;
+
+    const errorEl = document.createElement("span");
+    errorEl.className = "canopy-error";
+    errorEl.id = `${fieldId}-error`;
+
+    const row = document.createElement("div");
+    row.className = "canopy-phone-parts";
+    const box = (part: string) => {
+      const input = document.createElement("input");
+      input.className = "canopy-input";
+      input.id = `${fieldId}-${part}`;
+      input.name = `${field.name}.${part}`;
+      input.setAttribute("data-phone-field", field.name);
+      input.setAttribute("data-phone-part", part);
+      // The error can be on either box.
+      input.addEventListener("input", () => this.partsOf(field.name).forEach((el) => el.setCustomValidity("")));
+      return input;
+    };
+
+    const number = box("number");
+    number.type = "tel";
+    number.maxLength = PHONE_NUMBER_MAX_LENGTH;
+    number.setAttribute("autocomplete", "tel");
+    number.dataset.fieldPart = "input";
+    if (field.required) number.setAttribute("aria-required", "true");
+    describe(number, help, errorEl);
+    row.appendChild(number);
+
+    if (phoneParts(field.validation).includes("extension")) {
+      // Two boxes: the field's label names the group, as well as the number.
+      label.id = `${fieldId}-label`;
+      wrapper.setAttribute("role", "group");
+      wrapper.setAttribute("aria-labelledby", label.id);
+      const extension = box("extension");
+      extension.type = "text";
+      extension.maxLength = PHONE_EXTENSION_MAX_LENGTH;
+      extension.setAttribute("inputmode", "numeric");
+      extension.setAttribute("autocomplete", "tel-extension");
+      describe(extension, null, errorEl);
+
+      const part = document.createElement("span");
+      part.className = "canopy-phone-extension";
+      const partLabel = document.createElement("label");
+      partLabel.className = "canopy-phone-extension-label";
+      partLabel.dataset.fieldPart = "label-extension";
+      partLabel.htmlFor = extension.id;
+      partLabel.textContent = phoneExtensionLabel(field.validation);
+      part.append(partLabel, extension);
+      row.appendChild(part);
+    }
+
+    wrapper.appendChild(row);
+    wrapper.appendChild(errorEl);
+    return { wrapper, input: pseudoInput, errorEl };
+  }
+
+  /** The boxes and lists of a field made of parts (Name, Address, Date of birth, Phone). */
   private partsOf(name: string) {
     return this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-      `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"], input[data-dob-field="${name}"]`
+      `input[data-name-field="${name}"], input[data-address-field="${name}"], select[data-address-field="${name}"], input[data-dob-field="${name}"], input[data-phone-field="${name}"]`
     );
   }
 
@@ -1058,8 +1148,12 @@ export class CanopyForm {
           );
           // A Date of birth joins its boxes.
           const dateOfBirthBoxes = this.container.querySelectorAll<HTMLInputElement>(`input[data-dob-field="${name}"]`);
+          // A Phone sends its parts.
+          const phoneBoxes = this.container.querySelectorAll<HTMLInputElement>(`input[data-phone-field="${name}"]`);
           if (dateOfBirthBoxes.length > 0) {
             data[name] = joinDateOfBirth([...dateOfBirthBoxes]);
+          } else if (phoneBoxes.length > 0) {
+            data[name] = Object.fromEntries([...phoneBoxes].map((box) => [box.dataset.phonePart, box.value]));
           } else if (checkboxGroup) {
             const checked: string[] = [];
             checkboxGroup.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").forEach((cb) => {
@@ -1137,6 +1231,10 @@ export class CanopyForm {
         dateOfBirthBoxes.find((box) => !box.value.trim()) ?? (/^\d{4}$/.test(year.value.trim()) ? month : year)
       );
     }
+
+    // PHONE: the extension when the number is fine and it isn't, else the number.
+    const [phone, extension] = this.container.querySelectorAll<HTMLInputElement>(`input[data-phone-field="${name}"]`);
+    if (phone) return extension?.value.trim() && phoneNumber(phone.value) ? extension : phone;
 
     // NAME field
     const nameInputs = this.container.querySelectorAll<HTMLInputElement>(
