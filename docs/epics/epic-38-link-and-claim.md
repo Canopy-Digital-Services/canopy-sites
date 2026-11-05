@@ -1,6 +1,6 @@
 # Epic 38: Link and claim
 
-**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1, 4.3, 4.4, and 4.5 done on `dev` (2026-11-05); 4.2 (needs Michael to create the GitHub App) and 4.7 to 4.9 left.
+**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1, 4.3, 4.4, and 4.5 released in 5.11.0 (2026-11-05); 4.2 (needs Michael to create the GitHub App) and 4.7 to 4.9 left.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Toro Z)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** T1, Toro Z Muay Thai (login `torozmuaythai@gmail.com`), the first client to be linked and to claim
@@ -257,6 +257,7 @@ Not started.
   - Acting as a client: `src/lib/act-as.ts`, `Session.actingAs` resolved in `validateSessionToken`, `soleMembership` (as a MEMBER), and `sessionAccountId`/`sessionCanUseAccount` in `memberships.ts`, which now hold the preview and thumbnail checks. The banner on the admin chrome, the operator console, and the preview page; Stop, sign-out, and expiry end the record; password change and deletion refused while acting.
   - The Owner card is the first part of 4.7: email, claimed (with when), the claim link (copied or emailed, when, by whom), last sign-in. The Sites list's status column is still to come.
   - Tests: 11 claim and 8 act-as database tests, plus the preview checks for an acting operator; the claim-purpose and Forgot password guards fail with their guards removed. Checked in headless Chromium against the worktree's own database: copy a claim link, act as the client (banner, account page without password or deletion, Stop back to the site page), then claim on a 390 px signed-out browser, landing on Quick Edit, and the Owner card shows the claim. Lint, 39 test files, and the build pass on the tree rebased onto `025261e`.
+- 2026-11-05 (later): Released in 5.11.0 (PR #43, merge `44267ca`), with the other sessions' Forms changes. `SMTP_FROM_SITES` set to `Canopy Sites <sites@canopyds.com>` on the production portal app only (dev logs in as `forms-dev@`, which can't send as `sites@`). Verified on production: the portal and builder deployed; the six new migrations applied, `users.password` nullable, the two existing reset tokens `RESET`, no `act_as` rows; the variable inside the container; `/claim` and `/login` 200 on sites.canopyds.com, `/operator/sites` sends a signed-out request to sign-in. Not verified: an email actually sent as `sites@` (none yet), and the flow signed in on production. Nextcloud: the Sites Onboarding Runbook's sections 1, 4, 5, and 6 rewritten for link, act-as, and claim (through the Canopy MCP connector; the `nextcloud` server was down), and the Migadu page's `sites@` line.
 
 ## 10. Docs this makes stale
 
@@ -277,8 +278,7 @@ Each lands with the change that causes it, never in a later pass.
 
 **Nextcloud**
 
-- Canopy Sites → **Sites Onboarding Runbook**: section 1 (the owner no longer needs an account first); section 4 steps 1 and 2 (add the repo to the Canopy Sites App, in place of a PAT, an env var, and a redeploy) and step 3 (Link a site, or the CLI, in place of New site and the settings form); section 5 (acceptance run acting as the client); section 6 (send the claim link, watch the status).
+- Canopy Sites → **Sites Onboarding Runbook**: section 4 steps 1 and 2 (add the repo to the Canopy Sites App, in place of a PAT, an env var, and a redeploy), with 4.2. Sections 1, 4 step 3, 5, and 6 changed with 5.11.0.
 - Engineering → Platforms → **GitHub**: the `canopy-builder` row becomes the Canopy Sites App (selected repos, Contents write, key on the builder); the "one PAT per site" and "Never used" traps go with the PATs; pushes show as the App.
 - Engineering → **Expirables Register**: the two PAT rows replaced by the App's private key (no expiry, how to rotate).
-- Engineering → Platforms → **Migadu**: its "until Epic 38 ships" clause on `sites@`.
 - Engineering → Platforms → **Coolify**: nothing; its token stays out of the portal.
