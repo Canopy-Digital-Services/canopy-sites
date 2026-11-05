@@ -5,7 +5,7 @@
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** T1, Toro Z Muay Thai (login `torozmuaythai@gmail.com`), the first client to be linked and to claim
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D11, D16, D19, D22, D24, D47, sections 5 and 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-28-account-audit-membership.md` (sessions, tokens, the security assessment), `docs/epics/epic-29-plan-site-model-operator-sites.md`, `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `docs/UX_PATTERNS.md` section 1, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D11, D15, D16, D18, D19, D22, D24, D39, D47, sections 5 and 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-28-account-audit-membership.md` (sessions, tokens, the security assessment), `docs/epics/epic-29-plan-site-model-operator-sites.md`, `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `docs/UX_PATTERNS.md` section 1, `docs/PRISMA_MIGRATIONS.md` (the image and its start), `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering), **Backups and Restores** (Engineering → Runbooks).
 
 ---
 
@@ -24,9 +24,9 @@ No step needs the client's password, a personal access token, a builder env var,
 - **Link (4.3)**: one operator form creates the account, owner, and site and runs the first build.
 - **Claim (4.4)**: the claim link, its email, the claim page, and Forgot password before claiming.
 - **Act as client (4.5)**: the operator inside a client's account, with a banner, recorded as the actor.
-- **Welcome video (4.6)**: per site, opened on the first session after claiming, outcome recorded.
+- **Welcome video (4.6)**: per site, hosted by the portal, opened on the first session after claiming, how much was watched recorded.
 - **Operator status (4.7)**: where each client stands, on the site page and the Sites list.
-- **The Forms tab (4.8)**: shown when the account has a form.
+- **The Sites tabs (4.8)**: each tab shows when the account has what it works on, Forms first.
 - **Link from Claude Code (4.9)**: the same link function, run in the portal container. Lowest priority; cut it before anything else.
 - **Docs (4.10)**: the PRD decision, the ROADMAP entry, and every page section 10 lists.
 
@@ -39,8 +39,9 @@ No step needs the client's password, a personal access token, a builder env var,
 | More than one membership per user, an account switcher | Act-as (4.5) gives the operator a client's account without a membership |
 | Creating the repo, DNS, Coolify app, or Umami website from the portal | Michael builds and deploys in Claude Code; Coolify's API is reachable only from webber and its token stays out of the portal (Michael, 2026-11-05) |
 | Linking by Coolify app | The repo is the site's lasting identity; sites stop deploying through Coolify at E36 (Michael, 2026-11-05) |
-| Sign-in without a password (an emailed sign-in link, passkeys) | Section 7, with the canopyds.com copy it bears on |
-| Recording or hosting the video in the portal | Michael records each one in Loom (4.6) |
+| Sign-in without a password (an emailed sign-in link, passkeys) | Not needed: a client who'd rather not sign in texts Michael, which canopyds.com/websites already promises |
+| Recording the video, or making it in the portal | Michael records it in any tool that exports MP4 (Snagit, Loom, Google Vids); the portal stores and plays it (4.6) |
+| Per-site switches for Sites features | Tabs follow what the account and the site's build have (4.8); a feature sold as an add-on would be a plan entitlement (PRD D18, D20), not a per-site switch |
 
 ## 3. Order
 
@@ -50,7 +51,7 @@ No step needs the client's password, a personal access token, a builder env var,
 - 4.9 last.
 - The demo and canopyds.com move to the App (4.2) before Toro Z is linked, so Toro Z never gets a PAT.
 
-About four sessions: 4.1 with 4.3; 4.2; 4.4 with 4.5; 4.6 to 4.9.
+About five sessions: 4.1 with 4.3; 4.2; 4.4 with 4.5; 4.6 with its volume; 4.7 to 4.9.
 
 ## 4. Requirements
 
@@ -60,8 +61,8 @@ Checked against `prisma/schema.prisma` on 2026-11-05: `User.password` is non-nul
 
 - **`User.password` becomes nullable.** Null means the owner hasn't claimed: there is no password to guess, which an unusable random hash only pretends. Sign-in verifies against the dummy hash when it's null, so an unclaimed email takes as long and answers the same as a wrong password. Every reader of `password` handles null (`signInAction`, `changePassword`, `needsRehash`).
 - **`PasswordResetToken` becomes `PasswordToken`** (the table name kept with `@@map`) with `purpose` (`RESET | CLAIM`, default `RESET`), `createdByUserId?` (the operator who minted a claim link; null when the owner asked through Forgot password), and `emailedAt?` (null for a link the operator copied to text). A claim lasts 7 days, a reset 1 hour. A new token of either purpose retires the user's earlier unused ones, as reset does today, so only the newest link works. "Link sent" and "claimed" on the operator page (4.7) are the newest claim token's `createdAt` and `usedAt`: no status columns.
-- **`Site.welcomeVideoUrl String?`** (4.6).
-- **Membership gets `welcomeOpenedAt`, `welcomeClosedAt`, `welcomeSecondsOpen`** (4.6): the video belongs to the account's site, and a membership is a user in that account.
+- **`Site.welcomeVideoKey String?`** (4.6): the content hash naming the video and captions files on the portal's media volume; null for no video.
+- **Membership gets `welcomeOpenedAt`, `welcomeClosedAt`, `welcomeSecondsWatched`, `welcomeVideoSeconds`** (4.6): the furthest point the owner reached and the video's length as the player reported it. The video belongs to the account's site, and a membership is a user in that account.
 - **`ActAs`** (`id`, `operatorUserId`, `accountId`, `startedAt`, `endedAt?`), and **`Session.actAsId?`** pointing at the open one (4.5). Deleting an account cascades its `ActAs` rows; deleting the operator's user keeps them, with `operatorUserId` set to null (`onDelete: SetNull`, so the column is nullable).
 - The `Site.slug` comment stops saying it names `GIT_TOKEN_<SLUG>` once 4.2 retires the PATs.
 
@@ -102,7 +103,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 **The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
 
-**The email.** Plain and short, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2):
+**The email.** From `Canopy Sites <sites@canopyds.com>`, plain and short, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2):
 
 > Subject: Your website account for Toro Z Muay Thai
 >
@@ -112,7 +113,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 >
 > The link works once and expires on November 12.
 
-The current mail goes out through Migadu from `Forms@CanopyDS.com` for every product (production env, checked 2026-11-05), within Migadu's 20 a day outgoing limit for the whole account (Engineering → Migadu). A Sites claim from "Forms@" reads wrong: section 7.
+**The sender.** Today every email goes out as `Forms@CanopyDS.com` (`SMTP_FROM`, production env, checked 2026-11-05). `sites@canopyds.com` is a send-as identity on the same Migadu mailbox (`forms@`, the portal's SMTP login), and mail sent to it reaches `clients@` through an alias of the same name (both created 2026-11-05). So the portal picks the From by product, beside the link host (`appUrlFor`): a new `SMTP_FROM_SITES` (`Canopy Sites <sites@canopyds.com>`) for every email to a Sites account, the claim, reset, and submission notifications alike, with `SMTP_FROM` for the rest. Same login, no new secret. All of it shares Migadu's 20 a day outgoing limit for the whole account (Engineering → Migadu), which is one reason a copied link, which sends nothing, is the usual way to hand over a claim.
 
 **The page.** `/claim` on the Sites host, in the auth layout with the host's branding:
 
@@ -143,14 +144,26 @@ Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing im
 
 ### 4.6 Welcome video
 
-One per client: Michael records a walkthrough in Loom for each, because each portal shows different things depending on what the site has (Michael, 2026-11-05).
+One per client: Michael records a walkthrough for each, because each portal shows different things depending on what the site has, in whatever tool exports MP4 (Snagit, Loom, Google Vids). The portal hosts it: no third-party player in a client's portal, and the page sees exactly how much was watched (Michael, 2026-11-05).
 
-- **The URL** goes on the operator site page (`Site.welcomeVideoUrl`). A Loom share or embed URL, stored as the embed URL (`https://www.loom.com/embed/<id>`); other hosts are refused, so the player's behavior is known.
-- **It opens once**, in a dialog, on the owner's first session after claiming, and only when the site has a URL. It never autoplays (the embed's `autoplay=0`), so it never starts with sound.
-- **Captions:** Loom's auto-captions, which Michael checks and corrects in Loom before he pastes the URL. Runbook step, and an acceptance item below.
-- **Watched or skipped.** The dialog records when it opened, when it closed, and how long it was open (`welcomeOpenedAt`, `welcomeClosedAt`, `welcomeSecondsOpen`). The operator page shows it against the video's length ("Open 4:12 of a 5:03 video", "Closed after 6 s"). Whether Loom's embed reports play and progress to the page is unverified (2026-11-05); if it does, record real progress instead, and say which in the completion report.
-- **After that** it's in the help bubble ("Welcome video"), which every signed-in page already has (UX_PATTERNS section 10, Help bubble). Reopening it records nothing.
-- The portal's CSP is only `frame-ancestors 'none'` (`next.config.ts`, checked 2026-11-05), so a Loom frame loads without a CSP change. A `frame-src` added later must allow `www.loom.com`.
+**Storage.** The portal has no volume today (prod and dev, checked 2026-11-05) and runs as `nextjs` (uid 1001).
+
+- A Coolify persistent volume on the prod and dev portal apps, mounted at `/app/media`, which the Dockerfile creates owned by `nextjs` so a new volume inherits that owner. `MEDIA_DIR` names it; unset (forms-dev before its volume, a fresh local stack) means no welcome videos, and the operator page says so. The dev compose file mounts a local directory.
+- Files are `<MEDIA_DIR>/welcome/<siteId>/<key>.mp4` and `<key>.vtt`, the key a hash of the MP4. Replacing a video writes a new key and deletes the old pair, so a URL never serves two different videos.
+- The volume isn't in the nightly backups, which cover databases only. A lost video is re-uploaded from Michael's original (Backups and Restores, section 10).
+
+**Upload** on the operator site page: the MP4 and its captions as a WebVTT file, both required, since a video without captions doesn't ship (Michael, 2026-11-05).
+
+- A route handler, not a server action (whose body limit is 1 MB), behind `requireGlobalAdmin`, streams the upload to disk and refuses anything over 100 MB, Cloudflare's per-request limit on its Free and Pro plans. A five-minute screen recording at 1080p fits; a bigger one is re-encoded first (`ffmpeg`, installed on Michael's workstation, checked 2026-11-05).
+- It checks the MP4's `ftyp` box and the VTT's `WEBVTT` header, and the browser checks that the MP4 plays before upload, since the portal image has no `ffprobe`.
+- **Captions** come from the recording tool when it exports them; otherwise Claude Code transcribes the MP4 on Michael's workstation with Whisper (not installed there as of 2026-11-05; CPU only), and Michael reads the VTT before uploading. A runbook step.
+
+**Playback.** `GET /welcome/<siteId>/<key>.(mp4|vtt)` serves the files to members of the site's account and to an acting operator (4.5), 404 to anyone else, with byte ranges (`206`) so the video seeks, and `Cache-Control: private`. Same origin, so the captions track needs no CORS.
+
+- **It opens once**, in a dialog, on the owner's first session after claiming, when the site has a video: a native `<video controls preload="metadata">` with the captions track on by default. It never autoplays, so it never starts with sound.
+- **How much was watched.** The player records the furthest point reached and the video's length (`welcomeSecondsWatched`, `welcomeVideoSeconds`), saved as the owner watches and when the dialog closes, beside when it opened and closed. The operator page reads "Watched 4:12 of 5:03" or "Closed without playing".
+- **After that** it's in the help bubble ("Welcome video"), which every signed-in page already has (UX_PATTERNS section 10, Help bubble). Watching it again moves the furthest point on, never back.
+- **Tests (database):** the files route refuses a signed-out request and another account's member, and admits an acting operator; the upload route refuses a non-admin.
 
 ### 4.7 Operator status
 
@@ -158,17 +171,25 @@ The site page's owner card shows, for the owner:
 
 - **Link sent**: when, how (emailed or copied), by whom; or "Not sent".
 - **Claimed**: when; or "Not yet", with the send buttons (4.4).
-- **Welcome video**: the outcome (4.6), "Not opened", or "No video" when the site has none.
+- **Welcome video**: how much was watched (4.6), "Not opened", or "No video" when the site has none.
 - **Last sign-in**: `User.lastLoginAt`, which acting never sets (4.5).
+- **The client's tabs** (4.8), so a video recorded for them walks the nav they'll see.
 
 The Sites list gets one status column: Not sent, Link sent, Claimed, Signed in recently.
 
-### 4.8 The Forms tab
+### 4.8 The Sites tabs
 
-`SitesNav` (`src/components/sites/sites-nav.tsx`) lists Forms for every Sites account. Toro Z has no form, and a per-client video should walk a nav that matches what the client has.
+`SitesNav` (`src/components/sites/sites-nav.tsx`) lists Quick Edit, Editor, Forms, and Stats for every Sites account. Toro Z has no form, and a per-client video should walk a nav that matches what the client has.
 
-- **Forms shows when the account has at least one form, or while acting** (so Michael can build a client's first form, 4.5). The layout passes it in; it costs one count.
-- `/forms` itself stays reachable, so a submission email's link or a help page never 404s.
+**A tab shows when the account has what it works on**, read from the account and the site, never from a switch the operator sets. A switch would be a second record of what the build already says, free to disagree with it: a Gallery tab switched on for a site whose templates render no gallery edits nothing the owner can see. The build decides which tools a site has (PRD D39), and a site's repo holds a collection only when its templates render it, so the collection's presence in the published content is the signal. A feature sold as an add-on would be a plan entitlement (D18, D20), not a per-site switch.
+
+- **Quick Edit**: always.
+- **Editor**: when the site has a live address for the canvas to load from (`src/lib/site-live.ts`: `/demo` for the demo, the first production hostname for a client site). Today the tab shows an empty state without one.
+- **Forms**: when the account has at least one form, or while acting (so Michael can build a client's first form, 4.5).
+- **Stats**: when the site has an Umami website id, or is the demo, which shows sample stats (PRD D23). Today the tab shows "No stats yet" otherwise.
+- **Later tool tabs** (Gallery, Calendar, newsletter; PRD D39): when the site's published content has the tool's collection. Each tool's epic adds its row here.
+
+The layout computes the list once per request (one form count; the site row it already reads) and passes it in. A hidden tab's route stays reachable, so a submission email's link or a help page never 404s.
 
 ### 4.9 Link from Claude Code
 
@@ -186,7 +207,7 @@ Each change in section 10 lands in the commit that causes it (DOC_MAINTENANCE ru
 
 | # | Decision | Src |
 |---|---|---|
-| D49 | **Link, then claim.** Canopy builds a client's site and deploys it before the client has an account. The operator links the live site by its GitHub repo, which creates the account, an owner who hasn't claimed it, and the site, and runs its first build. The operator checks the site acting as the client, then sends a single-use claim link (texted, or emailed by the portal) that lasts a week and can be re-sent; the client sets a password on a page showing their site and email. Before claiming, Forgot password sends the claim. The operator acts as a client for acceptance, support, and building forms, never with the client's password, with a banner and the operator recorded as the actor. A welcome video per client opens on the first session after claiming. This is not an invite flow: one owner, no member roles (section 2). Repo access is an org-owned GitHub App, installed per site repo (Epic 38) | M/R |
+| D49 | **Link, then claim.** Canopy builds a client's site and deploys it before the client has an account. The operator links the live site by its GitHub repo, which creates the account, an owner who hasn't claimed it, and the site, and runs its first build. The operator checks the site acting as the client, then sends a single-use claim link (texted, or emailed by the portal) that lasts a week and can be re-sent; the client sets a password on a page showing their site and email. Before claiming, Forgot password sends the claim. The operator acts as a client for acceptance, support, and building forms, never with the client's password, with a banner and the operator recorded as the actor. A welcome video per client, hosted by the portal with captions, opens on the first session after claiming. The Sites tabs follow what the account and its site's build have, never a per-site switch. This is not an invite flow: one owner, no member roles (section 2). Repo access is an org-owned GitHub App, installed per site repo (Epic 38) | M/R |
 
 and section 2's "Out of v1" row "New-site onboarding automation | Michael creates sites in operator by hand" becomes "Repo, DNS, Coolify app, and Umami website from the portal | Michael creates them; the operator links the live site (D49)".
 
@@ -194,7 +215,7 @@ and section 2's "Out of v1" row "New-site onboarding automation | Michael create
 
 > ### E38 · Link and claim
 >
-> From `docs/epics/epic-38-link-and-claim.md`. The operator links a live site by its repo, which creates the client's account and site; the client claims it from a link, and a welcome video opens on their first session. Act as client (E32's "edit as client", smaller), the operator's view of where each client stands, and a GitHub App in place of per-site tokens. Toro Z is its first client (PRD D49).
+> From `docs/epics/epic-38-link-and-claim.md`. The operator links a live site by its repo, which creates the client's account and site; the client claims it from a link, and a welcome video the portal hosts opens on their first session. Act as client (E32's "edit as client", smaller), the operator's view of where each client stands, tabs that follow what the account has, and a GitHub App in place of per-site tokens. Toro Z is its first client (PRD D49).
 
 E32's bullet "Operator: … 'edit as client' opens the same chat with operator identity recorded on the ChangeSet" loses its "edit as client" half to E38.
 
@@ -206,10 +227,10 @@ With Toro Z as the first client, once its repo builds on the contract (T1):
 - [ ] Link a site lists `toroz` among the org's repos and none already linked; linking it with `torozmuaythai@gmail.com`, "Toro Z Muay Thai", `torozmuaythai.com` and `www`, and the Umami id creates the account, the unclaimed owner, and the site, and the first build publishes
 - [ ] Acting as Toro Z, every item of the runbook's acceptance passes, under the banner. A publish while acting commits with Michael as author. The Forms tab shows while acting and not after Stop
 - [ ] Copy claim link gives a link on `sites.canopyds.com`; texted to the owner, its preview leaves it working; on the owner's phone the claim page shows "Toro Z Muay Thai" and the email; the password manager offers to save the new password; Set password lands on Quick Edit
-- [ ] The welcome video opens once, silent until played, with correct captions; closing it shows its outcome on the operator page; the help bubble reopens it
+- [ ] The upload refuses an MP4 without captions; with both, the welcome video opens once, silent until played, captions on; it seeks on a phone; the operator page shows how far the owner watched; the help bubble reopens it; signed out or as another account, its files 404
 - [ ] The operator page shows link sent, claimed, the welcome outcome, and last sign-in, each as it happened
 - [ ] Before claiming: sign-in fails as a wrong password does; Forgot password sends the claim email, not a reset. After: Forgot password sends a reset. A second use of a claim link, an expired one, and one replaced by a newer send each refuse
-- [ ] Signed in as the owner, the nav is Quick Edit · Editor · Stats with no Forms
+- [ ] Signed in as the owner, the nav is Quick Edit · Editor · Stats with no Forms, and the operator page lists the same tabs; on the demo, all four show
 - [ ] From Claude Code, the CLI links a throwaway repo on the local stack exactly as the form does
 - [ ] `npm run build`, `lint`, `test` pass; every guard's test fails with the guard removed
 
@@ -220,10 +241,17 @@ With Toro Z as the first client, once its repo builds on the contract (T1):
 - **Link, don't build.** The site is built in Claude Code and deployed by Coolify; the operator console links it once it's live: client email, business name, a repo from the org. That creates the account, an unclaimed owner, and the Site row, then runs the first Build and publish.
 - **Link by GitHub repo, not by Coolify app.** The repo is the site's lasting identity, and sites stop deploying through Coolify at E36. Coolify's API is reachable only from webber, so its token stays out of the portal. Hostnames and the Umami id are typed.
 - **Claim.** A claim link to text, or the portal emails it; single use, about a week, re-sendable. The page shows the site name and the fixed email, and the client sets a password. Before claiming, Forgot password sends the claim email.
-- **One welcome video per client**, recorded in a Loom-type tool. Its URL on the Site row; it opens on the first sign-in after claiming, never autoplays with sound, and stays reachable afterward; captions checked; watched or skipped recorded.
+- **One welcome video per client**, because each portal shows different things. It opens on the first sign-in after claiming, never autoplays with sound, and stays reachable afterward; captions checked; watched or skipped recorded. Where it's hosted: below.
 - **The operator site page shows status**: link sent, claimed, welcome watched or skipped, last sign-in.
 - **Act-as-client stays, smaller**: acceptance, support, and building a client a form, with a banner and the operator recorded as the actor.
 - Leaning yes, checked here: a GitHub App for repo access (4.2), Forms shown only with a form (4.8), and the link step callable from Claude Code (4.9, lowest priority).
+
+### Michael (2026-11-05, on the first draft)
+
+- **No password-free sign-in.** canopyds.com/websites' "You never have to remember a password" stays true through texting Michael, though texting isn't the channel to advertise; the copy is his.
+- **Host the welcome videos ourselves** unless that's onerous (it isn't: a volume, an upload, and a files route, 4.6), recorded in any tool. Watched or skipped is good to have, not essential.
+- **A Sites sender**: `sites@canopyds.com`, created in Migadu the same day.
+- **Act-as must show Forms** so he can build a client's first form (4.8).
 
 ### Agent calls inside scope
 
@@ -233,18 +261,14 @@ With Toro Z as the first client, once its repo builds on the contract (T1):
 - **The App's key lives on the builder only**, and the portal asks the builder for the repo list (4.2).
 - **Act-as is a state of the operator's own session**, not a membership and not a second session: one cookie per host, and the role is re-checked every request (4.5).
 - **Act-as covers Sites accounts only** (4.5).
-- **The welcome video is Loom only** (4.6), so its player's behavior is known.
+- **Captions are required to upload a video** (4.6): Michael said it needs them, and a requirement in the upload keeps a hurried upload from skipping them.
+- **Sites tabs follow the account and the build, not operator switches** (4.8), Michael's question of 2026-11-05. Pending his yes.
 - **The help bubble reopens the video** (4.6), not the account menu, whose items are account settings.
+- **Every email to a Sites account comes from `sites@`** (4.4), not only the claim: a client shouldn't get Forms mail for a product they don't know by that name.
 
 ## 7. Open
 
-Each with a recommendation.
-
-- **"You never have to remember a password."** canopyds.com/websites says, under "No dashboards to learn": "You never have to remember a password or dig through a backend you only touch twice a year" (live page, 2026-11-05). A claim sets a password, and "keep me signed in" lasts 30 days at most (ACCOUNT_OPERATIONS, timeout policy), so a client who visits twice a year signs in every time. Michael's copy, flagged, not edited. *Recommendation:* ship the password claim with the phone's password manager saving it (4.4), and change the sentence, as PRD section 1 already plans for "No dashboards to learn". If owners still get stuck, an emailed sign-in link is a later epic; it is a second way to authenticate, with its own tests.
-- **Which address sends a Sites email.** Every email goes out as `Forms@CanopyDS.com` through Migadu, whose 20 a day outgoing limit covers the whole account (Engineering → Migadu). *Recommendation:* a `sites@canopyds.com` sender for Sites accounts (one alias on the existing mailbox, picked by `productNameFor` beside the link host), and the copied link as the usual way to send a claim, which costs no email.
 - **Actor columns on Forms writes.** Only the `ActAs` window says who changed a form while acting. *Recommendation:* enough for now; add `updatedByUserId` to `Form` if a client ever asks who changed something.
-- **Watched or skipped, measured.** If Loom's embed doesn't report progress, the dialog's time open is the measure (4.6). *Recommendation:* accept that; self-hosting the video for exact progress isn't worth a media pipeline.
-- **The superseded Pillars page.** Pillars & Product Architecture (Canopy Sites) still describes shared per-site logins and lists impersonation as a non-goal, under a "Superseded, kept for history" banner. *Recommendation:* delete its access-model text with this epic's runbook change (section 10), since act-as now contradicts it.
 
 ## 8. Completion report
 
@@ -257,6 +281,7 @@ Not started.
   - Toro Z's Coolify app deploys `toroz` `main` through Coolify's GitHub App webhook (a webhook deploy on 2026-10-08) with its health check on, so Toro Z can publish by push as canopyds.com does, without E36. ROADMAP and PRD corrected the same day.
   - `toroz`'s `.dockerignore` drops `*.md` and its Tailwind import scans the whole project, so its production image and the builder would build different CSS. The Sites Onboarding Runbook's build-parity step now says to limit Tailwind's sources to `src/`.
   - Site repo access: the org's Coolify App is read-only, so a push needs a new App (4.2).
+- 2026-11-05 (later): Michael's answers on the first draft (section 6). Created in Migadu: `sites@canopyds.com` as a send-only identity named "Canopy Sites" on the `forms` mailbox, and an alias `sites@` → `clients@` for replies; the Migadu page says so. The portal has no volume and runs as uid 1001 (prod and dev, checked), so 4.6 adds one. Deleted the superseded Pillars & Product Architecture page from Nextcloud and fixed Monthly Reports, its one inbound link, which also cited the July plan's PRD sections.
 
 ## 10. Docs this makes stale
 
@@ -264,11 +289,13 @@ Each lands with the change that causes it, never in a later pass.
 
 **This repo**
 
-- `docs/canopy-sites/PRD.md`: D49 and the section 2 row (4.10). Section 5's data model: the owner's nullable password, claim tokens, `Site.welcomeVideoUrl`, act-as. Section 6's Operator row: "edit as client" becomes act as client. D24: `Site.contractVersion` written on every content read (4.3). Section 1's copy note gains the password sentence if Michael changes it.
+- `docs/canopy-sites/PRD.md`: D49 and the section 2 row (4.10). Section 5's data model: the owner's nullable password, claim tokens, `Site.welcomeVideoKey`, act-as. Section 6: the nav line and its table follow 4.8, and the Operator row's "edit as client" becomes act as client. D28 and D2's list of tabs: each tab shows when the account has what it works on (D49). D24: `Site.contractVersion` written on every content read (4.3). D5's "no external object storage" holds: the welcome videos sit on the portal's own volume.
 - `docs/canopy-sites/ROADMAP.md`: the E38 entry and Phase 5's "(needs E38)" (4.10); E32's "edit as client" half removed; "Not scheduled" loses "New-site onboarding automation" to the narrower item in D49's row.
-- `docs/AGENT_CONTEXT.md`: section 2, Auth & ownership (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (the Forms tab's condition); section 3 (`/claim`, the act-as banner's rule); section 7 (a Sites sender, if one is added); the appendix's data model.
+- `docs/AGENT_CONTEXT.md`: section 2, Auth & ownership (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (`SitesNav`'s tabs and when each shows); section 3 (`/claim`, `/welcome`, the act-as banner's rule); section 6 (the portal's media volume); section 7 (`MEDIA_DIR`, `SMTP_FROM_SITES`); the appendix's data model.
+- `docs/PRISMA_MIGRATIONS.md`: the Dockerfile's media directory and the volume (CLAUDE.md: infra changes go there).
+- `docker-compose.dev.yml` and `.env.example`: the local media directory and `MEDIA_DIR`.
 - `docs/ACCOUNT_OPERATIONS.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
-- `docs/UX_PATTERNS.md`: the act-as banner (section 2's Notices), the welcome video dialog (section 7), the claim page with the auth pages (section 8), the help bubble's new item (section 10).
+- `docs/UX_PATTERNS.md`: the act-as banner (section 2's Notices), the welcome video dialog (section 7), the claim page with the auth pages (section 8), the help bubble's new item (section 10), the Sites tabs' rule (section 10, Page shell).
 - `apps/builder/README.md`: the GitHub App variables in place of `GIT_TOKEN_<SLUG>`, and `GET /v1/repos`.
 - `apps/portal/prisma/schema.prisma`: `Site.slug`'s comment.
 - `apps/portal/src/actions/admin/members.ts`: its header comment (random password, Forgot password).
@@ -277,13 +304,9 @@ Each lands with the change that causes it, never in a later pass.
 
 **Nextcloud**
 
-- Canopy Sites → **Sites Onboarding Runbook**: section 1 (the owner no longer needs an account first); section 4 steps 1 and 2 (add the repo to the Canopy Sites App, in place of a PAT, an env var, and a redeploy) and step 3 (Link a site, or the CLI, in place of New site and the settings form); section 5 (acceptance run acting as the client); section 6 (record the welcome video in Loom and check its captions, paste its URL, send the claim link, watch the status).
-- Canopy Sites → **Pillars & Product Architecture**: its superseded access model and its ban on impersonation, deleted (section 7).
+- Canopy Sites → **Sites Onboarding Runbook**: section 1 (the owner no longer needs an account first); section 4 steps 1 and 2 (add the repo to the Canopy Sites App, in place of a PAT, an env var, and a redeploy) and step 3 (Link a site, or the CLI, in place of New site and the settings form); section 5 (acceptance run acting as the client); section 6 (record the welcome video walking the tabs the operator page lists, export MP4, make and read its captions, upload both, send the claim link, watch the status).
 - Engineering → Platforms → **GitHub**: the `canopy-builder` row becomes the Canopy Sites App (selected repos, Contents write, key on the builder); the "one PAT per site" and "Never used" traps go with the PATs; pushes show as the App.
 - Engineering → **Expirables Register**: the two PAT rows replaced by the App's private key (no expiry, how to rotate).
-- Engineering → Platforms → **Migadu**: Sites claim and reset emails as a sender within the 20 a day limit, if they go through Migadu.
+- Engineering → Platforms → **Migadu**: its "until Epic 38 ships" clause on `sites@`.
+- Engineering → Runbooks → **Backups and Restores**: the portal's media volume, not backed up, its videos re-uploaded from Michael's originals.
 - Engineering → Platforms → **Coolify**: nothing; its token stays out of the portal.
-
-**Elsewhere**
-
-- `canopy-website`, the /websites page: "You never have to remember a password", Michael's copy (section 7).
