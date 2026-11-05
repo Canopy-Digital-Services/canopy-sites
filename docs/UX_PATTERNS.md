@@ -393,6 +393,8 @@ For invalid **configuration** (as opposed to a form field), the same shape appli
 
 **Keyboard shortcuts** (Enter to add an item) must be disabled while validation errors are present, so users can't compound errors.
 
+**A length limit with a count doesn't block typing.** Text can go past it, so new wording can be typed first and the old cut after. A silent block felt like a broken field. On the canvas, the characters past the limit turn red in the field itself (a CSS custom highlight from the bridge, `markOver` in [canvas-bridge.ts](src/lib/canvas-bridge.ts)), since a message in the panel alone sat too far from the cursor to be noticed. The field panel shows "187 of 205 characters" once the text is within 20 of the limit, and that line becomes "12 characters too many" in `text-destructive` once over, with Done off until it fits (the Paragraph count in section 7 is the embed's version). Reference: `FieldPanel` in [canvas-editor.tsx](src/app/(admin)/(sites)/editor/canvas-editor.tsx).
+
 Reference: [signup](src/app/(auth)/signup/page.tsx), [login](src/app/(auth)/login/page.tsx), [reset-password](src/app/(auth)/reset-password/page.tsx), [forgot-password](src/app/(auth)/forgot-password/page.tsx).
 
 ### The two dialects
