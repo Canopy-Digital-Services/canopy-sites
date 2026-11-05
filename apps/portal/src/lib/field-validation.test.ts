@@ -106,18 +106,6 @@ describe("validateField: email", () => {
     expect(validateField(email, "ann@")).toBe("Email must be an email address, like name@example.com.");
   });
 
-  it("takes a personal address unless the field takes work emails only", () => {
-    expect(validateField(email, "ann@gmail.com")).toBeNull();
-    const work = field("EMAIL", { label: "Work email", validation: { workOnly: true } });
-    expect(validateField(work, "ann@GMail.com")).toBe("Work email must be a work email address, not a personal one like Gmail.");
-    expect(validateField(work, "ann@comcast.net")).toBe("Work email must be a work email address, not a personal one like Gmail.");
-    expect(validateField(work, "ann@acme.com")).toBeNull();
-  });
-
-  it("ignores a domain list an older field stored", () => {
-    const older = field("EMAIL", { validation: { domainRules: { allow: ["example.com"] } } as never });
-    expect(validateField(older, "ann@other.com")).toBeNull();
-  });
 });
 
 describe("isValidEmail", () => {

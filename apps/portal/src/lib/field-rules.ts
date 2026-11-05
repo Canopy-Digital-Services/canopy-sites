@@ -165,8 +165,6 @@ function savedValidation(field: FieldSettings): unknown {
       const limit = characterLimit(field);
       return limit ? { maxLength: limit } : null;
     }
-    case "EMAIL":
-      return (field.validation as { workOnly?: unknown } | null)?.workOnly === true ? { workOnly: true } : null;
     case "PHONE": {
       // Only an extension is a setting; a renamed one keeps its label.
       if (!phoneParts(field.validation).includes("extension")) return null;
