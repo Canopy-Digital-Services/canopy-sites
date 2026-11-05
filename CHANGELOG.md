@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.12.0] - 2026-11-05
+
+### Added
+
+- Sites: the builder reaches site repos as the org's **Canopy Sites GitHub App** (Epic 38), with a token limited to the one repo each job needs. Adding a site's repo to the App replaces the per-site token, builder variable, and redeploy; a per-site token stays as a fallback for a repo the App can't reach
+- Sites: **Link a site** picks the repository from those the App is installed on and no site uses yet
+
 ## [5.11.1] - 2026-11-05
 
 ### Fixed
