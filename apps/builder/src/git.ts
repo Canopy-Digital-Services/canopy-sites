@@ -1,6 +1,7 @@
 import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { Log, run, StepError } from "./run.ts";
+import { AppAccessError, appConfig, installationToken } from "./github-app.ts";
 
 const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/;
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/;
@@ -14,19 +15,30 @@ export interface RepoRef {
 }
 
 /**
- * Turns the Site row's repo URL into a git remote. Only GitHub repos are
- * accepted in production; local paths only with BUILDER_ALLOW_LOCAL_REPOS=1
- * (development, against a bare repo on disk).
+ * Turns the Site row's repo URL into a git remote and the token that reaches
+ * it. Only GitHub repos are accepted in production; local paths only with
+ * BUILDER_ALLOW_LOCAL_REPOS=1 (development, against a bare repo on disk).
+ *
+ * The token is the Canopy Sites GitHub App's, limited to this repo
+ * (github-app.ts). A per-site fine-grained token in GIT_TOKEN_<SLUG> is the
+ * fallback while sites move to the App, and goes once none needs it.
  */
-export function resolveRepo(slug: string, repoUrl: string, branch: string): RepoRef {
+export async function resolveRepo(slug: string, repoUrl: string, branch: string): Promise<RepoRef> {
   if (!BRANCH.test(branch) || branch.includes("..")) throw new StepError(`"${branch}" is not a branch name the builder accepts`);
   const gh = GITHUB_REPO.exec(repoUrl);
   if (gh) {
-    // A fine-grained token limited to this repo (Contents: read and write).
+    const remote = `https://github.com/${gh[1]}/${gh[2]}.git`;
     const envName = `GIT_TOKEN_${slug.toUpperCase().replace(/-/g, "_")}`;
-    const token = process.env[envName];
-    if (!token) throw new StepError(`No credentials for this site's repo (set ${envName} on the builder)`);
-    return { remote: `https://github.com/${gh[1]}/${gh[2]}.git`, branch, token };
+    const pat = process.env[envName];
+    try {
+      const app = appConfig();
+      if (app) return { remote, branch, token: await installationToken(app, gh[2]) };
+    } catch (err) {
+      if (!(err instanceof AppAccessError) || !pat) throw new StepError((err as Error).message);
+      console.warn(JSON.stringify({ event: "github_app_fallback", slug, message: err.message }));
+    }
+    if (pat) return { remote, branch, token: pat };
+    throw new StepError(`No access to ${gh[1]}/${gh[2]}: add it to the Canopy Sites GitHub App`);
   }
   if (process.env.BUILDER_ALLOW_LOCAL_REPOS === "1" && path.isAbsolute(repoUrl) && !repoUrl.includes("..")) {
     return { remote: repoUrl, branch };
