@@ -33,7 +33,8 @@ describe("addAccountMember", () => {
     expect(member.memberships).toMatchObject([{ accountId: account.id, role: "MEMBER" }]);
     expect(member.roleCode).toBe("USER");
     // No usable password until they set one through "Forgot password".
-    expect(await verifyPassword("", member.password)).toBe(false);
+    expect(member.password).toEqual(expect.any(String));
+    expect(await verifyPassword("", member.password as string)).toBe(false);
 
     resetRequest();
     await signInAs(member.id);

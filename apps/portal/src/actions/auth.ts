@@ -132,10 +132,14 @@ export async function signInAction(input: {
     select: { id: true, password: true, _count: { select: { memberships: true } } },
   });
 
-  const valid = await verifyPassword(password, user?.password ?? UNKNOWN_USER_HASH);
+  // An unknown email, and an owner who hasn't claimed their account (no
+  // password yet, PRD D49), verify against the dummy hash, so both take as
+  // long as a real account and answer the same as a wrong password.
+  const stored = user?.password ?? null;
+  const valid = (await verifyPassword(password, stored ?? UNKNOWN_USER_HASH)) && stored !== null;
 
   // A user with no membership has nowhere to land, so it cannot sign in.
-  if (!user || !valid || user._count.memberships === 0) {
+  if (!user || !valid || stored === null || user._count.memberships === 0) {
     if (user) {
       await prisma.user.update({
         where: { id: user.id },
@@ -164,7 +168,7 @@ export async function signInAction(input: {
       failedLoginCount: 0,
       lastFailedLoginAt: null,
       // Upgrade a pre-Epic 28 bcrypt hash while the plain password is in hand.
-      ...(needsRehash(user.password) ? { password: await hashPassword(password) } : {}),
+      ...(needsRehash(stored) ? { password: await hashPassword(password) } : {}),
     },
   });
   clearSignInThrottle(email);
@@ -426,7 +430,8 @@ export async function changePassword(formData: FormData) {
       return { error: "User not found" };
     }
 
-    const isValid = await verifyPassword(currentPassword, user.password);
+    // An owner with no password yet sets one by claiming, not here.
+    const isValid = user.password !== null && (await verifyPassword(currentPassword, user.password));
     if (!isValid) {
       return { error: "Current password is incorrect" };
     }

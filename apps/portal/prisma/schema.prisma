@@ -70,7 +70,10 @@ model Role {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  password  String // scrypt, or bcrypt from before Epic 28 (re-hashed on sign-in); src/lib/password.ts
+  // scrypt, or bcrypt from before Epic 28 (re-hashed on sign-in); src/lib/password.ts.
+  // Null until the owner of an account the operator linked claims it (PRD D49):
+  // no password exists to guess, and sign-in treats null as a wrong password.
+  password  String?
   createdAt DateTime @default(now())
   roleCode  String   @default("USER")
 

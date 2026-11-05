@@ -24,7 +24,7 @@ The Account is the tenant boundary: forms, submissions, and fields belong to it.
 
 ```
 Account (id, createdAt, planCode, ...)
-  ├── Memberships[] (role) ──→ User (email, password, roleCode, ...)
+  ├── Memberships[] (role) ──→ User (email, password?, roleCode, ...)
   │                               └── PasswordResetTokens[]
   └── Forms[]
         ├── Fields[]
@@ -74,8 +74,8 @@ Flow:
 Flow:
 1. Refuse if throttled (below), before any lookup or password check
 2. Look up the User by normalized email
-3. Verify the password. An unknown email is verified against a dummy hash so the response takes as long as for a real account
-4. On failure (wrong password, unknown email, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
+3. Verify the password. An unknown email, and an owner who hasn't claimed their account (`password` null, PRD D49), are verified against a dummy hash so the response takes as long as for a real account
+4. On failure (wrong password, unknown email, an unclaimed owner, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
 5. On success: reset the failed count and the email's throttle, set `lastLoginAt`, create a new session, set the cookie
 6. The client navigates to `/`, which resolves the account's home
 
@@ -134,7 +134,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 **Action:** `changePassword()` in `src/actions/auth.ts`
 
 Flow:
-1. Verify the current password
+1. Verify the current password. A user with none (an unclaimed owner, PRD D49) is refused: a first password comes from the claim
 2. Hash and store the new one (`passwordChangedAt = now`)
 3. Delete every other session of the user; this one stays
 4. The client shows a success toast and clears the form
