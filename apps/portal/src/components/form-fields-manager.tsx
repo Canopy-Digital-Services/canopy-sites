@@ -3,7 +3,7 @@
 // UI: see docs/UX_PATTERNS.md ("Inline field rows").
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FieldStart } from "@/lib/field-types";
+import type { FieldType } from "@prisma/client";
 import { SortableList } from "@/components/ui/sortable-list";
 import { createField, deleteField, reorderFields, updateField } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
@@ -138,10 +138,10 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     setNamingId(null);
   };
 
-  const create = async ({ type, choices }: FieldStart) => {
+  const create = async (type: FieldType) => {
     setCreating(true);
     try {
-      const created = await trackSave(createField(formId, newFieldDefaults(type, choices)));
+      const created = await trackSave(createField(formId, newFieldDefaults(type)));
       addField(toFieldState(created));
       setOpenId(created.id);
       setNamingId(created.id);
@@ -211,7 +211,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
           />
         )}
         <div className={fields.length > 0 ? "border-t border-border/50" : undefined}>
-          <AddFieldRow busy={creating} onOpen={closeOpen} onPick={(start) => void create(start)} />
+          <AddFieldRow busy={creating} onOpen={closeOpen} onPick={(type) => void create(type)} />
         </div>
       </div>
       {deletingField && (

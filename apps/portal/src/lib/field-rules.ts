@@ -26,10 +26,8 @@ export const STARTER_OPTIONS: ChoiceOption[] = [1, 2].map((n) => ({ value: `Opti
 export const isStarterOption = (text: string) => /^Option \d+$/.test(text);
 
 /** What a new field of `type` starts with, so it is complete (and saved) the
-    moment it is created and the user only overrides what they need. A choice
-    starts with `choices` when its menu entry gives them (Yes / No), else with
-    stand-ins. */
-export function newFieldDefaults(type: string, choices?: string[]) {
+    moment it is created and the user only overrides what they need. */
+export function newFieldDefaults(type: string) {
   return {
     type,
     label: defaultLabel(type),
@@ -37,7 +35,7 @@ export function newFieldDefaults(type: string, choices?: string[]) {
     // the middle name and the apartment.
     required: isComposite(type),
     options: isChoiceType(type)
-      ? { options: choices ? choices.map((text) => ({ value: text, label: text })) : STARTER_OPTIONS }
+      ? { options: STARTER_OPTIONS }
       : type === "NAME"
         ? { parts: DEFAULT_NAME_PARTS, requiredParts: DEFAULT_NAME_PARTS }
         : type === "ADDRESS"
