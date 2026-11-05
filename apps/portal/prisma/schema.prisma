@@ -301,9 +301,6 @@ model Field {
   name        String
   type        FieldType
   label       String
-  /// Unused since placeholders were retired (2026-11-02): nothing reads or
-  /// writes it. Dropped by a migration in the next production release.
-  placeholder String?
   required    Boolean   @default(false)
   order       Int
   options     Json?
