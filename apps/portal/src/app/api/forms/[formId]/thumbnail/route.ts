@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { sessionAccountId } from "@/lib/data-access/memberships";
 
 export async function GET(
   request: NextRequest,
@@ -10,12 +11,12 @@ export async function GET(
   const { formId } = await params;
 
   const session = await getSession();
-  // v1: exactly one membership; anything else gets no thumbnail.
-  const membership = session?.memberships.length === 1 ? session.memberships[0] : null;
-  if (!membership) return new NextResponse(null, { status: 401 });
+  // The session's account (a client's, while the operator acts as one); none, no thumbnail.
+  const accountId = session ? sessionAccountId(session) : null;
+  if (!accountId) return new NextResponse(null, { status: 401 });
 
   const form = await prisma.form.findFirst({
-    where: { id: formId, accountId: membership.accountId },
+    where: { id: formId, accountId },
     select: { thumbnail: true },
   });
 

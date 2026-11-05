@@ -36,6 +36,12 @@ export type SessionContext = {
   user: { id: string; email: string; role: string };
   /** At most two rows: enough to tell none, one, and more than one apart. */
   memberships: { accountId: string; role: MembershipRole }[];
+  /**
+   * A Global Admin acting as a client in this browser (PRD D49): the account
+   * every account lookup resolves to instead of the user's own. Null unless
+   * the record is open and the user is still a Global Admin.
+   */
+  actingAs: { id: string; accountId: string } | null;
 };
 
 export function generateSessionToken(): string {
@@ -82,6 +88,7 @@ export async function validateSessionToken(token: string, now = new Date()): Pro
       rememberMe: true,
       expiresAt: true,
       absoluteExpiresAt: true,
+      actAs: { select: { id: true, accountId: true, endedAt: true } },
       user: {
         select: {
           id: true,
@@ -95,8 +102,21 @@ export async function validateSessionToken(token: string, now = new Date()): Pro
   if (!row) return null;
 
   if (now >= row.expiresAt || now >= row.absoluteExpiresAt) {
+    if (row.actAs && !row.actAs.endedAt) await endActAs(row.actAs.id, now);
     await prisma.session.deleteMany({ where: { id } });
     return null;
+  }
+
+  // Acting ends with the record, or the moment the user stops being a Global
+  // Admin: the role is read on every request, and so is this.
+  let actingAs: SessionContext["actingAs"] = null;
+  if (row.actAs) {
+    if (!row.actAs.endedAt && row.user.roleCode === "GLOBAL_ADMIN") {
+      actingAs = { id: row.actAs.id, accountId: row.actAs.accountId };
+    } else {
+      await prisma.session.update({ where: { id }, data: { actAsId: null } });
+      if (!row.actAs.endedAt) await endActAs(row.actAs.id, now);
+    }
   }
 
   const rolled = new Date(
@@ -111,7 +131,13 @@ export async function validateSessionToken(token: string, now = new Date()): Pro
     rememberMe: row.rememberMe,
     user: { id: row.user.id, email: row.user.email, role: row.user.roleCode },
     memberships: row.user.memberships,
+    actingAs,
   };
+}
+
+/** Closes an act-as record (PRD D49) if it's still open. */
+export async function endActAs(actAsId: string, now = new Date()): Promise<void> {
+  await prisma.actAs.updateMany({ where: { id: actAsId, endedAt: null }, data: { endedAt: now } });
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {

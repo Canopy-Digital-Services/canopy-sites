@@ -135,7 +135,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 
 | Event | Sessions ended |
 |-------|----------------|
-| Sign-out | This browser's |
+| Sign-out | This browser's (and its acting as a client) |
 | Password change | Every other session; this browser stays signed in |
 | Password reset | All of the user's |
 | User or account deletion | All, by cascade |
@@ -237,6 +237,11 @@ The operator console shows metadata only:
 
 Non-admins are silently redirected to their home (`/forms` or `/editor`).
 
+### Acting as a client (PRD D49)
+
+A Global Admin opens a Sites client's account from the site's Owner card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
+
+A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section, and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author. The `ActAs` row is the record for the rest.
 
 ### Role system
 

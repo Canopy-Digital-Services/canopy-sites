@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { sendClaimLink } from "@/actions/admin/claims";
+import { actAsClient } from "@/actions/admin/act-as";
 import { CopyLinkField } from "../../copy-link-field";
 
 /** The owner as the operator page shows them; dates are formatted on the server. */
@@ -21,7 +22,7 @@ export type OwnerRow = {
 
 /**
  * The site's owner (PRD D49): whether they've claimed the account, the claim
- * link, and their last sign-in. A row per fact, so later
+ * link, their last sign-in, and acting as them. A row per fact, so later
  * epics (the welcome video, E39) add theirs.
  */
 export function OwnerCard({ siteId, owner }: { siteId: string; owner: OwnerRow | null }) {
@@ -67,6 +68,11 @@ export function OwnerCard({ siteId, owner }: { siteId: string; owner: OwnerRow |
         )}
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
+        <form action={actAsClient.bind(null, siteId)}>
+          <Button type="submit" disabled={isPending}>
+            Act as client
+          </Button>
+        </form>
         {owner && !owner.claimed ? (
           <>
             <Button variant="outline" disabled={isPending} onClick={() => send("copy")}>

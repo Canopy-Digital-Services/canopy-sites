@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
   createSession,
+  endActAs,
   createSessionHandoff,
   getSession,
   invalidateSession,
@@ -15,6 +16,7 @@ import {
   setSessionCookie,
 } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
+import { isActing } from "@/lib/act-as";
 import { createClaimLink, issuePasswordToken } from "@/lib/claim";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
@@ -387,6 +389,8 @@ export async function resetPassword(formData: FormData) {
  */
 export async function signOutAction() {
   const session = await getSession();
+  // Signing out ends acting as a client too (PRD D49).
+  if (session?.actingAs) await endActAs(session.actingAs.id);
   if (session) await invalidateSession(session.id);
   await clearSessionCookie();
   redirect("/login");
@@ -399,6 +403,10 @@ export async function changePassword(formData: FormData) {
   const session = await getSession();
   if (!session) {
     return { error: "Not authenticated" };
+  }
+  // The operator acting as a client (PRD D49) never changes a password: the owner's is the owner's.
+  if (isActing(session)) {
+    return { error: "Stop acting as the client to change a password." };
   }
 
   const currentPassword = formData.get("currentPassword") as string;
