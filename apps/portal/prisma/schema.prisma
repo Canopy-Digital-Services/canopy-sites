@@ -87,12 +87,13 @@ model User {
   lastFailedLoginAt DateTime?
   passwordChangedAt DateTime?
 
-  createdForms        Form[]               @relation("CreatedForms")
-  passwordResetTokens PasswordResetToken[]
-  sessions            Session[]
-  sessionHandoffs     SessionHandoff[]
-  changeSets          ChangeSet[]
-  conversations       Conversation[]
+  createdForms          Form[]           @relation("CreatedForms")
+  passwordTokens        PasswordToken[]  @relation("PasswordTokens")
+  passwordTokensCreated PasswordToken[]  @relation("PasswordTokensCreated")
+  sessions              Session[]
+  sessionHandoffs       SessionHandoff[]
+  changeSets            ChangeSet[]
+  conversations         Conversation[]
 
   @@index([roleCode])
   @@map("users")
@@ -423,20 +424,34 @@ model SessionHandoff {
   @@map("session_handoffs")
 }
 
-// Password reset tokens. The emailed link carries a random token; only its
-// SHA-256 is stored, so a database read yields no working link. Issuing a new
-// one invalidates the user's older ones; consuming one is a single
-// conditional update, so a link works once.
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+// A link that sets a password: a reset, or the claim of an account the
+// operator linked (PRD D49). The link carries a random token; only its SHA-256
+// is stored, so a database read yields no working link. Issuing a new one
+// invalidates the user's older ones of either purpose; consuming one is a
+// single conditional update, so a link works once. "Link sent" and "claimed"
+// are the newest claim's createdAt and usedAt.
+model PasswordToken {
+  id              String               @id @default(cuid())
+  userId          String
+  purpose         PasswordTokenPurpose @default(RESET)
+  tokenHash       String               @unique
+  expiresAt       DateTime
+  usedAt          DateTime?
+  // The operator who made a claim link; null when the owner asked for it
+  // through Forgot password.
+  createdByUserId String?
+  // When the portal emailed it; null for a link the operator copied.
+  emailedAt       DateTime?
+  createdAt       DateTime             @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User  @relation("PasswordTokens", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("PasswordTokensCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+enum PasswordTokenPurpose {
+  RESET
+  CLAIM
 }

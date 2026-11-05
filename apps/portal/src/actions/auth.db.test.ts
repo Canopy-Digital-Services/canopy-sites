@@ -12,7 +12,8 @@ import { sendEmail } from "@/lib/email";
 vi.mock("next/headers", () => import("../../test/next-request"));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
 
-const { changePassword, requestPasswordReset, resetPassword, signInAction, signOutAction, signUp } = await import("./auth");
+const { changePassword, requestPasswordReset, resetPassword, signInAction, signOutAction, signUp, validateResetToken } =
+  await import("./auth");
 
 function form(fields: Record<string, string>) {
   const fd = new FormData();
@@ -266,9 +267,9 @@ describe("password reset", () => {
     const token = await requestResetToken(user.email);
 
     expect(token).toMatch(/^[a-f0-9]{64}$/);
-    const rows = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
+    const rows = await prisma.passwordToken.findMany({ where: { userId: user.id } });
     expect(rows).toHaveLength(1);
-    expect(rows[0].tokenHash).toBe(hashToken(token));
+    expect(rows[0]).toMatchObject({ purpose: "RESET", tokenHash: hashToken(token) });
     expect(JSON.stringify(rows)).not.toContain(token);
   });
 
@@ -306,10 +307,26 @@ describe("password reset", () => {
     expect(await resetPassword(form({ token, password: "third new password" }))).toHaveProperty("error");
   });
 
+  it("refuses a claim link: it sets no password through /reset-password (PRD D49)", async () => {
+    const { user } = await accountWithPassword();
+    const token = "c".repeat(64);
+    await prisma.passwordToken.create({
+      data: { userId: user.id, purpose: "CLAIM", tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 60_000) },
+    });
+    const before = (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).password;
+
+    expect(await validateResetToken(token)).toMatchObject({ valid: false });
+    expect(await resetPassword(form({ token, password: "brand new password" }))).toHaveProperty("error");
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).password).toBe(before);
+    expect(await prisma.passwordToken.findUniqueOrThrow({ where: { tokenHash: hashToken(token) } })).toMatchObject({
+      usedAt: null,
+    });
+  });
+
   it("refuses an expired link", async () => {
     const { user } = await accountWithPassword();
     const token = await requestResetToken(user.email);
-    await prisma.passwordResetToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
+    await prisma.passwordToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
 
     expect(await resetPassword(form({ token, password: "brand new password" }))).toHaveProperty("error");
   });
