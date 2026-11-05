@@ -2,7 +2,7 @@
 
 // UI: see docs/UX_PATTERNS.md ("Inline field rows").
 //
-// The options a Dropdown or Checkboxes field offers, one box each. Enter adds
+// The options a Choose one or Choose several field offers, one box each. Enter adds
 // an option below, Backspace in an empty one removes it, and pasting several
 // lines makes one option per line. "Other", whose answer the visitor types,
 // is a checkbox below the list: the form always lists it last.
@@ -71,34 +71,20 @@ export function ChoiceOptionsEditor({
     input?.setSelectionRange(input.value.length, input.value.length);
   });
 
-  const setRows = (next: Row[], focus?: number, defaultValue = value.defaultValue) => {
+  const setRows = (next: Row[], focus?: number) => {
     if (focus !== undefined) focusNext.current = focus;
     setIds(next.map((row) => row.id));
-    const config: ChoiceOptions = { ...value, options: next.map((row) => row.option) };
-    if (defaultValue === undefined) delete config.defaultValue;
-    else config.defaultValue = defaultValue;
-    onChange(config);
+    onChange({ ...value, options: next.map((row) => row.option) });
   };
   const newRows = (added: ChoiceOption[]) => added.map((option) => ({ id: newRowId(), option }));
 
-  const rename = (index: number, text: string) => {
-    const old = options[index];
-    // A default follows its option to the new name.
-    const defaultValue = value.defaultValue === old.value ? text : value.defaultValue;
-    setRows(
-      rows.map((row, i) => (i === index ? { ...row, option: { value: text, label: text } } : row)),
-      undefined,
-      defaultValue
-    );
-  };
+  const rename = (index: number, text: string) =>
+    setRows(rows.map((row, i) => (i === index ? { ...row, option: { value: text, label: text } } : row)));
 
   const insert = (at: number, added: ChoiceOption[], focus: number) =>
     setRows([...rows.slice(0, at), ...newRows(added), ...rows.slice(at)], focus);
 
-  const remove = (index: number, focus?: number) => {
-    const defaultValue = value.defaultValue === options[index].value ? undefined : value.defaultValue;
-    setRows(rows.filter((_, i) => i !== index), focus, defaultValue);
-  };
+  const remove = (index: number, focus?: number) => setRows(rows.filter((_, i) => i !== index), focus);
 
   const reorder = (order: string[]) => setRows(order.flatMap((id) => rows.filter((row) => row.id === id)));
 

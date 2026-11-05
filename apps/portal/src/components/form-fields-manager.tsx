@@ -3,7 +3,7 @@
 // UI: see docs/UX_PATTERNS.md ("Inline field rows").
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FieldType } from "@prisma/client";
+import type { FieldStart } from "@/lib/field-types";
 import { SortableList } from "@/components/ui/sortable-list";
 import { createField, deleteField, reorderFields, updateField } from "@/actions/forms";
 import { useToast } from "@/hooks/use-toast";
@@ -91,7 +91,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
   // The open field is the one the preview marks, narrowed to the part whose
   // settings have focus. Moving from one box to the next blurs one before
   // focusing the other, so going back to the whole field waits a beat: two
-  // boxes marking the same part (a Dropdown's options all mark the dropdown)
+  // boxes marking the same part (a long Choose one's options all mark its dropdown)
   // leave the mark as drawn instead of redrawing it.
   const partLeft = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusPart = (name: string, part: string | null) => {
@@ -138,10 +138,10 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
     setNamingId(null);
   };
 
-  const create = async (type: FieldType) => {
+  const create = async ({ type, choices }: FieldStart) => {
     setCreating(true);
     try {
-      const created = await trackSave(createField(formId, newFieldDefaults(type)));
+      const created = await trackSave(createField(formId, newFieldDefaults(type, choices)));
       addField(toFieldState(created));
       setOpenId(created.id);
       setNamingId(created.id);
@@ -211,7 +211,7 @@ export function FormFieldsManager({ formId }: FormFieldsManagerProps) {
           />
         )}
         <div className={fields.length > 0 ? "border-t border-border/50" : undefined}>
-          <AddFieldRow busy={creating} onOpen={closeOpen} onPick={(type) => void create(type)} />
+          <AddFieldRow busy={creating} onOpen={closeOpen} onPick={(start) => void create(start)} />
         </div>
       </div>
       {deletingField && (

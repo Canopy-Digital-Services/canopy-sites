@@ -37,7 +37,7 @@ Canopy Forms is a forms platform for static sites. Build a form in the dashboard
 
 **Form.** A single form you can embed or host. It holds its own fields, theme, allowed origins, submission settings, and submissions.
 
-**Field.** One input on a form. Each field has a type (Text, Email, Dropdown, etc.), a label, and optional validation. An internal key is auto-generated from the label; that key stays stable even if you rename the field later.
+**Field.** One input on a form. Each field has a type (Short answer, Email, Choose one, etc.), a label, and optional validation. An internal key is auto-generated from the label; that key stays stable even if you rename the field later.
 
 **Submission.** One filled-in form entry. Submissions carry the field values plus metadata (timestamp, origin, referrer, hashed IP) and a status (New, Read, or Archived).
 

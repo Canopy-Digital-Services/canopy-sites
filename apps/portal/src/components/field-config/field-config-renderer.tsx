@@ -1,10 +1,10 @@
 import { FieldType } from "@prisma/client";
 import { ParagraphConfig } from "./paragraph-config";
-import { DropdownConfig } from "./dropdown-config";
+import { ChooseOneConfig } from "./choose-one-config";
 import { DateConfig } from "./date-config";
 import { PhoneConfig } from "./phone-config";
 import { NameConfig } from "./name-config";
-import { CheckboxesConfig } from "./checkboxes-config";
+import { ChooseSeveralConfig } from "./choose-several-config";
 import { NumberConfig } from "./number-config";
 import { AddressConfig } from "./address-config";
 import { ConfigComponentProps } from "./types";
@@ -16,11 +16,11 @@ type AnyConfigComponent = React.ComponentType<ConfigComponentProps<any>>;
 
 const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
   TEXTAREA: ParagraphConfig,
-  DROPDOWN: DropdownConfig,
+  CHOOSE_ONE: ChooseOneConfig,
   PHONE: PhoneConfig,
   DATE: DateConfig,
   NAME: NameConfig,
-  CHECKBOXES: CheckboxesConfig,
+  CHOOSE_SEVERAL: ChooseSeveralConfig,
   NUMBER: NumberConfig,
   ADDRESS: AddressConfig,
 };
