@@ -37,6 +37,24 @@ export function builderConfigured(): boolean {
   return Boolean(process.env.BUILDER_URL && process.env.BUILDER_TOKEN);
 }
 
+export type AppRepo = { fullName: string; url: string };
+
+/**
+ * The repos the Canopy Sites GitHub App is installed on (Epic 38 section 4.2),
+ * for Link a site's picker; null when the builder or the App isn't set up
+ * here, and the form takes a URL instead.
+ */
+export async function listAppRepos(): Promise<AppRepo[] | null> {
+  if (!builderConfigured()) return null;
+  try {
+    const { repos } = await call<{ repos: AppRepo[] }>("/v1/repos");
+    return repos.map(({ fullName, url }) => ({ fullName, url }));
+  } catch (err) {
+    console.warn(JSON.stringify({ event: "app_repos_unavailable", message: (err as Error).message }));
+    return null;
+  }
+}
+
 async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
   const base = process.env.BUILDER_URL;
   const token = process.env.BUILDER_TOKEN;

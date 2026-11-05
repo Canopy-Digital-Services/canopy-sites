@@ -21,6 +21,8 @@ import {
   type LinkSiteInput,
 } from "@/lib/sites";
 import { ListInput, type Row } from "./list-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { AppRepo } from "@/lib/builder-client";
 
 type Field = keyof LinkSiteInput;
 type Text = Exclude<Field, "productionHostnames">;
@@ -31,7 +33,7 @@ const EMPTY = { email: "", name: "", repoUrl: "", slug: "", umamiWebsiteId: "" }
  * Links a live site (PRD D49): the client's account, its owner, who hasn't
  * claimed it, and the site row, then the site's first build and publish.
  */
-export function LinkSiteButton() {
+export function LinkSiteButton({ repos }: { repos: AppRepo[] | null }) {
   const router = useRouter();
   const nextId = useRef(0);
   const newRow = (): Row => ({ id: `host${nextId.current++}`, value: "" });
@@ -157,11 +159,43 @@ export function LinkSiteButton() {
 
           {text("email", "Client email", { required: true, type: "email" })}
           {text("name", "Business name", { required: true, maxLength: SITE_NAME_MAX_LENGTH })}
-          {text("repoUrl", "Repository", {
-            required: true,
-            maxLength: SITE_URL_MAX_LENGTH,
-            placeholder: "https://github.com/Canopy-Digital-Services/repo",
-          })}
+          {repos ? (
+            <div className="space-y-2">
+              <Label htmlFor="link-repoUrl">
+                Repository<span className="text-destructive ml-0.5">*</span>
+              </Label>
+              <Select
+                value={values.repoUrl}
+                onValueChange={(v) => {
+                  set("repoUrl", v);
+                  touch("repoUrl");
+                }}
+                disabled={isPending || repos.length === 0}
+              >
+                <SelectTrigger id="link-repoUrl" aria-invalid={!!showError("repoUrl")} onBlur={() => touch("repoUrl")}>
+                  <SelectValue placeholder={repos.length ? "Choose a repository" : "Every repository the App reaches is linked"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {repos.map((r) => (
+                    <SelectItem key={r.url} value={r.url}>
+                      {r.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {showError("repoUrl") ? (
+                <p className="text-sm text-destructive">{showError("repoUrl")}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Not listed? Add the repository to the Canopy Sites GitHub App.</p>
+              )}
+            </div>
+          ) : (
+            text("repoUrl", "Repository", {
+              required: true,
+              maxLength: SITE_URL_MAX_LENGTH,
+              placeholder: "https://github.com/Canopy-Digital-Services/repo",
+            })
+          )}
           {text("slug", "Slug", { required: true, maxLength: SITE_SLUG_MAX_LENGTH, mono: true, hint: "Fixed once created." })}
           <ListInput
             label="Production hostnames"
