@@ -181,6 +181,20 @@ describe("signInAction", () => {
     expect(await signInAction({ email: user.email, password: "old style pass", rememberMe: false })).toEqual({ success: true });
   });
 
+  it("answers an owner who hasn't claimed their account (no password) as a wrong password, with no session", async () => {
+    const { user } = await createAccount();
+    await prisma.user.update({ where: { id: user.id }, data: { password: null } });
+
+    expect(await signInAction({ email: user.email, password: "anything at all", rememberMe: false })).toEqual({
+      error: "Invalid email or password",
+    });
+    expect(await prisma.session.count()).toBe(0);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      password: null,
+      failedLoginCount: 1,
+    });
+  });
+
   it("refuses a user with no account membership", async () => {
     const { user, password } = await accountWithPassword();
     await prisma.membership.deleteMany({ where: { userId: user.id } });
@@ -214,6 +228,17 @@ describe("changePassword", () => {
     expect(result).toEqual({ success: true });
     expect(await prisma.session.count({ where: { id: here.session.id } })).toBe(1);
     expect(await prisma.session.count({ where: { id: elsewhere.session.id } })).toBe(0);
+  });
+
+  it("sets no password for a user who has none: that is a claim's job (PRD D49)", async () => {
+    const { user } = await createAccount();
+    await signInAs(user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { password: null } });
+
+    const result = await changePassword(form({ currentPassword: "any guess", newPassword: "a new long password" }));
+
+    expect(result).toEqual({ error: "Current password is incorrect" });
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ password: null });
   });
 
   it("changes nothing when the current password is wrong", async () => {
