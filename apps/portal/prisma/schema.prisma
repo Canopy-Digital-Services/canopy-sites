@@ -26,6 +26,7 @@ model Account {
   forms         Form[]
   notifications Notification[]
   site          Site?
+  actAs         ActAs[]
 
   @@index([planCode])
   @@map("accounts")
@@ -90,6 +91,7 @@ model User {
   createdForms          Form[]           @relation("CreatedForms")
   passwordTokens        PasswordToken[]  @relation("PasswordTokens")
   passwordTokensCreated PasswordToken[]  @relation("PasswordTokensCreated")
+  actingAs              ActAs[]
   sessions              Session[]
   sessionHandoffs       SessionHandoff[]
   changeSets            ChangeSet[]
@@ -400,10 +402,37 @@ model Session {
   expiresAt         DateTime
   absoluteExpiresAt DateTime
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Set while a Global Admin acts as a client in this browser (PRD D49).
+  actAsId String?
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actAs ActAs? @relation(fields: [actAsId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([actAsId])
   @@map("sessions")
+}
+
+// A Global Admin inside a client's account, for acceptance, support, or
+// building a form, never with the client's password (PRD D49). The row is the
+// record of who was in which account when; writes made meanwhile name the
+// operator wherever a row names its author (a ChangeSet, a form's creator, a
+// published commit).
+model ActAs {
+  id             String    @id @default(cuid())
+  // Null once the operator's user is deleted; the record stays.
+  operatorUserId String?
+  accountId      String
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+
+  operator User?     @relation(fields: [operatorUserId], references: [id], onDelete: SetNull)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@index([accountId])
+  @@index([operatorUserId])
+  @@map("act_as")
 }
 
 // A one-time pass from sign-in on the Forms host to a session on the Sites
