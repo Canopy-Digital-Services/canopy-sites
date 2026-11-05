@@ -1496,7 +1496,8 @@ export class CanopyForm {
     });
     card.appendChild(resetButton);
 
-    this.container.appendChild(card);
+    // In the form's place, above "Powered by", which stays at the bottom.
+    this.container.insertBefore(card, this.container.querySelector(".canopy-watermark"));
   }
 
   private renderSkeleton() {
