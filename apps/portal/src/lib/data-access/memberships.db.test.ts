@@ -57,7 +57,7 @@ describe("deleteAccountAndSoleMembers", () => {
   it("removes the account, its forms, and users who belonged only to it", async () => {
     const { account, user } = await createAccount();
     await createForm(account.id, user.id, { published: true });
-    await prisma.passwordResetToken.create({
+    await prisma.passwordToken.create({
       data: { userId: user.id, tokenHash: "t", expiresAt: new Date(Date.now() + 60_000) },
     });
 
@@ -66,7 +66,7 @@ describe("deleteAccountAndSoleMembers", () => {
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(0);
     expect(await prisma.user.count({ where: { id: user.id } })).toBe(0);
     expect(await prisma.form.count()).toBe(0);
-    expect(await prisma.passwordResetToken.count()).toBe(0);
+    expect(await prisma.passwordToken.count()).toBe(0);
   });
 
   it("keeps a user who also belongs to another account, and that account", async () => {
@@ -102,5 +102,42 @@ describe("deleteAccountAndSoleMembers", () => {
 
     expect(await prisma.account.count({ where: { id: bystander.id } })).toBe(1);
     expect(await prisma.form.count({ where: { accountId: bystander.id } })).toBe(1);
+  });
+
+  it("removes the record of an operator acting as the account, and the operator's session stays their own", async () => {
+    const { account } = await createAccount();
+    const { user: operator } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const actAs = await prisma.actAs.create({ data: { operatorUserId: operator.id, accountId: account.id } });
+    const session = await prisma.session.create({
+      data: {
+        id: "operator-session",
+        userId: operator.id,
+        rememberMe: false,
+        expiresAt: new Date(Date.now() + 60_000),
+        absoluteExpiresAt: new Date(Date.now() + 60_000),
+        actAsId: actAs.id,
+      },
+    });
+
+    await deleteAccountAndSoleMembers(account.id);
+
+    expect(await prisma.actAs.count()).toBe(0);
+    expect(await prisma.session.findUnique({ where: { id: session.id } })).toMatchObject({ actAsId: null });
+    expect(await prisma.user.count({ where: { id: operator.id } })).toBe(1);
+  });
+});
+
+describe("act-as records (PRD D49)", () => {
+  it("keep who was in which account when the operator's user is deleted", async () => {
+    const { account } = await createAccount();
+    const { user: operator } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const actAs = await prisma.actAs.create({ data: { operatorUserId: operator.id, accountId: account.id } });
+
+    await prisma.user.delete({ where: { id: operator.id } });
+
+    expect(await prisma.actAs.findUnique({ where: { id: actAs.id } })).toMatchObject({
+      accountId: account.id,
+      operatorUserId: null,
+    });
   });
 });

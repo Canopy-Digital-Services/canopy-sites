@@ -27,6 +27,8 @@ type AccountDashboardProps = {
   totalFormsCount: number;
   /** The account owns a site, so it closes through support rather than self-serve deletion. */
   hasSite: boolean;
+  /** The operator acting as the client (PRD D49): the password and deletion are the owner's alone. */
+  acting?: boolean;
 };
 
 export function AccountDashboard({
@@ -36,6 +38,7 @@ export function AccountDashboard({
   maxPublishedForms,
   totalFormsCount,
   hasSite,
+  acting = false,
 }: AccountDashboardProps) {
   return (
     <div className="max-w-[640px] mx-auto space-y-6">
@@ -47,8 +50,12 @@ export function AccountDashboard({
         maxPublishedForms={maxPublishedForms}
         totalFormsCount={totalFormsCount}
       />
-      <PasswordSection />
-      <DeleteAccountSection hasSite={hasSite} />
+      {acting ? null : (
+        <>
+          <PasswordSection />
+          <DeleteAccountSection hasSite={hasSite} />
+        </>
+      )}
     </div>
   );
 }

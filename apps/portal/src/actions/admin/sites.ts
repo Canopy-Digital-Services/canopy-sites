@@ -1,10 +1,10 @@
 "use server";
 
 /**
- * Global-Admin-gated site management. Creating a site records it; the repo,
- * DNS, and Umami website are made by hand (v1). Refusals come back as
- * `{ error }` rather than a throw, so the operator sees the reason in
- * production builds too.
+ * Global-Admin-gated site management. A site arrives by linking a live one
+ * (PRD D49, `createLinkedSite`); the repo, DNS, and Umami website are made
+ * outside the portal. Refusals come back as `{ error }` rather than a throw,
+ * so the operator sees the reason in production builds too.
  *
  * Guards: an account holds at most one site (PRD D19, also a unique
  * constraint), only on a plan with sitesEnabled; no hostname belongs to two
@@ -14,14 +14,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
-import {
-  DEFAULT_LOCKED_FIELDS,
-  parseNewSite,
-  parseSiteSettings,
-  type FieldErrors,
-  type NewSiteInput,
-  type SiteSettingsInput,
-} from "@/lib/sites";
+import { parseSiteSettings, type FieldErrors, type LinkSiteInput, type SiteSettingsInput } from "@/lib/sites";
+import { createLinkedSite, type LinkSiteResult } from "@/lib/site-link";
 import { revalidatePath } from "next/cache";
 
 export type SiteActionResult<I> =
@@ -52,36 +46,17 @@ function log(event: string, actorEmail: string, details: Record<string, unknown>
   console.log(JSON.stringify({ event, actorEmail, ...details, at: new Date().toISOString() }));
 }
 
-export async function createSite(
-  accountId: string,
-  input: NewSiteInput
-): Promise<SiteActionResult<NewSiteInput>> {
+/**
+ * Links a live site: the client's account, its unclaimed owner, and the Site
+ * row (PRD D49). The first build is the caller's next step
+ * (`publishSiteFromRepo`). `attach` links to the email's existing Sites
+ * account when it has no site, after the form has asked.
+ */
+export async function linkSite(input: LinkSiteInput, opts: { attach?: boolean } = {}): Promise<LinkSiteResult> {
   const session = await requireGlobalAdmin();
-
-  const parsed = parseNewSite(input);
-  if (!parsed.ok) return { error: INVALID, fieldErrors: parsed.errors };
-  const { name, slug } = parsed.value;
-
-  const refusal = await accountRefusal(accountId);
-  if (refusal) return { error: refusal };
-  if (await prisma.site.findUnique({ where: { slug }, select: { id: true } })) {
-    return { error: INVALID, fieldErrors: { slug: "Another site uses this slug" } };
-  }
-
-  let siteId: string;
-  try {
-    ({ id: siteId } = await prisma.site.create({
-      data: { accountId, name, slug, lockedFields: DEFAULT_LOCKED_FIELDS },
-      select: { id: true },
-    }));
-  } catch (error) {
-    if (isUniqueViolation(error)) return { error: "Another site took that slug or account just now. Try again." };
-    throw error;
-  }
-
-  log("createSite", session.user.email, { siteId, accountId, slug });
-  revalidatePath("/operator/sites");
-  return { success: true, siteId };
+  const result = await createLinkedSite(input, session.user.email, { attach: opts.attach === true });
+  if ("success" in result) revalidatePath("/operator/sites");
+  return result;
 }
 
 export async function updateSite(

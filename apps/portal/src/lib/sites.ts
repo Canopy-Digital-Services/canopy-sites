@@ -1,8 +1,10 @@
 /**
  * Operator input for a Site, and the rule each field follows (epic 29,
- * section 6). Pure, so the operator form validates inline with the same
- * definitions the server actions enforce.
+ * section 6; linking, PRD D49). Pure, so the operator forms validate inline
+ * with the same definitions the server enforces.
  */
+
+import { isValidEmail } from "../../embed/src/validation";
 
 export const SITE_NAME_MAX_LENGTH = 100;
 export const SITE_SLUG_MAX_LENGTH = 40;
@@ -20,19 +22,37 @@ export const DEFAULT_LOCKED_FIELDS = ["site.contact.phone", "site.contact.email"
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const HOSTNAME_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const BRANCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9._-]+)*$/;
-const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCKED_FIELD_PATTERN = /^[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*$/;
 
-export type NewSiteInput = { name: string; slug: string };
-export type NewSite = { name: string; slug: string };
+// The repo URL shape the builder accepts (apps/builder/src/git.ts).
+const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/;
+
+/** What the operator types to link a live site (PRD D49). */
+export type LinkSiteInput = {
+  email: string;
+  name: string;
+  repoUrl: string;
+  slug: string;
+  productionHostnames: string[];
+  umamiWebsiteId: string;
+};
+
+export type LinkSite = {
+  email: string;
+  name: string;
+  /** `https://github.com/<owner>/<repo>`, without `.git` or a trailing slash. */
+  repoUrl: string;
+  slug: string;
+  productionHostnames: string[];
+  umamiWebsiteId: string | null;
+};
 
 export type SiteSettingsInput = {
   name: string;
   repoUrl: string;
   defaultBranch: string;
   productionHostnames: string[];
-  contractVersion: string;
   umamiWebsiteId: string;
   runbookOverlay: string;
   lockedFields: string[];
@@ -43,7 +63,6 @@ export type SiteSettings = {
   repoUrl: string | null;
   defaultBranch: string;
   productionHostnames: string[];
-  contractVersion: string | null;
   umamiWebsiteId: string | null;
   runbookOverlay: string;
   lockedFields: string[];
@@ -98,6 +117,36 @@ function repoUrlError(url: string): string | undefined {
   if (parsed.username || parsed.password) return "Leave credentials out of the URL";
 }
 
+/** The GitHub repo URL in the one form the builder and the site row use, or null when it isn't one. */
+export function normalizeGitHubRepo(raw: string): string | null {
+  const match = GITHUB_REPO.exec(raw.trim());
+  return match ? `https://github.com/${match[1]}/${match[2]}` : null;
+}
+
+/** A slug suggestion from a GitHub repo URL: the repo's name, or "" when the URL isn't one yet. */
+export function suggestSlugFromRepo(repoUrl: string): string {
+  const repo = normalizeGitHubRepo(repoUrl);
+  return repo ? suggestSlug(repo.slice(repo.lastIndexOf("/") + 1)) : "";
+}
+
+function umamiError(id: string): string | undefined {
+  if (id && !UUID_PATTERN.test(id)) return "Enter the website ID from Umami (a UUID)";
+}
+
+/** Normalized hostnames, or the first problem with them. Blank rows are dropped. */
+function parseHostnames(values: string[]): { hostnames: string[]; error?: string } {
+  const hostnames: string[] = [];
+  for (const raw of listOf(values, (h) => h.trim())) {
+    const host = normalizeHostname(raw);
+    if (!host) return { hostnames, error: `"${raw}" is not a hostname. Enter a domain such as example.com, without https://` };
+    hostnames.push(host);
+  }
+  const dup = firstDuplicate(hostnames);
+  if (dup) return { hostnames, error: `${dup} is listed twice` };
+  if (hostnames.length > SITE_HOSTNAMES_MAX) return { hostnames, error: `At most ${SITE_HOSTNAMES_MAX} hostnames` };
+  return { hostnames };
+}
+
 function branchError(branch: string): string | undefined {
   if (!branch) return "Branch is required";
   if (branch.length > SITE_BRANCH_MAX_LENGTH) return `Branch must be ${SITE_BRANCH_MAX_LENGTH} characters or fewer`;
@@ -114,12 +163,36 @@ function firstDuplicate(values: string[]): string | undefined {
   return values.find((v, i) => values.indexOf(v) !== i);
 }
 
-export function parseNewSite(input: NewSiteInput): Parsed<NewSite, NewSiteInput> {
+/** Validates and normalizes the Link a site form. A linked site is live, so it has a production hostname. */
+export function parseLinkSite(input: LinkSiteInput): Parsed<LinkSite, LinkSiteInput> {
+  const email = input.email.trim().toLowerCase();
   const name = input.name.trim();
+  const rawRepo = input.repoUrl.trim();
+  const repoUrl = normalizeGitHubRepo(rawRepo);
   const slug = input.slug.trim().toLowerCase();
-  const errors: FieldErrors<NewSiteInput> = { name: nameError(name), slug: slugError(slug) };
-  if (errors.name || errors.slug) return { ok: false, errors: stripEmpty(errors) };
-  return { ok: true, value: { name, slug } };
+  const umamiWebsiteId = input.umamiWebsiteId.trim().toLowerCase();
+  const { hostnames, error: hostnamesError } = parseHostnames(input.productionHostnames);
+
+  const errors: FieldErrors<LinkSiteInput> = {
+    email: !email ? "Email is required" : !isValidEmail(email) ? "Enter a valid email address" : undefined,
+    name: nameError(name),
+    repoUrl: !rawRepo
+      ? "Repository is required"
+      : rawRepo.length > SITE_URL_MAX_LENGTH
+        ? `Repository URL must be ${SITE_URL_MAX_LENGTH} characters or fewer`
+        : !repoUrl
+          ? "Enter a GitHub repository URL, such as https://github.com/owner/repo"
+          : undefined,
+    slug: slugError(slug),
+    productionHostnames: hostnamesError ?? (hostnames.length === 0 ? "Add the site's hostname" : undefined),
+    umamiWebsiteId: umamiError(umamiWebsiteId),
+  };
+  const found = stripEmpty(errors);
+  if (Object.keys(found).length > 0 || !repoUrl) return { ok: false, errors: found };
+  return {
+    ok: true,
+    value: { email, name, repoUrl, slug, productionHostnames: hostnames, umamiWebsiteId: umamiWebsiteId || null },
+  };
 }
 
 /** Validates and normalizes the site settings form. Blank optional fields become null; blank list rows are dropped. */
@@ -127,41 +200,22 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
   const name = input.name.trim();
   const repoUrl = input.repoUrl.trim();
   const defaultBranch = input.defaultBranch.trim();
-  const contractVersion = input.contractVersion.trim().replace(/^v/, "");
   const umamiWebsiteId = input.umamiWebsiteId.trim().toLowerCase();
   const runbookOverlay = input.runbookOverlay.replace(/\r\n/g, "\n").trimEnd();
-  const rawHostnames = listOf(input.productionHostnames, (h) => h.trim());
+  const { hostnames: productionHostnames, error: hostnamesError } = parseHostnames(input.productionHostnames);
   const lockedFields = listOf(input.lockedFields, (f) => f.trim());
 
   const errors: FieldErrors<SiteSettingsInput> = {
     name: nameError(name),
     repoUrl: repoUrl ? repoUrlError(repoUrl) : undefined,
     defaultBranch: branchError(defaultBranch),
-    contractVersion:
-      contractVersion && !VERSION_PATTERN.test(contractVersion) ? "Use MAJOR.MINOR.PATCH, such as 0.1.0" : undefined,
-    umamiWebsiteId: umamiWebsiteId && !UUID_PATTERN.test(umamiWebsiteId) ? "Enter the website ID from Umami (a UUID)" : undefined,
+    productionHostnames: hostnamesError,
+    umamiWebsiteId: umamiError(umamiWebsiteId),
     runbookOverlay:
       runbookOverlay.length > RUNBOOK_OVERLAY_MAX_LENGTH
         ? `Overlay must be ${RUNBOOK_OVERLAY_MAX_LENGTH.toLocaleString("en-US")} characters or fewer. (Currently ${runbookOverlay.length.toLocaleString("en-US")})`
         : undefined,
   };
-
-  const productionHostnames: string[] = [];
-  for (const raw of rawHostnames) {
-    const host = normalizeHostname(raw);
-    if (!host) {
-      errors.productionHostnames = `"${raw}" is not a hostname. Enter a domain such as example.com, without https://`;
-      break;
-    }
-    productionHostnames.push(host);
-  }
-  if (!errors.productionHostnames) {
-    const dup = firstDuplicate(productionHostnames);
-    if (dup) errors.productionHostnames = `${dup} is listed twice`;
-    else if (productionHostnames.length > SITE_HOSTNAMES_MAX) {
-      errors.productionHostnames = `At most ${SITE_HOSTNAMES_MAX} hostnames`;
-    }
-  }
 
   const badField = lockedFields.find(
     (f) => f.length > SITE_LOCKED_FIELD_MAX_LENGTH || !LOCKED_FIELD_PATTERN.test(f)
@@ -180,7 +234,6 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
       repoUrl: repoUrl || null,
       defaultBranch,
       productionHostnames,
-      contractVersion: contractVersion || null,
       umamiWebsiteId: umamiWebsiteId || null,
       runbookOverlay,
       lockedFields,

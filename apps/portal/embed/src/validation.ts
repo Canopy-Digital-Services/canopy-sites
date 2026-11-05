@@ -190,19 +190,21 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
 
   // Types whose answer isn't a single piece of text.
   switch (field.type) {
-    case "CHECKBOX":
+    // An Approval's label is a statement and a choice's a question, so their
+    // required messages don't repeat the label.
+    case "APPROVAL":
       // An HTML checkbox sends "on" when checked, and nothing when not.
       if (value !== undefined && value !== null && typeof value !== "boolean" && value !== "on") {
         return `${label} must be true or false.`;
       }
-      return field.required && !value ? `${label} is required.` : null;
-    case "CHECKBOXES":
+      return field.required && !value ? "Check the box to continue." : null;
+    case "CHOOSE_SEVERAL":
       if (!Array.isArray(value) || value.length === 0) {
-        if (field.required) return `${label} is required.`;
+        if (field.required) return "Choose at least one.";
         // Nothing picked. Anything else that isn't a list, choiceError refuses.
         if (value === undefined || value === null || Array.isArray(value)) return null;
       }
-      return choiceError("CHECKBOXES", value, field.options, label);
+      return choiceError("CHOOSE_SEVERAL", value, field.options, label);
     case "NAME": {
       // Required per part, and each part's length; no pattern checks.
       const options = (typeof field.options === "object" && field.options !== null ? field.options : {}) as NameOptions;
@@ -241,15 +243,16 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
   }
 
   // The rest take one piece of text, and Number a number too.
+  const empty = field.type === "CHOOSE_ONE" ? "Choose an answer." : `${label} is required.`;
   if (value === undefined || value === null) {
-    return field.required ? `${label} is required.` : null;
+    return field.required ? empty : null;
   }
   if (typeof value !== "string" && !(field.type === "NUMBER" && typeof value === "number")) {
     return field.type === "NUMBER" ? `${label} must be a number.` : `${label} must be text.`;
   }
   const text = String(value);
   if (text.trim() === "") {
-    return field.required ? `${label} is required.` : null;
+    return field.required ? empty : null;
   }
 
   // Held to its length before its type's own rules.
@@ -257,8 +260,8 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
   if (tooLong) return tooLong;
 
   switch (field.type) {
-    case "DROPDOWN":
-      return choiceError("DROPDOWN", value, field.options, label);
+    case "CHOOSE_ONE":
+      return choiceError("CHOOSE_ONE", value, field.options, label);
 
 
     case "DATE": {

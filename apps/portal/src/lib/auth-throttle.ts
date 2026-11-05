@@ -19,6 +19,7 @@ export const AUTH_LIMITS = {
   resetRequestPerEmail: { max: 3, windowMs: 60 * MINUTE },
   resetRequestPerIP: { max: 10, windowMs: 60 * MINUTE },
   passwordChangePerUser: { max: 5, windowMs: 15 * MINUTE },
+  claimPerIP: { max: 10, windowMs: 15 * MINUTE },
 } as const;
 
 export const THROTTLED_MESSAGE = "Too many attempts. Wait 15 minutes and try again.";
@@ -56,6 +57,12 @@ export async function resetRequestThrottled(email: string): Promise<boolean> {
     isRateLimited(`reset:ip:${ip}`, AUTH_LIMITS.resetRequestPerIP.max, AUTH_LIMITS.resetRequestPerIP.windowMs),
     isRateLimited(`reset:email:${email}`, AUTH_LIMITS.resetRequestPerEmail.max, AUTH_LIMITS.resetRequestPerEmail.windowMs)
   );
+}
+
+/** Setting a first password from a claim link (PRD D49). The token can't be guessed; this caps how hard anyone tries. */
+export async function claimThrottled(): Promise<boolean> {
+  const ip = await ipKey();
+  return isRateLimited(`claim:ip:${ip}`, AUTH_LIMITS.claimPerIP.max, AUTH_LIMITS.claimPerIP.windowMs);
 }
 
 /** Guards the current-password check, so a stolen session cannot guess its way to the password. */

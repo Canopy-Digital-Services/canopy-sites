@@ -54,8 +54,8 @@ Identify which layer a change touches before starting.
 
 ### Auth & ownership
 
-- Email and password sign-in, self-service signup, server-side sessions in the `sessions` table (`src/lib/session.ts`; behavior in `docs/ACCOUNT_OPERATIONS.md`). Get the session through `requireAuth`, `getCurrentAccountId`, or `requireGlobalAdmin`, or `getSession` where signed-out is a normal answer. Never read the cookie or query `sessions` anywhere else, and never add a second way to authenticate a request without a database test for it. Credential endpoints (sign-in, signup, reset request, password change) are throttled in `src/lib/auth-throttle.ts`; a new one gets a throttle there.
-- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users.
+- Email and password sign-in, self-service signup, server-side sessions in the `sessions` table (`src/lib/session.ts`; behavior in `docs/ACCOUNT_OPERATIONS.md`). Get the session through `requireAuth`, `getCurrentAccountId`, or `requireGlobalAdmin`, or `getSession` where signed-out is a normal answer. Never read the cookie or query `sessions` anywhere else, and never add a second way to authenticate a request without a database test for it. Credential endpoints (sign-in, signup, reset request, password change, claim) are throttled in `src/lib/auth-throttle.ts`; a new one gets a throttle there. A user's password is null until the owner of an account the operator linked claims it (PRD D49, `src/lib/claim.ts`); sign-in treats null as a wrong password.
+- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`); v1 gives each user exactly one, as `OWNER`. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user; `sessionAccountId` and `sessionCanUseAccount` where signed-out or another account is a normal answer), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users. Never query `memberships` for a session anywhere else: a Global Admin acting as a client (PRD D49, `session.actingAs`) resolves to the client's account only through those, and a direct query would miss it. Anything only the owner may do checks `isActing` (`src/lib/act-as.ts`); behavior in `docs/ACCOUNT_OPERATIONS.md`.
 - **Ownership is enforced server-side** by direct `accountId` comparison in `src/lib/data-access/*` and `src/actions/*`. Never trust client-side ownership logic.
 - Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
 - **Each account has a home host**, the one its emails use (`appUrlFor`): Sites accounts on `SITES_URL`, every other account on `NEXTAUTH_URL` (PRD D22). `requireHomeHost` (`src/lib/product.ts`) in the admin and operator layouts sends a signed-in account on the other configured host home, so a new signed-in layout outside `(admin)` calls it too; `signInAction` on the other host checks the password and starts no session there: a Forms account gets `homeUrl` (the login page links to it), a Sites account gets a one-time handoff (`createSessionHandoff` in `src/lib/session.ts`) that the login page's "Go to Canopy Sites" modal posts to `/auth/handoff` on the Sites host, which accepts only the configured Forms origin. Signup lives on the Forms host. With `SITES_URL` unset or equal to `NEXTAUTH_URL` nothing routes.
@@ -76,7 +76,7 @@ Three layers, all required:
 2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
 3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap, the gate order below, and the body's keys. The body must be a JSON object whose every key is a field's name or `form.honeypotField`; any other key is a 400 with the key in `fields`, beside the fields' own errors. It stores only the fields' answers (never the honeypot, which is read from the body first), rewritten as checked: an email trimmed, a phone's number as E.164.
 
-Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), a Checkbox `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Checkboxes a list of strings naming each option once, and a Name, Address or Phone an object of only the field's parts, each a string (a Phone's are its number and, when it asks for one, its extension). A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
+Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), an Approval `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Choose several a list of strings naming each option once, and a Name, Address or Phone an object of only the field's parts, each a string (a Phone's are its number and, when it asks for one, its extension). A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
 
 Length caps (`MAX_LENGTHS` beside `validateField`): every type that takes one piece of text is held to its cap whatever the field stores. The one length setting is a Paragraph's character limit (`characterLimit`), taken only as a whole number from 1 to the Paragraph cap; the form counts it down rather than stopping typing at it, and `validateField` refuses an answer past it. Name and Address parts are capped per part beside their rules (`embed/src/name.ts`, `embed/src/address.ts`), and an "Other" answer in `embed/src/choices.ts`. The embed sets each cap as the input's `maxlength` (number and date inputs ignore it), so a visitor can't type past what the server would refuse.
 
@@ -124,7 +124,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the account's site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); a site with no live address (no production hostname) sees an empty state. `/preview/[siteId]` is where a draft is previewed and published, and `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the account's site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); a site with no live address (no production hostname) sees an empty state. `/preview/[siteId]` is where a draft is previewed and published, and `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`; a site arrives by Link a site (PRD D49). `/claim` is where a linked site's owner sets their first password. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -153,7 +153,7 @@ Root `package.json` scripts delegate to the portal workspace (`npm run build`, `
 
 **Tests.** `npm test` runs Vitest in `apps/portal` (config `vitest.config.mts`). `*.test.ts` beside the code are unit tests with no I/O. `*.db.test.ts` run against a `*_test` database that `test/db-global-setup.ts` creates and migrates with `prisma migrate deploy`; `test/db.ts` has `resetDatabase` and factories, and every helper refuses a database whose name does not end in `_test`. Run tests in the container (`docker exec canopy-portal npm test`), where the Postgres host resolves. Never mock Prisma: the bugs worth catching are in queries, constraints, and cascades. What must have a test: session and sign-in decisions, account resolution and membership, entitlements, deletion cascades, and from E31 every guardrail. A bug fix in those areas lands with the test that reproduces it. Vitest stays on 4.x while the containers run Node 20 (5.x needs 22.12+); bump it with the Node 24 move.
 
-Local dev: the root `docker-compose.dev.yml` (project `canopy-sites`) runs `postgres:17-alpine` (container `canopy-portal-db`) plus the portal (container `canopy-portal`) on `http://localhost:3006`, using `apps/portal/Dockerfile.dev` with the repo root mounted for hot reload and `apps/portal` as the working directory, so `docker exec canopy-portal <cmd>` runs in the app. `http://sites.localhost:3006` resolves to the same app with the Sites host branding. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`.
+Local dev: the root `docker-compose.dev.yml` (project `canopy-sites`) runs `postgres:17-alpine` (container `canopy-portal-db`) plus the portal (container `canopy-portal`) on `http://localhost:3006`, using `apps/portal/Dockerfile.dev` with the repo root mounted for hot reload and `apps/portal` as the working directory, so `docker exec canopy-portal <cmd>` runs in the app. `http://sites.localhost:3006` resolves to the same app with the Sites host branding. `DATABASE_URL` is hardcoded in the compose file's `environment:` block, which overrides dotenv files; SMTP and the other optional vars load from `.env` (via `env_file`). Copy `.env.example` to `.env` for the template. The container flow does not read `.env.local`. The same compose file runs the site builder (container `canopy-builder`), which builds from bare repos under `~/repos/.canopy-local-remotes` (a Site's `repoUrl` is then `/remotes/<name>.git`; pushes from a local publish stop there). Its image copies the source with no mount, so after builder or contract changes run `docker compose -f docker-compose.dev.yml build builder` and `up -d --no-deps builder`: until then it validates with the contract it was built with and refuses content a newer one allows (an image from 2026-10-18 on 0.2.0 refused canopyds.com's 0.4.0 content, 2026-11-05).
 
 ---
 
@@ -194,7 +194,7 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 ### Adding a field type
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
-2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
+2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`) decide where its config is stored and which boxes its settings show. Its place there is its place in the Add field menu: specific before general, so a type that would also catch a narrower need comes after it. If a new field can't save without config (as Choose one can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
 3. Render it in `embed/src/form.ts`.
 4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
 5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
@@ -260,12 +260,13 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `SITES_URL` | Optional. Public URL of this environment's Sites host (`https://sites.canopyds.com`, `https://sites-dev.canopyds.com`, local `http://sites.localhost:3006`). Base for password-reset and notification links sent to Sites accounts. Unset means those links use `NEXTAUTH_URL`. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Required if email is enabled. |
 | `SMTP_FROM` | Optional, defaults to `SMTP_USER`. |
+| `SMTP_FROM_SITES` | Optional. The From for every email to a Sites account (`senderFor` in `src/lib/product.ts`), `Canopy Sites <sites@canopyds.com>` in production: a send-as identity on the same SMTP login. Unset means `SMTP_FROM`. |
 | `FEEDBACK_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Give feedback". Unset means the submission returns a friendly error and sends nothing. |
 | `SUPPORT_RECIPIENT_EMAIL` | Optional. Recipient for the help bubble's "Contact support", falling back to `FEEDBACK_RECIPIENT_EMAIL` so existing deployments keep working. With both unset the submission returns a friendly error and sends nothing. Both are read in `src/actions/contact.ts`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap only, read by `prisma/seed.ts` and `scripts/backfill-global-admin.mjs` (every boot) to promote a user to `GLOBAL_ADMIN`, moving a capped plan to `PAID`. Never consulted at auth-check time. Removable once a Global Admin exists. |
 | `GOOGLE_FONTS_API_KEY` | Only to regenerate `src/lib/google-fonts.ts` via `scripts/fetch-google-fonts.ts`. |
 | `BUILDER_URL` / `BUILDER_TOKEN` | The builder's internal URL and the shared token (same value on the builder). Unset means the Editor shows its empty state and `/demo` 404s. |
-| `SITE_ASSET_ORIGIN_<SLUG>` | Development only, ignored in production: where a client site's canvas and preview load its assets (slug uppercased, hyphens as underscores), since its production hostname isn't served locally. Both the browser (assets) and the portal container (the live page, when there is no draft) fetch it, so use an address both reach: with the dev stack in Docker, `http://host.docker.internal:<port>`, and a browser on the WSL host started with that name mapped to `127.0.0.1` (verified 2026-10-19). |
+| `SITE_ASSET_ORIGIN_<SLUG>` | Development only, ignored in production: where a client site's canvas and preview load its assets (slug uppercased, hyphens as underscores). Unset, they load from its production hostname, which works when the local repo's branch is what production serves, since the build names its asset files the same (canopyds.com from a local copy of `main`, verified 2026-11-05); set it for a branch or site that isn't live. Both the browser (assets) and the portal container (the live page, when there is no draft) fetch it, so use an address both reach: with the dev stack in Docker, `http://host.docker.internal:<port>`, and a browser on the WSL host started with that name mapped to `127.0.0.1` (verified 2026-10-19). |
 | `ANTHROPIC_API_KEY` | Quick edit (PRD D7, a Claude Platform key). Unset means quick edit says it isn't set up. |
 | `QUICK_EDIT_MODEL` | Optional, default `claude-opus-5-5`. Costs per model are estimated in `src/lib/quick-edit/index.ts`. |
 
@@ -340,6 +341,8 @@ Role (code PK, displayName, description?, isPublic, sortOrder)
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
          status:AccountStatus, billingRef?)
   └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
+  └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
+  │        as the account (PRD D49); deleting the operator keeps the row
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
@@ -360,22 +363,25 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
                         cacheWriteTokens, costUsd)
 
-User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
+User (email, password? (null until the owner claims, PRD D49),
+      roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
       failedLoginCount, lastFailedLoginAt?)
   └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
-  │           absoluteExpiresAt)
+  │           absoluteExpiresAt, actAsId?→ActAs)
   └─ SessionHandoff (id = SHA-256 of a one-time token, rememberMe, targetHost,
   │                  expiresAt), Forms-host sign-in to a Sites-host session
-  └─ PasswordResetToken (tokenHash, expiresAt, usedAt?)
+  └─ PasswordToken (purpose:PasswordTokenPurpose, tokenHash, expiresAt, usedAt?,
+                    createdByUserId?→User, emailedAt?), table password_reset_tokens
 ```
 
 Enums:
 
-- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
+- `FieldType`: `TEXT | EMAIL | TEXTAREA | CHOOSE_ONE | APPROVAL | CHOOSE_SEVERAL | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
 - `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
+- `PasswordTokenPurpose`: `RESET | CLAIM`. A claim link sets an unclaimed owner's first password (PRD D49); `/reset-password` accepts only `RESET`.
 - `ChangeSetSource`: `QUICK_EDIT | OPERATOR | EDITOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED | SUPERSEDED`.
 - `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
 

@@ -92,8 +92,7 @@ export function savedParts<T extends Parts>(options: T, order: (parts: string[])
   return saved as T;
 }
 
-/** A choice field's options as saved: blanks dropped, text trimmed, and the
-    default kept only while its option is. */
+/** A choice field's options as saved: blanks dropped, text trimmed. */
 export function savedChoices(options: unknown): ChoiceOptions {
   const config = choiceOptions(options);
   const saved: ChoiceOptions = {
@@ -102,9 +101,6 @@ export function savedChoices(options: unknown): ChoiceOptions {
       .filter((o) => o.value.trim() && o.label.trim())
       .map((o) => ({ value: o.value.trim(), label: o.label.trim() })),
   };
-  const preset = saved.defaultValue?.trim();
-  if (preset && saved.options.some((o) => o.value === preset)) saved.defaultValue = preset;
-  else delete saved.defaultValue;
   return saved;
 }
 

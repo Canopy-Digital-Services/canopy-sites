@@ -168,16 +168,25 @@ export const baseStyles = `
   border: 0;
 }
 
-.canopy-checkbox {
+/* A box or radio button with its text: an Approval, or one of a choice's
+   options. */
+.canopy-choice {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.canopy-checkboxes {
+.canopy-choices {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Two short answers, Yes and No most often, side by side. */
+.canopy-choices-inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 24px;
 }
 
 .canopy-name-parts {

@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db";
 import { PlanResolutionDialog } from "@/components/plan/plan-resolution-dialog";
 import { SitesNav } from "@/components/sites/sites-nav";
 import { DraftStatus } from "@/components/sites/draft-status";
+import { ActingBanner } from "@/components/acting-banner";
 import { homePathFor, productFor, productMetadata, requireHomeHost } from "@/lib/product";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -53,6 +54,7 @@ export default async function AdminLayout({
       className="min-h-screen bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/Forms%20Just%20Swoops.png')" }}
     >
+      <ActingBanner />
       <TopNavLayout
         logo={
           <Link href={homePathFor(entitlements)}>

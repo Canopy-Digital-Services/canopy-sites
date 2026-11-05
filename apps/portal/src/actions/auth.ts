@@ -1,13 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { generateToken, hashToken } from "@/lib/auth-utils";
+import { hashToken } from "@/lib/auth-utils";
 import { hashPassword, needsRehash, verifyPassword } from "@/lib/password";
 import { passwordProblem } from "@/lib/password-policy";
 import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
   createSession,
+  endActAs,
   createSessionHandoff,
   getSession,
   invalidateSession,
@@ -15,10 +16,12 @@ import {
   setSessionCookie,
 } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
+import { isActing } from "@/lib/act-as";
+import { createClaimLink, issuePasswordToken } from "@/lib/claim";
 import { normalizeEmail } from "@/lib/validation";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getSoleMembership } from "@/lib/data-access/memberships";
-import { appUrlFor, productNameFor, signInElsewhere, signupElsewhere } from "@/lib/product";
+import { appUrlFor, productNameFor, senderFor, signInElsewhere, signupElsewhere } from "@/lib/product";
 import {
   clearPasswordChangeThrottle,
   clearSignInThrottle,
@@ -132,10 +135,14 @@ export async function signInAction(input: {
     select: { id: true, password: true, _count: { select: { memberships: true } } },
   });
 
-  const valid = await verifyPassword(password, user?.password ?? UNKNOWN_USER_HASH);
+  // An unknown email, and an owner who hasn't claimed their account (no
+  // password yet, PRD D49), verify against the dummy hash, so both take as
+  // long as a real account and answer the same as a wrong password.
+  const stored = user?.password ?? null;
+  const valid = (await verifyPassword(password, stored ?? UNKNOWN_USER_HASH)) && stored !== null;
 
   // A user with no membership has nowhere to land, so it cannot sign in.
-  if (!user || !valid || user._count.memberships === 0) {
+  if (!user || !valid || stored === null || user._count.memberships === 0) {
     if (user) {
       await prisma.user.update({
         where: { id: user.id },
@@ -164,7 +171,7 @@ export async function signInAction(input: {
       failedLoginCount: 0,
       lastFailedLoginAt: null,
       // Upgrade a pre-Epic 28 bcrypt hash while the plain password is in hand.
-      ...(needsRehash(user.password) ? { password: await hashPassword(password) } : {}),
+      ...(needsRehash(stored) ? { password: await hashPassword(password) } : {}),
     },
   });
   clearSignInThrottle(email);
@@ -217,23 +224,17 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
   }
 
   try {
+    // An owner who hasn't claimed the account the operator linked has no
+    // password to reset: they get the claim email instead (PRD D49), under
+    // the same throttle and with the same answer.
+    if (user.password === null) {
+      await createClaimLink(user.id, { email: true });
+      return genericSuccess;
+    }
+
     // The email carries the token; the database keeps only its hash. A new
     // link retires any earlier unused ones, so only the latest email works.
-    const token = generateToken(32);
-    const now = new Date();
-    await prisma.$transaction([
-      prisma.passwordResetToken.updateMany({
-        where: { userId: user.id, usedAt: null },
-        data: { usedAt: now },
-      }),
-      prisma.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          tokenHash: hashToken(token),
-          expiresAt: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
-        },
-      }),
-    ]);
+    const { token } = await issuePasswordToken(user.id, "RESET");
 
     // Send password reset email. The account, not the request host, picks
     // the link host and product name (see appUrlFor).
@@ -246,6 +247,7 @@ export async function requestPasswordReset(formData: FormData): Promise<ResetReq
     
     await sendEmail({
       to: email,
+      from: senderFor(entitlements),
       subject: `Password Reset Request - ${productName}`,
       text: `
 You requested a password reset for your ${productName} account.
@@ -301,12 +303,13 @@ export async function validateResetToken(token: string) {
     return { valid: false, error: "Token is required" };
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
+  const resetToken = await prisma.passwordToken.findUnique({
     where: { tokenHash: hashToken(token) },
     include: { user: { select: { email: true } } },
   });
 
-  if (!resetToken) {
+  // A claim link (PRD D49) is not a reset link, here or in resetPassword.
+  if (!resetToken || resetToken.purpose !== "RESET") {
     return { valid: false, error: "Invalid or expired reset link" };
   }
 
@@ -352,11 +355,11 @@ export async function resetPassword(formData: FormData) {
     // the same link cannot both succeed. Then set the password and sign the
     // user out everywhere: whoever held the old password loses their sessions.
     const done = await prisma.$transaction(async (tx) => {
-      const resetToken = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      const resetToken = await tx.passwordToken.findUnique({ where: { tokenHash } });
       if (!resetToken) return false;
 
-      const consumed = await tx.passwordResetToken.updateMany({
-        where: { id: resetToken.id, usedAt: null, expiresAt: { gt: now } },
+      const consumed = await tx.passwordToken.updateMany({
+        where: { id: resetToken.id, purpose: "RESET", usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
       });
       if (consumed.count !== 1) return false;
@@ -386,6 +389,8 @@ export async function resetPassword(formData: FormData) {
  */
 export async function signOutAction() {
   const session = await getSession();
+  // Signing out ends acting as a client too (PRD D49).
+  if (session?.actingAs) await endActAs(session.actingAs.id);
   if (session) await invalidateSession(session.id);
   await clearSessionCookie();
   redirect("/login");
@@ -398,6 +403,10 @@ export async function changePassword(formData: FormData) {
   const session = await getSession();
   if (!session) {
     return { error: "Not authenticated" };
+  }
+  // The operator acting as a client (PRD D49) never changes a password: the owner's is the owner's.
+  if (isActing(session)) {
+    return { error: "Stop acting as the client to change a password." };
   }
 
   const currentPassword = formData.get("currentPassword") as string;
@@ -426,7 +435,8 @@ export async function changePassword(formData: FormData) {
       return { error: "User not found" };
     }
 
-    const isValid = await verifyPassword(currentPassword, user.password);
+    // An owner with no password yet sets one by claiming, not here.
+    const isValid = user.password !== null && (await verifyPassword(currentPassword, user.password));
     if (!isValid) {
       return { error: "Current password is incorrect" };
     }

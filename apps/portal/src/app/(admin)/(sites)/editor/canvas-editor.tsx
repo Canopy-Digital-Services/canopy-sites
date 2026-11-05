@@ -38,12 +38,25 @@ interface Selected {
   info: FieldInfo | null;
   limit?: number;
   mode: "edit" | "ask";
-  error?: string;
 }
 
 const encodePath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
 
 const oneLine = (v: string) => v.replace(/\s+/g, " ").trim();
+
+/** The count shows once a field is this close to its limit. */
+const COUNT_FROM = 20;
+
+/** Why an edit can't be saved yet, shown in the field's panel while Done is off. */
+function problemOf(s: Selected): string | null {
+  const length = oneLine(s.value).length;
+  if (!length) return "This can't be empty.";
+  if (s.limit && length > s.limit) {
+    const over = length - s.limit;
+    return `${over} character${over === 1 ? "" : "s"} too many`;
+  }
+  return null;
+}
 
 /**
  * The visual editor's canvas (PRD D35, D43, D47). The page's HTML comes from
@@ -240,12 +253,8 @@ export function CanvasEditor({
 
   const done = useCallback(() => {
     const s = selectedRef.current;
-    if (!s || s.mode !== "edit") return;
+    if (!s || s.mode !== "edit" || problemOf(s)) return;
     const text = oneLine(s.value);
-    if (!text) {
-      setSelected({ ...s, error: "This can't be empty." });
-      return;
-    }
     const edits: Edit[] = [];
     if (text !== oneLine(s.original)) edits.push({ address: s.address, value: text });
     const announcement = announcementOf(s.address);
@@ -308,7 +317,7 @@ export function CanvasEditor({
           scrollYRef.current = Number(m.y) || 0;
           break;
         case "input":
-          setSelected((s) => (s && s.address === m.address ? { ...s, value: String(m.value ?? ""), rect: m.rect as Rect, error: undefined } : s));
+          setSelected((s) => (s && s.address === m.address ? { ...s, value: String(m.value ?? ""), rect: m.rect as Rect } : s));
           break;
         case "rect":
           setSelected((s) => (s ? { ...s, rect: m.rect as Rect } : s));
@@ -512,6 +521,9 @@ function FieldPanel({
   onChanged: (changeSetId: string) => void;
 }) {
   const label = selected.info?.label ?? "This part of your site";
+  const length = oneLine(selected.value).length;
+  const problem = problemOf(selected);
+  const note = problem ?? (selected.limit && length >= selected.limit - COUNT_FROM ? `${length} of ${selected.limit} characters` : null);
   return (
     <div className="absolute z-10 space-y-3 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg" style={{ ...style, width: PANEL_WIDTH }}>
       <div className="flex items-start justify-between gap-2">
@@ -527,12 +539,9 @@ function FieldPanel({
       </div>
       {selected.mode === "edit" ? (
         <>
-          {selected.limit ? (
-            <p className={selected.value.length >= selected.limit ? "text-xs text-amber-700" : "text-xs text-muted-foreground"}>
-              {selected.value.length} of {selected.limit} characters
-            </p>
-          ) : null}
-          {selected.error ? <p className="text-sm text-destructive">{selected.error}</p> : null}
+          <p aria-live="polite" className={problem ? "text-xs text-destructive" : "text-xs text-muted-foreground"} hidden={!note}>
+            {note}
+          </p>
           {dates ? (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
@@ -554,7 +563,7 @@ function FieldPanel({
               <Button variant="outline" size="sm" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={onDone}>
+              <Button size="sm" disabled={Boolean(problem)} onClick={onDone}>
                 Done
               </Button>
             </div>

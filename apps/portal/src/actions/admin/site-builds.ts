@@ -10,49 +10,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
-import { BuilderError, fetchBuild, fetchContent, requestPreview, requestPublish, requestReset } from "@/lib/builder-client";
+import { BuilderError, requestReset } from "@/lib/builder-client";
+import { buildAndPublish, operatorSite } from "@/lib/repo-publish";
 
 type Result = { success: true; message: string } | { error: string };
-
-const POLL_MS = 1500;
-const BUILD_TIMEOUT_MS = 180_000;
-
-async function operatorSite(siteId: string) {
-  const site = await prisma.site.findUnique({ where: { id: String(siteId) } });
-  if (!site) throw new BuilderError("That site doesn't exist.");
-  if (!site.repoUrl) throw new BuilderError("Set the site's repository first.");
-  return { site, ref: { slug: site.slug, repoUrl: site.repoUrl, branch: site.defaultBranch } };
-}
-
-/** Builds the branch as it is and makes that build live. */
-async function buildAndPublish(siteId: string, actorEmail: string): Promise<string> {
-  const { site, ref } = await operatorSite(siteId);
-  const { commit, contractVersion } = await fetchContent(ref);
-  const build = await prisma.build.create({ data: { siteId: site.id, baseCommit: commit, status: "RUNNING", startedAt: new Date() } });
-  await requestPreview(ref, build.id, [], commit);
-  const deadline = Date.now() + BUILD_TIMEOUT_MS;
-  let remote = await fetchBuild(site.slug, build.id);
-  while (remote.status === "queued" || remote.status === "running") {
-    if (Date.now() > deadline) throw new BuilderError("The build is taking too long; check the builder log.");
-    await new Promise((r) => setTimeout(r, POLL_MS));
-    remote = await fetchBuild(site.slug, build.id);
-  }
-  await prisma.build.update({
-    where: { id: build.id },
-    data: { status: remote.status === "succeeded" ? "SUCCEEDED" : "FAILED", error: remote.error ?? null, log: remote.log.slice(-20_000), finishedAt: new Date() },
-  });
-  if (remote.status !== "succeeded") throw new BuilderError(remote.error ?? "The build failed.");
-  await requestPublish(ref, {
-    buildId: build.id,
-    ops: [],
-    baseCommit: commit,
-    message: "Publish the repository as it is",
-    authorName: "Canopy",
-    authorEmail: actorEmail,
-  });
-  await prisma.site.update({ where: { id: site.id }, data: { contractVersion } });
-  return commit;
-}
 
 function failure(err: unknown): { error: string } {
   if (err instanceof BuilderError) return { error: err.message };

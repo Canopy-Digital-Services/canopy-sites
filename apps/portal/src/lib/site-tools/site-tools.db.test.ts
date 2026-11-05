@@ -63,6 +63,11 @@ async function siteAccount() {
   return { account, user, site, ctx: { accountId: account.id, userId: user.id, source: "QUICK_EDIT" as const } };
 }
 
+/** A session as the preview checks see it: the user's own memberships, not acting. */
+function as(userId: string) {
+  return { user: { id: userId, email: "", role: "USER" }, memberships: [], actingAs: null };
+}
+
 beforeEach(async () => {
   await resetDatabase();
   resetRateLimits();
@@ -176,6 +181,17 @@ describe("proposeChange", () => {
   });
 });
 
+describe("content reads", () => {
+  it("record the contract version the repo installs, which a Canopy push can move (PRD D24)", async () => {
+    const { account, site } = await siteAccount();
+    await prisma.site.update({ where: { id: site.id }, data: { contractVersion: "0.1.0" } });
+
+    await tools.getContentView(account.id);
+
+    expect(await prisma.site.findUniqueOrThrow({ where: { id: site.id } })).toMatchObject({ contractVersion: "0.2.0" });
+  });
+});
+
 describe("ownership", () => {
   it("never lets one account refresh, publish, or discard another account's change", async () => {
     const a = await siteAccount();
@@ -193,9 +209,20 @@ describe("ownership", () => {
     const a = await siteAccount();
     const member = await createMember(a.account.id, "MEMBER");
     const b = await siteAccount();
-    expect(await tools.canPreviewSite(a.user.id, a.site.id)).toBe(true);
-    expect(await tools.canPreviewSite(member.id, a.site.id)).toBe(true);
-    expect(await tools.canPreviewSite(b.user.id, a.site.id)).toBe(false);
+    expect(await tools.canPreviewSite(as(a.user.id), a.site.id)).toBe(true);
+    expect(await tools.canPreviewSite(as(member.id), a.site.id)).toBe(true);
+    expect(await tools.canPreviewSite(as(b.user.id), a.site.id)).toBe(false);
+  });
+
+  it("lets a Global Admin acting as the account preview, and only that account (PRD D49)", async () => {
+    const a = await siteAccount();
+    const b = await siteAccount();
+    const { user: operator } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const acting = { ...as(operator.id), actingAs: { id: "act", accountId: a.account.id } };
+    expect(await tools.canPreviewSite(acting, a.site.id)).toBe(true);
+    expect(await tools.previewableSite(acting, a.site.id)).toMatchObject({ id: a.site.id });
+    expect(await tools.canPreviewSite(acting, b.site.id)).toBe(false);
+    expect(await tools.canPreviewSite(as(operator.id), a.site.id)).toBe(false);
   });
 });
 
@@ -368,10 +395,10 @@ describe("the canvas and the preview page (PRD D47)", () => {
     const a = await siteAccount();
     const member = await createMember(a.account.id, "MEMBER");
     const b = await siteAccount();
-    expect(await tools.previewableSite(a.user.id, a.site.id)).toMatchObject({ id: a.site.id, slug: a.site.slug });
-    expect(await tools.previewableSite(member.id, a.site.id)).toMatchObject({ id: a.site.id });
-    expect(await tools.previewableSite(b.user.id, a.site.id)).toBeNull();
-    expect(await tools.previewableSite(a.user.id, "no-such-site")).toBeNull();
+    expect(await tools.previewableSite(as(a.user.id), a.site.id)).toMatchObject({ id: a.site.id, slug: a.site.slug });
+    expect(await tools.previewableSite(as(member.id), a.site.id)).toMatchObject({ id: a.site.id });
+    expect(await tools.previewableSite(as(b.user.id), a.site.id)).toBeNull();
+    expect(await tools.previewableSite(as(a.user.id), "no-such-site")).toBeNull();
     await expect(tools.getPreviewState(b.ctx.accountId, a.site.id)).rejects.toThrow("No such site.");
     await expect(tools.previewStartPath(b.ctx.accountId, a.site.id)).rejects.toThrow("No such site.");
   });

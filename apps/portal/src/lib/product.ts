@@ -33,6 +33,16 @@ export function appUrlFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnab
   return (sitesUrl || process.env.NEXTAUTH_URL || "http://localhost:3006").replace(/\/$/, "");
 }
 
+/**
+ * The From address for email to an account: `SMTP_FROM_SITES` (Canopy Sites
+ * <sites@canopyds.com>) for Sites accounts when it is set, otherwise
+ * undefined, which leaves sendEmail's `SMTP_FROM`. One SMTP login sends both
+ * (sites@ is a send-as identity on it, Engineering → Migadu).
+ */
+export function senderFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnabled">): string | undefined {
+  return (sitesEnabled ? process.env.SMTP_FROM_SITES : undefined) || undefined;
+}
+
 /** Product name for copy addressed to an account, such as email subjects and footers. */
 export function productNameFor({ sitesEnabled }: Pick<AccountEntitlements, "sitesEnabled">): string {
   return sitesEnabled ? "Canopy Sites" : "Canopy Forms";

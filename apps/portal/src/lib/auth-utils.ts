@@ -5,6 +5,7 @@ import { getHomePath } from "@/lib/product";
 import { getAccountEntitlements, type AccountEntitlements } from "@/lib/data-access/entitlements";
 import { MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { getSession, type SessionContext } from "@/lib/session";
+import type { MembershipRole } from "@prisma/client";
 
 /**
  * Generate a cryptographically secure random token
@@ -40,8 +41,14 @@ export async function getCurrentUserId(): Promise<string> {
   return session.user.id;
 }
 
-/** The session user's only membership, or null. Throws for more than one (account switching is not built). */
-function soleMembership(session: SessionContext) {
+/**
+ * The session user's only membership, or null. Throws for more than one
+ * (account switching is not built). While a Global Admin acts as a client
+ * (PRD D49), the client's account stands in, as a MEMBER, so an owner-only
+ * action stays the owner's.
+ */
+function soleMembership(session: SessionContext): { accountId: string; role: MembershipRole } | null {
+  if (session.actingAs) return { accountId: session.actingAs.accountId, role: "MEMBER" };
   if (session.memberships.length > 1) {
     throw new MultipleMembershipsError(session.user.id);
   }

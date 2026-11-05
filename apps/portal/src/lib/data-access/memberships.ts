@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/db";
 import type { MembershipRole } from "@prisma/client";
+import type { SessionContext } from "@/lib/session";
 
 export class MultipleMembershipsError extends Error {
   constructor(userId: string) {
@@ -36,6 +37,39 @@ export async function getSoleMembership(userId: string): Promise<SoleMembership 
   });
   if (rows.length > 1) throw new MultipleMembershipsError(userId);
   return rows[0] ?? null;
+}
+
+type SessionAccess = Pick<SessionContext, "user" | "memberships" | "actingAs">;
+
+/**
+ * The account a session works in without throwing: the client's while a
+ * Global Admin acts as one (PRD D49), else the user's one membership, else
+ * null. For routes that answer "no" rather than error; signed-in pages use
+ * getCurrentAccountId.
+ */
+export function sessionAccountId(session: SessionAccess): string | null {
+  if (session.actingAs) return session.actingAs.accountId;
+  return session.memberships.length === 1 ? session.memberships[0].accountId : null;
+}
+
+/** Whether a session may work in an account: one of its members, or a Global Admin acting as it (PRD D49). */
+export async function sessionCanUseAccount(session: SessionAccess, accountId: string): Promise<boolean> {
+  if (session.actingAs?.accountId === accountId) return true;
+  const membership = await prisma.membership.findFirst({
+    where: { userId: session.user.id, accountId },
+    select: { id: true },
+  });
+  return membership !== null;
+}
+
+/** The email of the account's first owner, or null when it has none. */
+export async function getAccountOwnerEmail(accountId: string): Promise<string | null> {
+  const owner = await prisma.membership.findFirst({
+    where: { accountId, role: "OWNER" },
+    orderBy: { createdAt: "asc" },
+    select: { user: { select: { email: true } } },
+  });
+  return owner?.user.email ?? null;
 }
 
 /** Lowercased emails of every user who can sign in to the account. */

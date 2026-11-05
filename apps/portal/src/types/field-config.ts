@@ -9,7 +9,7 @@ import type { AddressOptions } from "../../embed/src/address";
 import type { PhoneOptions } from "../../embed/src/phone";
 import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
 
-// Dropdown and Checkboxes share one shape; only a Dropdown has a default.
+// Choose one and Choose several share one shape.
 export type { NameOptions, AddressOptions, PhoneOptions, ChoiceOption, ChoiceOptions };
 
 /** A Paragraph's character limit; without one it takes the most a Paragraph
@@ -61,17 +61,17 @@ export type FieldConfig =
       options: NameOptions;
     }
   | {
-      type: "DROPDOWN";
+      type: "CHOOSE_ONE";
       validation?: never;
       options: ChoiceOptions;
     }
   | {
-      type: "CHECKBOX";
+      type: "APPROVAL";
       validation?: never;
       options?: never;
     }
   | {
-      type: "CHECKBOXES";
+      type: "CHOOSE_SEVERAL";
       validation?: never;
       options: ChoiceOptions;
     }

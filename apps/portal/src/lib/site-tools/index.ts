@@ -39,6 +39,7 @@ import type { ChangeSetSource, Prisma, Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
+import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 
 /** A content issue, with the address of the field it is about when there is one. */
 export type ToolIssue = ContentIssue & { address?: string };
@@ -151,7 +152,12 @@ interface SiteRead {
 }
 
 async function readSite(site: Site): Promise<SiteRead> {
-  const { commit, content, guide } = await builderCall(() => fetchContent(builderSite(site)));
+  const { commit, content, guide, contractVersion } = await builderCall(() => fetchContent(builderSite(site)));
+  // The repo owns its contract version (PRD D24); a Canopy push can move it
+  // without the portal publishing anything, so every read records it.
+  if (contractVersion && contractVersion !== site.contractVersion) {
+    await prisma.site.update({ where: { id: site.id }, data: { contractVersion } });
+  }
   return { commit, published: content, guide: guideOf(guide, site.slug) };
 }
 
@@ -630,20 +636,25 @@ export async function getEditorChanges(accountId: string) {
   };
 }
 
-/** Whether this user may see the site's preview: a member of its account. */
-export async function canPreviewSite(userId: string, siteId: string): Promise<boolean> {
+type PreviewSession = Parameters<typeof sessionCanUseAccount>[0];
+
+/**
+ * Whether this session may see the site's preview: a member of its account,
+ * or a Global Admin acting as it (PRD D49). Membership is checked through
+ * memberships.ts, as everywhere else.
+ */
+export async function canPreviewSite(session: PreviewSession, siteId: string): Promise<boolean> {
   const site = await prisma.site.findUnique({ where: { id: siteId }, select: { accountId: true } });
   if (!site) return false;
-  const membership = await prisma.membership.findFirst({ where: { userId, accountId: site.accountId }, select: { id: true } });
-  return Boolean(membership);
+  return sessionCanUseAccount(session, site.accountId);
 }
 
 /**
- * The site for the canvas and the preview page (PRD D47), when this user is a
- * member of its account; else null, which callers answer with a 404.
+ * The site for the canvas and the preview page (PRD D47), when this session
+ * may use its account; else null, which callers answer with a 404.
  */
-export async function previewableSite(userId: string, siteId: string) {
-  if (!(await canPreviewSite(userId, String(siteId)))) return null;
+export async function previewableSite(session: PreviewSession, siteId: string) {
+  if (!(await canPreviewSite(session, String(siteId)))) return null;
   return prisma.site.findUnique({
     where: { id: String(siteId) },
     select: { id: true, accountId: true, name: true, slug: true, isDemo: true, productionHostnames: true, repoUrl: true },
