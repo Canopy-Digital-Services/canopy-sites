@@ -70,7 +70,7 @@ Every field type has the same core options, plus type-specific ones.
 
 **Core options:**
 
-- **Label**: what the user sees, shown at the top of the field's settings. A new field starts with its type as the label (an Email field is labeled "Email"), ready to type over: the label is selected as the field opens, so just type the question, or click elsewhere to keep it. To rename a field later, click the pencil beside its label. Clear it to go back to the default. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
+- **Label**: what the user sees, shown at the top of the field's settings. A new field starts with its type as the label (an Email field is labeled "Email"), ready to type over: the field opens with its label box ready, so just type the question, or click elsewhere to keep it. To rename a field later, click the pencil beside its label. Clear it to go back to the default. An internal key is derived from the label when the field is created; that key is what appears in submissions and in the embed payload, and it stays stable even if you rename the label later.
 - **Required**: toggles whether the field must be filled before the form can submit. Name and Address are required part by part instead, with a Required column beside their parts.
 - **Help text**: optional text shown under the field's label, before the box, to guide the user, such as an example answer ("For example, kitchen remodel, about 200 sq ft"). It stays visible while people type, and screen readers read it with the field.
 

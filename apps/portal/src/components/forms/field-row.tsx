@@ -80,8 +80,7 @@ type FieldRowProps = {
   open: boolean;
   /** Why the field can't save yet, shown under its type's settings. */
   problem: string | null;
-  /** Just added: it opens with its label in the rename box, selected, so
-      typing names it. */
+  /** Just added: it opens with its rename box ready, so typing names it. */
   naming: boolean;
   dragHandleProps: SortableItemRenderProps["dragHandleProps"];
   onToggle: () => void;
@@ -185,7 +184,9 @@ export function FieldRow({
           {/* The label is renamed where it's shown, here in the header. */}
           {open ? (
             <InlineRename
-              value={field.label}
+              // A label still its type's name shows greyed in an empty box,
+              // as a part's default does: what it saves as if left alone.
+              value={field.label === defaultLabel(field.type) ? "" : field.label}
               placeholder={defaultLabel(field.type)}
               onChange={(text) => onChange({ label: text })}
               name="Rename field"
