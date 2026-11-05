@@ -76,7 +76,7 @@ Three layers, all required:
 2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
 3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap, the gate order below, and the body's keys. The body must be a JSON object whose every key is a field's name or `form.honeypotField`; any other key is a 400 with the key in `fields`, beside the fields' own errors. It stores only the fields' answers (never the honeypot, which is read from the body first), rewritten as checked: an email trimmed, a phone's number as E.164.
 
-Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), a Checkbox `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Checkboxes a list of strings naming each option once, and a Name, Address or Phone an object of only the field's parts, each a string (a Phone's are its number and, when it asks for one, its extension). A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
+Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), an Approval `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Choose several a list of strings naming each option once, and a Name, Address or Phone an object of only the field's parts, each a string (a Phone's are its number and, when it asks for one, its extension). A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
 
 Length caps (`MAX_LENGTHS` beside `validateField`): every type that takes one piece of text is held to its cap whatever the field stores. The one length setting is a Paragraph's character limit (`characterLimit`), taken only as a whole number from 1 to the Paragraph cap; the form counts it down rather than stopping typing at it, and `validateField` refuses an answer past it. Name and Address parts are capped per part beside their rules (`embed/src/name.ts`, `embed/src/address.ts`), and an "Other" answer in `embed/src/choices.ts`. The embed sets each cap as the input's `maxlength` (number and date inputs ignore it), so a visitor can't type past what the server would refuse.
 
@@ -194,7 +194,7 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 ### Adding a field type
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
-2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
+2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`) decide where its config is stored and which boxes its settings show. Its place there is its place in the Add field menu: specific before general, so a type that would also catch a narrower need comes after it. If a new field can't save without config (as Choose one can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
 3. Render it in `embed/src/form.ts`.
 4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
 5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
@@ -375,7 +375,7 @@ User (email, password? (null until the owner claims, PRD D49),
 
 Enums:
 
-- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
+- `FieldType`: `TEXT | EMAIL | TEXTAREA | CHOOSE_ONE | APPROVAL | CHOOSE_SEVERAL | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
 - `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.

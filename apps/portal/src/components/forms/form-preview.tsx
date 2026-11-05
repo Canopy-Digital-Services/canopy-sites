@@ -18,12 +18,12 @@ import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/pag
 
 const INPUTS = ".canopy-input, .canopy-select, .canopy-textarea";
 const BODY_TEXT =
-  ".canopy-description, .canopy-help-text, .canopy-checkbox, .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
-/** Body text as marked and outlined: a field's checkbox options as one list,
+  ".canopy-description, .canopy-help-text, .canopy-choice, .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
+/** Body text as marked and outlined: a choice's options as one list,
     not each option. */
 const BODY_TEXT_GROUPS =
-  ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
-const OPTION_LIST = ".canopy-checkboxes";
+  ".canopy-description, .canopy-help-text, .canopy-choices, .canopy-choice:not(.canopy-choices > *), .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
+const OPTION_LIST = ".canopy-choices";
 
 /** A field focus (`<name>` or `<name>#<part>`) as a selector. */
 const fieldTarget = (focus: string) => {

@@ -48,19 +48,20 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 
 | Type | Label | Notes |
 |---|---|---|
-| Text | Single line of text | General-purpose input |
+| Name | Person's name | One box, or separate first, middle, and last parts |
 | Email | Email address | Saved as typed |
-| Paragraph | Multi-line text | For longer responses, with an optional character limit |
 | Phone | Phone number | A US or Canadian number with its area code, or another country's starting with +; saved in one format; can ask for an extension |
 | Website | Web address | Visitors can leave off https://; it's added when saved |
-| Date | Date picker | Past dates only, future dates only, or any date |
-| Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
-| Name | Person's name | One box, or separate first, middle, and last parts |
-| Dropdown | Single select | Configure options; can offer "Other" |
-| Yes / No | Single checkbox | For consent-style prompts |
-| Checkboxes | Multi-select checkboxes | Configure options; can offer "Other"; submitted value is an array |
-| Number | Numeric input | Whole number or decimal, with an optional minimum and maximum |
 | Address | US mailing address | Street, apartment, city, state, ZIP; collect only the parts you need |
+| Date of birth | Month, day, and year boxes | Must be in the past; saved as a date |
+| Date | Date picker | Past dates only, future dates only, or any date |
+| Number | Numeric input | Whole number or decimal, with an optional minimum and maximum |
+| Short answer | One line of text | For anything without its own type |
+| Paragraph | Multi-line text | For longer responses, with an optional character limit |
+| Approval | One box to check | Required, visitors must check it to submit (agreeing to terms); optional, it's an opt-in ("Email me news"). Never starts checked |
+| Yes / No | Yes and No buttons | A Choose one that starts with Yes and No |
+| Choose one | Pick one option | Buttons for up to 6 options, a dropdown for more; can offer "Other" |
+| Choose several | Pick any of the options | Can offer "Other"; the answer is a list |
 
 On your live form, visitors' browsers and password managers can fill in Name, Email, Phone, Website, Address, and Date of birth from their saved details. Phones show a number pad for Phone, Number, ZIP, and Date of birth, a keyboard with @ for Email, and one with / and .com for Website. The preview in the editor doesn't offer to fill anything in, so your own details stay out of it.
 
@@ -76,10 +77,10 @@ Every field type has the same core options, plus type-specific ones.
 
 **Type-specific options** (validation and configuration) appear automatically in the editor. Examples:
 
-- Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Text has no settings of its own: for a number use Number, for a web address Website, and for a ZIP code an Address with only ZIP.
+- Paragraph: an optional **Character limit**. Visitors see how many characters they have left under the box, and can type past it to edit down, but the form won't submit until they're within it. Short answer has no settings of its own: for a number use Number, for a web address Website, and for a ZIP code an Address with only ZIP.
 - Phone: tick **Extension** to add a short box for one beside the number, labeled "Ext." (rename it with the pencil). The number and the extension are saved, and exported, separately.
 - Date: **Past Date** (today or earlier, for something that already happened), **Future Date** (today or later, for an appointment or event), or **Any Date**.
-- Dropdown, Checkboxes: the options, one box each. Click **Add option** or press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Tick **Include "Other"** to let visitors type their own answer, which is saved in place of "Other". A Dropdown can also start on a **Default choice**.
+- Choose one, Choose several: the options, one box each. Click **Add option** or press Enter for a new option below, or paste a list to add one option per line. Two options can't have the same text. Tick **Include "Other"** to let visitors type their own answer, which is saved in place of "Other". A Choose one shows its options as buttons, side by side when there are two, and as a dropdown once there are more than 6, counting "Other". Nothing starts picked.
 - Name: **Full name** (one box) or **Separate parts**, then which parts to collect: First, Middle (a full middle name or an initial), and Last. The form shows the field's label over the parts, so a Name relabeled "Emergency contact" reads Emergency contact over First and Last. Tick a part in the Required column to require it; a new Name requires First and Last. Rename a part with the pencil beside it.
 - Address: which parts to collect: Street (with an optional Apt, suite), City, State, ZIP. Collect only what you need, for example ZIP alone for a service-area question. Tick a part in the Required column to require it, for example only ZIP; a new Address requires every part but Apt, suite. Rename a part with the pencil beside it. Addresses are US only: State is a list of US states and ZIP must be 5 or 9 digits.
 - Number: **Whole Number** (the default) or **Decimal**, and an optional **Minimum** and **Maximum**. Visitors can type 1,250 with its comma.

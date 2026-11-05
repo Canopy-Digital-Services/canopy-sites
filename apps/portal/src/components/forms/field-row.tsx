@@ -29,7 +29,7 @@ import { ScrollHoldContext } from "@/hooks/use-scroll-hold";
 import { FieldConfigRenderer, hasTypeSettings } from "@/components/field-config";
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
-import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
+import { FIELD_STARTS, getFieldTypeLabel, type FieldStart } from "@/lib/field-types";
 
 // ─── Field rules ────────────────────────────────────────────────────────────
 // What a field saves and when it can't is in lib/field-rules; these are the
@@ -55,7 +55,7 @@ function TypeMenu({
   trigger: React.ReactNode;
   disabled?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onPick: (type: FieldType) => void;
+  onPick: (start: FieldStart) => void;
 }) {
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
@@ -63,9 +63,9 @@ function TypeMenu({
         {trigger}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48" onClick={(e) => e.stopPropagation()}>
-        {FIELD_TYPE_OPTIONS.map((option) => (
-          <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
-            {option.label}
+        {FIELD_STARTS.map((start) => (
+          <DropdownMenuItem key={start.label} onSelect={() => onPick(start)}>
+            {start.label}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -348,7 +348,7 @@ export function AddFieldRow({
   busy: boolean;
   /** The list closes its open row when the type list opens. */
   onOpen: () => void;
-  onPick: (type: FieldType) => void;
+  onPick: (start: FieldStart) => void;
 }) {
   return (
     <TypeMenu
