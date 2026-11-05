@@ -171,7 +171,7 @@ Both paths call `deleteAccountAndSoleMembers(accountId)` (`src/lib/data-access/m
 
 ```
 prisma.account.delete()
-  → Memberships, Forms → Fields, Submissions, Notifications (cascade)
+  → Memberships, Forms → Fields, Submissions, Notifications, ActAs records (cascade)
 prisma.user.deleteMany()   // users whose only membership was this account
   → PasswordTokens (cascade)
 ```
