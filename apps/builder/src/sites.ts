@@ -118,7 +118,7 @@ async function prepare(site: SiteRef, log: Log): Promise<{ ref: RepoRef; env: Re
   await mkdir(d.root, { recursive: true });
   await keepPrivate(d.builds);
   await keepPrivate(d.meta);
-  const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
+  const ref = await resolveRepo(site.slug, site.repoUrl, site.branch);
   const env = gitEnv(ref, cloneOf(site.slug));
   const head = await withGitLock(site.slug, () => syncClone(cloneOf(site.slug), ref, env, log));
   await keepPrivate(d.git);
@@ -147,7 +147,7 @@ export async function readSiteContent(site: SiteRef, opts: { refresh?: boolean }
     () => true,
     () => false,
   );
-  const ref = resolveRepo(site.slug, site.repoUrl, site.branch);
+  const ref = await resolveRepo(site.slug, site.repoUrl, site.branch);
   const env = gitEnv(ref, cloneOf(site.slug));
   if (!cloned) {
     await enqueue(site.slug, async () => {
