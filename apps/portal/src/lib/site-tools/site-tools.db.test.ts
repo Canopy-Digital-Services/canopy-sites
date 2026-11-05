@@ -176,6 +176,17 @@ describe("proposeChange", () => {
   });
 });
 
+describe("content reads", () => {
+  it("record the contract version the repo installs, which a Canopy push can move (PRD D24)", async () => {
+    const { account, site } = await siteAccount();
+    await prisma.site.update({ where: { id: site.id }, data: { contractVersion: "0.1.0" } });
+
+    await tools.getContentView(account.id);
+
+    expect(await prisma.site.findUniqueOrThrow({ where: { id: site.id } })).toMatchObject({ contractVersion: "0.2.0" });
+  });
+});
+
 describe("ownership", () => {
   it("never lets one account refresh, publish, or discard another account's change", async () => {
     const a = await siteAccount();
