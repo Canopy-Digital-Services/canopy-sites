@@ -155,6 +155,26 @@ export function PreviewMark({ hostRef, target, drawKey, renderKey }: PreviewMark
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderKey]);
 
+  // The layout changed without a re-render (the form's "Please fix" line
+  // appearing, an "Other" box opening): follow it. The observer's first
+  // report is only its start, which would cut a hand-drawn mark short.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    let started = false;
+    const observer = new ResizeObserver(() => {
+      if (!started) {
+        started = true;
+        return;
+      }
+      if (wanted.current) void draw(wanted.current, drawKey).catch(() => {});
+    });
+    for (const child of host.children) if (!(child instanceof HTMLCanvasElement)) observer.observe(child);
+    return () => observer.disconnect();
+    // draw reads refs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderKey, drawKey]);
+
   // Unmounted: take the canvases out of the host.
   useEffect(
     () => () => {
