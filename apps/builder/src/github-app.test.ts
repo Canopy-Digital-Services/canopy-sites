@@ -25,6 +25,7 @@ describe("appConfig", () => {
     expect(appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: PEM.replace(/\n/g, "\\n") })).not.toBeNull();
     expect(appConfig({ ...ENV, GITHUB_APP_ID: "" })).toBeNull();
     expect(appConfig({})).toBeNull();
+    expect(() => appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: "bm90IGEga2V5" })).toThrow(AppAccessError);
   });
 });
 
@@ -103,6 +104,13 @@ describe("resolveRepo", () => {
 
     expect(await resolveRepo("canopyds", "https://github.com/org/canopy-website", "main")).toMatchObject({ token: "github_pat_x" });
     await expect(resolveRepo("toroz", "https://github.com/org/toroz", "main")).rejects.toThrow(/can't reach toroz/);
+  });
+
+  it("falls back to the site's token when the App's key can't be read", async () => {
+    for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v);
+    vi.stubEnv("GITHUB_APP_PRIVATE_KEY", "bm90IGEga2V5");
+    vi.stubEnv("GIT_TOKEN_DEMO", "github_pat_demo");
+    expect(await resolveRepo("demo", "https://github.com/org/canopy-demo-site", "main")).toMatchObject({ token: "github_pat_demo" });
   });
 
   it("uses the site's token when the App isn't configured, and refuses without one", async () => {

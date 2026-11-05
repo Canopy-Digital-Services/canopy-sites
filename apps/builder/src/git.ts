@@ -30,14 +30,12 @@ export async function resolveRepo(slug: string, repoUrl: string, branch: string)
     const remote = `https://github.com/${gh[1]}/${gh[2]}.git`;
     const envName = `GIT_TOKEN_${slug.toUpperCase().replace(/-/g, "_")}`;
     const pat = process.env[envName];
-    const app = appConfig();
-    if (app) {
-      try {
-        return { remote, branch, token: await installationToken(app, gh[2]) };
-      } catch (err) {
-        if (!(err instanceof AppAccessError) || !pat) throw new StepError((err as Error).message);
-        console.warn(JSON.stringify({ event: "github_app_fallback", slug, message: err.message }));
-      }
+    try {
+      const app = appConfig();
+      if (app) return { remote, branch, token: await installationToken(app, gh[2]) };
+    } catch (err) {
+      if (!(err instanceof AppAccessError) || !pat) throw new StepError((err as Error).message);
+      console.warn(JSON.stringify({ event: "github_app_fallback", slug, message: err.message }));
     }
     if (pat) return { remote, branch, token: pat };
     throw new StepError(`No access to ${gh[1]}/${gh[2]}: add it to the Canopy Sites GitHub App`);
