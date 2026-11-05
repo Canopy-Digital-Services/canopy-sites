@@ -22,8 +22,7 @@ import { FieldType } from "@prisma/client";
  *
  * Specific before general: people take the first type that looks good enough,
  * so one that would also catch a narrower need comes after it (Name before
- * Short answer, Date of birth before Date, Approval before Yes / No before
- * Choose one). Labels say what the field does and rule each other out.
+ * Short answer, Date of birth before Date, Approval before Choose one). Labels say what the field does and rule each other out.
  */
 type FieldTypeTrait = "choice" | "composite";
 type FieldTypeOption = { value: FieldType; label: string } & Partial<Record<FieldTypeTrait, true>>;
@@ -43,18 +42,6 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "CHOOSE_ONE" as const, label: "Choose one", choice: true },
   { value: "CHOOSE_SEVERAL" as const, label: "Choose several", choice: true },
 ] as const satisfies readonly FieldTypeOption[];
-
-/** One way to start a field in the Add field menu: a type, and the choices a
-    choice type starts with when the entry gives them. */
-export type FieldStart = { label: string; type: FieldType; choices?: string[] };
-
-/** The Add field menu: every type, with Yes / No before Choose one. A yes or
-    no question is a Choose one that starts with Yes and No, listed on its own
-    so someone after one finds it before the general type. */
-export const FIELD_STARTS: FieldStart[] = FIELD_TYPE_OPTIONS.flatMap((option) => [
-  ...(option.value === "CHOOSE_ONE" ? [{ label: "Yes / No", type: option.value, choices: ["Yes", "No"] }] : []),
-  { label: option.label, type: option.value },
-]);
 
 const TRAITS = new Map<string, FieldTypeOption>(FIELD_TYPE_OPTIONS.map((option) => [option.value, option]));
 

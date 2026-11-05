@@ -105,11 +105,6 @@ describe("savedField", () => {
     ).toEqual({ parts: ["number", "extension"], partLabels: { extension: "Extension" } });
   });
 
-  it("starts a Yes / No with its two choices, and any other choice with stand-ins", () => {
-    expect(newFieldDefaults("CHOOSE_ONE", ["Yes", "No"]).options).toEqual({ options: options("Yes", "No") });
-    expect(newFieldDefaults("CHOOSE_ONE").options).toEqual({ options: options("Option 1", "Option 2") });
-  });
-
   it("keeps no rules for a Website, which checks the address itself", () => {
     expect(savedField({ type: "WEBSITE", label: "Website", validation: { format: "url" } }).validation).toBeNull();
   });

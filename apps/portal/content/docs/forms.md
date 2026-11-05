@@ -59,7 +59,6 @@ The **Fields** section is where you add and arrange inputs. Click **Add field** 
 | Short answer | One line of text | For anything without its own type |
 | Paragraph | Multi-line text | For longer responses, with an optional character limit |
 | Approval | One box to check | Required, visitors must check it to submit (agreeing to terms); optional, it's an opt-in ("Email me news"). Never starts checked |
-| Yes / No | Yes and No buttons | A Choose one that starts with Yes and No |
 | Choose one | Pick one option | Buttons for up to 6 options, a dropdown for more; can offer "Other" |
 | Choose several | Pick any of the options | Can offer "Other"; the answer is a list |
 
