@@ -53,7 +53,7 @@
 - Visual editor for content (D35 to D43); publish and restore UI
 - Public MCP endpoint with per-account API keys
 - Stats: white-boxed Umami dashboard for all accounts
-- Operator: accounts, sites, build log, token usage, edit-as-client
+- Operator: accounts, sites (linked live, D49), build log, token usage, acting as a client (D49)
 - Toro Z Muay Thai on Sites, the first client site, following canopyds.com's path (ROADMAP T1)
 - A demo site at `sites.canopyds.com/demo` on its own account, for sales calls and partner sandboxes (D23)
 - canopyds.com on Sites under Michael's account, the first site that isn't the demo (D46)
@@ -253,6 +253,9 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
 | `HelpRequest` | siteId, conversationId?, apiKeyId?, createdByUserId?, message, status | Draft; E32 settles it (D34) |
+| `User` (extend) | password nullable | Null until the owner of a linked site claims it (D49) |
+| `PasswordToken` (was `PasswordResetToken`) | + purpose (`RESET` \| `CLAIM`), createdByUserId?, emailedAt? | Claim links share the reset token's table (D49) |
+| `ActAs` | operatorUserId?, accountId, startedAt, endedAt?; `Session.actAsId` | An operator acting as a client, and the record of it (D49) |
 
 Ownership enforcement stays in `src/lib/data-access/*` by `accountId`, now resolved through Membership. `getCurrentAccountId()` becomes `getCurrentAccountId()` for the single membership in v1, with the many-membership path stubbed.
 
@@ -270,7 +273,7 @@ Nav: **Quick Edit · Editor · Forms · Stats** (+ Account) (D28). Branding patt
 | Tool tabs | Gallery, Calendar, and later tools, siblings to Forms (D39). Not scheduled |
 | Stats | Umami: visitors, pageviews, top pages, referrers, date range. Read via Umami API with the site's `umamiWebsiteId` |
 | Forms | Existing Forms UI under Sites chrome |
-| Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, locked fields, API keys), help requests (D34), build log, token usage, "edit as client" |
+| Operator | Accounts (existing) + Sites list, site detail (repo, hostnames, contract version, locked fields, API keys), help requests (D34), build log, token usage, acting as a client (D49) |
 
 Unpublished changes and Preview sit in the Sites chrome, whichever tab made the changes (D38); Publish is on the preview page (D47). Forms-only accounts see today's Forms UI at forms.canopyds.com; Sites accounts see the Sites chrome at sites.canopyds.com (D22).
 

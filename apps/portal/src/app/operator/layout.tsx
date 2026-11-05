@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Globe, Users, House } from "lucide-react";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
+import { ActingBanner } from "@/components/acting-banner";
 
 export async function generateMetadata(): Promise<Metadata> {
   return productMetadata(productFor(await getCurrentEntitlements()));
@@ -57,17 +58,20 @@ export default async function OperatorLayout({
   );
 
   return (
-    <TopNavLayout
-      logo={logo}
-      navItems={navItems}
-      userMenu={
-        <UserMenu
-          email={session.user?.email}
-          isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
-        />
-      }
-    >
-      {children}
-    </TopNavLayout>
+    <>
+      <ActingBanner />
+      <TopNavLayout
+        logo={logo}
+        navItems={navItems}
+        userMenu={
+          <UserMenu
+            email={session.user?.email}
+            isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
+          />
+        }
+      >
+        {children}
+      </TopNavLayout>
+    </>
   );
 }

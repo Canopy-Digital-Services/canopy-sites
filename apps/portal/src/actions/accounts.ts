@@ -2,7 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin, getCurrentMembership } from "@/lib/auth-utils";
-import { clearSessionCookie } from "@/lib/session";
+import { clearSessionCookie, getSession } from "@/lib/session";
+import { isActing } from "@/lib/act-as";
 import {
   AccountHasSiteError,
   deleteAccountAndSoleMembers,
@@ -61,6 +62,10 @@ export async function deleteAccount(accountId: string) {
  * Epic 14: Self-service account deletion
  */
 export async function deleteSelfAccount(): Promise<{ success: true } | { error: string }> {
+  // The operator acting as a client (PRD D49) never deletes the client's account.
+  if (isActing(await getSession())) {
+    return { error: "Stop acting as the client first." };
+  }
   const membership = await getCurrentMembership();
 
   if (membership.role !== "OWNER") {

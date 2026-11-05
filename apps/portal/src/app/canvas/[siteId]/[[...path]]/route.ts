@@ -43,7 +43,7 @@ const notFound = () => new NextResponse("Not found", { status: 404, headers: hea
 export async function GET(request: Request, { params }: { params: Promise<{ siteId: string; path?: string[] }> }) {
   const { siteId, path = [] } = await params;
   const session = await getSession();
-  const site = session && builderConfigured() ? await previewableSite(session.user.id, siteId) : null;
+  const site = session && builderConfigured() ? await previewableSite(session, siteId) : null;
   const live = site ? liveSite(site) : null;
   if (!site || !live) return notFound();
 
