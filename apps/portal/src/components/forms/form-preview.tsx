@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useBringIntoView } from "@/hooks/use-bring-into-view";
 import { useEmbedScript } from "@/hooks/use-embed-script";
 import { formToEmbedDefinition, type EmbedFormInput } from "@/lib/embed-preview";
 import {
@@ -11,28 +12,35 @@ import {
 } from "@/components/forms/form-context";
 import { PreviewMark, MARK_HOST } from "@/components/forms/preview-mark";
 import { PreviewOutline } from "@/components/forms/preview-outline";
-import { defaultLabel } from "@/components/forms/field-row";
+import { defaultLabel } from "@/lib/field-rules";
 import { cn } from "@/lib/utils";
 import { extractPageTheme, CONTENT_WIDTH_MAP, cardWrapperStyle } from "@/lib/page-theme";
 
 const INPUTS = ".canopy-input, .canopy-select, .canopy-textarea";
 const BODY_TEXT =
-  ".canopy-description, .canopy-help-text, .canopy-checkbox, .canopy-name-part-label, .canopy-address-part-label";
+  ".canopy-description, .canopy-help-text, .canopy-checkbox, .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
 /** Body text as marked and outlined: a field's checkbox options as one list,
     not each option. */
 const BODY_TEXT_GROUPS =
-  ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label";
+  ".canopy-description, .canopy-help-text, .canopy-checkboxes, .canopy-checkbox:not(.canopy-checkboxes > *), .canopy-name-part-label, .canopy-address-part-label, .canopy-dob-part-label";
 const OPTION_LIST = ".canopy-checkboxes";
+
+/** A field focus (`<name>` or `<name>#<part>`) as a selector. */
+const fieldTarget = (focus: string) => {
+  const [name, part] = focus.split("#");
+  const field = `.canopy-field[data-field-name="${CSS.escape(name)}"]`;
+  return part ? `${field} [data-field-part="${CSS.escape(part)}"]` : field;
+};
 const CARD = "[data-preview-card]";
 
 /** A hosted form's content width in the preview, as a share of the pane:
     Wide fills it edge to edge, and the others keep their proportion to Wide.
-    The pane is narrower than Medium and Wide, so at their real widths they
-    would render the same. */
+    The pane is Wide's width, so each renders at its real width until a
+    narrow window shrinks the pane. */
 const previewWidth = (width: keyof typeof CONTENT_WIDTH_MAP) =>
   `${(parseInt(CONTENT_WIDTH_MAP[width], 10) / parseInt(CONTENT_WIDTH_MAP.lg, 10)) * 100}%`;
 
-/** Which styling group each part of the preview picks. The first match wins;
+/** Which appearance group each part of the preview picks. The first match wins;
     anywhere else is the page (hosted) or the form (embedded). */
 const ZONES: { match: string; group: StyleGroup }[] = [
   { match: ".canopy-submit", group: "button" },
@@ -65,7 +73,7 @@ type FormPreviewProps = {
 
 export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // The whole preview surface: what the marks are drawn in, and what styling
+  // The whole preview surface: what the marks are drawn in, and what appearance
   // mode picks from.
   const surfaceRef = useRef<HTMLDivElement>(null);
   const { formInstanceRef, ready } = useEmbedScript(containerRef, { preview: true });
@@ -90,13 +98,13 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       : focus === "description"
         ? ".canopy-description"
         : focus?.startsWith("field:")
-          ? `.canopy-field[data-field-name="${CSS.escape(focus.slice(6))}"]`
+          ? fieldTarget(focus.slice(6))
           : null;
 
-  // Styling mode: hovering outlines the part of the form under the pointer
+  // Appearance mode: hovering outlines the part of the form under the pointer
   // (or every part a hovered panel row styles); a click picks its group and
   // draws the marks round everything that group styles, by hand.
-  const styling = live && !!ctx?.styling;
+  const appearanceMode = live && !!ctx?.appearanceMode;
   const styleGroup = ctx?.styleGroup ?? null;
   const targets = groupTargets(mode);
   const [hovered, setHovered] = useState<HTMLElement | string | null>(null);
@@ -119,7 +127,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     }
     return mode === "page" ? { group: "page", target: MARK_HOST } : { group: "form", target: targets.form };
   };
-  const stylingHandlers = styling
+  const appearanceHandlers = appearanceMode
     ? {
         onPointerMove: (e: React.PointerEvent) => setHovered(pickAt(e.target).target),
         onPointerLeave: () => setHovered(null),
@@ -135,10 +143,13 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
       }
     : {};
 
-  const rowHover = styling ? (ctx?.styleHover ?? null) : null;
-  const outlineTarget = !styling ? null : rowHover ? targets[rowHover] : hovered;
-  const markTarget = styling ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
-  const drawKey = styling ? `${styleGroup}:${picks}` : (focusTarget ?? "");
+  const rowHover = appearanceMode ? (ctx?.styleHover ?? null) : null;
+  const outlineTarget = !appearanceMode ? null : rowHover ? targets[rowHover] : hovered;
+  const markTarget = appearanceMode ? (styleGroup ? targets[styleGroup] : null) : focusTarget;
+  const drawKey = appearanceMode ? `${styleGroup}:${picks}` : (focusTarget ?? "");
+
+  // What's being edited stays in view.
+  useBringIntoView(surfaceRef, appearanceMode ? null : focusTarget, renderKey);
 
   // Render from static form prop (no debounce)
   useEffect(() => {
@@ -152,12 +163,12 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
 
     // Empty parts show stand-ins, so the user always has a form to look at:
     // the header on its own step, the fields on every step after it, and both
-    // while styling. Stand-ins shimmer like a skeleton so they don't read as
+    // in appearance mode. Stand-ins shimmer like a skeleton so they don't read as
     // saved; they never are.
     const step = ctx?.editorStep ?? null;
-    const headerStandIn = step === "header" || styling;
+    const headerStandIn = step === "header" || appearanceMode;
     const fieldStandIns =
-      (styling || (step !== null && step !== "header")) && source.fields.length === 0;
+      (appearanceMode || (step !== null && step !== "header")) && source.fields.length === 0;
     const definition = formToEmbedDefinition({
       ...(source as EmbedFormInput),
       title: source.title || (headerStandIn ? HEADER_PLACEHOLDERS.title : null),
@@ -180,7 +191,7 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [live, ready, formInstanceRef, source, ctx?.editorStep, styling]);
+  }, [live, ready, formInstanceRef, source, ctx?.editorStep, appearanceMode]);
 
   const preview = (
     <>
@@ -204,14 +215,14 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
   // Positioned for PreviewMark and PreviewOutline, which draw inside it.
   const surfaceProps = {
     ref: surfaceRef,
-    ...stylingHandlers,
+    ...appearanceHandlers,
   };
 
   if (mode === "embed") {
     return (
       <div
         {...surfaceProps}
-        className={cn("relative flex-1 flex items-start justify-center p-10", styling && "preview-styling")}
+        className={cn("relative flex-1 flex items-start justify-center p-10", appearanceMode && "preview-appearance")}
         style={{ backgroundColor: page.formBackground }}
       >
         <div className="w-full max-w-lg">{preview}</div>
@@ -220,14 +231,14 @@ export function FormPreview({ form, mode, live = false }: FormPreviewProps) {
     );
   }
 
-  // Page mode — apply page-theme styling
+  // Page mode: apply the page theme's styles
   return (
     <div
       {...surfaceProps}
       className={cn(
         "relative flex-1",
         !page.pageBackground && "bg-muted/40",
-        styling && "preview-styling",
+        appearanceMode && "preview-appearance",
       )}
       style={page.pageBackground ? { backgroundColor: page.pageBackground } : undefined}
     >

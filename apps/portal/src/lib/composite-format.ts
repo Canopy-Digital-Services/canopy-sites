@@ -1,11 +1,12 @@
+import { isComposite } from "@/lib/field-rules";
+
 /**
- * Formatting utilities for composite field types (NAME, ADDRESS).
- * Used in submission viewer and potentially other display contexts.
+ * Formatting for answers made of parts (Name, Address, Phone), used by the
+ * submission viewer, the notification email, and the submissions list.
  */
 
-export function isCompositeFieldType(type: string): boolean {
-  return type === "NAME" || type === "ADDRESS";
-}
+/** Whether a type's answer is an object of its parts. */
+export const answerHasParts = (type: string) => isComposite(type) || type === "PHONE";
 
 /**
  * Render any submitted value as human-readable text: booleans as Yes/No,
@@ -22,7 +23,7 @@ export function formatFieldValue(
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") {
-    if (isCompositeFieldType(type)) {
+    if (answerHasParts(type)) {
       return formatCompositeValue(type, value as Record<string, unknown>, options);
     }
     return "";
@@ -40,6 +41,10 @@ export function formatCompositeValue(
   }
   if (type === "ADDRESS") {
     return formatAddressValue(value);
+  }
+  if (type === "PHONE") {
+    const extension = String(value.extension || "").trim();
+    return [String(value.number || "").trim(), extension && `ext. ${extension}`].filter(Boolean).join(" ");
   }
   return JSON.stringify(value);
 }

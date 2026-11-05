@@ -1,170 +1,156 @@
 "use client";
 
+import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { NameOptions } from "@/types/field-config";
+import {
+  DEFAULT_NAME_PARTS,
+  NAME_PART_LABELS,
+  nameRequiredParts,
+  orderNameParts,
+  type NamePart,
+} from "../../../embed/src/name";
+import { savedParts } from "@/lib/field-rules";
+import { PartRow, PartsRequiredHeading } from "./part-row";
 import { ConfigComponentProps } from "./types";
 
-type NamePart = "first" | "last" | "middle" | "middleInitial" | "single";
+type Row = "first" | "middle" | "last";
 
-const PART_LABELS: Record<NamePart, string> = {
-  first: "First Name",
-  last: "Last Name",
-  middle: "Middle Name",
-  middleInitial: "Middle Initial",
-  single: "Full Name (Single Field)",
-};
+const ROWS: [Row, string][] = [
+  ["first", "First"],
+  ["middle", "Middle"],
+  ["last", "Last"],
+];
 
 export function NameConfig({
   value,
   onChange,
+  onFocusPart,
+  required: fieldRequired = false,
 }: ConfigComponentProps<NameOptions>) {
-  const options = value || { parts: ["first", "last"] };
+  const requiredId = useId();
+  const parts: NamePart[] = value?.parts ?? DEFAULT_NAME_PARTS;
+  const partLabels = value?.partLabels ?? {};
+  const requiredParts = nameRequiredParts(value, fieldRequired) as NamePart[];
+  const single = parts.includes("single");
+  // A middle is a name or an initial, never both; one saved with both shows as the name.
+  const middle: NamePart | null = parts.includes("middle")
+    ? "middle"
+    : parts.includes("middleInitial")
+      ? "middleInitial"
+      : null;
 
-  const handlePartToggle = (part: NamePart) => {
-    const currentParts = options.parts || [];
-    
-    // Single is mutually exclusive with other parts
-    if (part === "single") {
-      onChange({
-        ...options,
-        parts: currentParts.includes("single") ? [] : ["single"],
-      });
-      return;
-    }
-    
-    // If single is currently selected, replace it
-    if (currentParts.includes("single")) {
-      onChange({
-        ...options,
-        parts: [part],
-      });
-      return;
-    }
-    
-    // Toggle the part
-    const updated = currentParts.includes(part)
-      ? currentParts.filter((p) => p !== part)
-      : [...currentParts, part];
-    
-    onChange({
-      ...options,
-      parts: updated,
-    });
+  // Labels and requirements stay only for the parts that stay (savedParts).
+  const save = (next: Partial<NameOptions>) =>
+    onChange(
+      savedParts(
+        {
+          parts: next.parts ?? parts,
+          partLabels: next.partLabels ?? partLabels,
+          requiredParts: next.requiredParts ?? requiredParts,
+        },
+        orderNameParts
+      ) as NameOptions
+    );
+
+  const withoutMiddle = parts.filter((p) => p !== "middle" && p !== "middleInitial");
+  const partFor = (row: Row): NamePart | null =>
+    row === "middle" ? middle : parts.includes(row) ? row : null;
+
+  const toggleRow = (row: Row, on: boolean) => {
+    if (row === "middle") save({ parts: on ? [...withoutMiddle, "middle"] : withoutMiddle });
+    else save({ parts: on ? [...parts, row] : parts.filter((p) => p !== row) });
   };
 
-  const handlePartLabelChange = (part: NamePart, label: string) => {
-    const updated = { ...options };
-    if (!updated.partLabels) {
-      updated.partLabels = {};
-    }
-    
-    if (label.trim()) {
-      updated.partLabels[part] = label.trim();
-    } else {
-      delete updated.partLabels[part];
-      if (Object.keys(updated.partLabels).length === 0) {
-        delete updated.partLabels;
-      }
-    }
-    
-    onChange(updated);
+  const setRequired = (part: NamePart, on: boolean) =>
+    save({ requiredParts: on ? [...requiredParts, part] : requiredParts.filter((p) => p !== part) });
+
+  const setPartLabel = (part: NamePart, text: string) => {
+    const next = { ...partLabels };
+    if (text.trim()) next[part] = text;
+    else delete next[part];
+    save({ partLabels: next });
   };
 
-  const handlePartRequiredToggle = (part: NamePart) => {
-    const updated = { ...options };
-    if (!updated.partsRequired) {
-      updated.partsRequired = {};
-    }
-    
-    const currentValue = updated.partsRequired[part];
-    if (currentValue) {
-      delete updated.partsRequired[part];
-      if (Object.keys(updated.partsRequired).length === 0) {
-        delete updated.partsRequired;
-      }
-    } else {
-      updated.partsRequired[part] = true;
-    }
-    
-    onChange(updated);
+  // Switching format keeps whether the name is required.
+  const pickFormat = (nextSingle: boolean) => {
+    const nextParts: NamePart[] = nextSingle ? ["single"] : DEFAULT_NAME_PARTS;
+    save({ parts: nextParts, partLabels: {}, requiredParts: requiredParts.length > 0 ? nextParts : [] });
   };
-
-  const selectedParts = options.parts || [];
-  const isSingleMode = selectedParts.includes("single");
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Name Parts to Capture</Label>
-        <p className="text-xs text-muted-foreground">
-          Select which name parts to collect. Choose &quot;Full Name&quot; for a single input field,
-          or select multiple parts for separate fields.
-        </p>
-        <div className="space-y-2">
-          {(Object.keys(PART_LABELS) as NamePart[]).map((part) => (
-            <div key={part} className="flex items-center gap-2">
-              <Checkbox
-                id={`name-part-${part}`}
-                checked={selectedParts.includes(part)}
-                onCheckedChange={() => handlePartToggle(part)}
-              />
-              <Label
-                htmlFor={`name-part-${part}`}
-                className="text-sm font-normal cursor-pointer"
-              >
-                {PART_LABELS[part]}
-              </Label>
-            </div>
-          ))}
+    <div className="space-y-3">
+      <ToggleGroup
+        type="single"
+        value={single ? "single" : "parts"}
+        // Pressing the pressed button would clear the choice; a setting always has one.
+        onValueChange={(v) => v && pickFormat(v === "single")}
+        aria-label="Name format"
+      >
+        <ToggleGroupItem value="single">Full name</ToggleGroupItem>
+        <ToggleGroupItem value="parts">Separate parts</ToggleGroupItem>
+      </ToggleGroup>
+
+      {single ? (
+        // One box has no part rows to carry the Required column.
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={requiredId}
+            checked={requiredParts.includes("single")}
+            onCheckedChange={(checked) => setRequired("single", checked === true)}
+          />
+          <Label htmlFor={requiredId} className="cursor-pointer font-normal">
+            Required field
+          </Label>
         </div>
-      </div>
-
-      {selectedParts.length > 0 && !isSingleMode && (
-        <>
-          <div className="space-y-3">
-            <Label>Custom Labels (Optional)</Label>
-            <p className="text-xs text-muted-foreground">
-              Override the default labels for each part.
-            </p>
-            {selectedParts.map((part) => (
-              <div key={part} className="space-y-1">
-                <Label htmlFor={`name-label-${part}`} className="text-xs font-normal">
-                  {PART_LABELS[part]}
-                </Label>
-                <Input
-                  id={`name-label-${part}`}
-                  value={options.partLabels?.[part] ?? ""}
-                  onChange={(e) => handlePartLabelChange(part, e.target.value)}
-                  placeholder={PART_LABELS[part]}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Required Parts</Label>
-            <p className="text-xs text-muted-foreground">
-              Mark specific parts as required (by default, all parts inherit the field&apos;s required setting).
-            </p>
-            {selectedParts.map((part) => (
-              <div key={part} className="flex items-center gap-2">
-                <Checkbox
-                  id={`name-required-${part}`}
-                  checked={options.partsRequired?.[part] || false}
-                  onCheckedChange={() => handlePartRequiredToggle(part)}
-                />
-                <Label
-                  htmlFor={`name-required-${part}`}
-                  className="text-sm font-normal cursor-pointer"
+      ) : (
+        <div className="editor-reveal">
+          {/* The reveal grows a grid row; padding keeps focus rings clear of its clip. */}
+          <div className="min-h-0 overflow-hidden -m-1 p-1 space-y-1">
+            <PartsRequiredHeading />
+            {ROWS.map(([row, text]) => {
+              const part = partFor(row);
+              return (
+                <PartRow
+                  key={row}
+                  id={`name-part-${row}`}
+                  name={text}
+                  checked={part !== null}
+                  onCheckedChange={(on) => toggleRow(row, on)}
+                  label={part ? (partLabels[part] ?? "") : ""}
+                  defaultLabel={part ? NAME_PART_LABELS[part] : text}
+                  onRename={(t) => part && setPartLabel(part, t)}
+                  onRenaming={(renaming) => part && onFocusPart?.(renaming ? `label-${part}` : null)}
+                  required={part !== null && requiredParts.includes(part)}
+                  onRequiredChange={(on) => part && setRequired(part, on)}
                 >
-                  {options.partLabels?.[part] || PART_LABELS[part]} is required
-                </Label>
-              </div>
-            ))}
+                  {row === "middle" && middle && (
+                    <ToggleGroup
+                      type="single"
+                      value={middle}
+                      onValueChange={(v) => {
+                        if (!v) return;
+                        const next = v as NamePart;
+                        // The middle stays required, or not, as it switches.
+                        const wasRequired = requiredParts.includes(middle);
+                        save({
+                          parts: [...withoutMiddle, next],
+                          requiredParts: wasRequired ? [...requiredParts, next] : requiredParts,
+                        });
+                      }}
+                      aria-label="Middle name or initial"
+                    >
+                      <ToggleGroupItem value="middle">Full</ToggleGroupItem>
+                      <ToggleGroupItem value="middleInitial">Initial</ToggleGroupItem>
+                    </ToggleGroup>
+                  )}
+                </PartRow>
+              );
+            })}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

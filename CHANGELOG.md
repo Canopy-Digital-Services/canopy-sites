@@ -5,6 +5,47 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.10.0] - 2026-11-05
+
+### Added
+
+- Forms: **Date of birth**, a field with Month, Day and Year boxes, and **Website**, a field for a web address that takes "example.com" and stores it with https://
+- Address collects the parts you choose (Street, Apt or suite, City, State, ZIP), and Name and Address mark each part required on its own
+- Checkboxes can offer **Other**, as Dropdown does
+- Phone can ask for an extension in its own box
+- Live forms let visitors' browsers autofill Name, Email, Phone, Address and Date of birth
+- A Paragraph's character limit counts down as the visitor types
+- The editor's preview scrolls to the field being edited, and checks answers on Submit as the live form does (it still sends nothing)
+
+### Changed
+
+- Name is redesigned: the field's label sits over short part labels, as Full name or Separate parts, with a middle name or initial
+- Every field is renamed with the pencil in its header, and a new field opens with its label ready to type over; the Label box is gone, and a field's type is fixed once it's added
+- Dropdown and Checkboxes share one options editor: Enter adds an option, several pasted lines become one option each, and blank options are dropped when the field saves
+- Number takes a whole number or a decimal, accepts "1,250", and brings up the number pad
+- Phone takes a US or Canadian number however it's written, or another country's from its +, and stores it in international form (+12015550123). A Phone answer is its number and extension, exported as two columns (`phone_number`, `phone_extension`); saved answers are converted
+- A Date takes Past Date, Future Date or Any Date
+- Help text sits under the label and is read with its field
+- "Styling" is "Appearance": the preview's button reads **Change appearance**
+- Editor buttons name the step they go to, and an open field closes from the foot of its settings or with Escape
+- A form needs a field before it can be published
+- The submit API refuses keys that aren't the form's fields and stores only the fields' answers, each held to one shape and a length cap
+
+### Fixed
+
+- Hosted forms can be submitted from their own page again: since 4.12.0 the page's submissions were refused
+- A date limit of "today" means the visitor's today: west of UTC, today was refused
+- A field named like the form's honeypot no longer sends every answer to spam
+- The editor and preview fit the window between 1024 and 1200px wide, and a Wide hosted form previews at its real width
+- Field saves show in the card header like every other save
+
+### Removed
+
+- Field placeholders: a Dropdown starts on "Choose one..."
+- Text's formats and length limits: a numbers-only Text becomes a whole Number and a URL Text a Website
+- Email's settings (domain lists, Store in lowercase) and Phone's Lenient and Strict US formats
+- A Date's fixed From and To dates
+
 ## [5.9.0] - 2026-10-27
 
 ### Added

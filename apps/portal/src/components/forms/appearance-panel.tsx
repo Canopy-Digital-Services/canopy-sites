@@ -1,14 +1,14 @@
 "use client";
 
-// UI: see docs/UX_PATTERNS.md ("Styling mode", "Styling panel").
+// UI: see docs/UX_PATTERNS.md ("Appearance mode", "Appearance panel").
 //
-// The styling-mode panel: one row per part of the form you can click in the
+// The appearance-mode panel: one row per part of the form you can click in the
 // preview, in the order they appear there, built like the Fields list. One
 // row is open at a time (styleGroup in FormContext), and the preview marks
 // what the open row styles.
 
 import { useEffect, useRef } from "react";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { RowBody } from "@/components/forms/row-body";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,16 +27,15 @@ import {
   AlignHorizontalJustifyStart,
   AlignLeft,
   Bold,
-  Check,
   ChevronUp,
-  Save,
 } from "lucide-react";
+import { SaveIndicator } from "@/components/forms/save-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
 import { ColorPicker, type PickerColor } from "@/components/ui/color-picker";
 import { useFormContext, type StyleGroup } from "@/components/forms/form-context";
 import { FONTS_WITH_LIGHT } from "@/lib/google-fonts";
-import { buildMark, loadBrush, measure, seeded, shapes } from "@/lib/marker-brush";
+import { ROW_TITLE, useMarkerUnderline } from "@/components/forms/row-title";
 import { cn } from "@/lib/utils";
 import { autoButtonTextColor } from "../../../embed/src/theme";
 
@@ -77,57 +76,6 @@ const CARD_OPTIONS: [string, string][] = [
   ["md", "Medium shadow"],
   ["lg", "Heavy shadow"],
 ];
-
-/** Marker body thickness for a row title's underline, CSS px. */
-const UNDERLINE_PEN = 3;
-
-/** Underlines `ref`'s text with the coral marker, drawn by hand, while `show`
-    is on. The element must be positioned: the canvas sits inside it. */
-function useMarkerUnderline(ref: React.RefObject<HTMLElement | null>, show: boolean) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !show) return;
-    let cancelled = false;
-    let raf = 0;
-    const canvas = document.createElement("canvas");
-    canvas.setAttribute("aria-hidden", "true");
-    Object.assign(canvas.style, {
-      position: "absolute",
-      maxWidth: "none",
-      pointerEvents: "none",
-      color: "var(--canopy-coral)",
-    });
-    (async () => {
-      // Measure after web fonts load: fallbacks sit differently.
-      const [brush] = await Promise.all([loadBrush(), document.fonts?.ready]);
-      if (cancelled) return;
-      el.appendChild(canvas);
-      const mark = buildMark(
-        canvas,
-        brush,
-        shapes.underline(measure(el), UNDERLINE_PEN, seeded(el.textContent ?? "")),
-        {
-          pen: UNDERLINE_PEN,
-          color: getComputedStyle(canvas).color,
-          dpr: Math.min(window.devicePixelRatio || 1, 3),
-        }
-      );
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return mark.paint(1);
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const t = Math.min(1, (now - t0) / mark.duration);
-        mark.paint(t);
-        if (t < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    })().catch(() => {});
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-      canvas.remove();
-    };
-  }, [ref, show]);
-}
 
 // ─── Helper UI components ────────────────────────────────────────────────────
 
@@ -301,8 +249,7 @@ function StyleRow({
   }, [open]);
 
   return (
-    <Collapsible
-      open={open}
+    <div
       className={cn(
         "border-b border-border/50 last:border-b-0 transition-colors",
         open && "bg-muted/30"
@@ -321,7 +268,7 @@ function StyleRow({
           <button
             ref={titleRef}
             type="button"
-            className="relative shrink-0 text-left font-heading font-semibold text-base"
+            className={cn(ROW_TITLE, "shrink-0")}
             aria-expanded={open}
           >
             {title}
@@ -330,20 +277,16 @@ function StyleRow({
         </div>
         {open && <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground mr-1.5" aria-hidden />}
       </div>
-      <CollapsibleContent className="field-row-body">
-        {/* -mx-1/px-1 keeps focus rings clear of the animation's clip. White
-            controls stand off the open row's tint. */}
-        <div className="-mx-1 px-1 [&_input]:bg-card [&_[role=combobox]:not(:hover)]:bg-card">
-          <div className="space-y-4 px-3 pb-4 pt-2">{children}</div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+      <RowBody open={open}>
+        <div className="space-y-4 px-3 pb-4 pt-2">{children}</div>
+      </RowBody>
+    </div>
   );
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function StylingPanel() {
+export function AppearancePanel() {
   const { state, saveStatus, updateTheme } = useFormContext();
   const isHosted = state.type === "HOSTED";
 
@@ -519,19 +462,8 @@ export function StylingPanel() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Styling</CardTitle>
-          {saveStatus === "saving" && (
-            <span className="text-sm text-muted-foreground flex items-center gap-2">
-              <Save className="h-4 w-4 animate-pulse" />
-              Saving...
-            </span>
-          )}
-          {saveStatus === "saved" && (
-            <span className="text-sm text-success-strong flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              Saved
-            </span>
-          )}
+          <CardTitle>Appearance</CardTitle>
+          <SaveIndicator status={saveStatus} />
         </div>
       </CardHeader>
       <CardContent>

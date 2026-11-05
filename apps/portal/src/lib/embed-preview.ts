@@ -10,7 +10,6 @@ export type EmbedDefinition = {
     type: string;
     label: string;
     required: boolean;
-    placeholder?: string | null;
     helpText?: string | null;
     options?: unknown;
     validation?: unknown;
@@ -41,7 +40,6 @@ export type EmbedFormInput = {
     label: string;
     required: boolean;
     order: number;
-    placeholder: string | null;
     helpText: string | null;
     options: unknown;
     validation: unknown;
@@ -64,7 +62,6 @@ export function formToEmbedDefinition(form: EmbedFormInput): EmbedDefinition {
         type: f.type,
         label: f.label,
         required: f.required,
-        placeholder: f.placeholder,
         helpText: f.helpText,
         options: f.options,
         validation: f.validation,

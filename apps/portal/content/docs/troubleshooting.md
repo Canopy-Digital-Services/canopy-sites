@@ -51,10 +51,10 @@ Quick fixes for the most common problems. If none of these match, check the brow
 - Open **Edit → Submission Settings** and check **Include responses in the email**. Notifications leave submitted values out by default.
 - Recipients without an account on this workspace don't get the dashboard link, so this setting is what they need in order to see responses at all.
 
-## Styling clashes with my site
+## The form clashes with my site's look
 
 - The embed uses scoped CSS (`.canopy-*` classes) to avoid touching your site's styles. If something looks off, check your own stylesheet for broad selectors (for example, `input { … }`, `button { … }`) that might be overriding embed styles.
-- Use **Change styling** on the Edit tab to change embed styling. For one-off overrides, add a `data-theme` attribute to the embed container (see [Styling](./appearance.md)).
+- Use **Change appearance** on the Edit tab to change how the embed looks. For one-off overrides, add a `data-theme` attribute to the embed container (see [Appearance](./appearance.md)).
 
 ## The form submits, but values look wrong in the dashboard
 
@@ -68,7 +68,7 @@ Quick fixes for the most common problems. If none of these match, check the brow
 
 ## Validation errors I didn't expect
 
-- Text-type fields have default character limits that apply when you don't set one explicitly: Text 200, Email 254, Paragraph 2000. Hard maximums are 500, 320, and 10000 respectively, enforced server-side.
+- Text takes up to 200 characters, Email 254, and Paragraph 10,000: the field stops taking text there, and the server refuses anything longer. A Paragraph with a **Character limit** counts down under its box instead, and the form won't submit while it's over.
 - Dropdown and Checkboxes fields reject values that aren't in the configured options list. If you renamed an option, older embeds cached in browsers may still submit the old value until they re-fetch the definition.
 
 ## I changed my password and got signed out on another device

@@ -1,12 +1,12 @@
 ---
-title: Styling
+title: Appearance
 description: Theme colors, typography, spacing, and hosted-page layout.
 icon: Palette
 ---
 
-Click **Change styling** at the top of the preview on the Edit tab to style a form. You can do this at any point, before or after adding fields. The styling panel takes the place of the editor until you click **Done**, which returns you to where you were.
+Click **Change appearance** at the top of the preview on the Edit tab to change how a form looks. You can do this at any point, before or after adding fields. The appearance panel takes the place of the editor until you click **Done**, which returns you to where you were.
 
-The panel lists each part of the form you can style: the page and form first, then the type from most to least prominent (title, labels, text), then the fields and button. Click a part of the preview, or its row in the panel, to open its settings. Hovering either one outlines that part in the preview, and the open row's parts stay marked while you change them. All changes autosave and show in the preview as you make them.
+The panel lists each part of the form you can change: the page and form first, then the type from most to least prominent (title, labels, text), then the fields and button. Click a part of the preview, or its row in the panel, to open its settings. Hovering either one outlines that part in the preview, and the open row's parts stay marked while you change them. All changes autosave and show in the preview as you make them.
 
 Hosted forms list Page, Form, Title, Labels, Text, Fields, and Button. Embedded forms have no Page row.
 
@@ -50,7 +50,7 @@ The label above each field. The same toolbar as Title, set separately (a bold ti
 The description, help text, option labels, and what people type into fields. Same toolbar as Title: font, color, and size.
 
 - **Font**: the body font. Hosted forms use Inter until you pick one. Embedded forms also offer **Inherit from host page**, which uses your website's CSS font.
-- **Color**: placeholder text uses this color at reduced opacity.
+- **Color**: all of the above. The hint in an "Other" box uses it at reduced opacity.
 - **Size**: 14, 16, or 18 pixels. 16 is the default; on iPhones, fields with smaller text zoom in when tapped.
 
 ## Fields

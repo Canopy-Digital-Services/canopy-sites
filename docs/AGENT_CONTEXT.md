@@ -48,6 +48,7 @@ Identify which layer a change touches before starting.
 - Forms own `allowedOrigins[]`. Origin control is per form, not per account.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
+- Publishing needs at least one field: `toggleFormPublished` refuses without one, since a submission stores only fields. The editor's Fields step and the Publish tab's button hold until there is one.
 - Every Account has a `Plan` (FK on `planCode`). Entitlements are typed columns on `Plan` (`maxPublishedForms`, `sitesEnabled`), and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site, and never compare plan codes.
 - `Account.requiresPlanResolution` is set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker, cleared only by a successful `resolvePlan`.
 
@@ -71,23 +72,21 @@ Identify which layer a change touches before starting.
 
 Three layers, all required:
 
-1. HTML `maxLength` on inputs.
-2. Client-side in the embed: `embed/src/validation.ts`.
-3. Server-side in `src/lib/public-submit.ts`, shared by the embed and submit routes. Per-type rules and length caps live here, not in the route files.
+1. HTML `maxLength` on inputs, from `MAX_LENGTHS`.
+2. Per-field rules, written once in `validateField` (`embed/src/validation.ts`): the embed runs them before it submits, and `src/lib/public-submit.ts` runs the same function on every submission. A type's rules and length caps go there, never in `public-submit.ts` or a route file.
+3. Server-only guardrails in `src/lib/public-submit.ts`, shared by the embed and submit routes: the 64KB payload cap, the gate order below, and the body's keys. The body must be a JSON object whose every key is a field's name or `form.honeypotField`; any other key is a 400 with the key in `fields`, beside the fields' own errors. It stores only the fields' answers (never the honeypot, which is read from the body first), rewritten as checked: an email trimmed, a phone's number as E.164.
 
-Payload cap: 64KB. Length caps are three-tier (default applies when the field sets no `maxLength`; a configured `maxLength` is clamped to the absolute):
+Every answer has one shape, so no part of a submission can carry more than its cap: one string (Number a number too), a Checkbox `true`, `false`, or `"on"` (what a checked HTML checkbox sends), Checkboxes a list of strings naming each option once, and a Name, Address or Phone an object of only the field's parts, each a string (a Phone's are its number and, when it asks for one, its extension). A new type gets a shape and a cap in `validateField`, or anything up to 64KB gets stored through it.
 
-| Type | Default | Absolute |
-|------|---------|----------|
-| TEXT | 200 | 500 |
-| EMAIL | 254 | 320 |
-| TEXTAREA | 2000 | 10000 |
+Length caps (`MAX_LENGTHS` beside `validateField`): every type that takes one piece of text is held to its cap whatever the field stores. The one length setting is a Paragraph's character limit (`characterLimit`), taken only as a whole number from 1 to the Paragraph cap; the form counts it down rather than stopping typing at it, and `validateField` refuses an answer past it. Name and Address parts are capped per part beside their rules (`embed/src/name.ts`, `embed/src/address.ts`), and an "Other" answer in `embed/src/choices.ts`. The embed sets each cap as the input's `maxlength` (number and date inputs ignore it), so a visitor can't type past what the server would refuse.
+
+Dates compare as `YYYY-MM-DD` strings, never through `new Date` (a date-only string parses as UTC midnight, the previous day west of UTC). A bound of `"today"` is the visitor's own date in the embed; the server can't know the visitor's zone, so it accepts any date that is today somewhere (`anywhereToday`, UTC-12 to UTC+14).
 
 **Two validation dialects. Do not cross them.** Embed forms use native HTML5 popups via `setCustomValidity()`, one error at a time. Admin and auth forms use custom inline validation with the touched/submitted pattern and `noValidate` on the form.
 
 ### Public API contracts
 
-`handlePublicSubmit` in `src/lib/public-submit.ts` is the full gate order, shared by the **embed and submit routes only**: type gate → published gate → origin → rate limit → `stopAt` → `maxSubmissions` → payload size → field validation → honeypot → store → queue email. Add a new submission-side rule here so both routes get it. The embed route's GET carries its own copies of the type and published gates.
+`handlePublicSubmit` in `src/lib/public-submit.ts` is the full gate order, shared by the **embed and submit routes only**: type gate → published gate → origin → rate limit → `stopAt` → `maxSubmissions` → payload size → keys and field validation → honeypot → store the fields → queue email. Add a new submission-side rule here so both routes get it. The embed route's GET carries its own copies of the type and published gates.
 
 - **Embed API**: GET returns the embed-safe definition plus ordered fields. POST runs the full gate order. Rate limits: GET 60/min, POST 10/min per hashed IP. The IP comes from `clientIPFromHeaders` (`src/lib/validation.ts`), which trusts Cloudflare's `CF-Connecting-IP` first because the origin is reachable only through the tunnel; never put a client-controlled header such as the first `X-Forwarded-For` entry ahead of it, or every rate limit becomes bypassable.
 - **Submit API**: POST only, for white-box HTML forms that never fetch a schema.
@@ -97,7 +96,7 @@ Payload cap: 64KB. Length caps are three-tier (default applies when the field se
 - **`/demo`** (`src/app/demo/[[...path]]/route.ts`) serves the demo site's published build (PRD D23) from the builder. It is client-editable content on the portal's origin, so every response carries `Content-Security-Policy: sandbox ...` (an opaque origin that can't use the portal session) plus CORS for its fonts and module scripts. Never drop the sandbox or add `allow-same-origin`. A fingerprinted `_astro/` asset only the draft's build has is served from it, because the canvas's requests carry no session.
 - **`/canvas/[siteId]/...`** (`src/app/canvas/[siteId]/[[...path]]/route.ts`) is a page of any site as the Editor's canvas and the preview page show it (PRD D47), for members of the site's account only (`previewableSite`; 404 for anyone else). With a draft, the newest build of the draft; with none, the live page. It injects a `<base>` at the page's live address (`src/lib/site-live.ts`: `/demo` for the demo, `https://` plus the first production hostname for a client site, never the request's host), so the page's styles, fonts, and scripts load from where the site is live, plus a flag on `<html>` and the bridge (`src/lib/canvas-bridge.ts`): `data-canopy-editor` and edit mode, or with `?view=preview` `data-canopy-preview` and view mode (no marks). Every response carries the same sandbox CSP as `/demo`. The portal fetches the HTML with the session and shows it in a sandboxed srcdoc frame; `X-Canopy-Build` names the draft build shown. The bridge only reports, navigates, and edits text in place; every write is a server action through the tool layer.
 - **`/preview/[siteId]/...`** (`src/app/preview/[siteId]/[[...path]]/`) is the preview page (PRD D47): the site filling a tab of its own, outside `(admin)` so with no Sites chrome, and the preview bar holding the only Publish. Publish sends the build the page showed (`publishPreview`), and the tool layer refuses any other (`publishChange`). Signed-in members only, behind `requireHomeHost`. Every preview link (the Sites chrome, Quick Edit, later MCP) is this page.
-- **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`; `type === "HOSTED"` returns `code: "FORM_HOSTED_ONLY"`. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
+- **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`. A HOSTED form returns `code: "FORM_HOSTED_ONLY"` from the embed GET always, and from a POST unless the request comes from the portal's own origin (`isAppOrigin` in `src/lib/validation.ts`: Origin, else Referer, equal to `NEXT_PUBLIC_APP_URL`'s origin). The hosted page submits through the embed route like any embed, so a POST gate without that exception refuses every hosted form. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
 - A filled honeypot **does not reject**. It stores the submission with `isSpam: true`, which is why `maxSubmissions` counts non-spam rows only and spam skips the notification email.
 - Submission limits return 403 and raise a `LIMIT_DEADLINE_REACHED` or `LIMIT_MAX_REACHED` notification.
 - Notification emails: one per address in `form.notifyEmails[]` (max 5). `form.emailIncludeResponses` off (default) sends metadata only; on lists every submitted value and sets `Reply-To`. Content lives in `src/lib/submission-email.ts`, not `email.ts`. The dashboard link is per recipient, included only for addresses belonging to a `User` on the form's account.
@@ -116,7 +115,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 |------|------|
 | `embed/src/*` | Source of truth for the embed. **Never edit `public/embed.js` by hand.** |
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
-| `src/lib/public-submit.ts` | Where server-side submission validation and gates belong. Note the single-field route's divergence in section 2. |
+| `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
 | `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, locked fields, the contract, and rate limits are enforced here for every source (Editor, quick edit, later MCP). Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
@@ -195,10 +194,10 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 ### Adding a field type
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
-2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/components/forms/field-row.tsx`).
+2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`, `selfLabeled`) decide where its config is stored and which boxes its settings show. If a new field can't save without config (as Dropdown can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
 3. Render it in `embed/src/form.ts`.
-4. Add client validation in `embed/src/validation.ts` if it has input constraints.
-5. Add server validation and any length cap in `src/lib/public-submit.ts`.
+4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
+5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
 6. Add a config panel in `src/components/field-config/` if it has options.
 7. Run `npm run embed:build` and commit `public/embed.js`.
 
@@ -323,6 +322,7 @@ After completing an epic or cutting a release, in order:
 3. `docs/epics/epic-N-name.md`: completion report.
 4. `docs/epics/README.md`: table row with version, date, link.
 5. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
+6. `prisma/schema.prisma`: a column documented as "Dropped by a migration in the next production release" is retired and no longer read. Before the release PR, remove it with its migration (section 5), so a running container never loses a column its code still selects.
 
 If a future change adds another file holding version-specific information, add it to this list at the same time.
 
@@ -344,8 +344,8 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
   │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
   │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId?)
-  │    └─ Field (name, type:FieldType, label, placeholder?, order, required,
-  │    │         options?, validation?, helpText?)
+  │    └─ Field (name, type:FieldType, label, order, required, options?,
+  │    │         validation?, helpText?)
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
@@ -371,8 +371,8 @@ User (email, password, roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
 
 Enums:
 
-- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS`. Display labels in `src/lib/field-types.ts`.
-- `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (embed API rejects HOSTED with `FORM_HOSTED_ONLY`; `/f/[formId]` rejects EMBEDDED with Form Not Available).
+- `FieldType`: `TEXT | EMAIL | TEXTAREA | DROPDOWN | CHECKBOX | CHECKBOXES | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
+- `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
 - `SubmissionStatus`: `NEW | READ | ARCHIVED`.
 - `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
 - `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.

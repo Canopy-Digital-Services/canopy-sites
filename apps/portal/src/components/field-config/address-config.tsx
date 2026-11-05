@@ -1,41 +1,79 @@
 "use client";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { AddressOptions } from "@/types/field-config";
+import {
+  ADDRESS_PART_LABELS,
+  addressParts,
+  addressRequiredParts,
+  type AddressPart,
+} from "../../../embed/src/address";
+import { savedParts } from "@/lib/field-rules";
+import { PartRow, PartsRequiredHeading } from "./part-row";
 import { ConfigComponentProps } from "./types";
+
+const ROWS: AddressPart[] = ["line1", "line2", "city", "region", "postalCode"];
 
 export function AddressConfig({
   value,
   onChange,
+  onFocusPart,
+  required: fieldRequired = false,
 }: ConfigComponentProps<AddressOptions>) {
-  const options = value || { showLine2: true };
+  const parts = addressParts(value);
+  const partLabels = value?.partLabels ?? {};
+  const requiredParts = addressRequiredParts(value, fieldRequired) as AddressPart[];
 
-  const handleLine2Toggle = () => {
-    onChange({
-      ...options,
-      showLine2: !options.showLine2,
-    });
+  // Labels and requirements stay only for the parts that stay (savedParts).
+  const save = (next: Partial<AddressOptions>) =>
+    onChange(
+      savedParts(
+        {
+          parts: next.parts ?? parts,
+          partLabels: next.partLabels ?? partLabels,
+          requiredParts: next.requiredParts ?? requiredParts,
+        },
+        (order) => addressParts({ parts: order as AddressPart[] })
+      ) as AddressOptions
+    );
+
+  const toggle = (part: AddressPart, on: boolean) => {
+    if (on) return save({ parts: [...parts, part] });
+    // An apartment means nothing without a street.
+    save({ parts: parts.filter((p) => p !== part && !(part === "line1" && p === "line2")) });
+  };
+
+  const setRequired = (part: AddressPart, on: boolean) =>
+    save({ requiredParts: on ? [...requiredParts, part] : requiredParts.filter((p) => p !== part) });
+
+  const rename = (part: AddressPart, text: string) => {
+    const next = { ...partLabels };
+    if (text.trim()) next[part] = text;
+    else delete next[part];
+    save({ partLabels: next });
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Address Fields</Label>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="address-show-line2"
-            checked={options.showLine2 !== false}
-            onCheckedChange={handleLine2Toggle}
+    <div className="space-y-1">
+      <PartsRequiredHeading />
+      {ROWS.map((part) =>
+        // The apartment shows only under a collected street, indented as its dependent.
+        part === "line2" && !parts.includes("line1") ? null : (
+          <PartRow
+            key={part}
+            id={`address-part-${part}`}
+            name={ADDRESS_PART_LABELS[part]}
+            checked={parts.includes(part)}
+            onCheckedChange={(on) => toggle(part, on)}
+            label={partLabels[part] ?? ""}
+            defaultLabel={ADDRESS_PART_LABELS[part]}
+            onRename={(text) => rename(part, text)}
+            onRenaming={(renaming) => onFocusPart?.(renaming ? `label-${part}` : null)}
+            required={requiredParts.includes(part)}
+            onRequiredChange={(on) => setRequired(part, on)}
+            className={part === "line2" ? "pl-6" : undefined}
           />
-          <Label
-            htmlFor="address-show-line2"
-            className="text-sm font-normal cursor-pointer"
-          >
-            Show Address Line 2 (Apt, Suite, etc.)
-          </Label>
-        </div>
-      </div>
+        )
+      )}
     </div>
   );
 }

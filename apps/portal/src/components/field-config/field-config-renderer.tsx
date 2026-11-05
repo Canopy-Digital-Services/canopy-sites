@@ -1,9 +1,8 @@
 import { FieldType } from "@prisma/client";
-import { TextConfig, TextareaConfig } from "./text-config";
-import { EmailConfig } from "./email-config";
+import { ParagraphConfig } from "./paragraph-config";
 import { DropdownConfig } from "./dropdown-config";
-import { PhoneConfig } from "./phone-config";
 import { DateConfig } from "./date-config";
+import { PhoneConfig } from "./phone-config";
 import { NameConfig } from "./name-config";
 import { CheckboxesConfig } from "./checkboxes-config";
 import { NumberConfig } from "./number-config";
@@ -16,9 +15,7 @@ import { ConfigComponentProps } from "./types";
 type AnyConfigComponent = React.ComponentType<ConfigComponentProps<any>>;
 
 const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
-  TEXT: TextConfig,
-  EMAIL: EmailConfig,
-  TEXTAREA: TextareaConfig,
+  TEXTAREA: ParagraphConfig,
   DROPDOWN: DropdownConfig,
   PHONE: PhoneConfig,
   DATE: DateConfig,
@@ -28,14 +25,19 @@ const configRegistry: Partial<Record<FieldType, AnyConfigComponent>> = {
   ADDRESS: AddressConfig,
 };
 
+/** Whether a field type has settings of its own, below the common ones. */
+export const hasTypeSettings = (type: string) => type in configRegistry;
+
 type FieldConfigRendererProps = {
   type: FieldType;
   value: unknown;
   onChange: (value: unknown) => void;
+  onFocusPart?: (part: string | null) => void;
+  required?: boolean;
 };
 
-export function FieldConfigRenderer({ type, value, onChange }: FieldConfigRendererProps) {
+export function FieldConfigRenderer({ type, value, onChange, onFocusPart, required }: FieldConfigRendererProps) {
   const Component = configRegistry[type];
   if (!Component) return null;
-  return <Component value={value} onChange={onChange} />;
+  return <Component value={value} onChange={onChange} onFocusPart={onFocusPart} required={required} />;
 }

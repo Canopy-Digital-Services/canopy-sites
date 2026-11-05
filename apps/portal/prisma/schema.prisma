@@ -301,7 +301,6 @@ model Field {
   name        String
   type        FieldType
   label       String
-  placeholder String?
   required    Boolean   @default(false)
   order       Int
   options     Json?
@@ -351,6 +350,8 @@ enum FieldType {
   NAME
   NUMBER
   ADDRESS
+  DATE_OF_BIRTH
+  WEBSITE
 }
 
 enum FormType {

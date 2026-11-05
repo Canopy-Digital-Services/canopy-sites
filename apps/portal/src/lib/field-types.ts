@@ -13,22 +13,36 @@
 import { FieldType } from "@prisma/client";
 
 /**
- * Field type options for dropdowns (ordered list)
- * This defines both the value (enum) and label (human-readable)
+ * Field types in the order the type list shows them, each with its label and
+ * the traits the editor and the save rules go by:
+ * - choice: picked from a list of options (Dropdown, Checkboxes)
+ * - composite: made of parts, each collected and required on its own
+ * A choice or composite type keeps its config in `options`, any other in
+ * `validation`.
  */
+type FieldTypeTrait = "choice" | "composite";
+type FieldTypeOption = { value: FieldType; label: string } & Partial<Record<FieldTypeTrait, true>>;
+
 export const FIELD_TYPE_OPTIONS = [
-  { value: "NAME" as const, label: "Name" },
+  { value: "NAME" as const, label: "Name", composite: true },
   { value: "EMAIL" as const, label: "Email" },
   { value: "PHONE" as const, label: "Phone" },
-  { value: "ADDRESS" as const, label: "Address" },
+  { value: "WEBSITE" as const, label: "Website" },
+  { value: "ADDRESS" as const, label: "Address", composite: true },
+  { value: "DATE_OF_BIRTH" as const, label: "Date of birth" },
   { value: "DATE" as const, label: "Date" },
   { value: "NUMBER" as const, label: "Number" },
   { value: "TEXT" as const, label: "Text" },
   { value: "TEXTAREA" as const, label: "Paragraph" },
-  { value: "DROPDOWN" as const, label: "Dropdown" },
-  { value: "CHECKBOXES" as const, label: "Checkboxes" },
+  { value: "DROPDOWN" as const, label: "Dropdown", choice: true },
+  { value: "CHECKBOXES" as const, label: "Checkboxes", choice: true },
   { value: "CHECKBOX" as const, label: "Yes / No" },
-] as const;
+] as const satisfies readonly FieldTypeOption[];
+
+const TRAITS = new Map<string, FieldTypeOption>(FIELD_TYPE_OPTIONS.map((option) => [option.value, option]));
+
+/** Whether a field type has `trait` (see FIELD_TYPE_OPTIONS). */
+export const fieldTypeHas = (type: string, trait: FieldTypeTrait) => TRAITS.get(type)?.[trait] === true;
 
 /**
  * Derive a label map from the options for O(1) lookup

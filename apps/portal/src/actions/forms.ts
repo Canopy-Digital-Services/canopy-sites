@@ -18,12 +18,12 @@ import {
 } from "@/lib/errors/plan-errors";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
+import { fieldProblem, savedField } from "@/lib/field-rules";
 
 type FieldInput = {
   name?: string; // Optional on create, ignored on update
   type: string;
   label: string;
-  placeholder?: string | null;
   required?: boolean;
   helpText?: string | null;
   options?: unknown;
@@ -34,21 +34,28 @@ type FieldInput = {
 // FIELD ACTIONS
 // ============================================================================
 
-async function generateUniqueName(formId: string, baseSlug: string): Promise<string> {
+// The honeypot's name is taken too: a filled honeypot marks the submission
+// as spam, so a field by that name would mark every answer to it as spam.
+async function generateUniqueName(
+  formId: string,
+  honeypotField: string | null,
+  baseSlug: string
+): Promise<string> {
   const existing = await prisma.field.findMany({
     where: { formId },
     select: { name: true },
   });
-  
-  const existingNames = new Set(existing.map(f => f.name));
-  
-  if (!existingNames.has(baseSlug)) {
+
+  const takenNames = new Set(existing.map(f => f.name));
+  if (honeypotField) takenNames.add(honeypotField);
+
+  if (!takenNames.has(baseSlug)) {
     return baseSlug;
   }
-  
+
   // Find next available suffix
   let counter = 2;
-  while (existingNames.has(`${baseSlug}_${counter}`)) {
+  while (takenNames.has(`${baseSlug}_${counter}`)) {
     counter++;
   }
   return `${baseSlug}_${counter}`;
@@ -56,17 +63,22 @@ async function generateUniqueName(formId: string, baseSlug: string): Promise<str
 
 export async function createField(formId: string, data: FieldInput) {
   const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const form = await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.label) {
-    throw new Error("Field label is required");
-  }
+  // The same rules the editor keeps, whatever sent the field.
+  const problem = fieldProblem(data);
+  if (problem) throw new Error(problem);
+  const saved = savedField(data);
 
   // Generate unique name from label if not provided
   const fieldName = data.name?.trim() || await generateUniqueName(
     formId,
-    slugify(data.label)
+    form.honeypotField,
+    slugify(saved.label)
   );
+  if (fieldName === form.honeypotField) {
+    throw new Error(`"${fieldName}" is this form's honeypot, so no field can use it.`);
+  }
 
   const lastField = await prisma.field.findFirst({
     where: { formId },
@@ -80,14 +92,13 @@ export async function createField(formId: string, data: FieldInput) {
     data: {
       formId,
       name: fieldName,
-      type: data.type as FieldType,
-      label: data.label.trim(),
-      placeholder: data.placeholder?.trim() || null,
-      required: Boolean(data.required),
-      helpText: data.helpText?.trim() || null,
+      type: saved.type as FieldType,
+      label: saved.label,
+      required: saved.required,
+      helpText: saved.helpText,
       order,
-      options: data.options || undefined,
-      validation: data.validation || undefined,
+      options: (saved.options as Prisma.InputJsonValue | null) ?? undefined,
+      validation: (saved.validation as Prisma.InputJsonValue | null) ?? undefined,
     },
   });
 
@@ -103,10 +114,6 @@ export async function updateField(
   const accountId = await getCurrentAccountId();
   await getOwnedFormMinimal(formId, accountId);
 
-  if (!data.label) {
-    throw new Error("Field label is required");
-  }
-
   const field = await prisma.field.findFirst({
     where: {
       id: fieldId,
@@ -118,18 +125,23 @@ export async function updateField(
     throw new Error("Field not found");
   }
 
-  // Note: name is immutable after creation (not updated). Options and
-  // validation are written whole: a field whose rules were cleared stores none.
+  // A field's name and type are fixed once it exists: the rules follow the
+  // type it has, not one the request names.
+  const settings = { ...data, type: field.type };
+  const problem = fieldProblem(settings);
+  if (problem) throw new Error(problem);
+  const saved = savedField(settings);
+
+  // Options and validation are written whole: a field whose rules were
+  // cleared stores none.
   const updated = await prisma.field.update({
     where: { id: fieldId },
     data: {
-      type: data.type as FieldType,
-      label: data.label.trim(),
-      placeholder: data.placeholder?.trim() || null,
-      required: Boolean(data.required),
-      helpText: data.helpText?.trim() || null,
-      options: (data.options as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
-      validation: (data.validation as Prisma.InputJsonValue | null | undefined) ?? Prisma.DbNull,
+      label: saved.label,
+      required: saved.required,
+      helpText: saved.helpText,
+      options: (saved.options as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
+      validation: (saved.validation as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     },
   });
 
@@ -257,7 +269,13 @@ export async function updateFormBasics(
   }
 
   if (data.honeypotField !== undefined) {
-    updateData.honeypotField = data.honeypotField?.trim() || null;
+    const honeypotField = data.honeypotField?.trim() || null;
+    // A filled honeypot marks the submission as spam, so a honeypot named
+    // for a field would mark every answer to that field as spam.
+    if (honeypotField && await prisma.field.count({ where: { formId, name: honeypotField } })) {
+      throw new Error(`A field is already named "${honeypotField}", so the honeypot can't be.`);
+    }
+    updateData.honeypotField = honeypotField;
   }
 
   await prisma.form.update({
@@ -407,6 +425,11 @@ export async function toggleFormPublished(formId: string, published: boolean) {
   // Unpublishing is always allowed; it releases a slot and cannot violate a
   // plan limit. Re-publishing an already-published form is also a no-op.
   if (published && !form.published) {
+    // Submissions store only fields, so a form without one has nothing to take.
+    if ((await prisma.field.count({ where: { formId } })) === 0) {
+      throw new Error("A form needs a field before it can be published.");
+    }
+
     const entitlements = await getAccountEntitlements(accountId);
 
     if (entitlements.requiresPlanResolution) {
