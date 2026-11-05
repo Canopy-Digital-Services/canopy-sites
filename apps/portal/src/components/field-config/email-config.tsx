@@ -1,131 +1,27 @@
 "use client";
 
-import { useState } from "react";
+// UI: see docs/UX_PATTERNS.md ("Inline field rows").
+//
+// An Email's one setting: whether it takes only work addresses.
+
+import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { EmailValidation } from "@/types/field-config";
 import { ConfigComponentProps } from "./types";
 
-export function EmailConfig({
-  value,
-  onChange,
-}: ConfigComponentProps<EmailValidation | undefined>) {
-  const validation = value || {};
-
-  const domainRules = validation.domainRules || {};
-  const ruleType = domainRules.allow ? "allow" : domainRules.block ? "block" : "none";
-
-  // Local state for the raw textarea text so trailing newlines are preserved while typing
-  const [domainText, setDomainText] = useState(() => {
-    if (domainRules.allow) return domainRules.allow.join("\n");
-    if (domainRules.block) return domainRules.block.join("\n");
-    return "";
-  });
-
-
-  const handleChange = (key: keyof EmailValidation, newValue: EmailValidation[keyof EmailValidation]) => {
-    const updated = { ...validation };
-
-    if (key === "normalize") {
-      if (newValue) {
-        updated[key] = true;
-      } else {
-        delete updated[key];
-      }
-    } else if (key === "domainRules") {
-      if (newValue && typeof newValue === "object") {
-        updated[key] = newValue as EmailValidation["domainRules"];
-      } else {
-        delete updated[key];
-      }
-    }
-
-    onChange(Object.keys(updated).length > 0 ? updated : undefined);
-  };
-
-  const handleDomainRuleTypeChange = (type: string) => {
-    if (type === "none") {
-      handleChange("domainRules", undefined);
-    } else {
-      // Preserve the existing domain list when switching between allow/block
-      const domains = domainText
-        .split("\n")
-        .map((d) => d.trim())
-        .filter((d) => d.length > 0);
-      handleChange("domainRules", { [type]: domains });
-    }
-  };
-
-  const handleDomainListChange = (raw: string) => {
-    setDomainText(raw);
-    const domains = raw
-      .split("\n")
-      .map((d) => d.trim())
-      .filter((d) => d.length > 0);
-
-    if (domains.length === 0) {
-      handleChange("domainRules", undefined);
-    } else {
-      handleChange("domainRules", { [ruleType]: domains });
-    }
-  };
-
+export function EmailConfig({ value, onChange }: ConfigComponentProps<EmailValidation | undefined>) {
+  const id = useId();
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="domain-rules">
-          Domain Rules
-        </Label>
-        <Select value={ruleType} onValueChange={handleDomainRuleTypeChange}>
-          <SelectTrigger id="domain-rules">
-            <SelectValue placeholder="No restrictions" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No restrictions</SelectItem>
-            <SelectItem value="allow">Allow only</SelectItem>
-            <SelectItem value="block">Block list</SelectItem>
-          </SelectContent>
-        </Select>
-        {ruleType !== "none" && (
-          <>
-            <Textarea
-              value={domainText}
-              onChange={(e) => handleDomainListChange(e.target.value)}
-              placeholder={
-                ruleType === "allow"
-                  ? "example.com\ncompany.com"
-                  : "gmail.com\nyahoo.com"
-              }
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">One domain per line.</p>
-          </>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="email-normalize"
-            checked={validation.normalize || false}
-            onCheckedChange={(checked) => handleChange("normalize", checked === true)}
-          />
-          <Label
-            htmlFor="email-normalize"
-            className="text-sm font-normal cursor-pointer"
-          >
-            Store in lowercase
-          </Label>
-        </div>
-      </div>
+    <div className="flex items-center gap-2">
+      <Checkbox
+        id={id}
+        checked={value?.workOnly === true}
+        onCheckedChange={(checked) => onChange(checked === true ? { workOnly: true } : undefined)}
+      />
+      <Label htmlFor={id} className="cursor-pointer font-normal">
+        Work emails only
+      </Label>
     </div>
   );
 }

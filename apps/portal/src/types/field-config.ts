@@ -6,27 +6,19 @@
 
 import type { NameOptions } from "../../embed/src/name";
 import type { AddressOptions } from "../../embed/src/address";
+import type { PhoneOptions } from "../../embed/src/phone";
 import type { ChoiceOption, ChoiceOptions } from "../../embed/src/choices";
 
 // Dropdown and Checkboxes share one shape; only a Dropdown has a default.
-export type { NameOptions, AddressOptions, ChoiceOption, ChoiceOptions };
+export type { NameOptions, AddressOptions, PhoneOptions, ChoiceOption, ChoiceOptions };
 
 /** A Paragraph's character limit; without one it takes the most a Paragraph
     takes. */
 export type ParagraphValidation = { maxLength: number };
 
 // Type-specific validation extensions
-export type EmailValidation = {
-  domainRules?: {
-    allow?: string[];
-    block?: string[];
-  };
-  normalize?: boolean; // Auto-lowercase
-};
-
-export type PhoneValidation = {
-  format?: "lenient" | "strict";
-};
+/** An Email that refuses personal addresses (Gmail and the like). */
+export type EmailValidation = { workOnly: true };
 
 /** A Future Date takes today or later (`minDate`), a Past Date today or
     earlier (`maxDate`); an Any Date field stores no rule. */
@@ -57,7 +49,7 @@ export type FieldConfig =
     }
   | {
       type: "PHONE";
-      validation?: PhoneValidation;
+      validation?: PhoneOptions;
       options?: never;
     }
   | {

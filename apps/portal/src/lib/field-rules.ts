@@ -7,6 +7,7 @@ import { DEFAULT_NAME_PARTS, orderNameParts } from "../../embed/src/name";
 import { ADDRESS_PARTS, addressParts, type AddressOptions } from "../../embed/src/address";
 import { choiceOptions, clashingChoices, type ChoiceOption, type ChoiceOptions } from "../../embed/src/choices";
 import { characterLimit, MAX_LENGTHS } from "../../embed/src/validation";
+import { phoneParts, type PhoneOptions } from "../../embed/src/phone";
 import type { DateValidation, NumberValidation } from "@/types/field-config";
 
 export const isChoiceType = (type: string) => fieldTypeHas(type, "choice");
@@ -164,12 +165,17 @@ function savedValidation(field: FieldSettings): unknown {
       const limit = characterLimit(field);
       return limit ? { maxLength: limit } : null;
     }
-    case "TEXT":
-    case "WEBSITE":
-    case "DATE_OF_BIRTH":
-      return null;
+    case "EMAIL":
+      return (field.validation as { workOnly?: unknown } | null)?.workOnly === true ? { workOnly: true } : null;
+    case "PHONE": {
+      // Only an extension is a setting; a renamed one keeps its label.
+      if (!phoneParts(field.validation).includes("extension")) return null;
+      const label = (field.validation as PhoneOptions).partLabels?.extension?.trim();
+      return { parts: ["number", "extension"], ...(label && { partLabels: { extension: label } }) };
+    }
+    // The rest have no settings of their own.
     default:
-      return field.validation ?? null;
+      return null;
   }
 }
 

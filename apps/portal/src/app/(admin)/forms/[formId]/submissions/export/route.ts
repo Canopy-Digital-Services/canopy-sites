@@ -3,6 +3,7 @@ import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
 import { prisma } from "@/lib/db";
 import { addressParts, type AddressOptions } from "../../../../../../../embed/src/address";
+import { phoneParts } from "../../../../../../../embed/src/phone";
 
 export async function GET(
   request: NextRequest,
@@ -79,6 +80,8 @@ export async function GET(
           type: "ADDRESS",
           parts: addressParts(field.options as AddressOptions | null),
         });
+      } else if (field.type === "PHONE") {
+        compositeFields.set(field.name, { type: "PHONE", parts: phoneParts(field.validation) });
       }
     }
 

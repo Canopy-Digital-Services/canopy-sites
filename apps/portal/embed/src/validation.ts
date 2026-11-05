@@ -8,24 +8,21 @@
 import { DEFAULT_NAME_PARTS, nameRequiredParts, namePartLabel, namePartMaxLength, type NameOptions } from "./name";
 import { addressError, addressPartLabel, addressParts, type AddressOptions } from "./address";
 import { choiceError, type ChoiceOption, type ChoiceOptions } from "./choices";
+import { phoneError, phoneExtensionLabel, phoneParts, type PhoneOptions } from "./phone";
 
 type FieldValidation = {
   /** A Paragraph's character limit. */
   maxLength?: number;
-  /** A Phone's. */
-  format?: "lenient" | "strict";
   /** "today": a Future Date. A fixed date, which older fields may hold, is no rule. */
   minDate?: string;
   /** "today": a Past Date. */
   maxDate?: string;
-  domainRules?: {
-    allow?: string[];
-    block?: string[];
-  };
+  /** An Email that refuses personal addresses (Gmail and the like). */
+  workOnly?: boolean;
   min?: number;
   max?: number;
   integer?: boolean;
-};
+} & PhoneOptions;
 
 type FieldDefinition = {
   name: string;
@@ -55,7 +52,6 @@ const MAX_LENGTHS: Record<string, number> = {
   TEXT: 200,
   EMAIL: 254, // RFC 5321
   TEXTAREA: 10000,
-  PHONE: 30,
   NUMBER: 50,
   DATE: 30,
   DATE_OF_BIRTH: 10, // YYYY-MM-DD
@@ -94,19 +90,18 @@ export function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value);
 }
 
-/** The ten digits of a US phone number, however it's written (a leading +1
-    or 1 is dropped), or null if it isn't one. */
-export function usPhoneDigits(value: string): string | null {
-  let digits = value.replace(/[^\d+]/g, "");
-  if (digits.startsWith("+1")) {
-    digits = digits.substring(2);
-  } else if (digits.startsWith("+")) {
-    return null;
-  } else if (digits.startsWith("1") && digits.length === 11) {
-    digits = digits.substring(1);
-  }
-  return /^\d{10}$/.test(digits) ? digits : null;
-}
+/** Free personal email providers, which a Work emails only field refuses:
+    the big webmail services and the US internet providers that give their
+    customers an address. */
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "ymail.com", "rocketmail.com",
+  "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com", "aol.com",
+  "icloud.com", "me.com", "mac.com", "proton.me", "protonmail.com", "pm.me",
+  "gmx.com", "gmx.net", "mail.com", "zoho.com", "yandex.com", "fastmail.com", "hey.com", "tutanota.com",
+  "comcast.net", "verizon.net", "att.net", "sbcglobal.net", "bellsouth.net", "cox.net", "charter.net",
+  "earthlink.net", "juno.com", "optonline.net", "frontier.com", "centurylink.net",
+  "qq.com", "163.com", "naver.com", "web.de", "orange.fr", "free.fr", "libero.it", "mail.ru",
+]);
 
 // Dates are compared as YYYY-MM-DD strings, the way the date input writes
 // them. Parsing one with `new Date` reads it as UTC midnight, which is the
@@ -243,6 +238,13 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
       }
       return null;
     }
+    case "PHONE": {
+      const labelOf = (part: string) => (part === "extension" ? phoneExtensionLabel(field.validation) : label);
+      return (
+        partsError(value, phoneParts(field.validation), labelOf, label) ??
+        phoneError(value as Record<string, string> | undefined, field.validation, field.required, label)
+      );
+    }
     case "ADDRESS": {
       const options = field.options as AddressOptions | null | undefined;
       const labelOf = (part: string) => addressPartLabel(part, options?.partLabels);
@@ -273,16 +275,6 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
     case "DROPDOWN":
       return choiceError("DROPDOWN", value, field.options, label);
 
-    case "PHONE": {
-      const format = rules.format || "lenient";
-      if (format === "lenient" && !/^[\d\s\-\(\)\+\.]{7,}$/.test(text)) {
-        return `${label} must be a valid phone number.`;
-      }
-      if (format === "strict" && !usPhoneDigits(text)) {
-        return `${label} must be a valid US phone number (10 digits).`;
-      }
-      return null;
-    }
 
     case "DATE": {
       const date = calendarDate(text);
@@ -326,14 +318,10 @@ export function validateField(field: ValidatedField, value: unknown, today: Toda
 
     case "EMAIL": {
       const email = text.trim();
-      if (!isValidEmail(email)) return `Enter a valid email address`;
-      const domain = email.split("@")[1].toLowerCase();
-      const { allow, block } = rules.domainRules ?? {};
-      if (Array.isArray(allow) && allow.length > 0 && !allow.some((d) => String(d).toLowerCase() === domain)) {
-        return `${label} must be from an allowed domain.`;
-      }
-      if (Array.isArray(block) && block.some((d) => String(d).toLowerCase() === domain)) {
-        return `${label} domain is not allowed.`;
+      if (!isValidEmail(email)) return `${label} must be an email address, like name@example.com.`;
+      const domain = email.slice(email.lastIndexOf("@") + 1).toLowerCase();
+      if (rules.workOnly === true && PERSONAL_EMAIL_DOMAINS.has(domain)) {
+        return `${label} must be a work email address, not a personal one like Gmail.`;
       }
       return null;
     }
@@ -363,5 +351,5 @@ export function answerOf(values: Record<string, unknown>, name: string): unknown
   return Object.prototype.hasOwnProperty.call(values, name) ? values[name] : undefined;
 }
 
-export type { FieldDefinition, FieldValidation, ValidatedField, NameOptions, AddressOptions };
+export type { FieldDefinition, FieldValidation, ValidatedField, NameOptions, AddressOptions, PhoneOptions };
 export { MAX_LENGTHS };

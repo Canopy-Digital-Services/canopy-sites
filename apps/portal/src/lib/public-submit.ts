@@ -14,10 +14,10 @@ import {
   anywhereToday,
   dateOfBirth,
   numberAnswer,
-  usPhoneDigits,
   validateSubmission,
   websiteAddress,
 } from "../../embed/src/validation";
+import { storedPhone } from "../../embed/src/phone";
 
 type RateLimitConfig = {
   max: number;
@@ -197,27 +197,23 @@ export async function handlePublicSubmit({
     );
   }
 
-  // Only the fields are stored, as checked: an email trimmed, and lowercased
-  // when the field normalizes it; a strict US phone as E.164 (+1XXXXXXXXXX);
-  // a date of birth as YYYY-MM-DD, like a Date's answer; a number without the
-  // commas or spaces it was written with; a website with https:// when typed
-  // without one.
+  // Only the fields are stored, as checked: an email trimmed; a phone's number
+  // as E.164 (+12015550123), however it was written; a date of birth as
+  // YYYY-MM-DD, like a Date's answer; a number without the commas or spaces
+  // it was written with; a website with https:// when typed without one.
   const data: Record<string, unknown> = {};
   for (const field of form.fields) {
     const value = answerOf(formData, field.name);
     if (value === undefined) continue;
     data[field.name] = value;
+    if (field.type === "PHONE" && value) {
+      data[field.name] = storedPhone(value as Record<string, string>);
+      continue;
+    }
     if (typeof value !== "string" || value.trim() === "") continue;
-    const rules =
-      typeof field.validation === "object" && field.validation !== null
-        ? (field.validation as { format?: string; normalize?: boolean })
-        : {};
 
     if (field.type === "EMAIL") {
-      const email = value.trim();
-      data[field.name] = rules.normalize ? email.toLowerCase() : email;
-    } else if (field.type === "PHONE" && rules.format === "strict") {
-      data[field.name] = `+1${usPhoneDigits(value)}`;
+      data[field.name] = value.trim();
     } else if (field.type === "DATE_OF_BIRTH") {
       data[field.name] = dateOfBirth(value) ?? value;
     } else if (field.type === "NUMBER") {

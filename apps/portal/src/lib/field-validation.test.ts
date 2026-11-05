@@ -6,11 +6,11 @@ import {
   numberAnswer,
   websiteAddress,
   isValidEmail,
-  usPhoneDigits,
   validateField,
   validateSubmission,
   type ValidatedField,
 } from "../../embed/src/validation";
+import { phoneNumber, storedPhone } from "../../embed/src/phone";
 
 const field = (type: string, more: Partial<ValidatedField> = {}): ValidatedField => ({
   name: type.toLowerCase(),
@@ -68,12 +68,7 @@ describe("validateField: length", () => {
     expect(validateField(field("TEXTAREA"), "x".repeat(10001))).toBe("Answer must be 10,000 characters or fewer.");
   });
 
-  it("refuses a Phone, Number or Date answer past its cap before checking what it says", () => {
-    expect(validateField(field("PHONE"), "5".repeat(30))).toBeNull();
-    expect(validateField(field("PHONE"), "5".repeat(60000))).toBe("Answer must be 30 characters or fewer.");
-    expect(validateField(field("PHONE", { validation: { format: "strict", maxLength: 5 } }), "5".repeat(31))).toBe(
-      "Answer must be 30 characters or fewer."
-    );
+  it("refuses a Number or Date answer past its cap before checking what it says", () => {
     expect(validateField(field("NUMBER"), "1".repeat(50))).toBeNull();
     expect(validateField(field("NUMBER"), "1".repeat(51))).toBe("Answer must be 50 characters or fewer.");
     expect(validateField(field("DATE"), "2026-11-02T10:00:00.000-08:00", nov2)).toBeNull();
@@ -104,17 +99,24 @@ describe("validateField: website", () => {
 });
 
 describe("validateField: email", () => {
-  it("checks the address with the spaces around it trimmed", () => {
-    expect(validateField(field("EMAIL"), " ann@example.com ")).toBeNull();
-    expect(validateField(field("EMAIL"), "ann@")).toBe("Enter a valid email address");
+  const email = field("EMAIL", { label: "Email" });
+
+  it("checks the address with the spaces around it trimmed, in GOV.UK's words", () => {
+    expect(validateField(email, " ann@example.com ")).toBeNull();
+    expect(validateField(email, "ann@")).toBe("Email must be an email address, like name@example.com.");
   });
 
-  it("keeps to the field's allowed or blocked domains, in any case", () => {
-    const allow = field("EMAIL", { validation: { domainRules: { allow: ["Example.com"] } } });
-    expect(validateField(allow, "ann@EXAMPLE.com")).toBeNull();
-    expect(validateField(allow, "ann@other.com")).toBe("Answer must be from an allowed domain.");
-    const block = field("EMAIL", { validation: { domainRules: { block: ["mail.test"] } } });
-    expect(validateField(block, "ann@Mail.test")).toBe("Answer domain is not allowed.");
+  it("takes a personal address unless the field takes work emails only", () => {
+    expect(validateField(email, "ann@gmail.com")).toBeNull();
+    const work = field("EMAIL", { label: "Work email", validation: { workOnly: true } });
+    expect(validateField(work, "ann@GMail.com")).toBe("Work email must be a work email address, not a personal one like Gmail.");
+    expect(validateField(work, "ann@comcast.net")).toBe("Work email must be a work email address, not a personal one like Gmail.");
+    expect(validateField(work, "ann@acme.com")).toBeNull();
+  });
+
+  it("ignores a domain list an older field stored", () => {
+    const older = field("EMAIL", { validation: { domainRules: { allow: ["example.com"] } } as never });
+    expect(validateField(older, "ann@other.com")).toBeNull();
   });
 });
 
@@ -126,23 +128,45 @@ describe("isValidEmail", () => {
 });
 
 describe("validateField: phone", () => {
-  it("takes any common way of writing a number when lenient, the default", () => {
-    expect(validateField(field("PHONE"), "+44 (20) 7946.0958")).toBeNull();
-    expect(validateField(field("PHONE"), "555-12")).toBe("Answer must be a valid phone number.");
+  const phone = field("PHONE", { label: "Phone" });
+  const withExtension = field("PHONE", {
+    label: "Phone",
+    validation: { parts: ["number", "extension"], partLabels: { extension: "Extension" } },
+  });
+  const message = "Phone must be a phone number, like (201) 555-0123 or +44 20 7946 0958.";
+
+  it("takes a US or Canadian number with its area code, or another country's from its +", () => {
+    for (const number of ["(201) 555-0123", "201.555.0123", "1-201-555-0123", "+1 201 555 0123", "+44 20 7946 0958"]) {
+      expect(validateField(phone, { number })).toBeNull();
+    }
   });
 
-  it("takes only a US number when strict", () => {
-    const strict = field("PHONE", { validation: { format: "strict" } });
-    expect(validateField(strict, "1 (916) 555-0100")).toBeNull();
-    expect(validateField(strict, "+44 20 7946 0958")).toBe("Answer must be a valid US phone number (10 digits).");
+  it("refuses a number without its area code, with letters, or past its length, in GOV.UK's words", () => {
+    for (const number of ["555-0123", "+1 555 0123", "44 20 7946 0958", "1-800-FLOWERS", "+12", "5".repeat(60000)]) {
+      expect(validateField(phone, { number })).toBe(message);
+    }
   });
 
-  it("reads the ten digits from a US number however it's written", () => {
-    expect(usPhoneDigits("+1 916 555 0100")).toBe("9165550100");
-    expect(usPhoneDigits("1-916-555-0100")).toBe("9165550100");
-    expect(usPhoneDigits("916.555.0100")).toBe("9165550100");
-    expect(usPhoneDigits("+44 916 555 0100")).toBeNull();
-    expect(usPhoneDigits("555 0100")).toBeNull();
+  it("is its parts: an object with the number, and an extension only where the field asks for one", () => {
+    expect(validateField(phone, "(201) 555-0123")).toBe("Phone must be an object of its parts.");
+    expect(validateField(phone, { number: "(201) 555-0123", extension: "45" })).toBe('Phone has no part "extension".');
+    expect(validateField(withExtension, { number: "(201) 555-0123", extension: "45" })).toBeNull();
+  });
+
+  it("takes an extension of digits, and only with a number", () => {
+    expect(validateField(withExtension, { number: "(201) 555-0123", extension: "x45" })).toBe(
+      "Extension must be a number, like 45."
+    );
+    expect(validateField(withExtension, { number: "", extension: "45" })).toBe("Phone must include a phone number.");
+    expect(validateField({ ...withExtension, required: true }, { number: " ", extension: "" })).toBe("Phone is required.");
+    expect(validateField(withExtension, { number: "", extension: "" })).toBeNull();
+  });
+
+  it("stores the number one way, E.164, and only the parts given", () => {
+    expect(phoneNumber("1 201 555 0123")).toBe("+12015550123");
+    expect(phoneNumber("+44 (20) 7946.0958")).toBe("+442079460958");
+    expect(storedPhone({ number: "(201) 555-0123", extension: " 45 " })).toEqual({ number: "+12015550123", extension: "45" });
+    expect(storedPhone({ number: "(201) 555-0123", extension: "" })).toEqual({ number: "+12015550123" });
   });
 });
 
@@ -342,7 +366,7 @@ describe("validateSubmission", () => {
     const fields = [field("TEXT", { required: true }), field("EMAIL"), field("NUMBER")];
     expect(validateSubmission(fields, { email: "nope", number: "4" }, nov2)).toEqual({
       text: "Answer is required.",
-      email: "Enter a valid email address",
+      email: "Answer must be an email address, like name@example.com.",
     });
   });
 
