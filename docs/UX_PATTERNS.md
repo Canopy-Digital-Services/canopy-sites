@@ -141,6 +141,8 @@ Notices are **borderless tinted blocks** at the workhorse radius. The tint carri
 </div>
 ```
 
+**The acting banner** is the one full-width notice: an amber strip above the chrome, on every page and the preview page, while a Global Admin acts as a client (PRD D49; `ActingBanner`, [acting-banner.tsx](src/components/acting-banner.tsx)). It names the client and holds Stop. Nothing else takes the top of the page.
+
 ---
 
 ## 3. Motion
