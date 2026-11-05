@@ -282,9 +282,7 @@ function FieldSettings({
       )}
 
       {hasTypeSettings(field.type) && (
-        // The type's own settings, set off from the common ones above them;
-        // a Name or Address has none above.
-        <div className={isComposite(field.type) ? undefined : "border-t pt-4"}>
+        <div>
           <FieldConfigRenderer
             type={field.type as FieldType}
             value={configOf(field) ?? undefined}
