@@ -478,6 +478,13 @@ export class CanopyForm {
         const text = document.createElement("span");
         text.dataset.fieldPart = "label";
         text.textContent = field.label || field.name;
+        if (field.required) {
+          const required = document.createElement("span");
+          required.className = "canopy-required";
+          required.textContent = " *";
+          required.setAttribute("aria-hidden", "true");
+          text.appendChild(required);
+        }
         checkboxWrapper.appendChild(text);
         wrapper.appendChild(checkboxWrapper);
         
