@@ -2,22 +2,18 @@
 import Link from "next/link";
 import { Globe } from "lucide-react";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
-import {
-  listAccountsAvailableForSite,
-  listSitesForOperator,
-  type OperatorSiteListItem,
-} from "@/lib/data-access/sites";
+import { listSitesForOperator, type OperatorSiteListItem } from "@/lib/data-access/sites";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
-import { NewSiteButton } from "./new-site-button";
+import { LinkSiteButton } from "./link-site-button";
 
 export default async function SitesPage() {
   await requireGlobalAdmin();
 
-  const [sites, accounts] = await Promise.all([listSitesForOperator(), listAccountsAvailableForSite()]);
-  const newSite = <NewSiteButton accounts={accounts} />;
+  const sites = await listSitesForOperator();
+  const linkSite = <LinkSiteButton />;
 
   const columns = [
     {
@@ -52,7 +48,7 @@ export default async function SitesPage() {
       key: "contract",
       header: "Contract",
       cell: (site: OperatorSiteListItem) => (
-        <span className="text-sm text-muted-foreground">{site.contractVersion ?? "Not set"}</span>
+        <span className="text-sm text-muted-foreground">{site.contractVersion ?? "Not read yet"}</span>
       ),
     },
     {
@@ -67,14 +63,13 @@ export default async function SitesPage() {
   return (
     <PageContent width="wide">
       <div className="space-y-6">
-        <PageHeader title="Sites" actions={sites.length > 0 ? newSite : undefined} />
+        <PageHeader title="Sites" actions={sites.length > 0 ? linkSite : undefined} />
 
         {sites.length === 0 ? (
           <EmptyState
             icon={<Globe className="h-9 w-9" />}
             title="No sites"
-            description="A site belongs to one account on the Sites plan."
-            action={newSite}
+            action={linkSite}
           />
         ) : (
           <DataTable columns={columns} data={sites} />

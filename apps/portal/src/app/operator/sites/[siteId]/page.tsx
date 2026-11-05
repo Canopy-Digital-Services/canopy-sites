@@ -32,6 +32,8 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
               <dd>{site.ownerEmail ?? "No owner"}</dd>
               <dt className="text-muted-foreground">Slug</dt>
               <dd className="font-mono">{site.slug}</dd>
+              <dt className="text-muted-foreground">Contract</dt>
+              <dd className={site.contractVersion ? "font-mono" : "text-muted-foreground"}>{site.contractVersion ?? "Not read yet"}</dd>
               <dt className="text-muted-foreground">Created</dt>
               <dd>{site.createdAt.toLocaleDateString()}</dd>
             </dl>
@@ -41,7 +43,22 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
           </CardFooter>
         </Card>
 
-        <SiteBuildsCard siteId={site.id} isDemo={site.isDemo} hasRepo={Boolean(site.repoUrl)} />
+        <SiteBuildsCard
+          siteId={site.id}
+          isDemo={site.isDemo}
+          hasRepo={Boolean(site.repoUrl)}
+          latestBuild={
+            site.latestBuild && {
+              status: site.latestBuild.status,
+              error: site.latestBuild.error,
+              when: (site.latestBuild.finishedAt ?? site.latestBuild.createdAt).toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: site.timeZone,
+              }),
+            }
+          }
+        />
 
         <SiteSettingsForm
           siteId={site.id}
@@ -50,7 +67,6 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             repoUrl: site.repoUrl ?? "",
             defaultBranch: site.defaultBranch,
             productionHostnames: site.productionHostnames,
-            contractVersion: site.contractVersion ?? "",
             umamiWebsiteId: site.umamiWebsiteId ?? "",
             runbookOverlay: site.runbookOverlay,
             lockedFields: site.lockedFields,

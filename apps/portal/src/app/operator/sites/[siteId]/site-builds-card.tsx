@@ -10,7 +10,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { publishSiteFromRepo, resetDemoSite, setSiteDemo } from "@/actions/admin/site-builds";
 
-export function SiteBuildsCard({ siteId, isDemo, hasRepo }: { siteId: string; isDemo: boolean; hasRepo: boolean }) {
+/** The newest build; `when` is formatted on the server, so the page hydrates without a clock mismatch. */
+export type LatestBuild = { status: string; error: string | null; when: string };
+
+export function SiteBuildsCard({
+  siteId,
+  isDemo,
+  hasRepo,
+  latestBuild,
+}: {
+  siteId: string;
+  isDemo: boolean;
+  hasRepo: boolean;
+  latestBuild: LatestBuild | null;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -39,7 +52,11 @@ export function SiteBuildsCard({ siteId, isDemo, hasRepo }: { siteId: string; is
             <Loader2 className="h-4 w-4 animate-spin" />
             Working with the builder…
           </p>
-        ) : null}
+        ) : latestBuild ? (
+          <LatestBuildLine build={latestBuild} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Never built.</p>
+        )}
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
         <Button disabled={isPending || !hasRepo} onClick={() => run(() => publishSiteFromRepo(siteId))}>
@@ -63,5 +80,24 @@ export function SiteBuildsCard({ siteId, isDemo, hasRepo }: { siteId: string; is
         </Button>
       </CardFooter>
     </Card>
+  );
+}
+
+/** The newest build's outcome, so a failed first build after linking stays in view. */
+function LatestBuildLine({ build }: { build: LatestBuild }) {
+  const { when } = build;
+  if (build.status === "FAILED") {
+    return (
+      <p className="text-sm text-destructive">
+        Last build failed {when}
+        {build.error ? `: ${build.error}` : "."}
+      </p>
+    );
+  }
+  const label = build.status === "SUCCEEDED" ? "Last build succeeded" : `Last build ${build.status.toLowerCase()}`;
+  return (
+    <p className="text-sm text-muted-foreground">
+      {label} {when}.
+    </p>
   );
 }
