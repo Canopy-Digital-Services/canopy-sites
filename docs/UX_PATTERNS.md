@@ -173,7 +173,7 @@ Entry rises from below (3rem) at 0.94 scale and decelerates. Exit accelerates aw
 
 `DialogContent` carries this globally. Don't override per dialog.
 
-**Dropdown menus don't animate out** ([dropdown-menu.tsx](src/components/ui/dropdown-menu.tsx)). While a menu faded, its items took focus back from whatever the pick had just focused: on a pointer move over them, and, once the closing menu ignored the pointer, on the pointer leaving them. Adding a field lost its new rename box that way in real Chrome, never in headless tests. A menu that's gone at once has nothing left to take focus.
+**Dropdown menus don't animate out** ([dropdown-menu.tsx](src/components/ui/dropdown-menu.tsx)). While a menu faded, its items took focus back from whatever the pick had just focused: on a pointer move over them, and, once the closing menu ignored the pointer, on the pointer leaving them. Adding a field lost its new rename box that way in real Chrome, never in headless tests. A menu that's gone at once has nothing left to take focus. It follows that a menu item acts in its `onSelect`, and anything that has to outlive the pick (a form, a dialog, the state of a request) lives outside the menu: Sign Out's form was cancelled as the menu unmounted, until the item called the action itself. Lint rejects a `<form>` inside a menu.
 
 **Height reveals** use `.editor-reveal`, animating `grid-template-rows` from `0fr` to `1fr` while fading. It needs a single child with `overflow-hidden`. Two constraints: no overshoot on height (a container springing past its target reads as a glitch, so this uses a plain deceleration curve, not `--ease-flow-in`), and `fr` interpolation needs Chrome 117 / Safari 17.4 (older engines snap to the final height, degrading safely).
 
