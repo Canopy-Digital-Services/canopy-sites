@@ -131,8 +131,8 @@ counts:
 formats:
   phone: "(530) 555-1234"
 avoid:
-  - em-dash
   - emoji
+  - all-caps
 refuse:
   - free trial
   - discount*
