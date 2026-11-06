@@ -117,7 +117,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
 | `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
-| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, locked fields, the contract, and rate limits are enforced here for every source (Editor, quick edit, later MCP). Each guard has a database test that fails without it. |
+| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
 | `src/components/ui/` | shadcn primitives. Extend, do not fork. |
 | `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
@@ -353,7 +353,9 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
-           maxBuildsRetained, isDemo, timeZone), one per account, onDelete Restrict
+           fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
+           onDelete Restrict; lockedFields and fixedLists are address patterns
+           (site/contact/phone, classes), PRD D50
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
        │             version, error?, publishedCommit?, publishedAt?); the pending
