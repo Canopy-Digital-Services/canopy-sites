@@ -52,6 +52,15 @@ describe("a request from Quick Edit (PRD D34)", () => {
     expect(sent).toHaveBeenCalledTimes(1);
   });
 
+  it("sends text Quick Edit refused straight to Canopy, marked as refused", async () => {
+    const { ctx, site } = await owner();
+    await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const request = await help.fileHelpRequest(ctx, { message: "Put a slur in the hero", summary: "Refused hero text", refused: true });
+    expect(request).toMatchObject({ status: "OPEN", refused: true });
+    expect(sent.mock.calls[0][0].subject).toBe(`Refused: ${site.name}: Refused hero text`);
+    expect(sent.mock.calls[0][0].text).toContain("Quick Edit refused to put this on");
+  });
+
   it("files nothing on Not now", async () => {
     const { ctx, site } = await owner();
     const draft = await help.draftHelpRequest(ctx, ASK);

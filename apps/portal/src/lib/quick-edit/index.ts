@@ -12,7 +12,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getContentView, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
-import { draftHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
+import { draftHelpRequest, fileHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
 import { BASE_RUNBOOK } from "./runbook";
 
 export const QUICK_EDIT_MODEL = process.env.QUICK_EDIT_MODEL || "claude-opus-5-5";
@@ -99,6 +99,11 @@ function tools(names: CollectionName[]): Anthropic.Tool[] {
           },
           summary: { type: "string", description: "One short line saying what it's about, for Michael's inbox." },
           address: { type: "string", description: "The field it's about, as an address, when there is one." },
+          refused: {
+            type: "boolean",
+            description:
+              "True when you refused the text itself (swearing, hate speech, harassment, or nothing to do with the business): it goes straight to Michael, with no card.",
+          },
         },
         required: ["message", "summary"],
         additionalProperties: false,
@@ -339,15 +344,20 @@ async function runTool(
       return result(proposalResult(proposed));
     }
     if (use.name === "request_help") {
-      const drafted = await draftHelpRequest(
-        { accountId: ctx.accountId, userId: ctx.userId, actAsId: ctx.actAsId ?? null },
-        {
-          message: String(input.message ?? ""),
-          summary: String(input.summary ?? ""),
-          address: typeof input.address === "string" ? input.address : null,
-          conversationId,
-        },
-      );
+      const help = { accountId: ctx.accountId, userId: ctx.userId, actAsId: ctx.actAsId ?? null };
+      const draft = {
+        message: String(input.message ?? ""),
+        summary: String(input.summary ?? ""),
+        address: typeof input.address === "string" ? input.address : null,
+        conversationId,
+      };
+      if (input.refused === true) {
+        await fileHelpRequest(help, { ...draft, refused: true });
+        return result(
+          "Sent to Michael. Don't propose this text. Tell the owner in a sentence that you can't put that on the site and have passed it to Michael.",
+        );
+      }
+      const drafted = await draftHelpRequest(help, draft);
       onHelpRequest(drafted);
       return result(
         "The owner now sees this request as a card with Send to Michael and Not now. It hasn't been sent: don't say it was. Tell them in a sentence that it's Canopy's and they can send it from the card.",

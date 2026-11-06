@@ -7,8 +7,10 @@
  * operator console (`closeHelpRequest`), and a closing note is emailed to the
  * sender. A request sent while an operator acts as the client is recorded as
  * the operator's and emails nobody, so acceptance and eval runs stay out of
- * the inbox. `fileHelpRequest` drafts and sends in one step, for MCP (E34),
- * whose clients confirm with the owner first.
+ * the inbox. `fileHelpRequest` drafts and sends in one step: for text Quick
+ * Edit refuses to put on the site (`refused`: swearing, hate speech, nothing
+ * to do with the business), which goes to Canopy with no card, and for MCP
+ * (E34), whose clients confirm with the owner first.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -36,6 +38,8 @@ export interface HelpRequestDraft {
   /** The field it's about, when there is one (PRD D36). */
   address?: string | null;
   conversationId?: string | null;
+  /** Text Quick Edit refused to put on the site; sent at once (fileHelpRequest), never drafted for a card. */
+  refused?: boolean;
 }
 
 export interface HelpRequestView {
@@ -44,12 +48,20 @@ export interface HelpRequestView {
   message: string;
   summary: string;
   address: string | null;
+  refused: boolean;
 }
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
-const view = (r: HelpRequestView): HelpRequestView => ({ id: r.id, status: r.status, message: r.message, summary: r.summary, address: r.address });
+const view = (r: HelpRequestView): HelpRequestView => ({
+  id: r.id,
+  status: r.status,
+  message: r.message,
+  summary: r.summary,
+  address: r.address,
+  refused: r.refused,
+});
 
 async function siteOf(accountId: string) {
   const site = await prisma.site.findUnique({ where: { accountId } });
@@ -80,6 +92,7 @@ export async function draftHelpRequest(ctx: HelpContext, input: HelpRequestDraft
       message: message.slice(0, HELP_MESSAGE_MAX),
       summary: summary.slice(0, HELP_SUMMARY_MAX),
       address,
+      refused: Boolean(input.refused),
     },
   });
   return view(created);
@@ -206,9 +219,12 @@ async function notifyOperators(requestId: string): Promise<void> {
   const url = `${appUrlFor({ sitesEnabled: true })}/operator/requests`;
   const about = fieldLabel(request.address);
   const from = request.createdBy?.email ?? "the site's owner";
-  const subject = `${request.site.name}: ${request.summary}`;
+  const subject = `${request.refused ? "Refused: " : ""}${request.site.name}: ${request.summary}`;
+  const lead = request.refused
+    ? `Quick Edit refused to put this on ${request.site.name}'s site and sent it here.`
+    : `${request.site.name} sent a request from Quick Edit.`;
   const text = [
-    `${request.site.name} sent a request from Quick Edit.`,
+    lead,
     "",
     request.message,
     "",
@@ -223,7 +239,7 @@ async function notifyOperators(requestId: string): Promise<void> {
   const html = `<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  <p>${escapeHtml(request.site.name)} sent a request from Quick Edit.</p>
+  <p>${escapeHtml(lead)}</p>
   <blockquote style="margin: 16px 0; padding: 8px 16px; border-left: 3px solid #005f6a; white-space: pre-wrap;">${escapeHtml(request.message)}</blockquote>
   ${about ? `<p style="color: #666; font-size: 14px;">About: ${escapeHtml(about)} (${escapeHtml(request.address ?? "")})</p>` : ""}
   <p style="color: #666; font-size: 14px;">From: ${escapeHtml(from)}</p>
