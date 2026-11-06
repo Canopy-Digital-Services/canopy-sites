@@ -136,14 +136,22 @@ Each new collection adds its descriptions when it enters the contract.
 
 `SITE_GUIDE.md` at the root of each site repo (PRD D31). Canopy writes it; quick edit and MCP clients read it from the published commit and never write it. It is the home for Copy Guidelines bucket 3 (client rules) and for the quick edit specifics the Site Build Checklist lists. A client's own assistant can read it over MCP, so it holds nothing the client shouldn't see. The site's time zone and locked fields live on the `Site` row, not in the guide.
 
-It opens with YAML front matter that code reads (PRD D40): length limits by field address, with `*` standing for any entry id, and display formats. The prose below is the model's. A limit belongs here once it is derived from the rendered design, which is the Copy Guidelines' "write it down when you do".
+It opens with YAML front matter that code reads (PRD D40): length limits and list counts by field address, with `*` standing for any entry id, display formats, what the copy avoids (a warning the owner decides on), and phrases the site refuses. The prose below is the model's. A limit or count belongs here once it is derived from the rendered design, which is the Copy Guidelines' "write it down when you do". The syntax is the contract's (`packages/site-contract/README.md`).
 
 ```yaml
 ---
 limits:
-  pages/home/hero/headline: 40
+  pages/home/hero/subheadline: 60
   services/*/services/*/name: 32
+counts:
+  team: 6
 formats:
   phone: "(530) 555-1234"
+avoid:
+  - em-dash
+  - emoji
+refuse:
+  - free trial
+  - discount*
 ---
 ```

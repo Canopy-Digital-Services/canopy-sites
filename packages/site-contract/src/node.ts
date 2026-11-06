@@ -51,7 +51,8 @@ export async function writeContent(siteDir: string, content: RawContent, names: 
 
 /**
  * The builder's gate before `astro build`: every collection file parses and
- * matches the contract, references resolve, and every gallery image exists.
+ * matches the contract, references resolve, and every gallery and team image
+ * exists.
  */
 export async function validateSite(siteDir: string): Promise<ValidationResult> {
   const { content, issues } = await readContent(siteDir);
@@ -61,6 +62,11 @@ export async function validateSite(siteDir: string): Promise<ValidationResult> {
     for (const [i, item] of (result.content.gallery ?? []).entries()) {
       if (!(await exists(path.join(siteDir, ASSETS_DIR, item.src)))) {
         all.push({ collection: "gallery", path: `/${i}/src`, message: `No image at src/assets/${item.src}` });
+      }
+    }
+    for (const [i, person] of (result.content.team ?? []).entries()) {
+      if (person.photo && !(await exists(path.join(siteDir, ASSETS_DIR, person.photo)))) {
+        all.push({ collection: "team", path: `/${i}/photo`, message: `No image at src/assets/${person.photo}` });
       }
     }
   }
