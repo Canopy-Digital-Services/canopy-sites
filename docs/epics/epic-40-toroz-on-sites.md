@@ -311,6 +311,13 @@ None.
   - The two test requests show in the owner's Sent list.
 
   **Also seen:** React error #418 (hydration) on every portal page while acting, not otherwise.
+- 2026-11-06: The three fixed, and the claim link is ready.
+  - **5.14.1** (PR #48, `f73c8ff`): Quick Edit's examples come from the site's own content (`src/lib/quick-edit/examples.ts`), and a click fills the message box instead of sending. Toro Z shows "Muay Thai Fundamentals is moving to 7:30 to 8:30 PM on weekdays", "Update our hours", and "Update Coach Iggy's bio". The base prompt calls the request card "the card" and drafts a request again when the owner wants to add to it.
+  - **The release smoke** passed on dev before the merge.
+  - **The eval's shared set** ran again on 5.14.1, acting as the client: 18 of 18, with S3 (a final period added unnamed), S8, and S13 (a sentence of Quick Edit's on the card) close.
+  - **The test requests:** with Michael's OK, all 24 of Toro Z's help requests, every one from the acceptance and the two eval runs and every one sent or drafted while acting, were deleted from production. Operator → Requests and the owner's list read empty.
+  - **Runbooks:** the Onboarding Runbook's handover gained that step, and the eval runbook's rule 6 says the same.
+  - **What's left of 4.7:** Michael's phone check of the preview link, then the claim link, then the gym's first published edit.
 
 ## 10. Docs this makes stale
 
