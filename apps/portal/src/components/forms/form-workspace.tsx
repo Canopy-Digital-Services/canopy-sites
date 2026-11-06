@@ -110,7 +110,7 @@ type WorkspaceInnerProps = {
 
 function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, statusFilter, publishDisabledReason }: WorkspaceInnerProps) {
   const router = useRouter();
-  const { state, saveStatus, updateName, appearanceMode, setAppearanceMode, editorStep } = useFormContext();
+  const { state, saveStatus, updateName, appearanceMode, setAppearanceMode, cancelAppearance, editorStep } = useFormContext();
 
   const handleTabChange = (tab: string) => {
     const mode = tab === "editor" ? "edit" : tab;
@@ -293,7 +293,10 @@ function WorkspaceInner({ apiUrl, ownerEmail, form, activeTab, submissions, stat
                   {appearanceMode && (
                     <div className="space-y-4 editor-swoop-in">
                       <AppearancePanel />
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={cancelAppearance}>
+                          Cancel
+                        </Button>
                         <Button onClick={() => setAppearanceMode(false)}>Done</Button>
                       </div>
                     </div>

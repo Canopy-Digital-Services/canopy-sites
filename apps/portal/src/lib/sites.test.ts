@@ -16,7 +16,6 @@ const valid: SiteSettingsInput = {
   defaultBranch: "main",
   productionHostnames: ["example.com", "www.example.com"],
   umamiWebsiteId: "",
-  runbookOverlay: "",
   lockedFields: ["site/contact/phone"],
   fixedLists: [],
 };
@@ -128,7 +127,6 @@ describe("parseSiteSettings", () => {
       productionHostnames: ["Example.com", " "],
       lockedFields: ["", "site/contact/email"],
       fixedLists: [" classes ", ""],
-      runbookOverlay: "Voice: warm.\r\n\r\n",
     });
     expect(result).toEqual({
       ok: true,
@@ -138,7 +136,6 @@ describe("parseSiteSettings", () => {
         defaultBranch: "main",
         productionHostnames: ["example.com"],
         umamiWebsiteId: null,
-        runbookOverlay: "Voice: warm.",
         lockedFields: ["site/contact/email"],
         fixedLists: ["classes"],
       },
@@ -182,9 +179,8 @@ describe("parseSiteSettings", () => {
     });
   });
 
-  it("refuses an Umami ID in the wrong format, and an overlay over the cap", () => {
+  it("refuses an Umami ID in the wrong format", () => {
     expect(errorsOf({ umamiWebsiteId: "not-a-uuid" })).toHaveProperty("umamiWebsiteId");
     expect(errorsOf({ umamiWebsiteId: "3F2504E0-4F89-41D3-9A0C-0305E82C3301" })).toEqual({});
-    expect(errorsOf({ runbookOverlay: "x".repeat(20_001) })).toHaveProperty("runbookOverlay");
   });
 });

@@ -15,7 +15,6 @@ export const SITE_HOSTNAMES_MAX = 10;
 export const SITE_LOCKED_FIELDS_MAX = 50;
 export const SITE_LOCKED_FIELD_MAX_LENGTH = 100;
 export const SITE_FIXED_LISTS_MAX = 20;
-export const RUNBOOK_OVERLAY_MAX_LENGTH = 20_000;
 
 /** Contact fields are locked by default (PRD section 4.4); a new site starts with these, as addresses (D50). */
 export const DEFAULT_LOCKED_FIELDS = ["site/contact/phone", "site/contact/email", "site/contact/address"];
@@ -57,7 +56,6 @@ export type SiteSettingsInput = {
   defaultBranch: string;
   productionHostnames: string[];
   umamiWebsiteId: string;
-  runbookOverlay: string;
   lockedFields: string[];
   fixedLists: string[];
 };
@@ -68,7 +66,6 @@ export type SiteSettings = {
   defaultBranch: string;
   productionHostnames: string[];
   umamiWebsiteId: string | null;
-  runbookOverlay: string;
   lockedFields: string[];
   fixedLists: string[];
 };
@@ -220,7 +217,6 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
   const repoUrl = input.repoUrl.trim();
   const defaultBranch = input.defaultBranch.trim();
   const umamiWebsiteId = input.umamiWebsiteId.trim().toLowerCase();
-  const runbookOverlay = input.runbookOverlay.replace(/\r\n/g, "\n").trimEnd();
   const { hostnames: productionHostnames, error: hostnamesError } = parseHostnames(input.productionHostnames);
   const lockedFields = listOf(input.lockedFields, (f) => f.trim());
   const fixedLists = listOf(input.fixedLists, (f) => f.trim());
@@ -231,10 +227,6 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
     defaultBranch: branchError(defaultBranch),
     productionHostnames: hostnamesError,
     umamiWebsiteId: umamiError(umamiWebsiteId),
-    runbookOverlay:
-      runbookOverlay.length > RUNBOOK_OVERLAY_MAX_LENGTH
-        ? `Overlay must be ${RUNBOOK_OVERLAY_MAX_LENGTH.toLocaleString("en-US")} characters or fewer. (Currently ${runbookOverlay.length.toLocaleString("en-US")})`
-        : undefined,
   };
 
   errors.lockedFields = addressListError(lockedFields, { noun: "a field address", example: "site/contact/phone", max: SITE_LOCKED_FIELDS_MAX });
@@ -251,7 +243,6 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
       defaultBranch,
       productionHostnames,
       umamiWebsiteId: umamiWebsiteId || null,
-      runbookOverlay,
       lockedFields,
       fixedLists,
     },

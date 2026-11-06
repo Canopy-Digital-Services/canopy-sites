@@ -26,7 +26,6 @@ const settings: SiteSettingsInput = {
   defaultBranch: "main",
   productionHostnames: ["Example.com", "www.example.com"],
   umamiWebsiteId: "",
-  runbookOverlay: "Voice: warm.",
   lockedFields: ["site/contact/phone"],
   fixedLists: ["classes"],
 };
@@ -150,7 +149,6 @@ describe("updateSite", () => {
       accountId: account.id,
       name: "Renamed",
       productionHostnames: ["example.com", "www.example.com"],
-      runbookOverlay: "Voice: warm.",
       lockedFields: ["site/contact/phone"],
       fixedLists: ["classes"],
     });

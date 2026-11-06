@@ -72,7 +72,6 @@ export async function createSite(accountId: string, opts: { slug?: string; produ
       name: `Site ${seq}`,
       slug: opts.slug ?? `site-${seq}`,
       productionHostnames: opts.productionHostnames ?? [],
-      runbookOverlay: `Overlay for site ${seq}`,
     },
   });
 }

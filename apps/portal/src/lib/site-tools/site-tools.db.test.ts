@@ -97,8 +97,8 @@ describe("proposeChange", () => {
       .proposeChange(ctx, { summary: "New phone", ops: [{ collection: "site", op: "replace", path: "/contact/phone", value: "555-9999" }] })
       .catch((e) => e);
     expect(err).toBeInstanceOf(ToolError);
-    expect(err.message).toContain("Phone is locked: Canopy changes it");
-    expect(err.message).toContain(tools.CANOPY_NEXT_STEP);
+    expect(err.message).toBe("Phone is locked: Canopy changes it.");
+    expect(err.outOfLane).toBe(true);
     expect(err.issues).toEqual([{ collection: "site", path: "/contact/phone", address: "site/contact/phone", message: "Phone is locked: Canopy changes it" }]);
     expect(await prisma.changeSet.count()).toBe(0);
     expect(builder.previews).toHaveLength(0);
@@ -208,7 +208,7 @@ describe("the lane (PRD D50)", () => {
     expect(canvas.issues).toEqual([{ collection: "pages", path: "/0/title", address: "pages/home/title", message: "Page title is Canopy's to change" }]);
     await expect(
       tools.proposeChange(ctx, { summary: "Eyebrow", ops: [{ collection: "pages", op: "replace", path: "/0/sections/0/eyebrow", value: "Deals" }] }),
-    ).rejects.toThrow(/Eyebrow is Canopy's to change.*text Michael/);
+    ).rejects.toThrow(/Eyebrow is Canopy's to change/);
     await expect(
       tools.proposeChange(ctx, { summary: "Button", ops: [{ collection: "pages", op: "replace", path: "/0/hero/cta/label", value: "Buy" }] }),
     ).rejects.toThrow(/Button is Canopy's to change/);
@@ -254,7 +254,7 @@ describe("the lane (PRD D50)", () => {
         summary: "Trial",
         ops: [{ collection: "announcements", op: "add", path: "/-", value: { id: "trial", message: "Free trial this week." } }],
       }),
-    ).rejects.toThrow(/doesn't say "Free trial"/);
+    ).rejects.toMatchObject({ message: expect.stringMatching(/doesn't say "Free trial"/), outOfLane: true });
   });
 
   it("says what each write changed, against the draft it started from, with what the copy avoids", async () => {

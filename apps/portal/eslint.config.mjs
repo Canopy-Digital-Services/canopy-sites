@@ -5,6 +5,19 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "JSXElement[openingElement.name.name=/^DropdownMenu(Sub)?Content$/] JSXElement[openingElement.name.name='form']",
+          message:
+            "A menu unmounts the moment an item is picked, which cancels a form's submit. Act in the item's onSelect instead (docs/UX_PATTERNS.md, Dropdown menus).",
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
