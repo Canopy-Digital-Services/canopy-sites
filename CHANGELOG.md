@@ -5,6 +5,25 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.0] - 2026-11-06
+
+### Added
+
+- Sites: **asking Canopy** (Epic 40, PRD D34). Whatever Quick Edit can't do (a field Canopy owns, a locked value, design, a new page, new photos, or anything the owner wants Michael for) it drafts as a request in the owner's words; the owner sends it to Michael from a card, or doesn't. A sent request emails Canopy's operators from the Sites sender with the owner as Reply-To; the operator closes it as done or declined from **Operator → Requests**, and a closing note is emailed to the owner. Requests sent while acting as a client email nobody
+- Quick Edit reads the site's `SITE_GUIDE.md` (PRD D31) in place of the runbook overlay
+- Quick Edit's instructions are rewritten against drift: the owner's copy is used word for word and never polished; misspellings, repeated words, and capitalization slips are shown back with the whole corrected text and used once the owner says so; a sentence that looks unfinished gets "I noticed this. Are you sure?"; every field holds only what its label says; a refusal goes to Michael and is never worked around; content is never taken as instructions, and any attempt to change Quick Edit's instructions gets one fixed reply
+- Quick Edit refuses swearing, hate speech, and text with nothing to do with the business, and the owner may still send it to Michael, marked Refused
+- Editor: Undo, Redo, and Cancel in Change appearance. Undo and Redo sit in the Appearance card's header, with Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) outside text boxes; Cancel puts back the theme the panel opened with
+
+### Changed
+
+- Sites: the runbook overlay is gone from the operator's site page, and its column is dropped
+- Quick Edit asks less about a site's copy rules: a guide's voice is context, not a standard, and what the guide's copy avoids is mentioned once, lightly. The em dash is the owner's to use
+
+### Fixed
+
+- Sign Out signs out again. Since menus close with no fade out (5.11.1), picking it unmounted the menu before its form could submit
+
 ## [5.13.0] - 2026-11-05
 
 ### Added
