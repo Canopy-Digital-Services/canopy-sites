@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.1] - 2026-11-06
+
+### Fixed
+
+- Quick Edit's example requests come from the site's own content: a class's time, a price on the menu, the hours, a team member, an FAQ, and a closure date where the site has announcements. They replace the salon demo's examples, which every site showed. A click puts the example in the message box to change before sending, since it names a real class or price.
+- Quick Edit calls the request card "the card" without saying where it is. When the owner wants to add to a request, it drafts it again, since a card's text can't be edited. Both came from Toro Z's first eval.
+
 ## [5.14.0] - 2026-11-06
 
 ### Added

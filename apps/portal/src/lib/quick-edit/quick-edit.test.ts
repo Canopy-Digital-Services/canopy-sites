@@ -21,6 +21,8 @@ describe("the system prompt", () => {
     expect(BASE_RUNBOOK).toContain("Never write copy.");
     expect(BASE_RUNBOOK).toContain("request_help");
     expect(BASE_RUNBOOK).toContain("refused set to true");
+    // Toro Z's first eval: "the card above" (it's below) and "add details before you send it" (it can't be edited).
+    expect(BASE_RUNBOOK).toContain('Call it "the card", never where it is on the screen.');
     expect(BASE_RUNBOOK).not.toContain("\u2014");
     expect(OUT_OF_LANE).toContain("request_help");
   });

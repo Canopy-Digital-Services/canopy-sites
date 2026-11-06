@@ -7,6 +7,7 @@ import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
 import { getContentView, getEditorChanges, ToolError } from "@/lib/site-tools";
 import { listOwnHelpRequests } from "@/lib/site-tools/help-requests";
+import { exampleRequests } from "@/lib/quick-edit/examples";
 import { liveSite, liveUrl as liveAddress } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
@@ -40,8 +41,12 @@ export default async function QuickEditPage() {
   const liveUrl = live ? liveAddress(live, "/").replace(/\/$/, "") : null;
   const [changes, requests] = await Promise.all([getEditorChanges(accountId), listOwnHelpRequests(accountId)]);
   // Not awaited: reading content fetches from GitHub, so the page renders
-  // at once and the pages list streams in.
-  const pages = loadPages(accountId);
+  // at once and the pages list and the examples stream in.
+  const view: Promise<ContentView | Error> = getContentView(accountId).catch((err: unknown) =>
+    err instanceof Error ? err : new Error(String(err))
+  );
+  const pages = loadPages(view);
+  const examples = loadExamples(view);
 
   return (
     <PageContent width="wide">
@@ -86,6 +91,7 @@ export default async function QuickEditPage() {
           />
           <QuickEditWorkspace
             siteId={site.id}
+            examples={examples}
             pagesCard={
               <Suspense fallback={<PagesCardSkeleton />}>
                 <PagesCard pages={pages} liveUrl={liveUrl} />
@@ -121,12 +127,19 @@ export default async function QuickEditPage() {
   );
 }
 
-async function loadPages(accountId: string): Promise<EditorPage[] | string> {
-  try {
-    const view = await getContentView(accountId);
-    const content = view.published as { pages?: Array<{ id: string; path: string; title: string; navLabel?: string }> };
-    return (content.pages ?? []).map((p) => ({ id: p.id, path: p.path, title: p.navLabel ?? (p.id === "home" ? "Home" : p.title) }));
-  } catch (err) {
-    return err instanceof ToolError ? err.message : "Your site couldn't be loaded.";
-  }
+type ContentView = Awaited<ReturnType<typeof getContentView>>;
+
+async function loadPages(view: Promise<ContentView | Error>): Promise<EditorPage[] | string> {
+  const v = await view;
+  if (v instanceof Error) return v instanceof ToolError ? v.message : "Your site couldn't be loaded.";
+  const content = v.published as { pages?: Array<{ id: string; path: string; title: string; navLabel?: string }> };
+  return (content.pages ?? []).map((p) => ({ id: p.id, path: p.path, title: p.navLabel ?? (p.id === "home" ? "Home" : p.title) }));
+}
+
+/** Example requests from the live site's own content, dated in the site's time zone. */
+async function loadExamples(view: Promise<ContentView | Error>): Promise<string[]> {
+  const v = await view;
+  if (v instanceof Error) return [];
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: v.site.timeZone });
+  return exampleRequests(v.published as Record<string, unknown>, today);
 }
