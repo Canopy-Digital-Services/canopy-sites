@@ -1,4 +1,5 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
 import { getSiteForOperator, listAccountsAvailableForSite } from "@/lib/data-access/sites";
@@ -10,6 +11,7 @@ import { SiteSettingsForm } from "./site-settings-form";
 import { SiteBuildsCard } from "./site-builds-card";
 import { OwnerCard, type OwnerRow } from "./owner-card";
 import { getOwnerAccess } from "@/lib/claim";
+import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   await requireGlobalAdmin();
@@ -17,7 +19,11 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
 
   const site = await getSiteForOperator(siteId);
   if (!site) notFound();
-  const [accounts, access] = await Promise.all([listAccountsAvailableForSite(), getOwnerAccess(site.accountId)]);
+  const [accounts, access, openRequests] = await Promise.all([
+    listAccountsAvailableForSite(),
+    getOwnerAccess(site.accountId),
+    countOpenHelpRequests(site.id),
+  ]);
   const when = (d: Date) => d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: site.timeZone });
   const owner: OwnerRow | null = access && {
     email: access.email,
@@ -37,6 +43,17 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
         <PageHeader title={site.name} backHref="/operator/sites" />
 
         <OwnerCard siteId={site.id} owner={owner} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Requests</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <Link href={`/operator/requests?site=${site.id}`} className="hover:underline">
+              {openRequests === 0 ? "None open" : `${openRequests} open`}
+            </Link>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

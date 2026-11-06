@@ -4,7 +4,7 @@ import { homePathFor, productFor, productMetadata, requireHomeHost } from "@/lib
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Globe, Users, House } from "lucide-react";
+import { Globe, Inbox, Users, House } from "lucide-react";
 import { TopNavLayout } from "@/components/patterns/top-nav-layout";
 import { UserMenu } from "@/components/patterns/user-menu";
 import { ActingBanner } from "@/components/acting-banner";
@@ -52,6 +52,12 @@ export default async function OperatorLayout({
         <Button variant="ghost" size="sm">
           <Globe className="mr-2 h-4 w-4" />
           Sites
+        </Button>
+      </Link>
+      <Link href="/operator/requests">
+        <Button variant="ghost" size="sm">
+          <Inbox className="mr-2 h-4 w-4" />
+          Requests
         </Button>
       </Link>
     </>
