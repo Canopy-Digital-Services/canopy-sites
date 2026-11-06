@@ -150,6 +150,18 @@ export async function readClaim(token: string, now = new Date()): Promise<ClaimV
 }
 
 /**
+ * The claim link's title and description, for the browser tab and a
+ * messaging app's preview. Never the owner's email: a forwarded preview
+ * would show it to whoever receives it.
+ */
+export function claimPreview(claim: ClaimView, productName: string): { title: string; description: string } {
+  const siteName = claim.state === "ready" ? claim.siteName : null;
+  return siteName
+    ? { title: `Claim your ${siteName} website`, description: `Set your password to start updating your website with ${productName}.` }
+    : { title: `Claim your ${productName} account`, description: "Set your password to get started." };
+}
+
+/**
  * Sets the owner's first password from a claim link: one conditional update
  * consumes the link, so it works once even when submitted twice, and an
  * owner who already has a password is refused. Returns the user to sign in.
