@@ -32,6 +32,7 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
   const [values, setValues] = useState(initial);
   const [hostnameRows, setHostnameRows] = useState<Row[]>(() => toRows("host", initial.productionHostnames));
   const [lockedRows, setLockedRows] = useState<Row[]>(() => toRows("lock", initial.lockedFields));
+  const [fixedRows, setFixedRows] = useState<Row[]>(() => toRows("fixed", initial.fixedLists));
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [serverErrors, setServerErrors] = useState<FieldErrors<SiteSettingsInput>>({});
@@ -41,13 +42,14 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
     ...values,
     productionHostnames: hostnameRows.map((r) => r.value),
     lockedFields: lockedRows.map((r) => r.value),
+    fixedLists: fixedRows.map((r) => r.value),
   };
   const parsed = parseSiteSettings(input);
   const errors: FieldErrors<SiteSettingsInput> = parsed.ok ? {} : parsed.errors;
   const showError = (f: Field) => ((touched[f] || submitted) && errors[f]) || serverErrors[f];
   const touch = (f: Field) => setTouched((t) => ({ ...t, [f]: true }));
 
-  function set(f: Exclude<Field, "productionHostnames" | "lockedFields">, value: string) {
+  function set(f: Exclude<Field, "productionHostnames" | "lockedFields" | "fixedLists">, value: string) {
     setValues((v) => ({ ...v, [f]: value }));
     setServerErrors((s) => ({ ...s, [f]: undefined }));
   }
@@ -128,8 +130,8 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
 
           <ListInput
             label="Locked fields"
-            hint="Content paths no edit may change, such as site.contact.phone"
-            placeholder="site.contact.phone"
+            hint="Field addresses no owner edit may change, with * for any entry, such as site/contact/phone"
+            placeholder="site/contact/phone"
             addLabel="Add field"
             removeLabel="Remove field"
             mono
@@ -138,6 +140,21 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
             error={showError("lockedFields")}
             onChange={setLockedRows}
             onBlur={() => touch("lockedFields")}
+            newRow={newRow}
+          />
+
+          <ListInput
+            label="Fixed lists"
+            hint="Lists whose entries no owner edit adds, removes, or reorders, such as classes. Pages and sections always are."
+            placeholder="classes"
+            addLabel="Add list"
+            removeLabel="Remove list"
+            mono
+            maxLength={SITE_LOCKED_FIELD_MAX_LENGTH}
+            rows={fixedRows}
+            error={showError("fixedLists")}
+            onChange={setFixedRows}
+            onBlur={() => touch("fixedLists")}
             newRow={newRow}
           />
 

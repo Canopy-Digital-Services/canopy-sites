@@ -262,7 +262,7 @@ Never advertise discounts.
     expect(g.limits).toEqual({ "pages/*/hero/subheadline": 20, "services/*/services/*/name": 12 });
     expect(g.formats).toEqual({ phone: "(530) 555-1234", time: "5:00 pm" });
     expect(g.prose).toBe("# Fixture Salon\n\nNever advertise discounts.");
-    expect(parseSiteGuide(null)).toEqual({ limits: {}, formats: {}, prose: "" });
+    expect(parseSiteGuide(null)).toEqual({ limits: {}, counts: {}, formats: {}, avoid: { checks: [], phrases: [] }, refuse: [], prose: "" });
     expect(parseSiteGuide("Just prose.").prose).toBe("Just prose.");
   });
 

@@ -58,7 +58,7 @@ async function siteAccount() {
   const site = await createSite(account.id);
   await prisma.site.update({
     where: { id: site.id },
-    data: { repoUrl: "https://github.com/example/site", lockedFields: ["site.contact.phone", "site.contact.email", "site.contact.address"] },
+    data: { repoUrl: "https://github.com/example/site", lockedFields: ["site/contact/phone", "site/contact/email", "site/contact/address"] },
   });
   return { account, user, site, ctx: { accountId: account.id, userId: user.id, source: "QUICK_EDIT" as const } };
 }
@@ -93,9 +93,13 @@ describe("proposeChange", () => {
 
   it("refuses a change to a locked field", async () => {
     const { ctx } = await siteAccount();
-    await expect(
-      tools.proposeChange(ctx, { summary: "New phone", ops: [{ collection: "site", op: "replace", path: "/contact/phone", value: "555-9999" }] }),
-    ).rejects.toThrow(/site\.contact\.phone is locked/);
+    const err = await tools
+      .proposeChange(ctx, { summary: "New phone", ops: [{ collection: "site", op: "replace", path: "/contact/phone", value: "555-9999" }] })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ToolError);
+    expect(err.message).toContain("Phone is locked: Canopy changes it");
+    expect(err.message).toContain(tools.CANOPY_NEXT_STEP);
+    expect(err.issues).toEqual([{ collection: "site", path: "/contact/phone", address: "site/contact/phone", message: "Phone is locked: Canopy changes it" }]);
     expect(await prisma.changeSet.count()).toBe(0);
     expect(builder.previews).toHaveLength(0);
   });
@@ -178,6 +182,96 @@ describe("proposeChange", () => {
     await expect(tools.proposeChange({ accountId: account.id, userId: user.id, source: "QUICK_EDIT" }, { summary: "x", ops: PRICE })).rejects.toThrow(
       /no site/,
     );
+  });
+});
+
+describe("the lane (PRD D50)", () => {
+  const PAGES = [
+    {
+      id: "home",
+      path: "/",
+      title: "Demo Salon",
+      description: "A salon.",
+      hero: { subheadline: "Cuts and color.", cta: { label: "Book", href: "https://book.example.com" } },
+      sections: [{ id: "why", eyebrow: "Why us", heading: "Why people come back" }],
+    },
+  ];
+  const withPages = () => {
+    builder.content = { ...structuredClone(CONTENT), pages: structuredClone(PAGES) };
+  };
+
+  it("refuses Canopy's fields from the canvas and from quick edit alike, naming each", async () => {
+    withPages();
+    const { ctx, site } = await siteAccount();
+    const canvas = await tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [{ op: "replace", address: "pages/home/title", value: "Cheap cuts" }] }).catch((e) => e);
+    expect(canvas).toBeInstanceOf(ToolError);
+    expect(canvas.issues).toEqual([{ collection: "pages", path: "/0/title", address: "pages/home/title", message: "Page title is Canopy's to change" }]);
+    await expect(
+      tools.proposeChange(ctx, { summary: "Eyebrow", ops: [{ collection: "pages", op: "replace", path: "/0/sections/0/eyebrow", value: "Deals" }] }),
+    ).rejects.toThrow(/Eyebrow is Canopy's to change.*text Michael/);
+    await expect(
+      tools.proposeChange(ctx, { summary: "Button", ops: [{ collection: "pages", op: "replace", path: "/0/hero/cta/label", value: "Buy" }] }),
+    ).rejects.toThrow(/Button is Canopy's to change/);
+    expect(await prisma.changeSet.count()).toBe(0);
+    // The owner's own copy beside them is theirs.
+    const ok = await tools.proposeChange(ctx, { summary: "Hero", ops: [{ collection: "pages", op: "replace", path: "/0/hero/subheadline", value: "Cuts, color, and care." }] });
+    expect(ok.changes.map((c) => c.address)).toEqual(["pages/home/hero/subheadline"]);
+  });
+
+  it("keeps fixed lists' entries: sections everywhere, and the lists a site fixes", async () => {
+    withPages();
+    const { ctx, site } = await siteAccount();
+    await expect(
+      tools.proposeChange(ctx, { summary: "Promo", ops: [{ collection: "pages", op: "add", path: "/0/sections/-", value: { id: "promo", heading: "Deals" } }] }),
+    ).rejects.toThrow(/only Canopy adds, removes, or reorders these/);
+    await prisma.site.update({ where: { id: site.id }, data: { fixedLists: ["services"] } });
+    const NEW_CATEGORY = { id: "color", name: "Color", services: [{ id: "gloss", name: "Gloss", priceLabel: "$60" }] };
+    await expect(
+      tools.proposeChange(ctx, { summary: "Color", ops: [{ collection: "services", op: "add", path: "/-", value: NEW_CATEGORY }] }),
+    ).rejects.toThrow(/Services and prices: only Canopy adds/);
+    // Inside a fixed list, the fields stay the owner's.
+    expect((await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE })).changeSetId).toBeTruthy();
+  });
+
+  it("fails closed on a lock that isn't an address, rather than letting the edit through", async () => {
+    const { ctx, site } = await siteAccount();
+    await prisma.site.update({ where: { id: site.id }, data: { lockedFields: ["site.contact.phone"] } });
+    await expect(tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE })).rejects.toThrow(/can't be edited until Canopy fixes its settings/);
+    expect(await prisma.changeSet.count()).toBe(0);
+  });
+
+  it("enforces the site guide's counts and refused phrases", async () => {
+    const { ctx } = await siteAccount();
+    builder.guide = "---\ncounts:\n  services/*/services: 1\nrefuse:\n  - free trial\n---\n";
+    await expect(
+      tools.proposeChange(ctx, {
+        summary: "Trim",
+        ops: [{ collection: "services", op: "add", path: "/0/services/-", value: { id: "trim", name: "Trim", priceLabel: "$40" } }],
+      }),
+    ).rejects.toThrow(/at most 1 on this site/);
+    await expect(
+      tools.proposeChange(ctx, {
+        summary: "Trial",
+        ops: [{ collection: "announcements", op: "add", path: "/-", value: { id: "trial", message: "Free trial this week." } }],
+      }),
+    ).rejects.toThrow(/doesn't say "Free trial"/);
+  });
+
+  it("says what each write changed, against the draft it started from, with what the copy avoids", async () => {
+    const { ctx } = await siteAccount();
+    builder.guide = "---\navoid:\n  - em-dash\n---\n";
+    const first = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    expect(first.changes).toEqual([
+      { address: PRICE_AT, kind: "changed", label: "Haircut: Price", before: "$85", after: "$90", text: 'Haircut: Price: "$85" to "$90"' },
+    ]);
+    expect(first.warnings).toEqual([]);
+    const second = await tools.proposeChange(ctx, {
+      summary: "Closed Monday",
+      ops: [{ collection: "announcements", op: "add", path: "/-", value: { id: "closed", message: "Closed Monday — back Tuesday." } }],
+    });
+    // Only this write's change, though the draft holds both.
+    expect(second.changes.map((c) => c.text)).toEqual(['Added "Closed Monday — back Tuesday." to Announcements']);
+    expect(second.warnings.map((w) => w.message)).toEqual(["Message has an em dash, which this site's copy avoids"]);
   });
 });
 
@@ -388,7 +482,7 @@ describe("saveDraft (the canvas)", () => {
 describe("the canvas and the preview page (PRD D47)", () => {
   const PAGES = [
     { id: "home", path: "/", title: "Home", description: "The home page.", sections: [] },
-    { id: "about", path: "/about", title: "About", description: "About us.", sections: [] },
+    { id: "about", path: "/about", title: "About", description: "About us.", hero: { headline: "About" }, sections: [] },
   ];
 
   it("opens only for members of the site's account", async () => {
@@ -419,7 +513,7 @@ describe("the canvas and the preview page (PRD D47)", () => {
     const { ctx, site } = await siteAccount();
     builder.content.pages = PAGES;
     expect(await tools.previewStartPath(ctx.accountId, site.id)).toBe("/");
-    await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "pages/about/title", value: "About us" }] });
+    await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "pages/about/hero/headline", value: "About us" }] });
     expect(await tools.previewStartPath(ctx.accountId, site.id)).toBe("/about");
     await tools.discardChange(ctx.accountId, (await tools.getEditorChanges(ctx.accountId)).pending!.id);
     await tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: PRICE_AT, value: "$90" }] });

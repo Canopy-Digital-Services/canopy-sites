@@ -117,7 +117,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
 | `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
-| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, locked fields, the contract, and rate limits are enforced here for every source (Editor, quick edit, later MCP). Each guard has a database test that fails without it. |
+| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
 | `src/components/ui/` | shadcn primitives. Extend, do not fork. |
 | `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
@@ -195,11 +195,12 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
 2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`) decide where its config is stored and which boxes its settings show. Its place there is its place in the Add field menu: specific before general, so a type that would also catch a narrower need comes after it. If a new field can't save without config (as Choose one can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
-3. Render it in `embed/src/form.ts`.
-4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
-5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
-6. Add a config panel in `src/components/field-config/` if it has options.
-7. Run `npm run embed:build` and commit `public/embed.js`.
+3. Give it an icon in `FIELD_TYPE_ICONS` (`src/components/forms/field-type-icons.ts`) for the Add field menu; the build fails without one.
+4. Render it in `embed/src/form.ts`.
+5. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
+6. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
+7. Add a config panel in `src/components/field-config/` if it has options.
+8. Run `npm run embed:build` and commit `public/embed.js`.
 
 ---
 
@@ -353,7 +354,9 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
-           maxBuildsRetained, isDemo, timeZone), one per account, onDelete Restrict
+           fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
+           onDelete Restrict; lockedFields and fixedLists are address patterns
+           (site/contact/phone, classes), PRD D50
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
        │             version, error?, publishedCommit?, publishedAt?); the pending

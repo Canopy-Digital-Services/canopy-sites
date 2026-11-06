@@ -4,6 +4,7 @@
  * with the same definitions the server enforces.
  */
 
+import { isCollectionName } from "@canopy/site-contract";
 import { isValidEmail } from "../../embed/src/validation";
 
 export const SITE_NAME_MAX_LENGTH = 100;
@@ -13,17 +14,19 @@ export const SITE_BRANCH_MAX_LENGTH = 100;
 export const SITE_HOSTNAMES_MAX = 10;
 export const SITE_LOCKED_FIELDS_MAX = 50;
 export const SITE_LOCKED_FIELD_MAX_LENGTH = 100;
+export const SITE_FIXED_LISTS_MAX = 20;
 export const RUNBOOK_OVERLAY_MAX_LENGTH = 20_000;
 
-/** Contact fields are locked by default (PRD section 4.4); a new site starts with these. */
-export const DEFAULT_LOCKED_FIELDS = ["site.contact.phone", "site.contact.email", "site.contact.address"];
+/** Contact fields are locked by default (PRD section 4.4); a new site starts with these, as addresses (D50). */
+export const DEFAULT_LOCKED_FIELDS = ["site/contact/phone", "site/contact/email", "site/contact/address"];
 
 // A DNS label short enough to take a "-preview" suffix and stay within 63 characters.
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const HOSTNAME_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const BRANCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9._-]+)*$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LOCKED_FIELD_PATTERN = /^[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*$/;
+// An address pattern (PRD D36, D50): a collection, then keys and entry ids, `*` for any one segment.
+const ADDRESS_PATTERN = /^([a-z][A-Za-z0-9]*)(?:\/(?:[A-Za-z0-9_-]+|\*))*$/;
 
 // The repo URL shape the builder accepts (apps/builder/src/git.ts).
 const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/;
@@ -56,6 +59,7 @@ export type SiteSettingsInput = {
   umamiWebsiteId: string;
   runbookOverlay: string;
   lockedFields: string[];
+  fixedLists: string[];
 };
 
 export type SiteSettings = {
@@ -66,6 +70,7 @@ export type SiteSettings = {
   umamiWebsiteId: string | null;
   runbookOverlay: string;
   lockedFields: string[];
+  fixedLists: string[];
 };
 
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
@@ -155,6 +160,20 @@ function branchError(branch: string): string | undefined {
   }
 }
 
+/** Whether a locked field or fixed list names something in the contract's terms: an address pattern. */
+export function isAddressPattern(value: string): boolean {
+  const m = ADDRESS_PATTERN.exec(value);
+  return !!m && isCollectionName(m[1]) && value.length <= SITE_LOCKED_FIELD_MAX_LENGTH;
+}
+
+function addressListError(values: string[], what: { noun: string; example: string; max: number }): string | undefined {
+  const bad = values.find((v) => !isAddressPattern(v));
+  if (bad) return `"${bad}" is not ${what.noun}. Use an address such as ${what.example}`;
+  const dup = firstDuplicate(values);
+  if (dup) return `${dup} is listed twice`;
+  if (values.length > what.max) return `At most ${what.max}`;
+}
+
 function listOf(values: string[], normalize: (v: string) => string): string[] {
   return values.map(normalize).filter((v) => v !== "");
 }
@@ -204,6 +223,7 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
   const runbookOverlay = input.runbookOverlay.replace(/\r\n/g, "\n").trimEnd();
   const { hostnames: productionHostnames, error: hostnamesError } = parseHostnames(input.productionHostnames);
   const lockedFields = listOf(input.lockedFields, (f) => f.trim());
+  const fixedLists = listOf(input.fixedLists, (f) => f.trim());
 
   const errors: FieldErrors<SiteSettingsInput> = {
     name: nameError(name),
@@ -217,12 +237,8 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
         : undefined,
   };
 
-  const badField = lockedFields.find(
-    (f) => f.length > SITE_LOCKED_FIELD_MAX_LENGTH || !LOCKED_FIELD_PATTERN.test(f)
-  );
-  if (badField) errors.lockedFields = `"${badField}" is not a field path. Use dotted paths such as site.contact.phone`;
-  else if (firstDuplicate(lockedFields)) errors.lockedFields = `${firstDuplicate(lockedFields)} is listed twice`;
-  else if (lockedFields.length > SITE_LOCKED_FIELDS_MAX) errors.lockedFields = `At most ${SITE_LOCKED_FIELDS_MAX} locked fields`;
+  errors.lockedFields = addressListError(lockedFields, { noun: "a field address", example: "site/contact/phone", max: SITE_LOCKED_FIELDS_MAX });
+  errors.fixedLists = addressListError(fixedLists, { noun: "a list address", example: "classes", max: SITE_FIXED_LISTS_MAX });
 
   const found = stripEmpty(errors);
   if (Object.keys(found).length > 0) return { ok: false, errors: found };
@@ -237,6 +253,7 @@ export function parseSiteSettings(input: SiteSettingsInput): Parsed<SiteSettings
       umamiWebsiteId: umamiWebsiteId || null,
       runbookOverlay,
       lockedFields,
+      fixedLists,
     },
   };
 }

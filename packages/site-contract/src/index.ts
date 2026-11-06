@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { collections, isCollectionName, type CollectionName, type RawContent } from "./collections.js";
-import { limitIssues } from "./guide.js";
-import type { Announcement, Category, Faq, GalleryItem, Page, Review, Service, Site } from "./schemas.js";
+import { countIssues, limitIssues, refusalIssues } from "./guide.js";
+import type { Announcement, Category, ClassInfo, Faq, GalleryItem, Page, Review, Service, Site, TeamMember } from "./schemas.js";
 
 export * from "./schemas.js";
 export * from "./collections.js";
@@ -28,11 +28,25 @@ export {
   type FieldInfo,
   type ResolvedAddress,
 } from "./address.js";
-export { FORMAT_KEYS, limitIssues, parseSiteGuide, SiteGuideError, type SiteGuide } from "./guide.js";
+export {
+  AVOID_CHECKS,
+  avoidWarnings,
+  countIssues,
+  FORMAT_KEYS,
+  limitIssues,
+  parseSiteGuide,
+  phrasePattern,
+  refusalIssues,
+  SiteGuideError,
+  type AvoidCheck,
+  type AvoidWarning,
+  type SiteGuide,
+} from "./guide.js";
 export { migrateContent } from "./migrate.js";
+export { FIXED_EVERYWHERE, LaneRuleError, laneViolations, type LaneReason, type LaneRules, type LaneViolation } from "./lane.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.4.0";
+export const CONTRACT_VERSION = "0.5.0";
 
 export interface SiteContent {
   site?: Site;
@@ -42,6 +56,8 @@ export interface SiteContent {
   faqs?: Faq[];
   gallery?: GalleryItem[];
   announcements?: Announcement[];
+  classes?: ClassInfo[];
+  team?: TeamMember[];
 }
 
 export interface ContentIssue {
@@ -95,11 +111,16 @@ export function serviceAddresses(categories: Category[]): Map<string, string> {
 export interface ValidateOptions {
   /** A site guide's limits (PRD D40), applied once the content is otherwise valid. */
   limits?: Record<string, number>;
+  /** A site guide's counts: the most entries a list may hold (PRD D40). */
+  counts?: Record<string, number>;
+  /** A site guide's refused phrases (PRD D40). */
+  refuse?: readonly string[];
 }
 
 /**
  * Validates every collection present in `raw` against the contract, then the
- * references between them, then any site guide limits. Unknown collections are
+ * references between them, then any site guide limits, counts, and refused
+ * phrases. Unknown collections are
  * an error, not ignored, so a typo can't silently write a file nothing reads.
  */
 export function validateContent(raw: RawContent, options: ValidateOptions = {}): ValidationResult {
@@ -159,17 +180,23 @@ export function validateContent(raw: RawContent, options: ValidateOptions = {}):
     );
   }
 
-  if (!issues.length && options.limits) {
-    for (const issue of limitIssues(content as RawContent, options.limits)) issues.push(issue as ContentIssue);
+  if (!issues.length) {
+    const raw = content as RawContent;
+    if (options.limits) for (const issue of limitIssues(raw, options.limits)) issues.push(issue as ContentIssue);
+    if (options.counts) for (const issue of countIssues(raw, options.counts)) issues.push(issue as ContentIssue);
+    if (options.refuse) for (const issue of refusalIssues(raw, options.refuse)) issues.push(issue as ContentIssue);
   }
 
   return issues.length ? { ok: false, issues } : { ok: true, content, issues: [] };
 }
 
 /**
- * Locked fields are dotted paths from the collection name, e.g.
+ * Locked fields as dotted paths from the collection name, e.g.
  * `site.contact.phone`. Returns the locked paths whose value differs between
  * `before` and `after`, including being added or removed.
+ *
+ * @deprecated laneViolations takes locks as addresses, with Canopy's fields and
+ * fixed lists (PRD D50). Kept until the portal moves to it (Epic 40, 4.2).
  */
 export function lockedFieldViolations(before: RawContent, after: RawContent, lockedFields: readonly string[]): string[] {
   const get = (root: unknown, parts: string[]) =>

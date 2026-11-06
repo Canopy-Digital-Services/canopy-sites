@@ -17,7 +17,8 @@ const valid: SiteSettingsInput = {
   productionHostnames: ["example.com", "www.example.com"],
   umamiWebsiteId: "",
   runbookOverlay: "",
-  lockedFields: ["site.contact.phone"],
+  lockedFields: ["site/contact/phone"],
+  fixedLists: [],
 };
 
 function errorsOf(input: Partial<SiteSettingsInput>) {
@@ -125,7 +126,8 @@ describe("parseSiteSettings", () => {
       ...valid,
       repoUrl: " ",
       productionHostnames: ["Example.com", " "],
-      lockedFields: ["", "site.contact.email"],
+      lockedFields: ["", "site/contact/email"],
+      fixedLists: [" classes ", ""],
       runbookOverlay: "Voice: warm.\r\n\r\n",
     });
     expect(result).toEqual({
@@ -137,7 +139,8 @@ describe("parseSiteSettings", () => {
         productionHostnames: ["example.com"],
         umamiWebsiteId: null,
         runbookOverlay: "Voice: warm.",
-        lockedFields: ["site.contact.email"],
+        lockedFields: ["site/contact/email"],
+        fixedLists: ["classes"],
       },
     });
   });
@@ -164,11 +167,18 @@ describe("parseSiteSettings", () => {
     });
   });
 
-  it("refuses a bad or repeated locked field", () => {
-    expect(errorsOf({ lockedFields: ["site contact"] })).toHaveProperty("lockedFields");
-    expect(errorsOf({ lockedFields: ["/site/contact"] })).toHaveProperty("lockedFields");
-    expect(errorsOf({ lockedFields: ["site.contact.phone", "site.contact.phone"] })).toEqual({
-      lockedFields: "site.contact.phone is listed twice",
+  it("takes locked fields and fixed lists as addresses (PRD D50), refusing anything else or a repeat", () => {
+    expect(errorsOf({ lockedFields: ["pages/*/hero/headline", "site/contact"], fixedLists: ["classes", "pages/home/sections/why/cards"] })).toEqual({});
+    for (const bad of ["site contact", "/site/contact", "site.contact.phone", "widgets/x", "site//contact", "site/**"]) {
+      expect(errorsOf({ lockedFields: [bad] })).toEqual({
+        lockedFields: `"${bad}" is not a field address. Use an address such as site/contact/phone`,
+      });
+    }
+    expect(errorsOf({ fixedLists: ["classes.sessions"] })).toEqual({
+      fixedLists: `"classes.sessions" is not a list address. Use an address such as classes`,
+    });
+    expect(errorsOf({ lockedFields: ["site/contact/phone", "site/contact/phone"] })).toEqual({
+      lockedFields: "site/contact/phone is listed twice",
     });
   });
 
