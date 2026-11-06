@@ -67,6 +67,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                         <span className="text-muted-foreground"> · {r.summary}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
+                        {r.refused ? "Refused by Quick Edit · " : null}
                         {acting ? `${r.createdBy?.email ?? "An operator"}, acting as the client` : (r.createdBy?.email ?? "Owner")}
                         {r.sentAt ? ` · ${when(r.sentAt)}` : null}
                         {about ? ` · ${about}` : null}

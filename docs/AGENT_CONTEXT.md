@@ -117,7 +117,7 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
 | `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
-| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. A refusal that is Canopy's call (the lane, a refused phrase) is a `ToolError` with `outOfLane`, on which quick edit tells the model to draft a request instead of trying another way. Help requests (`help-requests.ts`, PRD D34): quick edit's `request_help` drafts one, the owner sends or dismisses it from a card (`HelpRequestCard`), a sent one emails every Global Admin from the Sites sender with the owner as Reply-To, and the operator closes it with an optional note emailed back; one sent while acting emails nobody. Each guard has a database test that fails without it. |
+| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. A refusal that is Canopy's call (the lane, a refused phrase) is a `ToolError` with `outOfLane`, on which quick edit tells the model to draft a request instead of trying another way. Help requests (`help-requests.ts`, PRD D34): quick edit's `request_help` drafts one, the owner sends or dismisses it from a card (`HelpRequestCard`), a sent one emails every Global Admin from the Sites sender with the owner as Reply-To, and the operator closes it with an optional note emailed back; one sent while acting emails nobody. Text quick edit refuses to put on the site (`refused`) is filed at once with no card. Quick edit's prompt is `BASE_RUNBOOK` (`src/lib/quick-edit/runbook.ts`) plus the prose of the site's `SITE_GUIDE.md`, from the draft view. Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
 | `src/components/ui/` | shadcn primitives. Extend, do not fork. |
 | `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
@@ -353,8 +353,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
-           contractVersion?, umamiWebsiteId?, runbookOverlay (retired, Epic 40:
-           nothing reads it; a later migration drops it), lockedFields[],
+           contractVersion?, umamiWebsiteId?, lockedFields[],
            fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
            onDelete Restrict; lockedFields and fixedLists are address patterns
            (site/contact/phone, classes), PRD D50
@@ -367,7 +366,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
        │                cacheWriteTokens, costUsd)
        └─ HelpRequest (conversationId?, createdByUserId?, actAsId?, message,
-                       summary, address?, status:HelpRequestStatus (DRAFT, OPEN,
+                       summary, address?, refused, status:HelpRequestStatus (DRAFT, OPEN,
                        DONE, DECLINED, DISMISSED), sentAt?, note?, closedByUserId?,
                        closedAt?), PRD D34
 
