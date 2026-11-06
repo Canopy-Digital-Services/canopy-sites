@@ -290,6 +290,28 @@ None.
   - The AI Control Layer page says requests go on a card the owner sends.
   - The Site Build Checklist's "Site guide" says its prose reaches Quick Edit and holds only what changes Quick Edit's behavior (what the business is, what it doesn't put on the site, exact names, the owner's words, where facts repeat, what Canopy handles), never a voice. Its front matter is `limits`, `counts`, `avoid` (never the em dash), and `refuse`.
 
+- 2026-11-06: 4.7, linked and accepted, claim link held. **Linking:** `toroz` was already on the Canopy Sites App's installation (it was in Link a site's repository list). Link a site created the Sites account for `torozmuaythai@gmail.com` and the site `toroz`, with both hostnames and the Umami id, and its first build succeeded (contract 0.5.0, no commit). On the site page, locks `site/tagline` and `site/description` joined the three contact locks, and `classes` and `pages/home/sections/classes/cards` are fixed lists.
+
+  **Acceptance (Onboarding Runbook section 5), acting as the client:** every item passed except the phone check, which needs Michael's phone.
+  - The canvas rendered styled, with no CORS errors and the hero on its poster. Every class card was open and the marks were right.
+  - An end time before the start was refused with the contract's reason, and nothing changed.
+  - The preview showed the draft unmarked, and its links moved between pages.
+  - Publish was round-tripped on the Gallery subheadline. `4894d1c` went live in about two minutes, and `9c27c41` put it back, so `main`'s content equals `dbaa568`'s.
+  - The phone and a page title were refused, each with a card. The sent card reached Operator → Requests as sent while acting, and was declined there.
+  - Stop returned to the site page. Signed out, the preview link redirects to sign-in, and Michael's own account gets a 404.
+
+  **Eval:** the Quick Edit Eval Runbook's first run passed 27 of 27, report in Nextcloud under the runbook. Three passes were close:
+  - S8 refused the injected text as unrelated rather than asking.
+  - S14 asked before offering the card.
+  - S17's case named a heading Toro Z has twice, and Quick Edit rightly asked which one; its rerun passed.
+
+  **Found, to fix before the claim link:**
+  - Quick Edit's example prompts and placeholder are the salon demo's, hard-coded (`quick-edit-workspace.tsx`), on every site.
+  - Two replies spoke of the card wrongly: "the card above", while it sits below, and "add details before you send it", though the card can't be edited.
+  - The two test requests show in the owner's Sent list.
+
+  **Also seen:** React error #418 (hydration) on every portal page while acting, not otherwise.
+
 ## 10. Docs this makes stale
 
 Each lands with the change that causes it, never in a later pass.
