@@ -353,7 +353,8 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
-           contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
+           contractVersion?, umamiWebsiteId?, runbookOverlay (retired, Epic 40:
+           nothing reads it; a later migration drops it), lockedFields[],
            fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
            onDelete Restrict; lockedFields and fixedLists are address patterns
            (site/contact/phone, classes), PRD D50

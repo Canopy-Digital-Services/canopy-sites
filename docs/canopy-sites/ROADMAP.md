@@ -120,7 +120,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 - Gallery images stay in `src/assets`; gallery entries name them by path under `src/assets`
 - Pages render from collections; no business data in templates (the Toro Z `site.ts` rule, applied through collections)
 - Locked fields (phone, email, address) are set on the `Site` row (PRD D24)
-- Write H&H's `SITE_GUIDE.md` (PRD D31, D40). `canopy-demo-site` has no copy of one (checked 2026-11-05): quick edit takes the demo's rules from its `Site.runbookOverlay`
+- Write H&H's `SITE_GUIDE.md` (PRD D31, D40). `canopy-demo-site` has its own, written from its runbook overlay in Epic 40 (4.4, 2026-11-06); quick edit reads it, as it does every site's
 - Acceptance: `validateSite` passes; `astro check` clean; visual parity
 
 ### H3 · H&H → tokens

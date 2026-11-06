@@ -148,7 +148,7 @@ model Site {
   productionHostnames String[] @default([]) // Lowercase; no hostname belongs to two sites (checked in the action)
   contractVersion     String? // site-contract version the repo implements (MAJOR.MINOR.PATCH)
   umamiWebsiteId      String?
-  runbookOverlay      String   @default("") // Client part of the quick-edit system prompt (E32)
+  runbookOverlay      String   @default("") // Retired in Epic 40 4.4 (quick edit reads SITE_GUIDE.md, PRD D31); nothing reads or writes it, and a later migration drops it
   lockedFields        String[] @default([]) // Address patterns no owner edit may change (PRD D50), e.g. site/contact/phone
   fixedLists          String[] @default([]) // Address patterns of lists whose entries no owner edit adds, removes, or reorders (PRD D50), e.g. classes
   maxBuildsRetained   Int      @default(5)

@@ -99,7 +99,6 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             defaultBranch: site.defaultBranch,
             productionHostnames: site.productionHostnames,
             umamiWebsiteId: site.umamiWebsiteId ?? "",
-            runbookOverlay: site.runbookOverlay,
             lockedFields: site.lockedFields,
             fixedLists: site.fixedLists,
           }}
