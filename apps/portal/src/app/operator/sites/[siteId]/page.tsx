@@ -84,6 +84,7 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             umamiWebsiteId: site.umamiWebsiteId ?? "",
             runbookOverlay: site.runbookOverlay,
             lockedFields: site.lockedFields,
+            fixedLists: site.fixedLists,
           }}
         />
       </div>

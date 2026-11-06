@@ -2,9 +2,10 @@
  * The site tool layer (E31, PRD D8, D9, D38). Every edit to a site's content,
  * from the canvas, quick edit, or later MCP, goes through these functions,
  * and they are where the guardrails live: the caller's account must own the
- * site, ops must apply, locked fields can't change, the result must pass the
- * contract and the site guide's limits, and writes are rate limited. Nothing
- * else writes content.
+ * site, ops must apply, the edit must stay in the lane (PRD D50: Canopy's
+ * fields, locks, fixed lists), the result must pass the contract and the site
+ * guide's limits, counts, and refused phrases, and writes are rate limited.
+ * Nothing else writes content.
  *
  * Every source writes one draft per site (PRD D38): the pending ChangeSet.
  * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
@@ -17,11 +18,13 @@
 import {
   addressAt,
   applyChanges,
+  avoidWarnings,
   COLLECTION_NAMES,
   fieldInfo,
   isAddressOp,
   isCollectionName,
-  lockedFieldViolations,
+  LaneRuleError,
+  laneViolations,
   parseSiteGuide,
   PatchError,
   resolveAddress,
@@ -29,8 +32,10 @@ import {
   toAddressOps,
   validateContent,
   type AddressOp,
+  type AvoidWarning,
   type ChangeOp,
   type ContentIssue,
+  type LaneViolation,
   type RawContent,
   type SiteGuide,
 } from "@canopy/site-contract";
@@ -40,6 +45,9 @@ import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
+import { changedFields, type FieldChange } from "./changes";
+
+export type { FieldChange } from "./changes";
 
 /** A content issue, with the address of the field it is about when there is one. */
 export type ToolIssue = ContentIssue & { address?: string };
@@ -170,6 +178,26 @@ async function pendingChange(siteId: string) {
 }
 type Pending = NonNullable<Awaited<ReturnType<typeof pendingChange>>>;
 
+/**
+ * What the model is told to do after a refusal from the lane or the site
+ * guide. 4.3 of Epic 40 replaces it with the offer to send the request to
+ * Michael.
+ */
+export const CANOPY_NEXT_STEP = "Tell the owner Canopy handles this, and that they can text Michael to change it.";
+
+/** A lane violation as an issue, located in whichever content still has the field. */
+function laneIssue(v: LaneViolation, published: RawContent, after: RawContent): ToolIssue {
+  const collection = v.address.split("/")[0] as ToolIssue["collection"];
+  for (const content of [after, published]) {
+    try {
+      return { collection, path: resolveAddress(content, v.address).pointer, message: v.message, address: v.address };
+    } catch {
+      // Not in this one; try the other.
+    }
+  }
+  return { collection, path: "", message: v.message, address: v.address };
+}
+
 /** Applies ops to published content and runs every guardrail. Returns the content they produce. */
 function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGuide): RawContent {
   let after: RawContent;
@@ -179,11 +207,22 @@ function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGu
     if (err instanceof PatchError) throw new ToolError(err.message);
     throw err;
   }
-  const locked = lockedFieldViolations(published, after, site.lockedFields);
-  if (locked.length) {
-    throw new ToolError(`${locked.join(", ")} ${locked.length === 1 ? "is" : "are"} locked. Contact Canopy to change ${locked.length === 1 ? "it" : "them"}.`);
+  let lane: LaneViolation[];
+  try {
+    lane = laneViolations(published, after, { locked: site.lockedFields, fixed: site.fixedLists });
+  } catch (err) {
+    if (!(err instanceof LaneRuleError)) throw err;
+    // A lock or fixed list that isn't an address: the guardrail fails closed, never silently off.
+    console.error(JSON.stringify({ event: "site_lane_rule_invalid", slug: site.slug, message: err.message }));
+    throw new ToolError(`This site can't be edited until Canopy fixes its settings. ${CANOPY_NEXT_STEP}`);
   }
-  const result = validateContent(after, { limits: guide.limits });
+  if (lane.length) {
+    throw new ToolError(
+      `That change is outside what the owner can edit: ${lane.map((v) => v.message).join("; ")}. ${CANOPY_NEXT_STEP}`,
+      lane.map((v) => laneIssue(v, published, after)),
+    );
+  }
+  const result = validateContent(after, { limits: guide.limits, counts: guide.counts, refuse: guide.refuse });
   if (!result.ok) {
     const issues: ToolIssue[] = result.issues.map((i) => {
       try {
@@ -338,6 +377,10 @@ export interface DraftWriteResult {
   summary: string;
   /** Set when the preview couldn't be started; the draft is saved regardless. */
   buildError: string | null;
+  /** What this write changed on the site, field by field. */
+  changes: FieldChange[];
+  /** What the site guide's copy avoids, in text this write changed: the owner's call (D32). */
+  warnings: AvoidWarning[];
 }
 
 /** Two writes that land together: the one that loses the race runs again on top of the winner. */
@@ -390,12 +433,21 @@ async function writeDraftOnce(site: Site, ctx: ToolContext, read: SiteRead, w: D
 
   if (JSON.stringify(after) === JSON.stringify(draftContent)) {
     if (!w.allowNoop) throw new ToolError("That doesn't change anything on the site.");
-    return { changeSetId: current?.changeSetId ?? null, buildId: current?.buildId ?? null, version: current?.version ?? 0, summary: current?.summary ?? "", buildError: null };
+    return {
+      changeSetId: current?.changeSetId ?? null,
+      buildId: current?.buildId ?? null,
+      version: current?.version ?? 0,
+      summary: current?.summary ?? "",
+      buildError: null,
+      changes: [],
+      warnings: [],
+    };
   }
+  const { changes, warnings } = report(draftContent, after, read.guide);
   if (JSON.stringify(after) === JSON.stringify(read.published)) {
     // Every change was undone: the draft goes, and the site is as published.
     if (pending) await prisma.changeSet.update({ where: { id: pending.id }, data: { status: "DISCARDED", error: "Every change was undone." } });
-    return { changeSetId: null, buildId: null, version: 0, summary: "", buildError: null };
+    return { changeSetId: null, buildId: null, version: 0, summary: "", buildError: null, changes, warnings: [] };
   }
 
   const summary = describeDraft(read.published, after, merged);
@@ -425,7 +477,19 @@ async function writeDraftOnce(site: Site, ctx: ToolContext, read: SiteRead, w: D
   });
 
   const buildError = await startBuild(site, buildId, merged, read.commit);
-  return { changeSetId, buildId, version, summary, buildError };
+  return { changeSetId, buildId, version, summary, buildError, changes, warnings };
+}
+
+/** What a write changed, against the draft it started from, and what in it the site's copy avoids. */
+function report(before: RawContent, after: RawContent, guide: SiteGuide): { changes: FieldChange[]; warnings: AvoidWarning[] } {
+  let warnings: AvoidWarning[] = [];
+  try {
+    warnings = avoidWarnings(before, after, guide.avoid);
+  } catch (err) {
+    // Content check() passed is valid; a draft that wasn't is reported there, not here.
+    console.error(JSON.stringify({ event: "avoid_warnings_failed", message: (err as Error).message }));
+  }
+  return { changes: changedFields(before, after), warnings };
 }
 
 async function draftView(site: Site) {
@@ -497,7 +561,14 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
     conversationId: input.conversationId,
   });
   if (result.buildError) throw new ToolError(result.buildError);
-  return { changeSetId: result.changeSetId as string, buildId: result.buildId as string, summary: result.summary, version: result.version };
+  return {
+    changeSetId: result.changeSetId as string,
+    buildId: result.buildId as string,
+    summary: result.summary,
+    version: result.version,
+    changes: result.changes,
+    warnings: result.warnings,
+  };
 }
 
 /**

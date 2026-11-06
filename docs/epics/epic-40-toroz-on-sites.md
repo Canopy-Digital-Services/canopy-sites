@@ -1,6 +1,6 @@
 # Epic 40: Toro Z on Sites
 
-**Status:** Approved (Michael, 2026-11-05). In progress: 4.1 released as `site-contract-v0.5.0` (2026-11-05, on `dev`); 4.2 next.
+**Status:** Approved (Michael, 2026-11-05). In progress: 4.1 released as `site-contract-v0.5.0` (2026-11-05, on `dev`); 4.2 committed on `dev`; 4.3 next.
 **Phase:** 5, Toro Z migration (`docs/canopy-sites/ROADMAP.md`, T1)
 **Predecessor:** Epic 38 (Link and claim), which Toro Z is the first client through; Epic 37 (canopyds.com on Sites) for the site repo's shape
 **Successor:** E39 (the welcome video), recorded against Toro Z's portal once this ships
@@ -261,6 +261,7 @@ None.
 - 2026-11-05 (later): Michael asked that refusals come with the chance to ask a person. That was PRD D34, scheduled in E32 and never built; pulled forward as 4.3, offered and sent from a card rather than filed by the model, and sections renumbered.
 - 2026-11-05: Approved; D34, D40, and D50 landed. 4.1 built: `classes` (sessions inside), `team`, the `canopy` flag, `laneViolations` (locks by address, fixed lists, `FIXED_EVERYWHERE`), one-line plain text, and the guide's `counts`, `avoid`, and `refuse`. `lockedFieldViolations` stays, deprecated, so the portal keeps its dotted-path locks until 4.2 migrates them in the same deploy. canopyds.com's and the demo's content and guides pass 0.5.0 unchanged, and the lane reports nothing on them; the portal typechecks and its 349 tests pass on it. Two calls made in the build: an id changed in a list that isn't fixed is an entry leaving and a new one arriving, so it's allowed there and refused in a fixed list; and `avoid`'s `exclamations` is any `!`, a warning the owner can wave off.
 - 2026-11-05: 4.1 pushed to `dev` (`b69e79d`) and released as `site-contract-v0.5.0`, its tarball the asset a site repo installs.
+- 2026-11-05: 4.2 built. `check()` runs `laneViolations` with the site's locks and fixed lists, and validates with the guide's limits, counts, and refused phrases; a lock or fixed list that isn't an address fails closed (every edit refused, logged as `site_lane_rule_invalid`). Migration `site_lane` adds `Site.fixedLists` and rewrites every lock from dotted to slashed (dev and prod held only the three contact locks on the demo and canopyds.com, checked 2026-11-05). Every write returns `changes` (`src/lib/site-tools/changes.ts`, from content, not ops: a field inside an entry is named by the entry, a session by its class and its times as they were) and `warnings` (`avoid`, in changed text only); quick edit's tool result lists both and tells the model to check the list against the request and name each change. The canvas's save returns them; nothing shows them on the canvas yet. The refusal's next step is one constant, `CANOPY_NEXT_STEP`, which 4.3 replaces with the offer. An existing preview test edited a page title, now Canopy's; it edits a hero headline instead. Portal: typecheck and lint clean, 358 tests pass. The Sites Onboarding Runbook's locks (section 4) change to addresses when this reaches production.
 
 ## 10. Docs this makes stale
 

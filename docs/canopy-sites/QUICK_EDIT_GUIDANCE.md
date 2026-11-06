@@ -27,16 +27,19 @@ The boundary across all six: **content only** (PRD D29). No rule anywhere lets a
 
 ### Validation and formats
 
-- Contract schemas: types, required fields, ids, link forms, dates, times, plain text (markup rejected).
+- Contract schemas: types, required fields, ids, link forms, dates, times, one line of plain text (markup, markdown, and line breaks rejected).
 - Length limits are what the rendered slot can hold. The contract sets absolute caps every site shares; the site guide's front matter tightens them per field address to this site's design (PRD D40), and the canvas shows them as counters. Alt text: 125 characters (screen reader announcement length).
 - Facts are stored structured and formatted at render with the site guide's display formats (phone, price, time). Stored text is never re-cased: casing is CSS, and owner copy is verbatim.
 - Canopy's own copy mechanics (Copy Guidelines bucket 2: no em dashes, sentence case) are **not** checks. They govern copy Canopy writes. Owner text follows the site guide (PRD D32).
-- Locked fields, rate limits, and preview before publish: PRD D9.
+- The lane (PRD D50): Canopy's fields (ids, page paths, navigation labels, SEO fields, eyebrows, buttons), the site's locks, and its fixed lists, whose entries an owner can't add, remove, or reorder (pages and sections on every site). The refusal names each field by its label and says what to tell the owner.
+- The site guide's counts (most entries in a list) and refused phrases, beside its limits (PRD D40).
+- Rate limits and preview before publish: PRD D9.
 
 ### Checks that return warnings in the tool result
 
 Each warning is returned as data (the field's address and a message), so the canvas shows it as well as the model.
 
+- **What the copy avoids** (the site guide's `avoid`), in text the write changed: the copy is the owner's (PRD D32), so the model asks whether to keep it.
 - **Stale mentions.** When an op replaces a value, the result lists every other place in the site's content where the old value still appears ("$85 also appears in a section on the home page").
 - **Dates.** An `endsOn` in the past; a weekday in the text that doesn't match its date ("Monday the 20th" when the 20th is a Tuesday).
 - **Duplicates.** A service name that already exists; an announcement already covering that date.
@@ -85,7 +88,7 @@ Each new collection adds its descriptions when it enters the contract.
 ## 4. Tool descriptions and results
 
 - **Reading:** read a collection before changing it.
-- **Proposing:** everything for one request goes in one proposal. The result says a preview is building and that nothing is live until the owner publishes. A proposal lands in the site's draft, which the owner may also be editing on the canvas (PRD D38); the last write to a field wins.
+- **Proposing:** everything for one request goes in one proposal. The result says a preview is building and that nothing is live until the owner publishes, and lists every field the proposal changed, by label, old value to new, computed from the content rather than the ops. The model checks that list against the request, puts back anything it wasn't asked to change, and names each change in its reply. A proposal lands in the site's draft, which the owner may also be editing on the canvas (PRD D38); the last write to a field wins.
 - **Errors** say how to fix them. A locked field returns the out-of-scope path below.
 - **Preflight warnings** carry the message to relay. Low resolution: *"This picture is low resolution and will look blurry on the page. Do you have a better version, or do you want to see what it looks like on the preview anyway?"* The model waits for the answer and uses the photo only if the owner says to.
 - **Alt text:** the upload result asks the model to suggest alt text from the photo; the owner accepts or edits it.

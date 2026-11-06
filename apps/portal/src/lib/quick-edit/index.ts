@@ -7,11 +7,11 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { collections, jsonSchemaFor, type CollectionName } from "@canopy/site-contract";
+import { collections, jsonSchemaFor, type AvoidWarning, type CollectionName } from "@canopy/site-contract";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
-import { getContentView, proposeChange, ToolError, type ToolContext } from "@/lib/site-tools";
+import { getContentView, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
 import { BASE_RUNBOOK } from "./runbook";
 
 export const QUICK_EDIT_MODEL = process.env.QUICK_EDIT_MODEL || "claude-opus-5-5";
@@ -233,6 +233,31 @@ export async function runQuickEdit(
   return { conversationId: conversation.id, reply, changeSetId };
 }
 
+
+/**
+ * What a proposal tells the model: what it actually changed, field by field,
+ * so it can check that against what the owner asked for and name each change
+ * in its reply, and what in it the site's copy avoids (Epic 40, 4.2).
+ */
+export function proposalResult(p: { summary: string; changes: FieldChange[]; warnings: AvoidWarning[] }): string {
+  const lines = [`Proposed: ${p.summary}. The preview is building; the owner opens it with Preview and publishes from there.`];
+  if (p.changes.length) {
+    lines.push("", "What this changed on the site:", ...p.changes.map((c) => `- ${c.text}`));
+    lines.push(
+      "",
+      "Check this list against what the owner asked for. If it changed anything they didn't ask for, put that back with another propose_change before you reply. Name each change in your reply.",
+    );
+  }
+  if (p.warnings.length) {
+    lines.push(
+      "",
+      "The site's guide says its copy avoids these. The copy is the owner's, so ask whether to keep each one or what they'd like instead:",
+      ...p.warnings.map((w) => `- ${w.message}`),
+    );
+  }
+  return lines.join("\n");
+}
+
 async function runTool(
   ctx: ToolContext,
   use: Anthropic.ToolUseBlock,
@@ -261,7 +286,7 @@ async function runTool(
         conversationId: conversationId ?? undefined,
       });
       onProposed(proposed.changeSetId);
-      return result(`Proposed: ${proposed.summary}. The preview is building; the owner opens it with Preview and publishes from there.`);
+      return result(proposalResult(proposed));
     }
     return result(`Unknown tool ${use.name}`, true);
   } catch (err) {

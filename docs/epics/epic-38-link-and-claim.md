@@ -85,7 +85,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 - **Business name** (`Site.name`, shown on the claim page and in the portal).
 - **Repository**, picked from the builder's `GET /v1/repos`, less repos another site already uses. With no builder configured (development, forms-dev), a URL field. The slug defaults from the repo name (lowercase, hyphens), shown and editable, since it names `/srv/sites/<slug>` and is fixed once created.
 - **Production hostnames** and **Umami website id**, typed (Michael, 2026-11-05).
-- Branch (`main`), time zone (`America/Los_Angeles`), and locked fields (`site.contact.phone`, `.email`, `.address`) take their defaults and stay editable on the site page.
+- Branch (`main`), time zone (`America/Los_Angeles`), and locked fields (`site/contact/phone`, `/email`, `/address`, addresses since Epic 40's 4.2) take their defaults and stay editable on the site page.
 
 `linkSite` (`src/lib/site-link.ts`, with no session of its own; the server action checks `requireGlobalAdmin` and passes the actor):
 
