@@ -26,7 +26,8 @@ describe("the system prompt", () => {
   });
 
   it("shows corrections back for approval and asks about what doesn't make sense (Michael, 2026-11-06)", () => {
-    expect(BASE_RUNBOOK).toContain("show the text corrected and ask before using it");
+    expect(BASE_RUNBOOK).toContain("show the corrections and the whole text as it would read, and ask before using it");
+    expect(BASE_RUNBOOK).toContain("It would read: 'Book your appointment at the front desk.'");
     expect(BASE_RUNBOOK).toContain("Are you sure?");
     expect(BASE_RUNBOOK).toContain("don't push back on tone, style, or wording choices");
   });

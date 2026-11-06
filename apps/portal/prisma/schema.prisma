@@ -286,8 +286,9 @@ model HelpRequest {
   summary         String
   // The field it's about, when there is one (PRD D36).
   address         String?
-  // Text Quick Edit refused to put on the site (swearing, hate speech,
-  // nothing to do with the business): sent at once, with no card.
+  // Text Quick Edit won't put on the site (swearing, hate speech, nothing to
+  // do with the business). Like any request, it reaches Canopy only if the
+  // owner sends it.
   refused         Boolean           @default(false)
   status          HelpRequestStatus @default(DRAFT)
   sentAt          DateTime?

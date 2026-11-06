@@ -7,10 +7,10 @@
  * operator console (`closeHelpRequest`), and a closing note is emailed to the
  * sender. A request sent while an operator acts as the client is recorded as
  * the operator's and emails nobody, so acceptance and eval runs stay out of
- * the inbox. `fileHelpRequest` drafts and sends in one step: for text Quick
- * Edit refuses to put on the site (`refused`: swearing, hate speech, nothing
- * to do with the business), which goes to Canopy with no card, and for MCP
- * (E34), whose clients confirm with the owner first.
+ * the inbox. Text Quick Edit won't put on the site (`refused`: swearing, hate
+ * speech, nothing to do with the business) is drafted the same way: the owner
+ * decides whether Michael sees it. `fileHelpRequest` drafts and sends in one
+ * step, for MCP (E34), whose clients confirm with the owner first.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -38,7 +38,7 @@ export interface HelpRequestDraft {
   /** The field it's about, when there is one (PRD D36). */
   address?: string | null;
   conversationId?: string | null;
-  /** Text Quick Edit refused to put on the site; sent at once (fileHelpRequest), never drafted for a card. */
+  /** Text Quick Edit won't put on the site; still the owner's to send or not. */
   refused?: boolean;
 }
 
