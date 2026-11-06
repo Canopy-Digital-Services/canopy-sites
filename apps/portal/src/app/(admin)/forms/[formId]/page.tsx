@@ -1,5 +1,6 @@
-import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
+import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getOwnedForm } from "@/lib/data-access/forms";
+import { getAccountOwnerEmail } from "@/lib/data-access/memberships";
 import { notFound } from "next/navigation";
 import { FormWorkspace } from "@/components/forms/form-workspace";
 import { prisma } from "@/lib/db";
@@ -17,7 +18,6 @@ export default async function FormViewRoute({
 }) {
   const { formId } = await params;
   const { mode, status: statusParam } = await searchParams;
-  const session = await requireAuth();
   const accountId = await getCurrentAccountId();
 
   let form;
@@ -83,6 +83,8 @@ export default async function FormViewRoute({
   }
 
   const entitlements = await getAccountEntitlements(accountId);
+  // The account's owner, not the session user: an operator acting as a client (PRD D49) builds the client's form.
+  const ownerEmail = await getAccountOwnerEmail(accountId);
   const publishDisabledReason =
     !form.published && !entitlements.canPublishAnother
       ? formatPublishDisabledReason(
@@ -94,7 +96,7 @@ export default async function FormViewRoute({
   return (
     <FormWorkspace
       apiUrl={apiUrl}
-      ownerEmail={session.user.email || ""}
+      ownerEmail={ownerEmail ?? ""}
       form={form}
       submissions={submissions}
       statusFilter={statusFilter}
