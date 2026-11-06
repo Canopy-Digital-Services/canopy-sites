@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { updateSite } from "@/actions/admin/sites";
 import {
   parseSiteSettings,
-  RUNBOOK_OVERLAY_MAX_LENGTH,
   SITE_BRANCH_MAX_LENGTH,
   SITE_LOCKED_FIELD_MAX_LENGTH,
   SITE_NAME_MAX_LENGTH,
@@ -157,27 +155,6 @@ export function SiteSettingsForm({ siteId, initial }: { siteId: string; initial:
             onBlur={() => touch("fixedLists")}
             newRow={newRow}
           />
-
-          <div className="space-y-2">
-            <Label htmlFor="site-runbookOverlay">Runbook overlay</Label>
-            <Textarea
-              id="site-runbookOverlay"
-              value={values.runbookOverlay}
-              maxLength={RUNBOOK_OVERLAY_MAX_LENGTH}
-              rows={8}
-              className="min-h-40 font-mono"
-              onChange={(e) => set("runbookOverlay", e.target.value)}
-              onBlur={() => touch("runbookOverlay")}
-              aria-invalid={!!showError("runbookOverlay")}
-            />
-            {showError("runbookOverlay") ? (
-              <p className="text-sm text-destructive">{showError("runbookOverlay")}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                This client&apos;s business facts, voice, and constraints, added to quick edit&apos;s instructions.
-              </p>
-            )}
-          </div>
 
           {text("umamiWebsiteId", "Umami website ID", {
             placeholder: "00000000-0000-0000-0000-000000000000",

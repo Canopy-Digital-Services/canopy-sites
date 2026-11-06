@@ -111,7 +111,12 @@ function tools(names: CollectionName[]): Anthropic.Tool[] {
 export const OUT_OF_LANE =
   "This is Canopy's to change, so don't try it another way. Call request_help now with what the owner asked for, in their words, then tell them in a sentence that it's Canopy's and they can send it to Michael from the card.";
 
-function systemPrompt(site: { name: string; overlay: string }, names: CollectionName[], today: string): Anthropic.TextBlockParam[] {
+/**
+ * The system prompt: the base runbook (shared, cached), then this site's
+ * guide, the prose of SITE_GUIDE.md from the published commit (PRD D31), and
+ * the JSON Schemas of the collections it has, then the date.
+ */
+export function systemPrompt(site: { name: string; guide: string }, names: CollectionName[], today: string): Anthropic.TextBlockParam[] {
   const schemas = names
     .map((n) => `## ${n} (${collections[n].label})\n${JSON.stringify(jsonSchemaFor(n))}`)
     .join("\n\n");
@@ -119,7 +124,7 @@ function systemPrompt(site: { name: string; overlay: string }, names: Collection
     { type: "text", text: BASE_RUNBOOK },
     {
       type: "text",
-      text: `# This site: ${site.name}\n\n${site.overlay.trim() || "(No site notes.)"}\n\n# Collections\n\n${schemas}`,
+      text: `# This site: ${site.name}\n\n${site.guide.trim() || "(This site has no guide yet.)"}\n\n# Collections\n\n${schemas}`,
       cache_control: { type: "ephemeral" },
     },
     { type: "text", text: `Today is ${today}.` },
@@ -159,7 +164,7 @@ export async function runQuickEdit(
   const view = await getContentView(ctx.accountId).catch((err) => {
     throw new QuickEditError(err instanceof ToolError ? err.message : "The site couldn't be loaded.");
   });
-  const site = await prisma.site.findUniqueOrThrow({ where: { id: view.site.id }, select: { id: true, name: true, runbookOverlay: true } });
+  const site = { id: view.site.id, name: view.site.name };
 
   const existing = input.conversationId
     ? await prisma.conversation.findFirst({ where: { id: input.conversationId, siteId: site.id } })
@@ -175,7 +180,7 @@ export async function runQuickEdit(
 
   const names = view.collections;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: view.site.timeZone });
-  const system = systemPrompt({ name: site.name, overlay: site.runbookOverlay }, names, today);
+  const system = systemPrompt({ name: site.name, guide: view.guide.prose }, names, today);
   const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   let changeSetId: string | null = null;
   let helpRequest: HelpRequestView | null = null;
