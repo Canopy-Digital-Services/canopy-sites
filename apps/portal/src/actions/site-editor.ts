@@ -18,6 +18,7 @@ import {
   type ToolContext,
 } from "@/lib/site-tools";
 import { QuickEditError, runQuickEdit, type QuickEditScope } from "@/lib/quick-edit";
+import { dismissHelpRequest, sendHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
 
 /**
  * The Editor's actions. Each resolves the account from the session and goes
@@ -27,12 +28,12 @@ import { QuickEditError, runQuickEdit, type QuickEditScope } from "@/lib/quick-e
 
 type Result<T> = ({ success: true } & T) | { error: string; issues?: Array<{ address?: string; message: string }> };
 
-async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolContext & { userId: string; email: string }> {
+async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolContext & { userId: string; email: string; actAsId: string | null }> {
   const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const { sitesEnabled } = await getAccountEntitlements(accountId);
   if (!sitesEnabled) throw new ToolError("This account doesn't have Canopy Sites.");
-  return { accountId, userId: session.user.id, email: session.user.email, source };
+  return { accountId, userId: session.user.id, email: session.user.email, source, actAsId: session.actingAs?.id ?? null };
 }
 
 function failure(err: unknown): { error: string; issues?: Array<{ address?: string; message: string }> } {
@@ -47,7 +48,7 @@ export async function sendQuickEdit(input: {
   message: string;
   /** Set when quick edit opens from a field on the Editor's canvas. */
   scope?: QuickEditScope | null;
-}): Promise<Result<{ conversationId: string; reply: string; changeSetId: string | null }>> {
+}): Promise<Result<{ conversationId: string; reply: string; changeSetId: string | null; helpRequest: HelpRequestView | null }>> {
   try {
     const ctx = await context();
     const scope = input.scope
@@ -56,6 +57,28 @@ export async function sendQuickEdit(input: {
     const result = await runQuickEdit(ctx, { conversationId: input.conversationId, message: String(input.message ?? ""), scope });
     if (result.changeSetId) revalidatePath("/quick-edit");
     return { success: true, ...result };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** The owner's Send to Michael on a request Quick Edit drafted (PRD D34). */
+export async function sendHelpRequestToCanopy(requestId: string): Promise<Result<{ request: HelpRequestView }>> {
+  try {
+    const ctx = await context();
+    const request = await sendHelpRequest(ctx, String(requestId));
+    revalidatePath("/quick-edit");
+    return { success: true, request };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/** The owner's Not now: the draft never reaches Canopy. */
+export async function dismissHelpRequestDraft(requestId: string): Promise<Result<{ request: HelpRequestView }>> {
+  try {
+    const ctx = await context();
+    return { success: true, request: await dismissHelpRequest(ctx, String(requestId)) };
   } catch (err) {
     return failure(err);
   }

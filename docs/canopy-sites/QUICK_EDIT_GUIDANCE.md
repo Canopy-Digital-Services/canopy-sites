@@ -92,7 +92,7 @@ Each new collection adds its descriptions when it enters the contract.
 - **Errors** say how to fix them. A locked field returns the out-of-scope path below.
 - **Preflight warnings** carry the message to relay. Low resolution: *"This picture is low resolution and will look blurry on the page. Do you have a better version, or do you want to see what it looks like on the preview anyway?"* The model waits for the answer and uses the photo only if the owner says to.
 - **Alt text:** the upload result asks the model to suggest alt text from the photo; the owner accepts or edits it.
-- **`request_help`** (PRD D34) files a request Canopy sees in the operator view. Reply: *"I put that request in. You can text Michael if you need it right away."*
+- **`request_help`** (PRD D34) drafts a request in the owner's words, shown to them as a card with Send to Michael and Not now; nothing reaches Canopy until they send it. A refusal that is Canopy's call (the lane, a refused phrase) tells the model to call it rather than try another way. Reply: one sentence that this one is Canopy's and they can send it to Michael from the card. Once sent, the card says *"Sent to Michael. You can text him if you need it sooner."* Over MCP (E34) there is no card: the tool files the request, and its description says to confirm with the owner first.
 - **`get_site_guide`** returns the site guide, for MCP clients that drop server instructions. Every other tool description points to it.
 - **No `publish` tool**, for quick edit or MCP: a change returns the preview page's link, and the owner publishes there (PRD D47).
 

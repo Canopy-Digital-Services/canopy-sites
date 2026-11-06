@@ -19,6 +19,7 @@ import {
   addressAt,
   applyChanges,
   avoidWarnings,
+  refusalIssues,
   COLLECTION_NAMES,
   fieldInfo,
   isAddressOp,
@@ -54,9 +55,16 @@ export type ToolIssue = ContentIssue & { address?: string };
 
 export class ToolError extends Error {
   issues?: ToolIssue[];
-  constructor(message: string, issues?: ToolIssue[]) {
+  /**
+   * Set when the refusal is Canopy's call, not a mistake to fix: the lane
+   * (PRD D50) or a phrase the site guide refuses. A model offers the request
+   * to Michael (PRD D34); the message itself only says what was refused.
+   */
+  outOfLane: boolean;
+  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean } = {}) {
     super(message);
     this.issues = issues;
+    this.outOfLane = options.outOfLane ?? false;
   }
 }
 
@@ -64,6 +72,8 @@ export interface ToolContext {
   accountId: string;
   userId: string | null;
   source: ChangeSetSource;
+  /** Set while an operator acts as the client (PRD D49). */
+  actAsId?: string | null;
 }
 
 const PENDING = ["DRAFT", "PREVIEWED"] as const;
@@ -178,13 +188,6 @@ async function pendingChange(siteId: string) {
 }
 type Pending = NonNullable<Awaited<ReturnType<typeof pendingChange>>>;
 
-/**
- * What the model is told to do after a refusal from the lane or the site
- * guide. 4.3 of Epic 40 replaces it with the offer to send the request to
- * Michael.
- */
-export const CANOPY_NEXT_STEP = "Tell the owner Canopy handles this, and that they can text Michael to change it.";
-
 /** A lane violation as an issue, located in whichever content still has the field. */
 function laneIssue(v: LaneViolation, published: RawContent, after: RawContent): ToolIssue {
   const collection = v.address.split("/")[0] as ToolIssue["collection"];
@@ -214,15 +217,12 @@ function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGu
     if (!(err instanceof LaneRuleError)) throw err;
     // A lock or fixed list that isn't an address: the guardrail fails closed, never silently off.
     console.error(JSON.stringify({ event: "site_lane_rule_invalid", slug: site.slug, message: err.message }));
-    throw new ToolError(`This site can't be edited until Canopy fixes its settings. ${CANOPY_NEXT_STEP}`);
+    throw new ToolError("This site can't be edited until Canopy fixes its settings.", undefined, { outOfLane: true });
   }
   if (lane.length) {
-    throw new ToolError(
-      `That change is outside what the owner can edit: ${lane.map((v) => v.message).join("; ")}. ${CANOPY_NEXT_STEP}`,
-      lane.map((v) => laneIssue(v, published, after)),
-    );
+    throw new ToolError(`${lane.map((v) => v.message).join("; ")}.`, lane.map((v) => laneIssue(v, published, after)), { outOfLane: true });
   }
-  const result = validateContent(after, { limits: guide.limits, counts: guide.counts, refuse: guide.refuse });
+  const result = validateContent(after, { limits: guide.limits, counts: guide.counts });
   if (!result.ok) {
     const issues: ToolIssue[] = result.issues.map((i) => {
       try {
@@ -232,6 +232,20 @@ function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGu
       }
     });
     throw new ToolError(`That change doesn't fit the site: ${result.issues.map((i) => `${i.collection}${i.path}: ${i.message}`).join("; ")}`, issues);
+  }
+  // Checked once the content is valid, and apart from the contract: a refused
+  // phrase is Canopy's call, not a mistake to fix.
+  const refused = refusalIssues(after, guide.refuse);
+  if (refused.length) {
+    const issues: ToolIssue[] = refused.map((i) => {
+      const issue = { ...i, collection: i.collection as ToolIssue["collection"] };
+      try {
+        return { ...issue, address: addressAt(after as Record<string, unknown>, issue.collection, i.path) };
+      } catch {
+        return issue;
+      }
+    });
+    throw new ToolError(`${refused.map((i) => i.message).join("; ")}.`, issues, { outOfLane: true });
   }
   return after;
 }

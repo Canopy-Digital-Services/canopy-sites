@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
+import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 
 type Pending = { id: string; summary: string; status: string; error: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
-type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
+export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
+type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest };
 
 const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
 
@@ -21,18 +23,22 @@ export function QuickEditWorkspace({
   pagesCard,
   pending,
   recent,
+  requests,
 }: {
   siteId: string;
   /** Streamed by the server: listing pages waits on the site's content. */
   pagesCard: React.ReactNode;
   pending: Pending | null;
   recent: Recent[];
+  /** What the owner sent Canopy (PRD D34), newest first. */
+  requests: SentRequest[];
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <QuickEdit />
       <div className="space-y-6">
         {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
+        <SentRequests requests={requests} />
         {pagesCard}
         <RecentChanges recent={recent} />
       </div>
@@ -65,7 +71,7 @@ function QuickEdit() {
         return;
       }
       setConversationId(result.conversationId);
-      setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply }]);
+      setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply, helpRequest: result.helpRequest ?? undefined }]);
       if (result.changeSetId) router.refresh();
     });
   }
@@ -87,7 +93,7 @@ function QuickEdit() {
           </div>
         ) : null}
         {messages.map((m) => (
-          <div key={m.id} className={m.role === "owner" ? "flex justify-end" : "flex justify-start"}>
+          <div key={m.id} className={m.role === "owner" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
             <p
               className={
                 m.role === "owner"
@@ -97,6 +103,7 @@ function QuickEdit() {
             >
               {m.text}
             </p>
+            {m.helpRequest ? <HelpRequestCard request={m.helpRequest} onSent={() => router.refresh()} /> : null}
           </div>
         ))}
         {isPending ? (
@@ -215,6 +222,39 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
           Discard
         </Button>
       </CardFooter>
+    </Card>
+  );
+}
+
+const REQUEST_STATUS: Record<SentRequest["status"], { label: string; dot: string }> = {
+  OPEN: { label: "With Michael", dot: "bg-primary" },
+  DONE: { label: "Done", dot: "bg-success" },
+  DECLINED: { label: "Not done", dot: "bg-muted-foreground" },
+};
+
+/** What the owner sent Canopy and where each stands, with Michael's note when he left one (PRD D34). */
+function SentRequests({ requests }: { requests: SentRequest[] }) {
+  if (requests.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-heading">Sent to Michael</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-3">
+          {requests.map((r) => (
+            <li key={r.id} className="space-y-1 text-sm">
+              <p>{r.summary}</p>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground" suppressHydrationWarning>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${REQUEST_STATUS[r.status].dot}`} />
+                {REQUEST_STATUS[r.status].label}
+                {r.sentAt ? ` · ${new Date(r.sentAt).toLocaleDateString("en-US", { dateStyle: "medium" })}` : null}
+              </p>
+              {r.note ? <p className="whitespace-pre-wrap text-muted-foreground">{r.note}</p> : null}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
     </Card>
   );
 }

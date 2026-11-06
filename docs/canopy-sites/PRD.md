@@ -253,7 +253,7 @@ Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API keys (hashed, scope
 | `ChangeSet` | siteId, source, createdByUserId?, apiKeyId?, summary, ops (JSON), status (`DRAFT` \| `PREVIEWED` \| `PUBLISHED` \| `DISCARDED` \| `FAILED`), previewBuildId, publishedBuildId; + version (E33) | The pending one is the site's draft (D38) |
 | `Conversation` | siteId, userId, model, messages (JSON), tokensIn, tokensOut, costEstimate, changeSetIds[] | |
 | `ApiKey` | accountId, siteId, keyHash, label, scopes[], lastUsedAt, revokedAt | |
-| `HelpRequest` | siteId, conversationId?, apiKeyId?, createdByUserId?, message, status | Draft; E32 settles it (D34) |
+| `HelpRequest` | siteId, conversationId?, createdByUserId?, actAsId?, message, summary, address?, status (DRAFT, OPEN, DONE, DECLINED, DISMISSED), sentAt?, note?, closedByUserId?, closedAt?; + apiKeyId? (E34) | Drafted by quick edit, sent by the owner (D34, Epic 40) |
 | `User` (extend) | password nullable | Null until the owner of a linked site claims it (D49) |
 | `PasswordToken` (was `PasswordResetToken`) | + purpose (`RESET` \| `CLAIM`), createdByUserId?, emailedAt? | Claim links share the reset token's table (D49) |
 | `ActAs` | operatorUserId?, accountId, startedAt, endedAt?; `Session.actAsId` | An operator acting as a client, and the record of it (D49) |

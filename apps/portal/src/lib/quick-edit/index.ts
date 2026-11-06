@@ -12,6 +12,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getContentView, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
+import { draftHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
 import { BASE_RUNBOOK } from "./runbook";
 
 export const QUICK_EDIT_MODEL = process.env.QUICK_EDIT_MODEL || "claude-opus-5-5";
@@ -85,8 +86,30 @@ function tools(names: CollectionName[]): Anthropic.Tool[] {
         additionalProperties: false,
       },
     },
+    {
+      name: "request_help",
+      description:
+        "Draft a request to Michael at Canopy for something you can't do: anything a tool refused as Canopy's, design or layout, a new page or kind of content, new photos, or whenever the owner asks for Michael. The owner sees it as a card with Send to Michael and Not now, and sends it themselves or doesn't; nothing reaches Michael until they do. Draft one per request.",
+      input_schema: {
+        type: "object",
+        properties: {
+          message: {
+            type: "string",
+            description: "What the owner wants, in their own words, with every detail they gave (days, times, quoted text). Don't rewrite it.",
+          },
+          summary: { type: "string", description: "One short line saying what it's about, for Michael's inbox." },
+          address: { type: "string", description: "The field it's about, as an address, when there is one." },
+        },
+        required: ["message", "summary"],
+        additionalProperties: false,
+      },
+    },
   ];
 }
+
+/** What the model hears after a refusal that's Canopy's call (PRD D34): offer Michael, don't look for another way. */
+export const OUT_OF_LANE =
+  "This is Canopy's to change, so don't try it another way. Call request_help now with what the owner asked for, in their words, then tell them in a sentence that it's Canopy's and they can send it to Michael from the card.";
 
 function systemPrompt(site: { name: string; overlay: string }, names: CollectionName[], today: string): Anthropic.TextBlockParam[] {
   const schemas = names
@@ -107,6 +130,8 @@ export interface QuickEditReply {
   conversationId: string;
   reply: string;
   changeSetId: string | null;
+  /** A request the model drafted this turn, shown to the owner as a card to send or dismiss (PRD D34). */
+  helpRequest: HelpRequestView | null;
 }
 
 /**
@@ -153,6 +178,7 @@ export async function runQuickEdit(
   const system = systemPrompt({ name: site.name, overlay: site.runbookOverlay }, names, today);
   const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   let changeSetId: string | null = null;
+  let helpRequest: HelpRequestView | null = null;
   let reply = "";
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
@@ -194,11 +220,25 @@ export async function runQuickEdit(
 
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const use of toolUses) {
-      results.push(await runTool(ctx, use, existing?.id ?? null, (id) => (changeSetId = id)));
+      results.push(
+        await runTool(
+          ctx,
+          use,
+          existing?.id ?? null,
+          (id) => (changeSetId = id),
+          (request) => (helpRequest = request),
+        ),
+      );
     }
     messages.push({ role: "user", content: results });
   }
-  if (!reply) reply = changeSetId ? "Your change is ready to preview." : "Sorry, I couldn't finish that. Try saying it another way.";
+  if (!reply) {
+    reply = helpRequest
+      ? "That one's for Canopy. You can send it to Michael below."
+      : changeSetId
+        ? "Your change is ready to preview."
+        : "Sorry, I couldn't finish that. Try saying it another way.";
+  }
 
   const cost = estimateCostUsd(QUICK_EDIT_MODEL, usage);
   const data = {
@@ -227,10 +267,14 @@ export async function runQuickEdit(
   if (changeSetId) {
     await prisma.changeSet.updateMany({ where: { id: changeSetId, conversationId: null }, data: { conversationId: conversation.id } });
   }
+  const drafted = helpRequest as HelpRequestView | null;
+  if (drafted) {
+    await prisma.helpRequest.updateMany({ where: { id: drafted.id, conversationId: null }, data: { conversationId: conversation.id } });
+  }
   console.log(
     JSON.stringify({ event: "quick_edit", accountId: ctx.accountId, conversationId: conversation.id, model: QUICK_EDIT_MODEL, ...usage, costUsd: cost }),
   );
-  return { conversationId: conversation.id, reply, changeSetId };
+  return { conversationId: conversation.id, reply, changeSetId, helpRequest: drafted };
 }
 
 
@@ -263,6 +307,7 @@ async function runTool(
   use: Anthropic.ToolUseBlock,
   conversationId: string | null,
   onProposed: (id: string) => void,
+  onHelpRequest: (request: HelpRequestView) => void,
 ): Promise<Anthropic.ToolResultBlockParam> {
   const result = (content: string, isError = false): Anthropic.ToolResultBlockParam => ({
     type: "tool_result",
@@ -288,9 +333,24 @@ async function runTool(
       onProposed(proposed.changeSetId);
       return result(proposalResult(proposed));
     }
+    if (use.name === "request_help") {
+      const drafted = await draftHelpRequest(
+        { accountId: ctx.accountId, userId: ctx.userId, actAsId: ctx.actAsId ?? null },
+        {
+          message: String(input.message ?? ""),
+          summary: String(input.summary ?? ""),
+          address: typeof input.address === "string" ? input.address : null,
+          conversationId,
+        },
+      );
+      onHelpRequest(drafted);
+      return result(
+        "The owner now sees this request as a card with Send to Michael and Not now. It hasn't been sent: don't say it was. Tell them in a sentence that it's Canopy's and they can send it from the card.",
+      );
+    }
     return result(`Unknown tool ${use.name}`, true);
   } catch (err) {
-    if (err instanceof ToolError) return result(err.message, true);
+    if (err instanceof ToolError) return result(err.outOfLane ? `${err.message} ${OUT_OF_LANE}` : err.message, true);
     throw err;
   }
 }

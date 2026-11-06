@@ -6,6 +6,7 @@ import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
 import { getContentView, getEditorChanges, ToolError } from "@/lib/site-tools";
+import { listOwnHelpRequests } from "@/lib/site-tools/help-requests";
 import { liveSite, liveUrl as liveAddress } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
@@ -37,7 +38,7 @@ export default async function QuickEditPage() {
   // Where the site is live: /demo for the demo, a client site's production hostname (PRD D47).
   const live = liveSite(site);
   const liveUrl = live ? liveAddress(live, "/").replace(/\/$/, "") : null;
-  const changes = await getEditorChanges(accountId);
+  const [changes, requests] = await Promise.all([getEditorChanges(accountId), listOwnHelpRequests(accountId)]);
   // Not awaited: reading content fetches from GitHub, so the page renders
   // at once and the pages list streams in.
   const pages = loadPages(accountId);
@@ -105,6 +106,13 @@ export default async function QuickEditPage() {
               summary: c.summary,
               publishedAt: c.publishedAt?.toISOString() ?? null,
               by: c.by,
+            }))}
+            requests={requests.map((r) => ({
+              id: r.id,
+              summary: r.summary,
+              status: r.status as "OPEN" | "DONE" | "DECLINED",
+              sentAt: r.sentAt?.toISOString() ?? null,
+              note: r.note,
             }))}
           />
         </div>

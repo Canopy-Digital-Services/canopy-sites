@@ -96,6 +96,8 @@ model User {
   sessionHandoffs       SessionHandoff[]
   changeSets            ChangeSet[]
   conversations         Conversation[]
+  helpRequestsSent      HelpRequest[]    @relation("HelpRequestSender")
+  helpRequestsClosed    HelpRequest[]    @relation("HelpRequestCloser")
 
   @@index([roleCode])
   @@map("users")
@@ -161,6 +163,7 @@ model Site {
   changeSets    ChangeSet[]
   builds        Build[]
   conversations Conversation[]
+  helpRequests  HelpRequest[]
 
   @@map("sites")
 }
@@ -258,12 +261,58 @@ model Conversation {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  changeSets ChangeSet[]
+  site         Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  changeSets   ChangeSet[]
+  helpRequests HelpRequest[]
 
   @@index([siteId, createdAt])
   @@map("conversations")
+}
+
+// Something an owner asked for that Quick Edit can't do, sent to Canopy
+// (PRD D34, Epic 40 4.3). Quick Edit drafts it in the owner's words; the
+// owner sends it from a card, or dismisses it, and only a sent request reaches
+// the operator. One sent while an operator acts as the client is theirs, and
+// emails nobody.
+model HelpRequest {
+  id              String            @id @default(cuid())
+  siteId          String
+  conversationId  String?
+  // Who sent it: the owner, or the operator acting as them (then actAsId is set).
+  createdByUserId String?
+  actAsId         String?
+  // The owner's own words, and a one-line summary of them.
+  message         String
+  summary         String
+  // The field it's about, when there is one (PRD D36).
+  address         String?
+  status          HelpRequestStatus @default(DRAFT)
+  sentAt          DateTime?
+  // Canopy's reply, emailed to the sender when the request is closed with one.
+  note            String?
+  closedByUserId  String?
+  closedAt        DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  site         Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("HelpRequestSender", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  actAs        ActAs?        @relation(fields: [actAsId], references: [id], onDelete: SetNull)
+  closedBy     User?         @relation("HelpRequestCloser", fields: [closedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, status])
+  @@index([status, sentAt])
+  @@map("help_requests")
+}
+
+enum HelpRequestStatus {
+  DRAFT // Drafted by Quick Edit; the owner hasn't sent it
+  OPEN // Sent; Canopy hasn't closed it
+  DONE
+  DECLINED
+  DISMISSED // The owner chose Not now; never reached Canopy
 }
 
 // Form configuration
@@ -427,9 +476,10 @@ model ActAs {
   startedAt      DateTime  @default(now())
   endedAt        DateTime?
 
-  operator User?     @relation(fields: [operatorUserId], references: [id], onDelete: SetNull)
-  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  sessions Session[]
+  operator     User?         @relation(fields: [operatorUserId], references: [id], onDelete: SetNull)
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  helpRequests HelpRequest[]
 
   @@index([accountId])
   @@index([operatorUserId])
