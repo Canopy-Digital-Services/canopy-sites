@@ -30,6 +30,7 @@ import { FieldConfigRenderer, hasTypeSettings } from "@/components/field-config"
 import type { FieldState } from "@/components/forms/form-context";
 import { cn } from "@/lib/utils";
 import { FIELD_TYPE_OPTIONS, getFieldTypeLabel } from "@/lib/field-types";
+import { FIELD_TYPE_ICONS } from "@/components/forms/field-type-icons";
 
 // ─── Field rules ────────────────────────────────────────────────────────────
 // What a field saves and when it can't is in lib/field-rules; these are the
@@ -63,11 +64,15 @@ function TypeMenu({
         {trigger}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48" onClick={(e) => e.stopPropagation()}>
-        {FIELD_TYPE_OPTIONS.map((option) => (
-          <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
-            {option.label}
-          </DropdownMenuItem>
-        ))}
+        {FIELD_TYPE_OPTIONS.map((option) => {
+          const Icon = FIELD_TYPE_ICONS[option.value];
+          return (
+            <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
+              <Icon aria-hidden />
+              {option.label}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

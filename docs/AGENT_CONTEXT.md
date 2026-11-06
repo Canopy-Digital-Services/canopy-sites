@@ -195,11 +195,12 @@ Change `embed/src/*`, run `npm run embed:build`, commit the rebuilt `public/embe
 
 1. Add to the `FieldType` enum in `prisma/schema.prisma` (with a migration).
 2. Add it to `FIELD_TYPE_OPTIONS` in `src/lib/field-types.ts`; the build fails if you skip it. Its label there is also a new field's default label, and its traits there (`choice`, `composite`) decide where its config is stored and which boxes its settings show. Its place there is its place in the Add field menu: specific before general, so a type that would also catch a narrower need comes after it. If a new field can't save without config (as Choose one can't without options), give it defaults in `newFieldDefaults` (`src/lib/field-rules.ts`, with the save rules the editor and the field server actions both apply).
-3. Render it in `embed/src/form.ts`.
-4. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
-5. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
-6. Add a config panel in `src/components/field-config/` if it has options.
-7. Run `npm run embed:build` and commit `public/embed.js`.
+3. Give it an icon in `FIELD_TYPE_ICONS` (`src/components/forms/field-type-icons.ts`) for the Add field menu; the build fails without one.
+4. Render it in `embed/src/form.ts`.
+5. Add its rules to `validateField` in `embed/src/validation.ts`, and any length cap to the tables beside it. The embed and the server both run them.
+6. Only what the server alone may do (a guardrail beyond the field's rules, rewriting the stored value) goes in `src/lib/public-submit.ts`, after `validateSubmission`.
+7. Add a config panel in `src/components/field-config/` if it has options.
+8. Run `npm run embed:build` and commit `public/embed.js`.
 
 ---
 
