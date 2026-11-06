@@ -40,7 +40,7 @@ The site goes onto Sites as it reads today. Changing its copy is Jane's to do on
 | Photo uploads, a new photo of Jane | E32. The photo stays in the template, Canopy's |
 | A share image (`og:image`) | On the Site Build Checklist, but the site is already shared (the flyer's QR code) and an image is design work the claim test doesn't need. A follow-up if wanted |
 | The site kit (E41) | Fur-Ever is a test claim, not a client, so it goes first and copies Toro Z's plumbing; E41 takes it over with the others (Michael, 2026-11-06) |
-| Monthly reports, Fox | Not a reporting-tier or Tier 1 site |
+| Monthly reports | Not a reporting-tier site |
 
 ## 3. Order
 
@@ -55,12 +55,12 @@ About three sessions: 4.1 with 4.2; 4.3 with the merge; 4.4 with 4.5.
 
 ### 4.1 The repo into the org
 
-As of 2026-11-06 the repo is private under Michael's account, and Coolify app `uei7lxs4rxdsyi8gbht5hob3` builds it with nixpacks from `Skinnerbox916/fur-ever-friends` through the `canopy-coolify-webber` GitHub App. Toro Z's app uses the org's `canopyds-github` App and a Dockerfile.
+As of 2026-11-06 the repo is private under Michael's account, and Coolify app `uei7lxs4rxdsyi8gbht5hob3` builds it with nixpacks from `Skinnerbox916/fur-ever-friends` through the `canopy-coolify-webber` GitHub App. It's a Tier 1 site, so Fox holds a copy of the app under the same uuid, redeployed from `main` nightly (runbook section 3). Toro Z's app uses the org's `canopyds-github` App and a Dockerfile.
 
 1. Transfer the repo to `Canopy-Digital-Services`, and point the local remote at the new address.
-2. Add it to the `canopyds-github` App's installation if that installation is on selected repositories, and to the **Canopy Sites** App's (runbook section 4, step 1).
-3. On the Coolify app: the org's GitHub App as the source and `Canopy-Digital-Services/fur-ever-friends` as the repository. Push section 6's two fixes and confirm the webhook deploys them (runbook section 3): publish is a push.
-4. With 4.2's merge: the `dockerfile` build pack, port 80, the domain still `http://furever.skibri.us`, and `NIXPACKS_NODE_VERSION` gone.
+2. Add it to the **Canopy Sites** App's installation (runbook section 4, step 1), a browser step. The `canopyds-github` App's installation is on all repositories, so it reaches the repo with no step.
+3. On both boxes' copies of the app: the org's GitHub App as the source and `Canopy-Digital-Services/fur-ever-friends` as the repository. Coolify's API refuses `github_app_uuid` on an update, so this is `source_id` and `git_repository` in `coolify-db`; the GitHub repo id (`repository_project_id`) survives a transfer. Push section 6's two fixes and confirm the webhook deploys them (runbook section 3): publish is a push.
+4. With 4.2's merge, on both boxes: the `dockerfile` build pack, port 80, the domain still `http://furever.skibri.us`, and `NIXPACKS_NODE_VERSION` gone.
 
 ### 4.2 The repo on the contract (`fur-ever-friends`)
 
@@ -167,6 +167,7 @@ None.
 
 - 2026-11-06: Drafted from Michael's handoff and a look at the repo, the live site, its Coolify app, Umami, and the skibri.us zone.
 - 2026-11-06: Approved with Michael's answers (section 6). Production read, read-only: no account uses `jane@skibri.us`; the site's form is in Michael's account with three submissions, so Jane's form (4.4) joins the scope. Michael added the Umami website and its script (`fur-ever-friends` `45cb03e`).
+- 2026-11-06: 4.1 steps 1 and 3 done. The repo is `Canopy-Digital-Services/fur-ever-friends`; both boxes' Coolify copies (`uei7lxs4rxdsyi8gbht5hob3`) build it through `canopyds-github` (source 4), still on nixpacks. The two fixes (`54cdceb`) deployed on Webber from a webhook in about 40 seconds and are live, which closes the Coolify page's "webhook auto-deploy is unproven" item for this site. The draft had called the site not Tier 1; GitHub.md and Fox's own app list say it is. Step 2 (the Canopy Sites App) waits on Michael's browser.
 
 ## 10. Docs this makes stale
 
