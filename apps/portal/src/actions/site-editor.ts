@@ -5,7 +5,18 @@ import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import type { ChangeSetSource } from "@prisma/client";
 import { getAccountSite } from "@/lib/data-access/sites";
-import { discardChange, getEditorChanges, getPreviewState, publishChange, refreshChange, saveDraft, ToolError, type ToolContext } from "@/lib/site-tools";
+import type { AvoidWarning } from "@canopy/site-contract";
+import {
+  discardChange,
+  getEditorChanges,
+  getPreviewState,
+  publishChange,
+  refreshChange,
+  saveDraft,
+  ToolError,
+  type FieldChange,
+  type ToolContext,
+} from "@/lib/site-tools";
 import { QuickEditError, runQuickEdit, type QuickEditScope } from "@/lib/quick-edit";
 
 /**
@@ -106,7 +117,7 @@ export async function discardPendingChange(changeSetId: string): Promise<Result<
 export async function saveCanvasEdits(input: {
   siteId: string;
   edits: Array<{ address: string; value: string | null }>;
-}): Promise<Result<{ changeSetId: string | null; version: number; buildError: string | null }>> {
+}): Promise<Result<{ changeSetId: string | null; version: number; buildError: string | null; changes: FieldChange[]; warnings: AvoidWarning[] }>> {
   try {
     const ctx = await context("EDITOR");
     const edits = Array.isArray(input.edits) ? input.edits.slice(0, 20) : [];
@@ -116,7 +127,14 @@ export async function saveCanvasEdits(input: {
         : { op: "replace", address: String(e.address), value: String(e.value).replace(/\s+/g, " ").trim() },
     );
     const result = await saveDraft(ctx, String(input.siteId), { ops });
-    return { success: true, changeSetId: result.changeSetId, version: result.version, buildError: result.buildError };
+    return {
+      success: true,
+      changeSetId: result.changeSetId,
+      version: result.version,
+      buildError: result.buildError,
+      changes: result.changes,
+      warnings: result.warnings,
+    };
   } catch (err) {
     return failure(err);
   }

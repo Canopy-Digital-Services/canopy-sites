@@ -5,6 +5,24 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.13.0] - 2026-11-05
+
+### Added
+
+- Editor: the Add field list shows each field type with its icon
+- Sites: **the lane in code** (Epic 40, PRD D50). Every edit, from Quick Edit or the canvas, is checked against what the owner may change: a field Canopy owns, a locked value, a fixed list's entries, or a list past its count is refused, each field named by its label. The site guide's counts and refused phrases are enforced with its limits
+- Sites: every write reports what it changed, field by field, and what the guide's avoid list flags in changed text; Quick Edit names each change back to the owner
+- Site contract 0.5.0: `classes` (with weekly sessions), `team`, the `canopy` flag on what no owner changes, and one-line plain text fields
+
+### Changed
+
+- Sites: a site's locks are addresses (`site/contact/phone`), not dotted paths, and a site can list fixed lists; a migration rewrites existing locks
+
+### Fixed
+
+- Forms: the thank-you message sits above "Powered by", which stays at the bottom
+- Editor: the preview's mark follows its field when the layout moves without a re-render (the "Please fix" line, an "Other" box opening)
+
 ## [5.12.0] - 2026-11-05
 
 ### Added

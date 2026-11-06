@@ -1,6 +1,6 @@
 # Epic 38: Link and claim
 
-**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1, 4.3, 4.4, and 4.5 released in 5.11.0 (2026-11-05); 4.2 (needs Michael to create the GitHub App) and 4.7 to 4.9 left.
+**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Toro Z)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** T1, Toro Z Muay Thai (login `torozmuaythai@gmail.com`), the first client to be linked and to claim
@@ -85,7 +85,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 - **Business name** (`Site.name`, shown on the claim page and in the portal).
 - **Repository**, picked from the builder's `GET /v1/repos`, less repos another site already uses. With no builder configured (development, forms-dev), a URL field. The slug defaults from the repo name (lowercase, hyphens), shown and editable, since it names `/srv/sites/<slug>` and is fixed once created.
 - **Production hostnames** and **Umami website id**, typed (Michael, 2026-11-05).
-- Branch (`main`), time zone (`America/Los_Angeles`), and locked fields (`site.contact.phone`, `.email`, `.address`) take their defaults and stay editable on the site page.
+- Branch (`main`), time zone (`America/Los_Angeles`), and locked fields (`site/contact/phone`, `/email`, `/address`, addresses since Epic 40's 4.2) take their defaults and stay editable on the site page.
 
 `linkSite` (`src/lib/site-link.ts`, with no session of its own; the server action checks `requireGlobalAdmin` and passes the actor):
 
@@ -258,6 +258,7 @@ Not started.
   - The Owner card is the first part of 4.7: email, claimed (with when), the claim link (copied or emailed, when, by whom), last sign-in. The Sites list's status column is still to come.
   - Tests: 11 claim and 8 act-as database tests, plus the preview checks for an acting operator; the claim-purpose and Forgot password guards fail with their guards removed. Checked in headless Chromium against the worktree's own database: copy a claim link, act as the client (banner, account page without password or deletion, Stop back to the site page), then claim on a 390 px signed-out browser, landing on Quick Edit, and the Owner card shows the claim. Lint, 39 test files, and the build pass on the tree rebased onto `025261e`.
 - 2026-11-05 (later): Released in 5.11.0 (PR #43, merge `44267ca`), with the other sessions' Forms changes. `SMTP_FROM_SITES` set to `Canopy Sites <sites@canopyds.com>` on the production portal app only (dev logs in as `forms-dev@`, which can't send as `sites@`). Verified on production: the portal and builder deployed; the six new migrations applied, `users.password` nullable, the two existing reset tokens `RESET`, no `act_as` rows; the variable inside the container; `/claim` and `/login` 200 on sites.canopyds.com, `/operator/sites` sends a signed-out request to sign-in. Not verified: an email actually sent as `sites@` (none yet), and the flow signed in on production. Nextcloud: the Sites Onboarding Runbook's sections 1, 4, 5, and 6 rewritten for link, act-as, and claim (through the Canopy MCP connector; the `nextcloud` server was down), and the Migadu page's `sites@` line.
+- 2026-11-05 (later): 4.2 released in 5.12.0 (PR #45, merge `9ac4b9b`). The builder reaches repos as the Canopy Sites App (`src/github-app.ts`; its first unit tests), `GET /v1/repos` lists them, and Link a site picks from them; an unreadable key or a repo the App can't reach falls back to `GIT_TOKEN_<SLUG>`. The App was made through GitHub's manifest flow in Michael's Chrome after he approved GitHub's passkey prompt: "Canopy Sites", ID 5634894, owned by the org, Contents read and write and Metadata read, no webhook; installed (179082939) on `canopy-demo-site`, `canopy-website`, and `toroz` only. Its ID, installation ID, and key (base64) went straight from the API exchange into `canopy-builder`'s Coolify env. Verified on production: `/v1/repos` lists exactly those three; fresh content reads of the demo and canopyds.com with no fallback in the builder's log; and `git push --dry-run` to both repos with the App's token and no PAT in reach. Removing `GIT_TOKEN_DEMO` and `GIT_TOKEN_CANOPYDS` from the builder was refused by the session's safety check (writing a secret store), so those two variables stay as unused fallbacks until Michael removes them and revokes the two PATs. Nextcloud: the runbook's section 4 (the repo on the App, in place of a PAT and a builder variable), GitHub, and the Expirables Register.
 
 ## 10. Docs this makes stale
 
@@ -270,7 +271,6 @@ Each lands with the change that causes it, never in a later pass.
 - `.env.example`: `SMTP_FROM_SITES`.
 - `docs/ACCOUNT_OPERATIONS.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
 - `docs/UX_PATTERNS.md`: the act-as banner (section 2's Notices), the claim page with the auth pages (section 8), the Sites tabs' rule (section 10, Page shell).
-- `apps/builder/README.md`: the GitHub App variables in place of `GIT_TOKEN_<SLUG>`, and `GET /v1/repos`.
 - `apps/portal/prisma/schema.prisma`: `Site.slug`'s comment.
 - `apps/portal/src/actions/admin/members.ts`: its header comment (random password, Forgot password).
 - `apps/portal/content/docs/account.md`: signing in for the first time from a claim link, and Forgot password before claiming. Sites owners have no help pages of their own yet (as of 2026-11-05).
@@ -278,7 +278,4 @@ Each lands with the change that causes it, never in a later pass.
 
 **Nextcloud**
 
-- Canopy Sites → **Sites Onboarding Runbook**: section 4 steps 1 and 2 (add the repo to the Canopy Sites App, in place of a PAT, an env var, and a redeploy), with 4.2. Sections 1, 4 step 3, 5, and 6 changed with 5.11.0.
-- Engineering → Platforms → **GitHub**: the `canopy-builder` row becomes the Canopy Sites App (selected repos, Contents write, key on the builder); the "one PAT per site" and "Never used" traps go with the PATs; pushes show as the App.
-- Engineering → **Expirables Register**: the two PAT rows replaced by the App's private key (no expiry, how to rotate).
 - Engineering → Platforms → **Coolify**: nothing; its token stays out of the portal.

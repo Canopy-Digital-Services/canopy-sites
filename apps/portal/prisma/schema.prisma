@@ -147,7 +147,8 @@ model Site {
   contractVersion     String? // site-contract version the repo implements (MAJOR.MINOR.PATCH)
   umamiWebsiteId      String?
   runbookOverlay      String   @default("") // Client part of the quick-edit system prompt (E32)
-  lockedFields        String[] @default([]) // Dotted contract paths edits may not change (E31), e.g. site.contact.phone
+  lockedFields        String[] @default([]) // Address patterns no owner edit may change (PRD D50), e.g. site/contact/phone
+  fixedLists          String[] @default([]) // Address patterns of lists whose entries no owner edit adds, removes, or reorders (PRD D50), e.g. classes
   maxBuildsRetained   Int      @default(5)
   // A sales demo, never a client's site (PRD D23): Stats shows sample data.
   isDemo              Boolean  @default(false)

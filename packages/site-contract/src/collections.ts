@@ -1,4 +1,14 @@
-import { AnnouncementsSchema, FaqsSchema, GallerySchema, PagesSchema, ReviewsSchema, ServicesSchema, SiteSchema } from "./schemas.js";
+import {
+  AnnouncementsSchema,
+  ClassesSchema,
+  FaqsSchema,
+  GallerySchema,
+  PagesSchema,
+  ReviewsSchema,
+  ServicesSchema,
+  SiteSchema,
+  TeamSchema,
+} from "./schemas.js";
 
 /**
  * Every collection a site may have. Each is one JSON document at
@@ -12,6 +22,8 @@ export const collections = {
   faqs: { file: "faqs.json", schema: FaqsSchema, label: "FAQs" },
   gallery: { file: "gallery.json", schema: GallerySchema, label: "Gallery" },
   announcements: { file: "announcements.json", schema: AnnouncementsSchema, label: "Announcements" },
+  classes: { file: "classes.json", schema: ClassesSchema, label: "Classes" },
+  team: { file: "team.json", schema: TeamSchema, label: "Team" },
 } as const;
 
 export type CollectionName = keyof typeof collections;

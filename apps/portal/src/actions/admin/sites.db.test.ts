@@ -27,7 +27,8 @@ const settings: SiteSettingsInput = {
   productionHostnames: ["Example.com", "www.example.com"],
   umamiWebsiteId: "",
   runbookOverlay: "Voice: warm.",
-  lockedFields: ["site.contact.phone"],
+  lockedFields: ["site/contact/phone"],
+  fixedLists: ["classes"],
 };
 
 const toroz: LinkSiteInput = {
@@ -150,7 +151,8 @@ describe("updateSite", () => {
       name: "Renamed",
       productionHostnames: ["example.com", "www.example.com"],
       runbookOverlay: "Voice: warm.",
-      lockedFields: ["site.contact.phone"],
+      lockedFields: ["site/contact/phone"],
+      fixedLists: ["classes"],
     });
   });
 

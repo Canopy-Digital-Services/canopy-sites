@@ -184,6 +184,8 @@ Goal: every edit, from any source, is a ChangeSet created through one set of too
 
 Goal: the client types "we're closed Monday the 20th" and gets a preview link.
 
+Epic 40 (T1) takes three of these ahead of the rest, because Toro Z depends on them: the site guide's prose in the prompt with `Site.runbookOverlay` dropped, the base prompt rewritten from QUICK_EDIT_GUIDANCE, and `requestHelp` (PRD D34).
+
 - Claude API, tool use, tools = E31 layer in-process. Model names and per-model roles (classify vs edit) in env, not code
 - Definitions module shared with E34 (PRD D30): tool names, descriptions, schemas, core guidance, quick edit persona, wording from `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md`. Replace `runbook.ts`; cut the guidance doc to its placement rules and numbers. Tool definitions identical across sites so the shared prefix caches product-wide
 - Prompt assembly: core guidance + persona (cached, shared) + the prose of `SITE_GUIDE.md`, read through the builder from the published commit (PRD D31; E33 reads its front matter) + JSON Schema for every collection, carrying C3's field descriptions. Drop `Site.runbookOverlay` and its operator textarea; resolve dates with `Site.timeZone` (added in E33)
@@ -259,7 +261,7 @@ Acceptance: publish from quick edit is live in seconds; restore brings back a pr
 
 ### T1 · Toro Z onto the template (`toroz`)
 
-Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (schedule logic becomes contract-schema'd `schedule` + derived views in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule).
+Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (contract 0.5.0's `classes` carry their sessions, and the schedule's views are derived in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule). The epic doc, `docs/epics/epic-40-toroz-on-sites.md`, carries the requirements, with the E32 pieces Toro Z depends on and the lane in code (PRD D50).
 
 ---
 
