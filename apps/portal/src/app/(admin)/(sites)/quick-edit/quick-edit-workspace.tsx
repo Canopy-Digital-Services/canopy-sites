@@ -1,7 +1,7 @@
 "use client";
 
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Suspense, use, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -16,16 +16,17 @@ type Recent = { id: string; summary: string; publishedAt: string | null; by: str
 export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest };
 
-const SUGGESTIONS = ["We're closed Saturday the 24th for a wedding", "Raise the haircut price to $90", "Add a review from Jenna: \"Best color I've ever had.\""];
-
 export function QuickEditWorkspace({
   siteId,
+  examples,
   pagesCard,
   pending,
   recent,
   requests,
 }: {
   siteId: string;
+  /** Example requests from the site's own content (src/lib/quick-edit/examples.ts), streamed with it. */
+  examples: Promise<string[]>;
   /** Streamed by the server: listing pages waits on the site's content. */
   pagesCard: React.ReactNode;
   pending: Pending | null;
@@ -35,7 +36,7 @@ export function QuickEditWorkspace({
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <QuickEdit />
+      <QuickEdit examples={examples} />
       <div className="space-y-6">
         {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
@@ -46,7 +47,7 @@ export function QuickEditWorkspace({
   );
 }
 
-function QuickEdit() {
+function QuickEdit({ examples }: { examples: Promise<string[]> }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -54,6 +55,7 @@ function QuickEdit() {
   const [isPending, startTransition] = useTransition();
   const seq = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
@@ -84,13 +86,17 @@ function QuickEdit() {
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
         {messages.length === 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((s) => (
-              <Button key={s} variant="outline" size="sm" className="h-auto whitespace-normal py-1.5 text-left font-normal" onClick={() => send(s)}>
-                {s}
-              </Button>
-            ))}
-          </div>
+          <Suspense fallback={null}>
+            {/* An example names a real class or price, so it goes into the box
+                for the owner to change, never straight to the model. */}
+            <Examples
+              examples={examples}
+              onPick={(text) => {
+                setDraft(text);
+                inputRef.current?.focus();
+              }}
+            />
+          </Suspense>
         ) : null}
         {messages.map((m) => (
           <div key={m.id} className={m.role === "owner" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
@@ -124,6 +130,7 @@ function QuickEdit() {
           }}
         >
           <Textarea
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -132,7 +139,6 @@ function QuickEdit() {
                 send(draft);
               }
             }}
-            placeholder="e.g. Raise the blowout to $55"
             maxLength={2000}
             rows={2}
             className="min-h-[2.75rem] resize-none"
@@ -145,6 +151,20 @@ function QuickEdit() {
         </form>
       </CardFooter>
     </Card>
+  );
+}
+
+function Examples({ examples, onPick }: { examples: Promise<string[]>; onPick: (text: string) => void }) {
+  const list = use(examples);
+  if (list.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {list.map((s) => (
+        <Button key={s} variant="outline" size="sm" className="h-auto whitespace-normal py-1.5 text-left font-normal" onClick={() => onPick(s)}>
+          {s}
+        </Button>
+      ))}
+    </div>
   );
 }
 
