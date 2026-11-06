@@ -16,8 +16,9 @@ Phase 1  Content contract + H&H       [site-contract, H&H] C1 → H1 → H2 → 
 Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, C1)
 Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E34 → E35 (needs E30; E33 first, below)
 Phase 4  Production on Caddy          [webber]             E36                        (needs E33 stable)
-Phase 5  Toro Z migration             [toroz]              T1                         (needs E38; follows canopyds.com's path, E37; not gated on E36)
+Phase 5  Toro Z migration             [toroz]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
+Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -43,6 +44,10 @@ E38 lets the operator link a live site, which creates the client's account, and 
 ### A site kit before the next site (decided 2026-11-06)
 
 With Toro Z, three repos run on Sites (the demo, canopyds.com, Toro Z), and each carries its own copy of the same plumbing: the content loader, image resolving, the editor flags, the mark wiring, the build-parity and CORS settings, and, on Toro Z, the schedule views any class-based site needs. Limits are measured by hand, and go stale when a template's layout changes. E41 moves that into a versioned package installed like the contract, plus a thin starter, after Toro Z is linked and before the next client site. It replaces C2, a copy-once starter: a starter alone copies the plumbing again, and a fix never reaches the sites already made from it.
+
+### Staging, handover before launch, and forms from the build (Michael, 2026-11-06)
+
+Every site on Sites so far was live before it was linked, because the canvas loads a client site's assets from its first production hostname (D47, `src/lib/site-live.ts`). A site Canopy builds from scratch needs three things that path doesn't give: a working version Michael can show a client before launch (E43), the owner editing their copy on Sites before any visitor sees it (E44), and its contact form working on launch day in the client's own account (E45). Staging comes first and starts outside the portal; E44 builds on it.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -267,6 +272,10 @@ Acceptance: publish from quick edit is live in seconds; restore brings back a pr
 
 Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (contract 0.5.0's `classes` carry their sessions, and the schedule's views are derived in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule). The epic doc, `docs/epics/epic-40-toroz-on-sites.md`, carries the requirements, with the E32 pieces Toro Z depends on and the lane in code (PRD D50).
 
+### E42 · Fur-Ever Friends on Sites (`fur-ever-friends`)
+
+A site Michael controls, through the same runbook, so the owner's claim is tested end to end before Toro Z's link goes out. Its form is the first a client's site embeds from the client's own account, built by the operator acting as them (Epic 38, 4.5). The epic doc, `docs/epics/epic-42-fur-ever-friends-on-sites.md`, carries the requirements.
+
 ---
 
 ## Phase 6 — Site kit
@@ -284,9 +293,44 @@ Goal: the code every Sites repo copies today lives in one versioned package, so 
   - **Measure**: the guide's limits as a command that renders the built site at 360 and 1440 px and writes or checks `SITE_GUIDE.md`'s `limits` (each field at most one line past today's copy, or the longest in its list), plus renders at the counts. Run when a template's layout changes; a check fails when the guide no longer matches the layout.
   - **Build parity**: a check that the builder-style build and the production image name the same `_astro` files.
 - The starter (`canopy-site-template`): an Astro 7 repo wired to the kit and the contract, with the Dockerfile (`npm ci --ignore-scripts`), `nginx.conf` with CORS, Tailwind reading `src/` only, Umami with `data-domains`, and a `SITE_GUIDE.md` skeleton. The Sites Onboarding Runbook's section 2 starts from it.
-- canopyds.com and Toro Z move onto the kit; the demo with its contract upgrade.
+- canopyds.com, Toro Z, and Fur-Ever Friends (Epic 42, which copied Toro Z's plumbing) move onto the kit; the demo with its contract upgrade.
 - Open for the epic doc: whether fixed lists move from the `Site` row into the guide's front matter, beside counts, since both are facts of the design; the row would then keep only locks.
 - Acceptance: a new site from the starter passes the runbook's section 2 with no code copied from another site; a fix in the kit reaches canopyds.com and Toro Z by a version bump; the measure command reproduces Toro Z's limits and catches a layout change that makes one stale.
+
+---
+
+## Phase 7: New client builds
+
+### E43 · Staging
+
+Goal: Michael shows a client the working version of their site, before launch and for any later change Canopy makes, at an address only the people he shares it with can open, and the client says what they want changed. It starts outside the Sites portal (Michael, 2026-11-06).
+
+- A staging build is its own build from its own branch on its own hostname, never the production app serving a second name: Toro Z's `toroz-dev` was retired on 2026-08-13 because it was the same app off the same build, so nothing could differ between it and production (`toroz/deploy-to-webber.md`).
+- Not indexed, and readable only by the people Michael names: the client and anyone they bring in.
+- Collaborative: the client's feedback reaches Michael tied to the page it's about.
+- A Canopy-side staging, for Canopy's own work on a site. An owner's drafts stay on the canvas and the preview page with no hostname (D47).
+- Open for the epic doc: the branch model (one `staging` branch per site, or one per change); who can open it (Cloudflare Access by email, or a share link); how feedback is given (comments on the page, or the portal's request card, D34, once it's in the portal); whether the builder (E36) or a Coolify app per site serves it; and when it moves into the portal.
+- Acceptance: a client opens their site's staging address from Michael's invitation, sees a change before production does, and sends feedback on a page; a stranger with the address can't open it, and no search engine indexes it.
+
+### E44 · Handover before launch
+
+Goal: a new client claims their portal and edits their copy before any visitor can see the site, and Canopy launches it when they're done.
+
+- A site is linked before launch with its staging address (E43) where the production hostname will go, so the canvas and the preview page load from it (D47). The owner edits, previews, and publishes there; nothing is public.
+- **Launch** (operator, on the site's page): once the go-live infrastructure is in place (the New Client Checklist), the production hostnames go first in the site's list, and from then on a publish deploys to production.
+- The canvas loads a page's assets cross-origin from a sandboxed frame, with no cookies, so a staging address gated by Cloudflare Access must still serve the site's static files to it (a path-scoped bypass for `/_astro/` and fonts, or the builder serving them).
+- Amends D47, D49, and the Sites Onboarding Runbook's section 1 ("the site is live") when approved.
+- Acceptance: a site linked before launch is edited, previewed, and published by its owner with no public address serving it; Launch makes it public with the owner's edits, and the canvas follows.
+
+### E45 · A site's forms from its build
+
+Goal: a new site's form works the moment the site does, in the client's own account, with nothing rewired after linking. As of 2026-11-06, Forms can't import, export, or duplicate a form; a site embeds a form by its id; and a form's allowed origins are typed by hand. So a site's form is built after linking, acting as the client (D49), and its id committed after that (Epic 42, 4.4).
+
+- **The form is written during the build** (Site Build Checklist), as a definition file in the site repo in Forms' own field model: fields, title, settings, and notifications to the owner. Forms gains import of that file and export to it, so a form Michael builds by hand can become one too.
+- **Link a site imports the repo's forms** into the new account, so the owner's Forms tab and submissions start with them; acting as the client, an Import does the same for a site already linked.
+- **The embed names its form** (`contact`) and the portal resolves the name within the site's account, so the template is written once, before any account exists. A form's allowed origins come from its site's hostnames.
+- The embed component, with its placeholder under the portal flags, goes into the site kit (E41).
+- Acceptance: a site from the starter with a form definition, once linked, serves a working form whose submissions land in the client's account, with no commit after linking.
 
 ---
 

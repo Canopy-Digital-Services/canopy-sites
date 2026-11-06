@@ -14,6 +14,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 
 type InlineRenameProps = {
+  /** What the box opens with. While open, it shows what is typed rather than
+      what comes back: a field row passes a label equal to its type's name back
+      as a blank, which partway through "Phone number" would empty the box. */
   value: string;
   /** What a blank value shows as, and saves as. */
   placeholder: string;
@@ -47,7 +50,8 @@ export function InlineRename({
   onEditingChange,
   defaultEditing = false,
 }: InlineRenameProps) {
-  const [editing, setEditing] = useState(defaultEditing);
+  // The box's text while it's open; null while it's shut.
+  const [text, setText] = useState<string | null>(defaultEditing ? value : null);
   // Enter or Escape hands focus back to the pencil; a click elsewhere keeps
   // it where it went.
   const [fromKeys, setFromKeys] = useState(false);
@@ -55,18 +59,20 @@ export function InlineRename({
   // Inside a row that toggles on click, nothing here may toggle it.
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
-  if (editing) {
+  if (text !== null) {
     return (
       <Textarea
         ref={fit}
         autoFocus
         rows={1}
         aria-label={name}
-        value={value}
+        value={text}
         placeholder={placeholder}
         // A name is one line, however it wraps: a pasted line break is a space.
         onChange={(e) => {
-          onChange(e.target.value.replace(/\s*\n\s*/g, " "));
+          const next = e.target.value.replace(/\s*\n\s*/g, " ");
+          setText(next);
+          onChange(next);
           fit(e.currentTarget);
         }}
         // The box opens focused with the name selected, so typing replaces it.
@@ -75,7 +81,7 @@ export function InlineRename({
           e.currentTarget.select();
         }}
         onBlur={() => {
-          setEditing(false);
+          setText(null);
           onEditingChange?.(false);
         }}
         onKeyDown={(e) => {
@@ -109,7 +115,7 @@ export function InlineRename({
             onClick={(e) => {
               e.stopPropagation();
               setFromKeys(false);
-              setEditing(true);
+              setText(value);
             }}
             onPointerDown={stop}
           >

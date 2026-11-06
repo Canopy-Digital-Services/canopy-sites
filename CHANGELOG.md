@@ -5,6 +5,15 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.2] - 2026-11-06
+
+### Fixed
+
+- Quick Edit changes a fact only where the owner asked. When the same fact appears somewhere else, in another field or in a sentence (a service's price and the "from" price on its card), it says where and asks whether to change it there too. It had changed a card's starting price along with its service's, unasked. From Fur-Ever Friends' first eval
+- Quick Edit's example requests wrap on a phone. A long one kept its one-line width, so the page grew wider than the screen, the phone zoomed out, and the help button and the top bar's right side sat off the page
+- Forms: a form's first notification recipient is the account's owner, also when an operator builds the form acting as the client; it had been the operator
+- Forms: a field's rename box keeps what's typed. A label starting with the field type's name ("Phone Number" on a Phone field) emptied the box at "Phone" and saved " Number". A Name's or Address's part labels are trimmed as they save
+
 ## [5.14.1] - 2026-11-06
 
 ### Fixed

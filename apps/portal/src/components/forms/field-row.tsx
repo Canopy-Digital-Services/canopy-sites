@@ -189,8 +189,9 @@ export function FieldRow({
           {/* The label is renamed where it's shown, here in the header. */}
           {open ? (
             <InlineRename
-              // A label still its type's name shows greyed in an empty box,
-              // as a part's default does: what it saves as if left alone.
+              // A label still its type's name opens as an empty box with the
+              // name greyed, as a part's default does: what it saves as if
+              // left alone.
               value={field.label === defaultLabel(field.type) ? "" : field.label}
               placeholder={defaultLabel(field.type)}
               onChange={(text) => onChange({ label: text })}
