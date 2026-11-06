@@ -160,7 +160,7 @@ function Examples({ examples, onPick }: { examples: Promise<string[]>; onPick: (
   return (
     <div className="flex flex-wrap gap-2">
       {list.map((s) => (
-        <Button key={s} variant="outline" size="sm" className="h-auto whitespace-normal py-1.5 text-left font-normal" onClick={() => onPick(s)}>
+        <Button key={s} variant="outline" size="sm" className="h-auto max-w-full whitespace-normal py-1.5 text-left font-normal" onClick={() => onPick(s)}>
           {s}
         </Button>
       ))}
