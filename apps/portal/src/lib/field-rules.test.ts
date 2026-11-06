@@ -137,6 +137,15 @@ describe("savedField", () => {
     expect(saved.options).toEqual({ parts: ["first", "last"], requiredParts: ["last"], partLabels: { last: "Surname" } });
   });
 
+  it("trims a part's label and drops a blank one, as a field's label is", () => {
+    const saved = savedField({
+      type: "ADDRESS",
+      label: "Address",
+      options: { parts: ["line1", "city"], requiredParts: [], partLabels: { line1: " Street address ", city: "  " } },
+    });
+    expect(saved.options).toMatchObject({ partLabels: { line1: "Street address" } });
+  });
+
   it("makes a Name or Address required while any part is, whatever the request said", () => {
     expect(savedField({ type: "ADDRESS", label: "Address", required: true, options: { parts: ["postalCode"], requiredParts: [] } }).required).toBe(false);
     expect(savedField({ type: "ADDRESS", label: "Address", required: false, options: { parts: ["postalCode"], requiredParts: ["postalCode"] } }).required).toBe(true);

@@ -78,13 +78,17 @@ export function fieldProblem(field: Pick<FieldSettings, "type" | "options" | "va
   return null;
 }
 
-/** A Name's or Address's parts in form order, with labels and requirements
-    kept only for the parts it collects. */
+/** A Name's or Address's parts in form order, with labels (trimmed, blanks
+    dropped) and requirements kept only for the parts it collects. */
 export function savedParts<T extends Parts>(options: T, order: (parts: string[]) => string[]): T {
   if (!options.parts) return options;
   const parts = order(options.parts);
   const keep = (part: string) => parts.includes(part);
-  const labels = Object.fromEntries(Object.entries(options.partLabels ?? {}).filter(([part]) => keep(part)));
+  const labels = Object.fromEntries(
+    Object.entries(options.partLabels ?? {})
+      .map(([part, label]) => [part, typeof label === "string" ? label.trim() : ""] as const)
+      .filter(([part, label]) => keep(part) && label)
+  );
   const saved: Parts = { ...options, parts };
   if (options.requiredParts) saved.requiredParts = order(options.requiredParts.filter(keep));
   if (Object.keys(labels).length > 0) saved.partLabels = labels;
