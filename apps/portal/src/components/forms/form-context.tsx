@@ -92,6 +92,12 @@ type FormContextValue = {
   updateName: (name: string) => void;
   updateHeader: (patch: { title?: string | null; description?: string | null }) => void;
   updateTheme: (theme: Record<string, string | number | boolean>) => void;
+  /** Steps the theme back (or forward again) through this page load's
+      appearance changes. Each step saves like any change. */
+  undoTheme: () => void;
+  redoTheme: () => void;
+  canUndoTheme: boolean;
+  canRedoTheme: boolean;
   updateSubmissionSettings: (patch: {
     successMessage?: string | null;
     redirectUrl?: string | null;
@@ -114,6 +120,9 @@ type FormContextValue = {
       preview picks a group on click. */
   appearanceMode: boolean;
   setAppearanceMode: (on: boolean) => void;
+  /** Closes appearance mode and puts the theme back as it was when it opened,
+      as one undoable step. */
+  cancelAppearance: () => void;
   /** The open appearance group, one at a time. */
   styleGroup: StyleGroup | null;
   setStyleGroup: (group: StyleGroup | null) => void;
@@ -257,6 +266,11 @@ function useAutoSave(
   useEffect(() => {
     if (state.defaultTheme !== savedRef.current.defaultTheme) {
       scheduleSave("theme");
+    } else {
+      // An undo back to the saved theme within the debounce: the pending
+      // save would write the theme it undid.
+      clearTimeout(timersRef.current.get("theme"));
+      timersRef.current.delete("theme");
     }
   }, [state.defaultTheme]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -320,6 +334,18 @@ type FormProviderProps = {
   children: React.ReactNode;
 };
 
+type Theme = FormState["defaultTheme"];
+
+/** The theme keys whose values differ between two themes. */
+function changedKeys(a: Theme, b: Theme): string[] {
+  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
+  return [...keys].filter((k) => a?.[k] !== b?.[k]);
+}
+
+/** Changes to the same settings this close together are one undo step: a
+    color dragged across the picker or a word typed sends one per frame or key. */
+const UNDO_MERGE_MS = 1000;
+
 function parseTheme(theme: unknown): Record<string, string | number | boolean> | null {
   if (typeof theme === "object" && theme !== null) {
     return theme as Record<string, string | number | boolean>;
@@ -362,7 +388,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [previewFocus, setPreviewFocus] = useState<PreviewFocus>(null);
   const [editorStep, setEditorStep] = useState<EditorStep>(null);
-  const [appearanceMode, setAppearanceMode] = useState(false);
+  const [appearanceMode, setAppearanceModeState] = useState(false);
   const [styleGroup, setStyleGroup] = useState<StyleGroup | null>(null);
   const [styleHover, setStyleHover] = useState<StyleGroup | null>(null);
 
@@ -398,8 +424,66 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     setState(prev => ({ ...prev, ...patch }));
   };
 
+  // Appearance undo: whole themes, as saved, so a step puts back exactly what
+  // was there whatever filled the unset values. Kept for the page load, so
+  // Done and Change appearance again lose nothing.
+  const [themeHistory, setThemeHistory] = useState<{ past: Theme[]; future: Theme[] }>({
+    past: [],
+    future: [],
+  });
+  const lastThemeChange = useRef<{ keys: string[]; at: number } | null>(null);
+
   const updateTheme = (theme: Record<string, string | number | boolean>) => {
+    const current = state.defaultTheme;
+    const keys = changedKeys(current, theme);
+    if (keys.length === 0) return;
+    const now = Date.now();
+    const last = lastThemeChange.current;
+    const merge = !!last && now - last.at < UNDO_MERGE_MS && keys.every((k) => last.keys.includes(k));
+    if (!merge) setThemeHistory(h => ({ past: [...h.past, current], future: [] }));
+    lastThemeChange.current = { keys: merge ? last.keys : keys, at: now };
     setState(prev => ({ ...prev, defaultTheme: theme }));
+  };
+
+  // A step that would show no change (a setting changed and changed back
+  // inside one merged step) is skipped.
+  const differs = (t: Theme) => changedKeys(t, state.defaultTheme).length > 0;
+  const stepTheme = (from: "past" | "future") => {
+    const stack = [...themeHistory[from]];
+    let target: Theme | undefined;
+    while (stack.length > 0) {
+      const t = stack.pop()!;
+      if (differs(t)) {
+        target = t;
+        break;
+      }
+    }
+    if (target === undefined) return;
+    const theme = target;
+    const to = from === "past" ? "future" : "past";
+    setThemeHistory(h => ({ ...h, [from]: stack, [to]: [...h[to], state.defaultTheme] }));
+    lastThemeChange.current = null;
+    setState(prev => ({ ...prev, defaultTheme: theme }));
+  };
+  const undoTheme = () => stepTheme("past");
+  const redoTheme = () => stepTheme("future");
+  const canUndoTheme = themeHistory.past.some(differs);
+  const canRedoTheme = themeHistory.future.some(differs);
+
+  // The theme when appearance mode opened, which Cancel puts back.
+  const themeAtOpen = useRef<Theme>(null);
+  const setAppearanceMode = (on: boolean) => {
+    if (on && !appearanceMode) themeAtOpen.current = state.defaultTheme;
+    setAppearanceModeState(on);
+  };
+  const cancelAppearance = () => {
+    const start = themeAtOpen.current;
+    if (differs(start)) {
+      setThemeHistory(h => ({ past: [...h.past, state.defaultTheme], future: [] }));
+      lastThemeChange.current = null;
+      setState(prev => ({ ...prev, defaultTheme: start }));
+    }
+    setAppearanceModeState(false);
   };
 
   const updateSubmissionSettings = (patch: {
@@ -444,6 +528,10 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     updateName,
     updateHeader,
     updateTheme,
+    undoTheme,
+    redoTheme,
+    canUndoTheme,
+    canRedoTheme,
     updateSubmissionSettings,
     setFields,
     updateField,
@@ -455,6 +543,7 @@ export function FormProvider({ initialForm, autoSaveEnabled = true, children }: 
     setEditorStep,
     appearanceMode,
     setAppearanceMode,
+    cancelAppearance,
     styleGroup,
     setStyleGroup,
     styleHover,

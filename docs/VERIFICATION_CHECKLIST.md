@@ -22,6 +22,7 @@ Not every change needs every check. Match the checks to what you changed:
 | Auth pages or session logic | Build, Lint and test, Browser: auth flow, Doc impact check |
 | Environment variable usage | Build, Lint and test, Env check, Doc impact check |
 | Appearance / theme changes | Build, Lint and test, Embed build, Browser: embed flow, **Escalate: visual review**, Doc impact check |
+| A release (dev → main) | Release smoke, before the merge |
 
 ---
 
@@ -128,6 +129,17 @@ npx prisma migrate status
 ```
 
 Should show no pending migrations and no drift.
+
+### 9. Release smoke (every release, whatever changed)
+
+Before merging a release PR (`docs/AGENT_CONTEXT.md` section 6), once dev has deployed the release's commits, drive a browser through these flows on dev. The scoped browser checks above follow what a change touched, and a change rarely looks like it touches these: Sign Out broke in 5.13.0 from a dropdown animation change. Use a headless browser, so the run and Michael's own clicks don't move each other's pages. Keep generated credentials in a scratchpad file, never in chat; signup allows 5 per IP per hour.
+
+1. **Forms account:** sign up at `https://forms-dev.canopyds.com/signup`, sign out from the user menu (lands on `/login`), sign in again.
+2. **A form, end to end:** create a form, add a field, publish, submit the hosted `/f/<id>` link as a signed-out visitor, and see the submission in the form's Submissions.
+3. **Sites account:** move the throwaway account to the `SITES` plan in the dev database (the host in the dev app's `DATABASE_URL`; `ssh webber`, then `psql` in that container: `update accounts set "planCode"='SITES' where id = '<accountId>'`). Sign in on the Forms host: it offers "Go to Canopy Sites", which lands on `https://sites-dev.canopyds.com/quick-edit` with Quick Edit, Editor, Forms and Stats in the chrome. Sign out there. Dev has no builder, so the Editor's empty state is expected.
+4. **Clean up:** sign in on the Sites host, Account, Delete Account, Confirm. It lands on `/login?deleted=1`.
+
+Any step that fails holds the release until it is fixed, or until Michael decides to ship with it.
 
 ---
 

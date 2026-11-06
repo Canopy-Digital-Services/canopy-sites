@@ -117,14 +117,14 @@ Everything else is discoverable with `ls`. These carry constraints:
 | `src/lib/field-types.ts` | Field type registry. The `Record<FieldType, string>` map fails the build if a type is missing. |
 | `src/lib/public-submit.ts` | Where submission gates and server-only guardrails belong; per-field rules live in `embed/src/validation.ts`. Note the single-field route's divergence in section 2. |
 | `src/lib/data-access/*` | Ownership checks live here. Queries bypassing these lose enforcement. |
-| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. Each guard has a database test that fails without it. |
+| `src/lib/site-tools/*` | The only path for edits to a site's content (PRD D8, D9): ownership, the lane (the contract's `laneViolations`: Canopy's fields, the site's locks and fixed lists as address patterns, PRD D50), the contract with the site guide's limits, counts, and refused phrases, and rate limits are enforced here for every source (Editor, quick edit, later MCP). A lock or fixed list that isn't an address refuses every edit rather than letting one through. Every write returns what it changed, field by field (`changes.ts`), and what the guide's `avoid` flags in text it changed; quick edit's tool result carries both to the model. A refusal that is Canopy's call (the lane, a refused phrase) is a `ToolError` with `outOfLane`, on which quick edit tells the model to draft a request instead of trying another way. Help requests (`help-requests.ts`, PRD D34): quick edit's `request_help` drafts one, the owner sends or dismisses it from a card (`HelpRequestCard`), a sent one emails every Global Admin from the Sites sender with the owner as Reply-To, and the operator closes it with an optional note emailed back; one sent while acting emails nobody. Text quick edit won't put on the site is drafted with `refused` set, and reaches Canopy, marked Refused, only if the owner sends it. Quick edit's prompt is `BASE_RUNBOOK` (`src/lib/quick-edit/runbook.ts`) plus the prose of the site's `SITE_GUIDE.md`, from the draft view. Each guard has a database test that fails without it. |
 | `src/actions/*` | Server actions, each enforcing ownership internally. |
 | `src/components/ui/` | shadcn primitives. Extend, do not fork. |
 | `src/components/patterns/` | Layout patterns (`page-header`, `data-table`, `settings-section`, `right-panel`, ...). Compose these before writing new layout. |
 | `prisma/migrations/` | Append only. See section 5. |
 | `content/docs/*.md` | User-facing help served at `/docs`. Registered in `content/docs/meta.ts`. |
 
-Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the account's site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); a site with no live address (no production hostname) sees an empty state. `/preview/[siteId]` is where a draft is previewed and published, and `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts` and `/operator/sites`; a site arrives by Link a site (PRD D49). `/claim` is where a linked site's owner sets their first password. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+Routes: `/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the account's site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); a site with no live address (no production hostname) sees an empty state. `/preview/[siteId]` is where a draft is previewed and published, and `/demo` is the public demo site (section 2, Public API contracts). Operator console is `/operator/accounts`, `/operator/sites`, and `/operator/requests` (what owners sent Canopy from Quick Edit, open first, `?site=` for one site; PRD D34); a site arrives by Link a site (PRD D49). `/claim` is where a linked site's owner sets their first password. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
 
 ### When to read which doc
 
@@ -227,7 +227,8 @@ Confirm `git status` is clean (committing anything outstanding as proper atomic 
 3. `gh pr create --base main`.
 4. Title summarizes the release, e.g. `v4.5.0: Field validation overhaul + embed theme fixes`.
 5. Body groups key changes by category (features, fixes, docs), written as a summary rather than a dump of commit messages.
-6. When the user asks to release or deploy prod, merge the PR (`gh pr merge --merge`). The user does not merge release PRs. Merging `main` triggers the prod deploy; confirm it landed before reporting done.
+6. Once dev has deployed the pushed commits, run the release smoke (`docs/VERIFICATION_CHECKLIST.md` section 9) and report it in the PR.
+7. When the user asks to release or deploy prod, merge the PR (`gh pr merge --merge`). The user does not merge release PRs. Merging `main` triggers the prod deploy; confirm it landed before reporting done.
 
 ### After a merge to main
 
@@ -353,7 +354,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
-           contractVersion?, umamiWebsiteId?, runbookOverlay, lockedFields[],
+           contractVersion?, umamiWebsiteId?, lockedFields[],
            fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
            onDelete Restrict; lockedFields and fixedLists are address patterns
            (site/contact/phone, classes), PRD D50
@@ -364,7 +365,11 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
        └─ Build (changeSetId?, status:BuildStatus, draftVersion?, baseCommit?,
        │         error?, log?, startedAt?, finishedAt?)
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
-                        cacheWriteTokens, costUsd)
+       │                cacheWriteTokens, costUsd)
+       └─ HelpRequest (conversationId?, createdByUserId?, actAsId?, message,
+                       summary, address?, refused, status:HelpRequestStatus (DRAFT, OPEN,
+                       DONE, DECLINED, DISMISSED), sentAt?, note?, closedByUserId?,
+                       closedAt?), PRD D34
 
 User (email, password? (null until the owner claims, PRD D49),
       roleCode→Role.code, passwordChangedAt?, lastLoginAt?,

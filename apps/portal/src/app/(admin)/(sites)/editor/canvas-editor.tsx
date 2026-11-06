@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/site-editor";
+import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
@@ -20,7 +21,7 @@ export type CanvasPage = { path: string; title: string };
 type AnnouncementDates = { id: string; startsOn: string; endsOn: string };
 type Rect = { x: number; y: number; width: number; height: number };
 type Edit = { address: string; value: string | null };
-type ChatMessage = { id: number; role: "owner" | "assistant"; text: string };
+type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest };
 
 const DESKTOP_WIDTH = 1280;
 const PHONE_WIDTH = 390;
@@ -606,7 +607,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
       return;
     }
     setConversationId(result.conversationId);
-    setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply }]);
+    setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply, helpRequest: result.helpRequest ?? undefined }]);
     if (result.changeSetId) {
       announceDraft("changed");
       onChanged(result.changeSetId);
@@ -618,7 +619,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
       {messages.length ? (
         <div className="max-h-56 space-y-2 overflow-y-auto">
           {messages.map((m) => (
-            <div key={m.id} className={m.role === "owner" ? "flex justify-end" : "flex justify-start"}>
+            <div key={m.id} className={m.role === "owner" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
               <p
                 className={
                   m.role === "owner"
@@ -628,6 +629,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
               >
                 {m.text}
               </p>
+              {m.helpRequest ? <HelpRequestCard request={m.helpRequest} /> : null}
             </div>
           ))}
           {busy ? (
