@@ -21,6 +21,7 @@ export const FIELD_KINDS = [
   "reference",
   "choice",
   "id",
+  "session",
 ] as const;
 export type FieldKind = (typeof FIELD_KINDS)[number];
 
@@ -28,9 +29,23 @@ export interface FieldMeta {
   kind: FieldKind;
   label: string;
   description?: string;
+  /**
+   * Canopy's on every site (PRD D50): an owner edit may not change it. Ids,
+   * page paths, navigation labels, SEO fields, eyebrows, and buttons.
+   */
+  canopy?: true;
 }
 
 const field = <T extends z.ZodType>(schema: T, meta: FieldMeta): T => schema.meta({ ...meta });
+
+const CANOPY_NOTE = "Canopy's to change: an owner edit can't.";
+
+/** Marks a field as Canopy's (PRD D50), keeping its kind and label. */
+const canopy = <T extends z.ZodType>(schema: T): T => {
+  const meta = schema.meta() as unknown as FieldMeta;
+  const description = meta.description ? `${meta.description} ${CANOPY_NOTE}` : CANOPY_NOTE;
+  return schema.meta({ ...meta, description, canopy: true }) as T;
+};
 
 // Every editable string is plain text: no markup, so no validator can be
 // defeated by a span inside a field, and nothing a client or a model writes
@@ -41,7 +56,11 @@ const plain = (max: number) =>
     .trim()
     .min(1, "Can't be empty")
     .max(max, `Must be ${max} characters or fewer`)
-    .refine((v) => !/[<>]/.test(v), "Plain text only: no < or >");
+    .refine((v) => !/[<>]/.test(v), "Plain text only: no < or >")
+    // A page renders neither: a line break collapses into a space, and
+    // markdown shows as stray characters (PRD D50).
+    .refine((v) => !/[\r\n\u2028\u2029]/.test(v), "One line only: no line breaks")
+    .refine((v) => !/\*\*|__|^#{1,6}\s|^[-*+]\s/.test(v), "Plain text only: no markdown (**, __, #, or a list marker)");
 
 const text = (max: number, label: string, description?: string) => field(plain(max), { kind: "text", label, description });
 const paragraph = (max: number, label: string, description?: string) => field(plain(max), { kind: "paragraph", label, description });
@@ -52,7 +71,7 @@ export const Id = field(
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, digits, and hyphens only")
     .max(60),
-  { kind: "id", label: "ID", description: "Stable once set; never renamed to match a new name." },
+  { kind: "id", label: "ID", description: "Stable once set; never renamed to match a new name. A new entry gets one.", canopy: true },
 );
 
 // A link is written into attributes and structured data, so it may not carry
@@ -79,15 +98,19 @@ export const Href = z
     "Must be a path on this site (/services), an anchor (#contact), or an https:// link",
   );
 
-const Time = field(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MM"), { kind: "time", label: "Time" });
+const time = (label: string) => field(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:MM"), { kind: "time", label });
+const Time = time("Time");
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 export const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 export const SOCIAL_NETWORKS = ["instagram", "facebook", "tiktok", "google", "yelp", "x", "youtube", "pinterest", "other"] as const;
 
-const Cta = z
+const CtaFields = z
   .object({ label: text(40, "Button label"), href: field(Href, { kind: "link", label: "Button link" }) })
   .strict();
+
+/** A page's button: Canopy's (D50). An announcement's link is the owner's, so it uses the fields without the flag. */
+const Cta = canopy(field(CtaFields, { kind: "link", label: "Button" }));
 
 /**
  * A list whose entries carry ids, each unique within the list. Entries are
@@ -206,7 +229,7 @@ export const SiteSchema = z
 export const CardSchema = z
   .object({
     id: Id,
-    eyebrow: text(60, "Card eyebrow").optional(),
+    eyebrow: canopy(text(60, "Card eyebrow")).optional(),
     title: text(120, "Card title").optional(),
     body: paragraph(800, "Card text").optional(),
     cta: Cta.optional(),
@@ -216,7 +239,7 @@ export const CardSchema = z
 export const SectionSchema = z
   .object({
     id: Id,
-    eyebrow: text(60, "Eyebrow").optional(),
+    eyebrow: canopy(text(60, "Eyebrow")).optional(),
     heading: text(120, "Heading").optional(),
     body: field(z.array(paragraph(1200, "Paragraph")).max(12), { kind: "paragraph", label: "Paragraphs" }).optional(),
     quote: paragraph(400, "Quote").optional(),
@@ -235,10 +258,10 @@ export const SectionSchema = z
 export const PageSchema = z
   .object({
     id: Id,
-    path: z.string().regex(/^\/(?:[a-z0-9-]+\/?)*$/, "A path like / or /services"),
-    navLabel: text(30, "Menu label").optional(),
-    title: text(70, "Page title"),
-    description: paragraph(200, "Search description"),
+    path: canopy(field(z.string().regex(/^\/(?:[a-z0-9-]+\/?)*$/, "A path like / or /services"), { kind: "link", label: "Page path" })),
+    navLabel: canopy(text(30, "Menu label")).optional(),
+    title: canopy(text(70, "Page title")),
+    description: canopy(paragraph(200, "Search description")),
     hero: z
       .object({ headline: text(120, "Headline").optional(), subheadline: text(300, "Subheadline").optional(), cta: Cta.optional() })
       .strict()
@@ -335,7 +358,7 @@ export const AnnouncementSchema = z
     message: text(160, "Message", "160 characters or fewer."),
     startsOn: field(IsoDate, { kind: "date", label: "Starts", description: "YYYY-MM-DD; set whenever the message is about a date." }).optional(),
     endsOn: field(IsoDate, { kind: "date", label: "Ends", description: "YYYY-MM-DD; the banner hides itself after this day." }).optional(),
-    link: Cta.optional(),
+    link: CtaFields.optional(),
   })
   .strict()
   .refine((a) => !a.startsOn || !a.endsOn || a.startsOn <= a.endsOn, {
@@ -354,12 +377,75 @@ export const FaqSchema = z
   })
   .strict();
 
+// ---------------------------------------------------------------------------
+// classes: what a gym, studio, or school teaches, each with its weekly sessions
+
+/** Each day once, in any order. */
+const Days = field(
+  z
+    .array(z.enum(DAYS))
+    .min(1, "Pick at least one day")
+    .max(7)
+    .superRefine((days, ctx) => {
+      days.forEach((d, i) => {
+        if (days.indexOf(d) !== i) ctx.addIssue({ code: "custom", message: `${d} is listed twice`, path: [i] });
+      });
+    }),
+  { kind: "choice", label: "Days" },
+);
+
+/** One weekly time slot. A template marks it whole; the canvas opens it in the Quick Edit popover. */
+export const SessionSchema = field(
+  z
+    .object({
+      id: Id,
+      days: Days,
+      starts: time("Starts"),
+      ends: time("Ends"),
+      note: text(40, "Note", "A word or two the timetable shows, such as Free or By appointment.").optional(),
+    })
+    .strict()
+    .refine((s) => s.starts < s.ends, { message: "The end time must be after the start time", path: ["ends"] }),
+  { kind: "session", label: "Session", description: "One weekly time slot: its days and its 24-hour start and end times." },
+);
+
+export const ClassSchema = z
+  .object({
+    id: Id,
+    name: text(80, "Class name"),
+    shortName: text(40, "Short name", "Where space is tight, such as the timetable.").optional(),
+    level: text(40, "Level", 'Who the class is for, as the business says it ("All levels", "Youth").').optional(),
+    description: paragraph(400, "Description"),
+    lengths: field(z.array(plain(20)).min(1).max(6), {
+      kind: "text",
+      label: "Session lengths",
+      description: 'The lengths an appointment can be booked for, written the way the business writes them ("30 min").',
+    }).optional(),
+    sessions: uniqueIds(SessionSchema, 30).optional(),
+  })
+  .strict();
+
+// ---------------------------------------------------------------------------
+// team: the people the business names
+
+export const TeamMemberSchema = z
+  .object({
+    id: Id,
+    name: text(80, "Name"),
+    role: text(60, "Role", "Their title or what they do, as the business says it."),
+    bio: paragraph(800, "Bio").optional(),
+    photo: field(AssetPath, { kind: "image", label: "Photo", description: "A headshot. Its alt text is the person's name." }).optional(),
+  })
+  .strict();
+
 export const PagesSchema = uniqueIds(PageSchema, 30);
 export const FaqsSchema = uniqueIds(FaqSchema, 40);
 export const ServicesSchema = uniqueIds(CategorySchema, 30);
 export const ReviewsSchema = uniqueIds(ReviewSchema, 30);
 export const GallerySchema = field(uniqueIds(GalleryItemSchema, 60), { kind: "image", label: "Gallery", description: "Page order is list order." });
 export const AnnouncementsSchema = uniqueIds(AnnouncementSchema, 5);
+export const ClassesSchema = uniqueIds(ClassSchema, 40);
+export const TeamSchema = uniqueIds(TeamMemberSchema, 40);
 
 export type Site = z.infer<typeof SiteSchema>;
 export type Social = z.infer<typeof SocialSchema>;
@@ -374,3 +460,6 @@ export type Service = z.infer<typeof ServiceSchema>;
 export type Review = z.infer<typeof ReviewSchema>;
 export type GalleryItem = z.infer<typeof GalleryItemSchema>;
 export type Announcement = z.infer<typeof AnnouncementSchema>;
+export type ClassInfo = z.infer<typeof ClassSchema>;
+export type Session = z.infer<typeof SessionSchema>;
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
