@@ -17,6 +17,7 @@ Phase 2  Builder + Caddy, preview     [this repo]         E30                   
 Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E34 → E35 (needs E30; E33 first, below)
 Phase 4  Production on Caddy          [webber]             E36                        (needs E33 stable)
 Phase 5  Toro Z migration             [toroz]              T1                         (needs E38; follows canopyds.com's path, E37; not gated on E36)
+Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -38,6 +39,10 @@ E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Ast
 ### Link and claim before Toro Z (decided 2026-11-05)
 
 E38 lets the operator link a live site, which creates the client's account, and lets the client claim it from a link, so Toro Z is the first client set up that way (PRD D49). E39, the per-client welcome video, follows it. The epic doc, `docs/epics/epic-38-link-and-claim.md`, carries the requirements.
+
+### A site kit before the next site (decided 2026-11-06)
+
+With Toro Z, three repos run on Sites (the demo, canopyds.com, Toro Z), and each carries its own copy of the same plumbing: the content loader, image resolving, the editor flags, the mark wiring, the build-parity and CORS settings, and, on Toro Z, the schedule views any class-based site needs. Limits are measured by hand, and go stale when a template's layout changes. E41 moves that into a versioned package installed like the contract, plus a thin starter, after Toro Z is linked and before the next client site. It replaces C2, a copy-once starter: a starter alone copies the plumbing again, and a fix never reaches the sites already made from it.
 
 ### Fallback (decision D6 chicken-out)
 
@@ -131,10 +136,9 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 (Toro Z's `DESIGN.md` and accessibility invariants are the reference for how a site repo documents itself. H&H gets a trimmed equivalent as part of H2/H3.)
 
-### C2 · `canopy-site-template` (new repo, after H3)
+### C2 · Shared template
 
-- Astro 7 starter extracted from H&H post-migration: layout, content collections wired to the contract, tokens pipeline, Umami config, Dockerfile
-- Can be deferred until the first new client; H&H is the de-facto template until then
+Folded into E41 (2026-11-06): the starter is E41's, built on the site kit and extracted from canopyds.com and Toro Z, since H&H was never converted.
 
 ### C3 · `site-contract` v0.2 (built inside E33)
 
@@ -262,6 +266,27 @@ Acceptance: publish from quick edit is live in seconds; restore brings back a pr
 ### T1 · Toro Z onto the template (`toroz`)
 
 Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (contract 0.5.0's `classes` carry their sessions, and the schedule's views are derived in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule). The epic doc, `docs/epics/epic-40-toroz-on-sites.md`, carries the requirements, with the E32 pieces Toro Z depends on and the lane in code (PRD D50).
+
+---
+
+## Phase 6 — Site kit
+
+### E41 · `@canopy/site-kit` and a starter
+
+Goal: the code every Sites repo copies today lives in one versioned package, so a fix reaches every site with a version bump, and a new site starts from a starter rather than from another site's repo. Extracted from canopyds.com (`canopy-website`) and Toro Z (`toroz`, after T1), whose versions are the reference.
+
+- The package, released like the contract (a tarball on this repo's releases, `packages/site-kit`):
+  - **Content**: a loader that validates `src/content` against the contract at build and fails with every issue, typed collections, page, section, and card lookups, navigation from `pages`, phone forms for display and links, socials by network. Toro Z's `content.ts` and canopyds.com's `content.ts` are the two copies it replaces.
+  - **Images**: a contract `AssetPath` resolved to `astro:assets` (Toro Z's `images.ts`).
+  - **Portal flags**: `inEditor` and `inPreview`, the editor-at-rest CSS (reveals shown, transitions off), and a helper that opens anything hiding marked text.
+  - **Schedule views** for any site with `classes`: week board blocks by part of day, day and time formatting, a class's times, appointment windows, and the structured data's opening hours (Toro Z's `schedule.ts`, made general).
+  - **Marks**: `field` and a check that every marked element's text equals its content value, run on a build.
+  - **Measure**: the guide's limits as a command that renders the built site at 360 and 1440 px and writes or checks `SITE_GUIDE.md`'s `limits` (each field at most one line past today's copy, or the longest in its list), plus renders at the counts. Run when a template's layout changes; a check fails when the guide no longer matches the layout.
+  - **Build parity**: a check that the builder-style build and the production image name the same `_astro` files.
+- The starter (`canopy-site-template`): an Astro 7 repo wired to the kit and the contract, with the Dockerfile (`npm ci --ignore-scripts`), `nginx.conf` with CORS, Tailwind reading `src/` only, Umami with `data-domains`, and a `SITE_GUIDE.md` skeleton. The Sites Onboarding Runbook's section 2 starts from it.
+- canopyds.com and Toro Z move onto the kit; the demo with its contract upgrade.
+- Open for the epic doc: whether fixed lists move from the `Site` row into the guide's front matter, beside counts, since both are facts of the design; the row would then keep only locks.
+- Acceptance: a new site from the starter passes the runbook's section 2 with no code copied from another site; a fix in the kit reaches canopyds.com and Toro Z by a version bump; the measure command reproduces Toro Z's limits and catches a layout change that makes one stale.
 
 ---
 
