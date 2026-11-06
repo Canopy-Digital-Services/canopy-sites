@@ -4,9 +4,11 @@ description: Theme colors, typography, spacing, and hosted-page layout.
 icon: Palette
 ---
 
-Click **Change appearance** at the top of the preview on the Edit tab to change how a form looks. You can do this at any point, before or after adding fields. The appearance panel takes the place of the editor until you click **Done**, which returns you to where you were.
+Click **Change appearance** at the top of the preview on the Edit tab to change how a form looks. You can do this at any point, before or after adding fields. The appearance panel takes the place of the editor until you click **Done**, which returns you to where you were. **Cancel** returns you there too, and puts the form back the way it looked when you opened the panel.
 
 The panel lists each part of the form you can change: the page and form first, then the type from most to least prominent (title, labels, text), then the fields and button. Click a part of the preview, or its row in the panel, to open its settings. Hovering either one outlines that part in the preview, and the open row's parts stay marked while you change them. All changes autosave and show in the preview as you make them.
+
+To take a change back, click **Undo** at the top right of the panel, or press Ctrl+Z (Cmd+Z on a Mac). Each undo steps back one change, as far back as when you opened the form, and saves. **Redo**, or Ctrl+Shift+Z, puts it back. Clicking **Done** or **Cancel** keeps your undo history, so a Cancel can be undone too; leaving the editor page clears it.
 
 Hosted forms list Page, Form, Title, Labels, Text, Fields, and Button. Embedded forms have no Page row.
 
