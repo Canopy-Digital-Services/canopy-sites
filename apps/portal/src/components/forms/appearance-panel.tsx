@@ -28,7 +28,10 @@ import {
   AlignLeft,
   Bold,
   ChevronUp,
+  Redo2,
+  Undo2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SaveIndicator } from "@/components/forms/save-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FontPicker } from "@/components/ui/font-picker";
@@ -284,6 +287,45 @@ function StyleRow({
   );
 }
 
+/** Undo and Redo, as a word processor's: buttons in the panel's header, and
+    Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y; Cmd on a Mac) anywhere outside a text
+    box, which keeps its own undo for its typing. */
+function UndoRedo() {
+  const { undoTheme, redoTheme, canUndoTheme, canRedoTheme } = useFormContext();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const key = e.key.toLowerCase();
+      const redo = (key === "z" && e.shiftKey) || (key === "y" && !e.shiftKey);
+      if (key !== "z" && !redo) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.isContentEditable || t?.tagName === "TEXTAREA") return;
+      if (t instanceof HTMLInputElement && !["color", "checkbox", "radio", "button"].includes(t.type)) return;
+      e.preventDefault();
+      if (redo) redoTheme();
+      else undoTheme();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undoTheme, redoTheme]);
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <Tip text="Undo">
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="Undo" disabled={!canUndoTheme} onClick={undoTheme}>
+          <Undo2 className="h-4 w-4" />
+        </Button>
+      </Tip>
+      <Tip text="Redo">
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="Redo" disabled={!canRedoTheme} onClick={redoTheme}>
+          <Redo2 className="h-4 w-4" />
+        </Button>
+      </Tip>
+    </div>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function AppearancePanel() {
@@ -463,7 +505,10 @@ export function AppearancePanel() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Appearance</CardTitle>
-          <SaveIndicator status={saveStatus} />
+          <div className="flex items-center gap-3">
+            <SaveIndicator status={saveStatus} />
+            <UndoRedo />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
