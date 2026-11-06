@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
-import { createAccount, createSite, resetDatabase } from "../../test/db";
+import { createAccount, createForm, createSite, resetDatabase } from "../../test/db";
 import { resetRequest, signInAs } from "../../test/next-request";
 
 vi.mock("next/headers", () => import("../../test/next-request"));
@@ -33,6 +33,7 @@ const { actAsClient, stopActing } = await import("@/actions/admin/act-as");
 const { changePassword, signOutAction } = await import("@/actions/auth");
 const { deleteSelfAccount } = await import("@/actions/accounts");
 const { saveCanvasEdits } = await import("@/actions/site-editor");
+const { default: FormPage } = await import("@/app/(admin)/forms/[formId]/page");
 
 beforeEach(async () => {
   resetRequest();
@@ -143,5 +144,14 @@ describe("acting as a client (PRD D49)", () => {
       createdByUserId: operator.id,
       source: "EDITOR",
     });
+  });
+
+  it("offers the owner, not the operator, as a client's form's first notification recipient", async () => {
+    const { client, owner, operator } = await acting();
+    const form = await createForm(client.id, operator.id);
+
+    const page = await FormPage({ params: Promise.resolve({ formId: form.id }), searchParams: Promise.resolve({}) });
+
+    expect(page.props.ownerEmail).toBe(owner.email);
   });
 });
