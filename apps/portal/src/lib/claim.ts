@@ -9,6 +9,7 @@
  * the operator's page reads.
  */
 
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { generateToken, hashToken } from "@/lib/auth-utils";
 import { hashPassword } from "@/lib/password";
@@ -57,7 +58,7 @@ async function accountOf(userId: string) {
   const site = membership
     ? await prisma.site.findUnique({
         where: { accountId: membership.accountId },
-        select: { name: true, productionHostnames: true, timeZone: true },
+        select: { id: true, name: true, productionHostnames: true, timeZone: true },
       })
     : null;
   return { entitlements, site };
@@ -129,7 +130,7 @@ export async function createClaimLink(
 }
 
 export type ClaimView =
-  | { state: "ready"; email: string; siteName: string | null }
+  | { state: "ready"; email: string; siteId: string | null; siteName: string | null }
   | { state: "claimed" | "expired" | "invalid" };
 
 /**
@@ -146,19 +147,30 @@ export async function readClaim(token: string, now = new Date()): Promise<ClaimV
   if (row.usedAt || row.user.password !== null) return { state: "claimed" };
   if (row.expiresAt <= now) return { state: "expired" };
   const { site } = await accountOf(row.userId);
-  return { state: "ready", email: row.user.email, siteName: site?.name ?? null };
+  return { state: "ready", email: row.user.email, siteId: site?.id ?? null, siteName: site?.name ?? null };
 }
 
 /**
  * The claim link's title and description, for the browser tab and a
- * messaging app's preview, and the name on the preview picture's tag. Never
- * the owner's email: a forwarded preview would show it to whoever receives it.
+ * messaging app's preview, and the preview picture's file under
+ * /claim/image/. Never the owner's email: a forwarded preview would show it
+ * to whoever receives it. The picture is named by the site and a hash of its
+ * name, not the link's token, so Cloudflare can cache it and a rename gets a
+ * new picture.
  */
-export function claimPreview(claim: ClaimView, productName: string): { title: string; description: string; tag: string } {
-  const siteName = claim.state === "ready" ? claim.siteName : null;
-  return siteName
-    ? { title: `Claim your ${siteName} website`, description: `Set your password to start updating your website with ${productName}.`, tag: siteName }
-    : { title: `Claim your ${productName} account`, description: "Set your password to get started.", tag: productName };
+export function claimPreview(claim: ClaimView, productName: string): { title: string; description: string; image: string } {
+  const site = claim.state === "ready" && claim.siteId && claim.siteName ? { id: claim.siteId, name: claim.siteName } : null;
+  return site
+    ? {
+        title: `Claim your ${site.name} website`,
+        description: `Set your password to start updating your website with ${productName}.`,
+        image: `${site.id}-${createHash("sha256").update(site.name).digest("hex").slice(0, 8)}.jpg`,
+      }
+    : {
+        title: `Claim your ${productName} account`,
+        description: "Set your password to get started.",
+        image: `${productName.toLowerCase().replace(/\s+/g, "-")}.jpg`,
+      };
 }
 
 /**
