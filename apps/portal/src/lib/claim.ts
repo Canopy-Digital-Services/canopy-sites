@@ -151,14 +151,14 @@ export async function readClaim(token: string, now = new Date()): Promise<ClaimV
 
 /**
  * The claim link's title and description, for the browser tab and a
- * messaging app's preview. Never the owner's email: a forwarded preview
- * would show it to whoever receives it.
+ * messaging app's preview, and the name on the preview picture's tag. Never
+ * the owner's email: a forwarded preview would show it to whoever receives it.
  */
-export function claimPreview(claim: ClaimView, productName: string): { title: string; description: string } {
+export function claimPreview(claim: ClaimView, productName: string): { title: string; description: string; tag: string } {
   const siteName = claim.state === "ready" ? claim.siteName : null;
   return siteName
-    ? { title: `Claim your ${siteName} website`, description: `Set your password to start updating your website with ${productName}.` }
-    : { title: `Claim your ${productName} account`, description: "Set your password to get started." };
+    ? { title: `Claim your ${siteName} website`, description: `Set your password to start updating your website with ${productName}.`, tag: siteName }
+    : { title: `Claim your ${productName} account`, description: "Set your password to get started.", tag: productName };
 }
 
 /**
