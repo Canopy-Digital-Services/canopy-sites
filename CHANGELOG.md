@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.5] - 2026-11-06
+
+### Fixed
+
+- A claim link pasted into WhatsApp showed a bare card instead of its preview. The preview picture is now a small JPEG (about 60 KB, from a 218 KB PNG) named by the site rather than the link's token, sent with its length and cached by Cloudflare, so a messaging app gets it quickly
+
 ## [5.14.4] - 2026-11-06
 
 ### Changed
