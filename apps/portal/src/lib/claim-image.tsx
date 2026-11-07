@@ -2,12 +2,14 @@
  * The picture a claim link shows in a messaging app's preview: Canopy Boy
  * holding up the keys, a tag on the ring carrying the site's name. Drawn per
  * link by next/og, which reads TTF (not WOFF2), hence the TTF copies of
- * Urbanist.
+ * Urbanist. Served as JPEG: about a quarter of the PNG's size, well under
+ * what WhatsApp will load for a preview.
  */
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 
 export const CLAIM_IMAGE_SIZE = { width: 1200, height: 630 };
 
@@ -64,6 +66,12 @@ const CONFETTI: { x: number; y: number; w: number; h: number; r: number; c: stri
   { x: 1150, y: 200, w: 16, h: 16, r: 0, c: CORAL },
   { x: 1120, y: 560, w: 28, h: 12, r: -15, c: GREEN },
 ];
+
+/** The picture as baseline JPEG bytes (mozjpeg's preset would make it progressive, which some preview fetchers handle badly). */
+export async function claimImageJpeg(name: string): Promise<Buffer> {
+  const png = Buffer.from(await (await claimImage(name)).arrayBuffer());
+  return sharp(png).jpeg({ quality: 88, trellisQuantisation: true, overshootDeringing: true, quantisationTable: 3 }).toBuffer();
+}
 
 export async function claimImage(name: string): Promise<ImageResponse> {
   const { figure, fonts } = await loadAssets();

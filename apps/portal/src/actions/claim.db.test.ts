@@ -103,7 +103,7 @@ describe("claiming (PRD D49)", () => {
     const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
     resetRequest();
 
-    expect(await readClaim(tokenOf(url))).toEqual({ state: "ready", email: owner.email, siteName: site.name });
+    expect(await readClaim(tokenOf(url))).toEqual({ state: "ready", email: owner.email, siteId: site.id, siteName: site.name });
     expect(await readClaim(tokenOf(url))).toMatchObject({ state: "ready" }); // reading consumes nothing
 
     expect(await claimAccount({ token: tokenOf(url), password: "my new password" })).toEqual({ success: true });
@@ -123,16 +123,18 @@ describe("claiming (PRD D49)", () => {
     });
   });
 
-  it("previews with the site's name, never the owner's email", async () => {
+  it("previews with the site's name, never the owner's email or the link's token", async () => {
     const { site, owner } = await linkedSite();
     const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
 
     const preview = claimPreview(await readClaim(tokenOf(url)), "Canopy Sites");
-    expect(preview).toMatchObject({ title: `Claim your ${site.name} website`, tag: site.name });
+    expect(preview.title).toBe(`Claim your ${site.name} website`);
+    expect(preview.image).toMatch(new RegExp(`^${site.id}-[0-9a-f]{8}\\.jpg$`));
     expect(JSON.stringify(preview)).not.toContain(owner.email);
+    expect(JSON.stringify(preview)).not.toContain(tokenOf(url));
     expect(claimPreview(await readClaim("not-a-token"), "Canopy Sites")).toMatchObject({
       title: "Claim your Canopy Sites account",
-      tag: "Canopy Sites",
+      image: "canopy-sites.jpg",
     });
   });
 
