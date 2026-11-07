@@ -128,9 +128,12 @@ describe("claiming (PRD D49)", () => {
     const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
 
     const preview = claimPreview(await readClaim(tokenOf(url)), "Canopy Sites");
-    expect(preview.title).toBe(`Claim your ${site.name} website`);
+    expect(preview).toMatchObject({ title: `Claim your ${site.name} website`, tag: site.name });
     expect(JSON.stringify(preview)).not.toContain(owner.email);
-    expect(claimPreview(await readClaim("not-a-token"), "Canopy Sites").title).toBe("Claim your Canopy Sites account");
+    expect(claimPreview(await readClaim("not-a-token"), "Canopy Sites")).toMatchObject({
+      title: "Claim your Canopy Sites account",
+      tag: "Canopy Sites",
+    });
   });
 
   it("refuses a link after a week, and one a newer link replaced", async () => {
