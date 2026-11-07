@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.4] - 2026-11-06
+
+### Changed
+
+- A claim link's preview in a message shows a picture: Canopy Boy holding up a set of keys, with a tag on the ring carrying the site's name. A link that isn't ready shows the product's name on the tag. The picture is drawn for each link at `/claim/image`, never cached by a browser or proxy since the link's token is in its address, and kept small enough for WhatsApp to show
+
 ## [5.14.3] - 2026-11-06
 
 ### Fixed
