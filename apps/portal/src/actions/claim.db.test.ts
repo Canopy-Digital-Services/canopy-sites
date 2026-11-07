@@ -16,7 +16,7 @@ const { claimAccount, resendClaimLink } = await import("./claim");
 const { sendClaimLink } = await import("./admin/claims");
 const { addAccountMember } = await import("./admin/members");
 const { requestPasswordReset, resetPassword, signInAction } = await import("./auth");
-const { readClaim } = await import("@/lib/claim");
+const { claimPreview, readClaim } = await import("@/lib/claim");
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -121,6 +121,16 @@ describe("claiming (PRD D49)", () => {
     expect(await signInAction({ email: owner.email, password: "my new password", rememberMe: false })).toEqual({
       success: true,
     });
+  });
+
+  it("previews with the site's name, never the owner's email", async () => {
+    const { site, owner } = await linkedSite();
+    const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
+
+    const preview = claimPreview(await readClaim(tokenOf(url)), "Canopy Sites");
+    expect(preview.title).toBe(`Claim your ${site.name} website`);
+    expect(JSON.stringify(preview)).not.toContain(owner.email);
+    expect(claimPreview(await readClaim("not-a-token"), "Canopy Sites").title).toBe("Claim your Canopy Sites account");
   });
 
   it("refuses a link after a week, and one a newer link replaced", async () => {
