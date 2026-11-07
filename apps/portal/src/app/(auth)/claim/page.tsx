@@ -2,7 +2,8 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { claimPreview, readClaim } from "@/lib/claim";
-import { getHostProduct, productNameFor } from "@/lib/product";
+import { CLAIM_IMAGE_SIZE } from "@/lib/claim-image";
+import { appUrlFor, getHostProduct, productNameFor } from "@/lib/product";
 import { ClaimForm, ClaimProblem } from "./claim-form";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,17 @@ const tokenOf = async (searchParams: Props["searchParams"]) => {
 const readClaimOnce = cache(readClaim);
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const productName = productNameFor({ sitesEnabled: (await getHostProduct()) === "sites" });
-  const { title, description } = claimPreview(await readClaimOnce(await tokenOf(searchParams)), productName);
+  const sitesEnabled = (await getHostProduct()) === "sites";
+  const productName = productNameFor({ sitesEnabled });
+  const token = await tokenOf(searchParams);
+  const { title, description } = claimPreview(await readClaimOnce(token), productName);
+  // From configuration, never the request's host, like every link the portal hands out.
+  const image = { url: `${appUrlFor({ sitesEnabled })}/claim/image?token=${encodeURIComponent(token)}`, ...CLAIM_IMAGE_SIZE, alt: title };
   return {
     title,
     description,
-    openGraph: { title, description, siteName: productName, type: "website" },
+    openGraph: { title, description, siteName: productName, type: "website", images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
     // The token is in the URL: never index the page or send it onward.
     robots: { index: false, follow: false },
     referrer: "no-referrer",
