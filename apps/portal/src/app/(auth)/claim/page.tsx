@@ -19,10 +19,10 @@ const readClaimOnce = cache(readClaim);
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const sitesEnabled = (await getHostProduct()) === "sites";
   const productName = productNameFor({ sitesEnabled });
-  const token = await tokenOf(searchParams);
-  const { title, description } = claimPreview(await readClaimOnce(token), productName);
+  const preview = claimPreview(await readClaimOnce(await tokenOf(searchParams)), productName);
+  const { title, description } = preview;
   // From configuration, never the request's host, like every link the portal hands out.
-  const image = { url: `${appUrlFor({ sitesEnabled })}/claim/image?token=${encodeURIComponent(token)}`, ...CLAIM_IMAGE_SIZE, alt: title };
+  const image = { url: `${appUrlFor({ sitesEnabled })}/claim/image/${preview.image}`, ...CLAIM_IMAGE_SIZE, type: "image/jpeg", alt: title };
   return {
     title,
     description,
