@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.3] - 2026-11-06
+
+### Fixed
+
+- A claim link pasted into a message previews as "Claim your <site> website", with a line on setting a password, instead of the portal's generic "CANOPY SITES / Canopy Sites portal". The browser tab shows the same title. The preview never carries the owner's email
+
 ## [5.14.2] - 2026-11-06
 
 ### Fixed
