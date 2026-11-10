@@ -120,26 +120,32 @@ export function requestReset(site: BuilderSite, tag: string) {
   });
 }
 
-/** A built file for the portal to pass through (the /demo route). */
-export async function fetchSiteFile(slug: string, view: "current" | "preview", path: string): Promise<Response> {
+/**
+ * Whether a request path names a file inside a site. `segments` are a
+ * catch-all route's params, which Next has decoded once: each is one name,
+ * so none may be `.` or `..` or hold a separator or a NUL.
+ */
+export function isSiteFilePath(segments: string[]): boolean {
+  return segments.every((s) => s !== "." && s !== ".." && !/[/\\\0]/.test(s));
+}
+
+/**
+ * A built file for the portal to pass through (the /demo and /canvas routes).
+ * `segments` are the request path as the route's params give it, and are not
+ * decoded again. The request is for a file under the site's view and nothing
+ * else: any other path is a 404 here, and the builder is not asked.
+ */
+export async function fetchSiteFile(slug: string, view: "current" | "preview", segments: string[]): Promise<Response> {
   const base = process.env.BUILDER_URL;
   const token = process.env.BUILDER_TOKEN;
-  if (!base || !token) return new Response("Not found", { status: 404 });
-  const safe = path
-    .split("/")
-    .map((p) => encodeURIComponent(decodeURIComponentSafe(p)))
-    .join("/");
-  return fetch(new URL(`/v1/sites/${slug}/files/${view}/${safe}`, base), {
+  const notFound = () => new Response("Not found", { status: 404 });
+  if (!base || !token || !isSiteFilePath(segments)) return notFound();
+  const files = `/v1/sites/${slug}/files/${view}/`;
+  const url = new URL(files + segments.map(encodeURIComponent).join("/"), base);
+  if (!url.pathname.startsWith(files)) return notFound();
+  return fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(30_000),
     cache: "no-store",
   });
-}
-
-function decodeURIComponentSafe(s: string) {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
-  }
 }
