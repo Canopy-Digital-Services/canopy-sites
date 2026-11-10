@@ -1,25 +1,44 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { createAccount, createMember, createSite, resetDatabase } from "../../../../test/db";
 import { resetRequest, signInAs } from "../../../../test/next-request";
 
 vi.mock("next/headers", () => import("../../../../test/next-request"));
 
-// The builder stands in for its two views; the database is real.
-const builder = vi.hoisted(() => ({ built: true, calls: [] as string[], onlyInPreview: [] as string[] }));
-vi.mock("@/lib/builder-client", () => ({
-  fetchSiteFile: vi.fn(async (_slug: string, view: "current" | "preview", path: string) => {
-    builder.calls.push(view);
-    if (!builder.built) {
-      return new Response(JSON.stringify({ error: "Nothing built yet" }), { status: 404, headers: { "Content-Type": "application/json" } });
-    }
-    if (view === "current" && builder.onlyInPreview.includes(path)) {
-      return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
-    }
-    if (path.endsWith(".css")) return new Response("body{}", { headers: { "Content-Type": "text/css; charset=utf-8" } });
+// The builder stands in over HTTP, so the portal's own client runs; the
+// database is real. It answers every route it is asked for, and `requests`
+// keeps each path.
+const BUILDER = "http://builder.test:4100";
+const FILES = /^\/v1\/sites\/demo\/files\/(current|preview)\/(.*)$/;
+const PAGES = ["", "services", "about/index.html"];
+const builder = { built: true, calls: [] as string[], requests: [] as string[], onlyInPreview: [] as string[] };
+
+vi.stubEnv("BUILDER_URL", BUILDER);
+vi.stubEnv("BUILDER_TOKEN", "t".repeat(32));
+vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+  const url = new URL(String(input));
+  if (url.origin !== BUILDER) throw new Error(`Unexpected request to ${url.origin}`);
+  builder.requests.push(url.pathname);
+  const files = FILES.exec(url.pathname);
+  if (!files) return Response.json({ current: "b1", preview: "b2" });
+  const view = files[1];
+  const path = decodeURIComponent(files[2]);
+  builder.calls.push(view);
+  if (!builder.built) return Response.json({ error: "Nothing built yet" }, { status: 404 });
+  const inPreview = builder.onlyInPreview.includes(path);
+  if (path.endsWith(".css") && (view === "preview" || !inPreview)) {
+    return new Response("body{}", { headers: { "Content-Type": "text/css; charset=utf-8" } });
+  }
+  if (PAGES.includes(path) && !inPreview) {
     return new Response(`<html><head><title>t</title></head><body>${view}</body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
-  }),
-}));
+  }
+  return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 const { GET } = await import("./route");
 
@@ -42,6 +61,7 @@ beforeEach(async () => {
   await resetDatabase();
   builder.built = true;
   builder.calls = [];
+  builder.requests = [];
   builder.onlyInPreview = [];
 });
 
@@ -84,6 +104,33 @@ describe("/demo", () => {
     builder.onlyInPreview = ["about/index.html"];
     expect((await get(["about", "index.html"])).status).toBe(404);
     expect(builder.calls).toEqual(["current"]);
+  });
+
+  it("is a 404 for a path that isn't a file's own, and asks the builder for nothing outside the demo's files", async () => {
+    await demoAccount();
+    // Segments as the route's params give them: decoded once.
+    for (const path of [
+      ["..", "..", "..", "demo", "status"],
+      ["services", ".."],
+      [".", "services"],
+      ["../../../demo/status"],
+      ["..\\..\\..\\demo\\status"],
+      ["services\0"],
+    ]) {
+      expect((await get(path)).status, JSON.stringify(path)).toBe(404);
+    }
+    expect(builder.requests).toEqual([]);
+
+    // A segment still encoded after that is a name like any other, and no build has it.
+    for (const path of [
+      ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
+      ["_astro", "%2E%2E", "%2e%2e", "preview", "index.html"],
+      ["..%2F..%2F..%2Fdemo%2Fstatus"],
+    ]) {
+      expect((await get(path)).status, JSON.stringify(path)).toBe(404);
+    }
+    expect(builder.requests.length).toBeGreaterThan(0);
+    for (const asked of builder.requests) expect(asked).toMatch(FILES);
   });
 
   it("is a 404 unless the site with the demo slug is marked as the demo", async () => {
