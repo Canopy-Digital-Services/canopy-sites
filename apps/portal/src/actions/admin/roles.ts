@@ -7,6 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
+import { requireId } from "@/lib/ids";
 import { getRole } from "@/lib/data-access/roles";
 import { getSoleMembership } from "@/lib/data-access/memberships";
 import { revalidatePath } from "next/cache";
@@ -30,6 +31,8 @@ export async function setUserRole(
   success: true;
   planAutoUpgraded: boolean;
 }> {
+  requireId(userId, "user id");
+  requireId(roleCode, "role code");
   const session = await requireGlobalAdmin();
   const actorUserId = session.user.id;
   const actorEmail = session.user.email ?? "unknown";

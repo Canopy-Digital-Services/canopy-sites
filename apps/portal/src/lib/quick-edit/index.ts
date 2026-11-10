@@ -172,7 +172,7 @@ export async function runQuickEdit(
   const site = { id: view.site.id, name: view.site.name };
 
   const existing = input.conversationId
-    ? await prisma.conversation.findFirst({ where: { id: input.conversationId, siteId: site.id } })
+    ? await prisma.conversation.findFirst({ where: { id: String(input.conversationId), siteId: site.id } })
     : null;
   const history = (existing?.messages as unknown as Anthropic.MessageParam[] | undefined) ?? [];
   // A conversation opened from a field starts with which field it was; it goes in the

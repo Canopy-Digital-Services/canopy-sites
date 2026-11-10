@@ -14,6 +14,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
+import { requireId } from "@/lib/ids";
 import { parseSiteSettings, type FieldErrors, type LinkSiteInput, type SiteSettingsInput } from "@/lib/sites";
 import { createLinkedSite, type LinkSiteResult } from "@/lib/site-link";
 import { revalidatePath } from "next/cache";
@@ -63,6 +64,7 @@ export async function updateSite(
   siteId: string,
   input: SiteSettingsInput
 ): Promise<SiteActionResult<SiteSettingsInput>> {
+  requireId(siteId, "site id");
   const session = await requireGlobalAdmin();
 
   const parsed = parseSiteSettings(input);
@@ -96,6 +98,8 @@ export async function updateSite(
 
 /** Move a site to another account, which must have Sites and no site of its own. */
 export async function assignSite(siteId: string, accountId: string): Promise<SiteActionResult<never>> {
+  requireId(siteId, "site id");
+  requireId(accountId, "account id");
   const session = await requireGlobalAdmin();
 
   const site = await prisma.site.findUnique({ where: { id: siteId }, select: { accountId: true } });
