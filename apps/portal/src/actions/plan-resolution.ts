@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { requireIds } from "@/lib/ids";
 import { revalidatePath } from "next/cache";
 
 export async function resolvePlan(selectedFormIds: string[]): Promise<{
@@ -26,7 +27,7 @@ export async function resolvePlan(selectedFormIds: string[]): Promise<{
     return { success: true, publishedCount: 0 };
   }
 
-  const uniqueIds = Array.from(new Set(selectedFormIds));
+  const uniqueIds = Array.from(new Set(requireIds(selectedFormIds, "form ids")));
 
   if (
     entitlements.maxPublishedForms !== null &&

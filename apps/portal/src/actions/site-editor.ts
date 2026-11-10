@@ -54,7 +54,8 @@ export async function sendQuickEdit(input: {
     const scope = input.scope
       ? { address: String(input.scope.address ?? ""), label: String(input.scope.label ?? ""), value: String(input.scope.value ?? "") }
       : null;
-    const result = await runQuickEdit(ctx, { conversationId: input.conversationId, message: String(input.message ?? ""), scope });
+    const conversationId = input.conversationId ? String(input.conversationId) : null;
+    const result = await runQuickEdit(ctx, { conversationId, message: String(input.message ?? ""), scope });
     if (result.changeSetId) revalidatePath("/quick-edit");
     return { success: true, ...result };
   } catch (err) {

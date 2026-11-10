@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentAccountId } from "@/lib/auth-utils";
+import { requireId } from "@/lib/ids";
 import {
   listNotificationsForAccount,
   type NotificationListItem,
@@ -15,7 +16,7 @@ export async function listMyNotifications(): Promise<NotificationListItem[]> {
 export async function dismissNotification(id: string): Promise<void> {
   const accountId = await getCurrentAccountId();
   await prisma.notification.deleteMany({
-    where: { id, accountId },
+    where: { id: requireId(id, "notification id"), accountId },
   });
 }
 

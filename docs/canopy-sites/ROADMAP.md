@@ -1,10 +1,12 @@
 # Canopy Sites — Roadmap and Epic Briefs
 
-**Status:** Draft 1 rev 2, 2026-10-15. Companion to `docs/canopy-sites/PRD.md`, which owns *what and why*. This doc owns *order* and the brief for each epic.
+**Status:** Draft 1 rev 3, 2026-11-09 (the MVP and its order, after a review of the build). Companion to `docs/canopy-sites/PRD.md`, which owns *what and why*. This doc owns *order* and the brief for each epic.
 
 **For the agent reading this:** each epic below is a brief, not a full epic doc. When you pick one up, write the full epic in the existing `docs/epics/epic-N-*.md` format (Goal / Scope / Requirements / Acceptance), index it in `docs/epics/README.md`, and work from that. Before starting, read `docs/AGENT_CONTEXT.md`. Keep epics atomic; one epic per Claude Code session is the intended grain.
 
 Epic numbers continue the Forms sequence; what has shipped is in `docs/epics/README.md`. Epics in other repos are prefixed.
+
+Open findings from the 2026-11-09 review of the build are in `docs/canopy-sites/REVIEW_FINDINGS.md`; the F numbers below are its entries. Delete this paragraph when that file is.
 
 ---
 
@@ -13,17 +15,39 @@ Epic numbers continue the Forms sequence; what has shipped is in `docs/epics/REA
 ```
 Phase 0  Portal foundation            [this repo]         E27 → E28 → E29
 Phase 1  Content contract + H&H       [site-contract, H&H] C1 → H1 → H2 → H3         (parallel with Phase 0)
-Phase 2  Builder + Caddy, preview     [this repo]         E30                        (needs E29, C1)
-Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E34 → E35 (needs E30; E33 first, below)
-Phase 4  Production on Caddy          [webber]             E36                        (needs E33 stable)
-Phase 5  Toro Z migration             [toroz]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36)
+Phase 2  Builder, preview             [this repo]         E30                        (needs E29, C1)
+Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E35      (needs E30; E33 first, below)
+Phase 4  Production on nginx          [webber]             E36                        (after the MVP; both boxes keep serving, PRD D57)
+Phase 5  Toro Z migration             [toroz]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36; Hair & Harvest is E46)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
+Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
+Phase 9  The suite                    [this repo]          E50 → E51 → E52            (after the MVP: Gallery, Events, Booking)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
 
-Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harvest` repo was never converted (Astro 5, no contract, checked 2026-11-05), so H1 to H3 are unscheduled and gate nothing. canopyds.com (Epic 37) is the precedent every site follows onto Sites.
+Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harvest` repo was never converted (Astro 5, no contract, checked 2026-11-09). Converting it is in the MVP (PRD D51) as E46. canopyds.com (Epic 37) is the precedent every site follows onto Sites.
+
+### The MVP (decided 2026-11-09)
+
+Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friends, Hair & Harvest, and the VETS site claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
+
+1. **The security fixes**, in their own session since 2026-11-10 and released on their own. Their detail is private (REVIEW_FINDINGS names the Nextcloud page).
+2. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
+3. **E47, tool layer fixes** (F1 to F5).
+4. **E48, deploys and checks** (F25, F27, F28, F29).
+5. **E49, alerting and records** (F26, F31).
+6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+10. **E46, Hair & Harvest onto Sites**, then its claim.
+11. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+
+To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
+
+After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), E43 to E45, then E52 (Booking). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -51,7 +75,7 @@ Every site on Sites so far was live before it was linked, because the canvas loa
 
 ### Fallback (decision D6 chicken-out)
 
-If the builder/Caddy model has to be abandoned: keep Coolify building each site from GitHub on push; keep the builder + Caddy for **preview only**; publish stays commit-to-main. Everything in E30–E35 remains valid; only E36 is dropped. Document the choice in the PRD if taken.
+If the builder and nginx model has to be abandoned: keep Coolify building each site from GitHub on push; keep the builder for **preview only**; publish stays commit-to-main. Everything in E30–E35 remains valid; only E36 is dropped. Document the choice in the PRD if taken.
 
 ---
 
@@ -117,6 +141,10 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 - Versioned from day one: each version is a GitHub release `site-contract-vX.Y.Z` carrying the packed tarball (PRD D26)
 - Acceptance: `validateSite` passes on a fixture mirroring H&H content and fails with readable errors on a bad fixture
 
+### E46 · Hair & Harvest on Sites (`hair-and-harvest`)
+
+In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Toro Z was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Toro Z's plumbing, as Fur-Ever Friends did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). The epic doc carries the requirements.
+
 ### H1 · H&H → Astro 7 (`hair-and-harvest`)
 
 - Upgrade Astro 5 → 7 and deps; Node 24 Dockerfile (copy Toro Z's pattern) so Coolify builds from a Dockerfile, not nixpacks
@@ -157,21 +185,21 @@ Folded into E41 (2026-11-06): the starter is E41's, built on the site kit and ex
 
 ---
 
-## Phase 2 — Builder and Caddy, preview only
+## Phase 2 — Builder, preview only
 
-### E30 · Builder service + Caddy + preview
+### E30 · Builder service and preview
 
-Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: Caddy and client production hostnames (with E36), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
+Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: client production hostnames (with E36), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
 
 
 Goal: a ChangeSet against H&H produces a viewable preview without touching production.
 
-- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays builder + Caddy (PRD D27)
+- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays the builder's (PRD D27, D60)
 
 - `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (repo-scoped token, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
 - Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
-- Caddy container with admin API; portal generates config from `Site` rows (production hostnames → `current`) and reloads. No preview hostnames (PRD D47)
-- Shared volume between builder and caddy. Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
+- No preview hostnames (PRD D47); serving production is E36's (PRD D60)
+- Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
 - Operator: build log per site with status, duration, stdout tail
 - Acceptance: operator triggers a no-op ChangeSet on H&H → the canvas shows the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
 
@@ -223,6 +251,8 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 
 ### E34 · Public MCP endpoint and API keys
 
+After v1 (PRD D59), and not scheduled.
+
 - Streamable HTTP MCP server at `/mcp` rendered from E32's definitions module (PRD D30): the E31 tools except `publish`, which only the preview page calls (PRD D47), server instructions carrying the core guidance and the site guide, and `get_site_guide`. Bearer API key per account, scoped to one site, hashed at rest (SHA-256 of a random token, as sessions are), revocable, last-used tracked. Rate limit per key through `src/lib/rate-limit.ts`. Decide here whether OAuth for MCP clients warrants an auth library (PRD D16)
 - Operator and account UI: create/revoke keys, copy once
 - Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, and that a change is published from its preview page
@@ -248,21 +278,23 @@ Goal: each client's portal opens on a walkthrough Michael recorded for them, bec
 - Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for members of the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying, opened once on the owner's first session after claiming, never while the operator acts as the client. The furthest point reached and the video's length on the owner's Membership; the operator's owner card shows "Watched 4:12 of 5:03". The help bubble reopens it
 - Acceptance: on the owner's phone the video opens once, silent until played, with captions, and seeks; the operator page shows how far they got; signed out or as another account, its files 404
 
-## Phase 4 — Production on Caddy
+## Phase 4 — Production on nginx
 
-### E36 · Production on Caddy, publish by swap
+### E36 · Production on nginx, publish by swap
 
-Preconditions: E33 stable on preview for at least a week of real use. Which site goes first is decided when E36 starts (canopyds.com is the lower-stakes candidate, epic-37 section 7); each site on Sites then follows the same steps.
+Preconditions: E33 stable on preview for at least a week of real use, and alerting in place (E49). Which site goes first is decided when E36 starts (canopyds.com is the lower-stakes candidate, epic-37 section 7); each site on Sites then follows the same steps.
 
-Add `Site.status` here (deferred from E29, PRD D21), with values naming which sites Caddy serves in production.
+Client sites keep both boxes throughout (PRD D57): Webber and Fox both serve every client site today, with Cloudflare routing between them, and no step here takes a site off either box before that box serves the builder's output for it. Nothing in this epic risks a site that is live.
 
-1. Portal adds the site's production hostnames to Caddy config → `current` symlink (pointing at the latest published build)
-2. Traefik: route those hostnames to the Caddy container instead of the site's nginx app. Verify `curl -sI https://<hostname>/` 200 and content parity
-3. Flip `publish` behavior: symlink swap first, commit + push async. Restore publishes like any other change (PRD §4.5)
-4. Confirm for a week. Delete the site's Coolify app, and its Fox copy for a Tier 1 site. Update the site repo's deploy docs
+Add `Site.status` here (deferred from E29, PRD D21), with values naming which sites are served from the builder's output in production.
+
+1. Each box runs a builder that builds the site from git, and nginx on each, with one fixed config, serves the site's production hostnames from `current` (the latest published build): a hostname is a link to its site's `current` (PRD D60). How soon Fox's builder picks up a publish is the epic doc's first decision
+2. Traefik, one box at a time and Fox first: route those hostnames to that server instead of the site's nginx app. Verify `curl -sI https://<hostname>/` 200 and content parity through each box
+3. `publish` keeps its order, commit and push then swap, and the swap now changes what visitors see (PRD D60). Restore publishes like any other change (PRD §4.5)
+4. Confirm for a week. Retire the site's Coolify apps, on both boxes, only once both serve the builder's output. Update the site repo's deploy docs
 5. Undo path at any step: route Traefik back to the nginx app
 
-Acceptance: publish from quick edit is live in seconds; restore brings back a previous version in seconds; the GitHub repo reflects every published change.
+Acceptance: a publish is live in seconds on both boxes; with either box stopped the site still serves its published version; the nightly rebuild changes what visitors see; restore brings back a previous version in seconds; the GitHub repo reflects every published change.
 
 ---
 
@@ -270,7 +302,7 @@ Acceptance: publish from quick edit is live in seconds; restore brings back a pr
 
 ### T1 · Toro Z onto the template (`toroz`)
 
-Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to Caddy with E36 like every other site. Specifics: `site.ts` → collections (contract 0.5.0's `classes` carry their sessions, and the schedule's views are derived in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule). The epic doc, `docs/epics/epic-40-toroz-on-sites.md`, carries the requirements, with the E32 pieces Toro Z depends on and the lane in code (PRD D50).
+Onto Sites the way canopyds.com went (Epic 37), through the Sites Onboarding Runbook (Nextcloud). Publish is a push to `main`, which Toro Z's Coolify app already deploys through its GitHub App webhook (a webhook deploy on 2026-10-08, checked 2026-11-05), so E36 isn't a precondition; Toro Z moves to the builder's output with E36 like every other site. Specifics: `site.ts` → collections (contract 0.5.0's `classes` carry their sessions, and the schedule's views are derived in the template), `public/` images → `src/assets` with `image()`, preserve DESIGN.md invariants and the documented accessibility rules. Toro Z's "no content collections" rule in its CLAUDE.md is superseded by this migration; rewrite that sentence, don't append a caveat (its own editing rule). The epic doc, `docs/epics/epic-40-toroz-on-sites.md`, carries the requirements, with the E32 pieces Toro Z depends on and the lane in code (PRD D50).
 
 ### E42 · Fur-Ever Friends on Sites (`fur-ever-friends`)
 
@@ -334,13 +366,76 @@ Goal: a new site's form works the moment the site does, in the client's own acco
 
 ---
 
+## Phase 8: Launch readiness
+
+The MVP's own work (PRD D51), from the 2026-11-09 review. Each finding's detail is its entry in `docs/canopy-sites/REVIEW_FINDINGS.md`.
+
+### E47 · Tool layer fixes
+
+Goal: a draft and a publish hold up when two things happen at once, and a guide rule the site already breaks doesn't stop an owner's edit.
+
+- F1 to F5, each landing with the test that fails without it. F2 to F5 have tests beside the catalog that pass while the defect is present
+- Acceptance: those tests turned around and passing; the suite passes
+
+### E48 · Deploys and checks
+
+Goal: a release that fails to start leaves the one before it serving, and a change is checked by something other than the session that wrote it.
+
+- A `/healthz` route, a Dockerfile `HEALTHCHECK`, and health-gated deploys on the portal apps (F28); a migration is written so the release before it can run against it
+- A workflow on pull requests to `main`: build, lint, and the suite against a Postgres service (F29)
+- The portal on Node 24, with Vitest 5 (F27); the Prisma CLI past its advisories, and `uuid` dropped (F25)
+- Acceptance: a migration that fails on dev leaves dev serving the previous release; a pull request with a failing test shows it failed
+
+### E49 · Alerting and records
+
+Goal: Michael is told when the portal or the builder is down, and what happened on the platform can be looked up afterwards (Michael, 2026-11-10; F31, F26).
+
+- A check from outside Webber on the portal's health, which answers for the builder too (the builder has no public address), alerting through a channel that doesn't depend on Webber
+- An alert on a failed nightly rebuild, a failed publish, and a builder error
+- An audit table for operator actions and sign-in events, replacing the lines printed to the container
+- A request log at the proxy on both boxes, without query strings and with a retention period (the Nextcloud page REVIEW_FINDINGS names)
+- Open for the epic doc: what does the checking (the health tool the New Client Checklist names, an outside monitor, or Cloudflare), and where alerts go: email shares the portal's mail ceiling, a text or a push doesn't
+- Acceptance: with the dev portal stopped, Michael is alerted within minutes, and the same check covers production's portal and builder; an operator action and a sign-in from the week before can be found
+
+---
+
+## Phase 9: The suite
+
+After the MVP (PRD D52, D54, D55).
+
+### E50 · Media pipeline and the Gallery tab
+
+Goal: an owner adds, reorders, and removes photos in a tab, and Quick Edit does the same through the tab's own form (PRD D41, D54).
+
+- E32's media pipeline: upload, preflight, staged until publish
+- A draft's photo shows on the canvas from the builder: the canvas loads a client site's assets from its live address, where an unpublished photo doesn't exist (F11)
+- The Gallery tab, then Quick Edit and the canvas popover attaching through its form (F18, F19)
+- Instagram as a source, for Toro Z: fetched at build and never committed, so after E36, when the token lives with the one production build. Open: Meta's review of the app
+
+### E51 · Events
+
+Goal: an owner adds an event with its date, time, and place, and it leaves the site by itself when it is over.
+
+- An `events` collection in the contract, with the first site that renders it; its tab; then Quick Edit filling the tab's form
+- Structured data and add-to-calendar from the build
+- After E36: the nightly rebuild has to reach a client's live site (F6)
+
+### E52 · Booking
+
+PRD D55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+
+---
+
 ## Not scheduled (recorded so they are not forgotten)
 
-- Tool tabs, build-time (PRD D39): Gallery (D41), Calendar for announcements and events (D42), blog, newsletter
+- Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
+- Members (a light CRM) and newsletters as runtime components (PRD D52)
+- An export that strips the CMS out of a site (PRD D58)
+- Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
 - Invite flow and member roles UI (Membership exists from E28)
-- Creating a site's repo, DNS, Umami website, or Caddy entry from the portal (the operator links a live site, E38)
+- Creating a site's repo, DNS, Umami website, or hostname link from the portal (the operator links a live site, E38)
 - Stripe or FreshBooks sync
 - SEO/report tier tooling
 - SMS intake
-- OAuth for the MCP endpoint
+- The public MCP endpoint and its OAuth (E34; PRD D59)

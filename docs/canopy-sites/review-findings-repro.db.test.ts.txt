@@ -1,0 +1,149 @@
+// Temporary: reproduces review findings F2 to F5 (docs/canopy-sites/REVIEW_FINDINGS.md), then deleted.
+// Each test passes when the defect is present.
+import { beforeEach, expect, it, vi } from "vitest";
+import { prisma } from "@/lib/db";
+import { resetRateLimits } from "@/lib/rate-limit";
+import { createAccount, createSite, resetDatabase } from "../../../test/db";
+
+const builder = vi.hoisted(() => ({
+  commit: "a".repeat(40),
+  content: {} as Record<string, unknown>,
+  publishes: [] as Array<{ buildId: string; ops: unknown[] }>,
+  buildGone: false,
+  duringPublish: null as null | (() => Promise<unknown>),
+  firstPublishDone: null as null | Promise<void>,
+}));
+vi.mock("@/lib/builder-client", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
+  return {
+    ...actual,
+    fetchContent: vi.fn(async () => ({ commit: builder.commit, content: structuredClone(builder.content), guide: null, contractVersion: "0.5.0" })),
+    requestPreview: vi.fn(async (_site, buildId: string) => ({ id: buildId, status: "queued" })),
+    fetchBuild: vi.fn(async (_slug, id: string) => {
+      // What the portal gets for a build the builder lost in a restart: its 404, as call() raises it.
+      if (builder.buildGone) throw new actual.BuilderError("No such build");
+      return { id, status: "succeeded", log: "" };
+    }),
+    requestPublish: vi.fn(async (_site, args: { buildId: string; ops: unknown[] }) => {
+      // The builder runs one job per site: a second publish waits for the first, then finds the branch moved
+      // (apps/builder/src/sites.ts, publish: "The site changed since this preview").
+      if (builder.publishes.length > 0) {
+        await builder.firstPublishDone;
+        await new Promise((r) => setTimeout(r, 100));
+        throw new actual.BuilderError("The site changed since this preview. Preview the change again.");
+      }
+      builder.publishes.push(args);
+      let done!: () => void;
+      builder.firstPublishDone = new Promise<void>((r) => (done = r));
+      if (builder.duringPublish) await builder.duringPublish();
+      await new Promise((r) => setTimeout(r, 50));
+      done();
+      return { commit: "b".repeat(40), log: "" };
+    }),
+  };
+});
+
+const tools = await import("./index");
+
+const CONTENT = {
+  site: {
+    name: "Demo Salon",
+    description: "A salon.",
+    contact: { phone: "555-0100", bookingUrl: "https://book.example.com" },
+    hours: { kind: "weekly", days: [{ day: "tuesday", opens: "12:00", closes: "17:00" }] },
+    socials: [],
+  },
+  services: [{ id: "haircuts", name: "Haircuts", services: [{ id: "haircut", name: "Haircut", priceLabel: "$85" }] }],
+  announcements: [],
+};
+const PRICE = [{ op: "replace", address: "services/haircuts/services/haircut/priceLabel", value: "$90" }];
+const NAME = [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }];
+const DESCRIPTION = [{ op: "replace", address: "site/description", value: "A salon and spa." }];
+const author = { name: "Owner", email: "owner@example.com" };
+
+async function siteAccount() {
+  const { account, user } = await createAccount({ planCode: "SITES" });
+  const site = await createSite(account.id);
+  await prisma.site.update({ where: { id: site.id }, data: { repoUrl: "https://github.com/example/site", lockedFields: ["site/contact/phone"] } });
+  return { site, ctx: { accountId: account.id, userId: user.id, source: "EDITOR" as const } };
+}
+
+type Ctx = Awaited<ReturnType<typeof siteAccount>>["ctx"];
+async function previewed(ctx: Ctx, siteId: string, ops: unknown[]) {
+  const saved = await tools.saveDraft(ctx, siteId, { ops });
+  await tools.refreshChange(ctx.accountId, saved.changeSetId!);
+  return { changeSetId: saved.changeSetId!, buildId: saved.buildId! };
+}
+
+beforeEach(async () => {
+  await resetDatabase();
+  resetRateLimits();
+  builder.content = structuredClone(CONTENT);
+  builder.publishes = [];
+  builder.buildGone = false;
+  builder.duringPublish = null;
+  builder.firstPublishDone = null;
+});
+
+it("F2a: two Publish requests leave a change that went live marked FAILED", async () => {
+  const { ctx, site } = await siteAccount();
+  const d = await previewed(ctx, site.id, PRICE);
+  const results = await Promise.allSettled([
+    tools.publishChange(ctx, d.changeSetId, d.buildId, author),
+    tools.publishChange(ctx, d.changeSetId, d.buildId, author),
+  ]);
+  const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: d.changeSetId } });
+  console.log("F2a ->", JSON.stringify({ calls: results.map((r) => r.status), builderPublished: builder.publishes.length, status: cs.status, error: cs.error, publishedCommit: cs.publishedCommit?.slice(0, 7) }));
+  expect(builder.publishes).toHaveLength(1);
+  expect(cs.status).toBe("FAILED");
+});
+
+it("F2b: an edit saved during a publish is marked published without going live", async () => {
+  const { ctx, site } = await siteAccount();
+  const d = await previewed(ctx, site.id, PRICE);
+  builder.duringPublish = () => tools.saveDraft(ctx, site.id, { ops: NAME });
+  await tools.publishChange(ctx, d.changeSetId, d.buildId, author);
+  const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: d.changeSetId } });
+  const view = await tools.getDraftView(ctx.accountId, site.id);
+  console.log("F2b ->", JSON.stringify({ status: cs.status, opsInChange: (cs.ops as unknown[]).length, opsSentToBuilder: builder.publishes[0].ops.length, draftAfter: view.pending }));
+  expect(cs.status).toBe("PUBLISHED");
+  expect(cs.ops as unknown[]).toHaveLength(2);
+  expect(builder.publishes[0].ops).toHaveLength(1);
+  expect(view.pending).toBeNull();
+});
+
+it("F3: a build the builder no longer knows stays queued, and the draft never becomes previewable", async () => {
+  const { ctx, site } = await siteAccount();
+  const saved = await tools.saveDraft(ctx, site.id, { ops: PRICE });
+  builder.buildGone = true;
+  const refreshed = await tools.refreshChange(ctx.accountId, saved.changeSetId!);
+  const build = await prisma.build.findUniqueOrThrow({ where: { id: saved.buildId! } });
+  const state = await tools.getPreviewState(ctx.accountId, site.id);
+  console.log("F3 ->", JSON.stringify({ refreshed, build: build.status, publishable: state.pending?.publishable }));
+  expect(build.status).toBe("QUEUED");
+  expect(refreshed.status).toBe("DRAFT");
+  expect(state.pending?.publishable).toBeNull();
+});
+
+it("F4: two first writes at once make two drafts, and one edit is orphaned", async () => {
+  const { ctx, site } = await siteAccount();
+  await Promise.all([tools.saveDraft(ctx, site.id, { ops: NAME }), tools.saveDraft(ctx, site.id, { ops: DESCRIPTION })]);
+  const pending = await prisma.changeSet.findMany({ where: { siteId: site.id, status: { in: ["DRAFT", "PREVIEWED"] } } });
+  const view = await tools.getDraftView(ctx.accountId, site.id);
+  const s = view.content.site as { name: string; description: string };
+  console.log("F4 ->", JSON.stringify({ pendingDrafts: pending.length, draftShows: { name: s.name, description: s.description } }));
+  expect(pending).toHaveLength(2);
+  expect(s.name === "Demo Salon & Spa" && s.description === "A salon and spa.").toBe(false);
+});
+
+it("F5: a lock added after a draft was saved doesn't stop that draft's publish", async () => {
+  const { ctx, site } = await siteAccount();
+  const d = await previewed(ctx, site.id, NAME);
+  await prisma.site.update({ where: { id: site.id }, data: { lockedFields: { push: "site/name" } } });
+  await tools.publishChange(ctx, d.changeSetId, d.buildId, author);
+  const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: d.changeSetId } });
+  console.log("F5 ->", JSON.stringify({ status: cs.status, builderPublished: builder.publishes.length }));
+  expect(cs.status).toBe("PUBLISHED");
+  // The same edit made now is refused, so the lock itself works.
+  await expect(tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/name", value: "Another Name" }] })).rejects.toThrow(/locked/);
+});

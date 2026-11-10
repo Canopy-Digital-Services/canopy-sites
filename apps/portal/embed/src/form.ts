@@ -302,6 +302,7 @@ export class CanopyForm {
         "data-preview-tooltip",
         "For preview only. No submission will be created"
       );
+      submit.dataset.align = theme.buttonAlign;
     }
     // Apply inline styles to defeat CSS resets like Figma's @layer figreset
     const computedStyle = getComputedStyle(this.container);

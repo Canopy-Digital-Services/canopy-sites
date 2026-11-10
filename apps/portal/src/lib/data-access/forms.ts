@@ -1,9 +1,14 @@
 /**
  * Data access helpers for forms.
  * Enforces form ownership: form.accountId === accountId
+ *
+ * A form id is checked to be a string here as well as in the action that
+ * took it. What follows an ownership check uses the id of the row it
+ * returned, never the caller's value again.
  */
 
 import { prisma } from "@/lib/db";
+import { requireId } from "@/lib/ids";
 
 /**
  * Get a form owned by the given account.
@@ -12,8 +17,8 @@ import { prisma } from "@/lib/db";
 export async function getOwnedForm(formId: string, accountId: string) {
   const form = await prisma.form.findFirst({
     where: {
-      id: formId,
-      accountId,
+      id: requireId(formId, "form id"),
+      accountId: requireId(accountId, "account id"),
     },
     include: {
       fields: {
@@ -36,8 +41,8 @@ export async function getOwnedForm(formId: string, accountId: string) {
 export async function getOwnedFormMinimal(formId: string, accountId: string) {
   const form = await prisma.form.findFirst({
     where: {
-      id: formId,
-      accountId,
+      id: requireId(formId, "form id"),
+      accountId: requireId(accountId, "account id"),
     },
   });
 
@@ -49,18 +54,40 @@ export async function getOwnedFormMinimal(formId: string, accountId: string) {
 }
 
 /**
- * Get a published form by ID (public, no auth).
- * Returns null if form doesn't exist or isn't published.
+ * A published form as its public page sees it (no auth), or null if the form
+ * doesn't exist or isn't published. It selects the columns a visitor's
+ * browser may hold and no others: the page hands them to a client component,
+ * whose props are sent to the browser whole. Add a column here only if it is
+ * public.
  */
 export async function getPublishedForm(formId: string) {
   return prisma.form.findFirst({
     where: {
-      id: formId,
+      id: requireId(formId, "form id"),
       published: true,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      type: true,
+      title: true,
+      description: true,
+      successMessage: true,
+      redirectUrl: true,
+      defaultTheme: true,
       fields: {
         orderBy: { order: "asc" },
+        select: {
+          name: true,
+          type: true,
+          label: true,
+          required: true,
+          order: true,
+          helpText: true,
+          options: true,
+          validation: true,
+        },
       },
     },
   });
@@ -72,7 +99,7 @@ export async function getPublishedForm(formId: string) {
  */
 export async function formExists(formId: string) {
   const count = await prisma.form.count({
-    where: { id: formId },
+    where: { id: requireId(formId, "form id") },
   });
   return count > 0;
 }
