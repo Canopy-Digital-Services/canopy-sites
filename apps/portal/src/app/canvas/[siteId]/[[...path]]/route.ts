@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { builderConfigured, fetchSiteFile } from "@/lib/builder-client";
+import { builderConfigured, fetchSiteFile, isSiteFilePath } from "@/lib/builder-client";
 import { draftBuildIds, previewableSite } from "@/lib/site-tools";
 import { canvasBridge } from "@/lib/canvas-bridge";
 import { liveSite, liveUrl } from "@/lib/site-live";
@@ -43,7 +43,7 @@ const notFound = () => new NextResponse("Not found", { status: 404, headers: hea
 export async function GET(request: Request, { params }: { params: Promise<{ siteId: string; path?: string[] }> }) {
   const { siteId, path = [] } = await params;
   const session = await getSession();
-  const site = session && builderConfigured() ? await previewableSite(session, siteId) : null;
+  const site = session && builderConfigured() && isSiteFilePath(path) ? await previewableSite(session, siteId) : null;
   const live = site ? liveSite(site) : null;
   if (!site || !live) return notFound();
 
@@ -57,7 +57,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ site
   const drafts = await draftBuildIds(site.id);
   if (drafts) {
     // The builder's preview is the newest successful build of any change; show it only if it is this draft's.
-    const res = await fetchSiteFile(site.slug, "preview", file);
+    const res = await fetchSiteFile(site.slug, "preview", path);
     const served = res.headers.get("x-canopy-build");
     if (res.ok && isHtml(res) && served && drafts.includes(served)) {
       html = await res.text();
@@ -66,7 +66,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ site
   }
   if (html === null) {
     const res = site.isDemo
-      ? await fetchSiteFile(site.slug, "current", file)
+      ? await fetchSiteFile(site.slug, "current", path)
       : await fetch(liveUrl(live, page), { cache: "no-store", signal: AbortSignal.timeout(20_000) }).catch(() => null);
     if (!res || !isHtml(res) || (!res.ok && res.status !== 404)) {
       return new NextResponse("This page couldn't be loaded.", { status: 502, headers: headers(null) });

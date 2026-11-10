@@ -6,7 +6,7 @@ The site build worker (PRD section 4.2, Epic 30). An internal HTTP service for t
 - `POST /v1/sites/:slug/previews` queues a build of HEAD plus a ChangeSet's ops; a failed build never moves `preview`. Newest wins: a queued preview that a newer one for the same site overtakes ends as `superseded` without running.
 - `GET /v1/sites/:slug/builds/:id` reports a build's status, log tail, and content issues.
 - `POST /v1/sites/:slug/publish` re-applies the same ops to the same base commit, commits and pushes, then points `current` at the previewed build (no rebuild). If the branch moved since the preview, it refuses.
-- `GET /v1/sites/:slug/files/(current|preview)/<path>` serves a built file (the portal proxies `/demo` through this).
+- `GET /v1/sites/:slug/files/(current|preview)/<path>` serves a built file (the portal proxies `/demo` and `/canvas` through this). A path with a `.` or `..` segment is a missing file, not a resolved one.
 - `GET /v1/repos` lists the repos the Canopy Sites GitHub App is installed on, for the portal's Link a site picker; 404 when the App isn't configured.
 
 **Repo access** is the Canopy Sites GitHub App (`src/github-app.ts`, Epic 38 section 4.2): org-owned, installed on the site repos only, Contents read and write. For each job the builder signs a JWT with the App's key and trades it for an installation token limited to that one repo, cached until a few minutes before its hour ends; git gets it through its environment, never argv, the remote URL, or a log, and site build steps get no secret. Adding a site's repo to the App's installation is the whole per-site step. A site whose repo the App can't reach falls back to its `GIT_TOKEN_<SLUG>`, if one is set.
