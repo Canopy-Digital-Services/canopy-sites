@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.6] - 2026-11-10
+
+### Fixed
+
+- The demo site and the Editor's canvas check a page's address before asking the builder for it. An address with a `.` or `..` part, or with a separator or NUL inside a part, is a 404, and every other address is passed on exactly as written, never decoded a second time. The builder treats a file path with a `.` or `..` part as missing
+
 ## [5.14.5] - 2026-11-06
 
 ### Fixed
