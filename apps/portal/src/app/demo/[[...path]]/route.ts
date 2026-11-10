@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { fetchSiteFile } from "@/lib/builder-client";
+import { fetchSiteFile, isSiteFilePath } from "@/lib/builder-client";
 
 /**
  * The demo site at /demo (PRD D23), served from the builder's published
@@ -29,14 +29,13 @@ async function demoSite() {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ path?: string[] }> }) {
   const { path = [] } = await params;
-  const site = await demoSite();
+  const site = isSiteFilePath(path) ? await demoSite() : null;
   if (!site) return new NextResponse("Not found", { status: 404 });
 
-  const file = path.join("/");
-  let upstream = await fetchSiteFile(site.slug, "current", file);
+  let upstream = await fetchSiteFile(site.slug, "current", path);
   if (upstream.status === 404 && path[0] === "_astro") {
     // A fingerprinted asset only the draft's build has, for the canvas and the preview page.
-    const draft = await fetchSiteFile(site.slug, "preview", file);
+    const draft = await fetchSiteFile(site.slug, "preview", path);
     if (draft.ok) upstream = draft;
   }
 

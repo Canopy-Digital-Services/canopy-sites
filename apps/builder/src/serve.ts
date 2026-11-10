@@ -35,8 +35,9 @@ async function isFile(p: string) {
 
 /**
  * Finds the file for a request path inside a build, the way a static host
- * would: exact file, then directory index, then `.html`. Anything resolving
- * outside the build (through `..` or a symlink) is treated as missing.
+ * would: exact file, then directory index, then `.html`. A path with a `.`
+ * or `..` segment is treated as missing rather than resolved, and so is
+ * anything that resolves outside the build through a symlink.
  */
 export async function resolveFile(root: string, urlPath: string): Promise<string | null> {
   let decoded: string;
@@ -46,6 +47,7 @@ export async function resolveFile(root: string, urlPath: string): Promise<string
     return null;
   }
   if (decoded.includes("\0")) return null;
+  if (decoded.split(/[/\\]/).some((s) => s === "." || s === "..")) return null;
   const realRoot = await realpath(root);
   const base = path.resolve(realRoot, "." + path.posix.normalize("/" + decoded));
   const candidates = decoded.endsWith("/") ? [path.join(base, "index.html")] : [base, path.join(base, "index.html"), `${base}.html`];

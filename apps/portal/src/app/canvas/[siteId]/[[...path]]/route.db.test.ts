@@ -1,21 +1,44 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { createAccount, createMember, createSite, resetDatabase } from "../../../../../test/db";
 import { resetRequest, signInAs } from "../../../../../test/next-request";
 
 vi.mock("next/headers", () => import("../../../../../test/next-request"));
 
-// The builder stands in for its two views; the database is real.
-const builder = vi.hoisted(() => ({ previewBuild: "", calls: [] as string[] }));
-vi.mock("@/lib/builder-client", () => ({
-  builderConfigured: () => true,
-  fetchSiteFile: vi.fn(async (_slug: string, view: "current" | "preview", path: string) => {
-    builder.calls.push(`${view}:${path}`);
-    return new Response(`<html><head><title>t</title></head><body>${view}</body></html>`, {
-      headers: { "Content-Type": "text/html; charset=utf-8", "X-Canopy-Build": view === "preview" ? builder.previewBuild : "published" },
-    });
-  }),
-}));
+// The builder and the live site stand in over HTTP, so the portal's own
+// client runs; the database is real. The builder answers every route it is
+// asked for, and `requests` keeps each path.
+const BUILDER = "http://builder.test:4100";
+const FILES = /^\/v1\/sites\/[a-z0-9-]+\/files\/(current|preview)\/(.*)$/;
+const PAGES = ["", "services", "about"];
+const builder = { previewBuild: "", calls: [] as string[], requests: [] as string[] };
+const live = { requests: [] as string[] };
+
+vi.stubEnv("BUILDER_URL", BUILDER);
+vi.stubEnv("BUILDER_TOKEN", "t".repeat(32));
+vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+  const url = new URL(String(input));
+  if (url.origin !== BUILDER) {
+    live.requests.push(url.href);
+    return new Response("<html><head></head><body>live</body></html>", { headers: { "Content-Type": "text/html" } });
+  }
+  builder.requests.push(url.pathname);
+  const files = FILES.exec(url.pathname);
+  if (!files) return Response.json({ current: "b1", preview: "b2" });
+  const view = files[1];
+  const path = decodeURIComponent(files[2]);
+  builder.calls.push(`${view}:${path}`);
+  const found = PAGES.includes(path);
+  return new Response(`<html><head><title>t</title></head><body>${found ? view : "not found"}</body></html>`, {
+    status: found ? 200 : 404,
+    headers: { "Content-Type": "text/html; charset=utf-8", "X-Canopy-Build": view === "preview" ? builder.previewBuild : "published" },
+  });
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 const { GET } = await import("./route");
 
@@ -33,18 +56,14 @@ async function siteWithDraft(opts: { demo?: boolean; hostnames?: string[] } = {}
   return { account, user, site, draft, build };
 }
 
-const live = vi.spyOn(globalThis, "fetch");
-
 beforeEach(async () => {
   resetRequest();
   await resetDatabase();
   builder.calls = [];
+  builder.requests = [];
   builder.previewBuild = "";
-  live.mockReset();
-  live.mockImplementation(async () => new Response("<html><head></head><body>live</body></html>", { headers: { "Content-Type": "text/html" } }));
+  live.requests = [];
 });
-
-afterEach(() => live.mockReset());
 
 describe("/canvas (PRD D47)", () => {
   it("gives members the draft's build with the bridge, a <base> at the live address, and the build's id", async () => {
@@ -123,7 +142,42 @@ describe("/canvas (PRD D47)", () => {
     await prisma.changeSet.update({ where: { id: draft.id }, data: { status: "PUBLISHED" } });
     const page = await (await get(site.id, ["about"])).text();
     expect(page).toContain("<body>live");
-    expect(String(live.mock.calls[0][0])).toBe("https://www.client.example/about");
+    expect(live.requests).toEqual(["https://www.client.example/about"]);
+  });
+
+  it("is a 404 for a path that isn't a page's own, and asks the builder for nothing outside the site's files", async () => {
+    const demo = await siteWithDraft({ demo: true });
+    const client = await siteWithDraft({ hostnames: ["www.client.example"] });
+    for (const { user, site } of [demo, client]) {
+      resetRequest();
+      await signInAs(user.id);
+      // Segments as the route's params give them: decoded once.
+      for (const path of [
+        ["..", "..", "..", "demo", "status"],
+        ["services", ".."],
+        [".", "services"],
+        ["../../../demo/status"],
+        ["..\\..\\..\\demo\\status"],
+        ["services\0"],
+      ]) {
+        expect((await get(site.id, path)).status, JSON.stringify(path)).toBe(404);
+      }
+    }
+    expect(builder.requests).toEqual([]);
+    expect(live.requests).toEqual([]);
+
+    // A segment still encoded after that is a name like any other, and no build has it.
+    resetRequest();
+    await signInAs(demo.user.id);
+    for (const path of [
+      ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
+      ["%2E%2E", "%2e%2e", "preview", "index.html"],
+      ["..%2F..%2F..%2Fdemo%2Fstatus"],
+    ]) {
+      expect((await get(demo.site.id, path)).status, JSON.stringify(path)).toBe(404);
+    }
+    expect(builder.requests.length).toBeGreaterThan(0);
+    for (const asked of builder.requests) expect(asked.startsWith("/v1/sites/demo/files/"), asked).toBe(true);
   });
 
   it("is a 404 for a client site with no live address", async () => {
