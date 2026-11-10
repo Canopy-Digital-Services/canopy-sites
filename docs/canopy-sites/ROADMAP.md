@@ -33,17 +33,16 @@ Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harv
 
 Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friends, Hair & Harvest, and the VETS site claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
 
-1. **The security fixes**, in their own session since 2026-11-10 and released on their own. Their detail is private (REVIEW_FINDINGS names the Nextcloud page).
-2. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
-3. **E47, tool layer fixes** (F1 to F5).
-4. **E48, deploys and checks** (F25, F27, F28, F29).
-5. **E49, alerting and records** (F26, F31).
-6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
-10. **E46, Hair & Harvest onto Sites**, then its claim.
-11. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+1. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
+2. **E47, tool layer fixes** (F1 to F5).
+3. **E48, deploys and checks** (F25, F27, F28, F29).
+4. **E49, alerting and records** (F26, F31).
+5. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+6. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+7. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+8. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+9. **E46, Hair & Harvest onto Sites**, then its claim.
+10. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
