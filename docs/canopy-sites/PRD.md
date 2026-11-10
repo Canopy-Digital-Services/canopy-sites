@@ -12,7 +12,7 @@
 
 **Revision note (2026-10-19, canopyds.com on Sites):** D46 and D47 added; D22, D23, D25, D38, D43 revised; §1, §2, §4.1, §4.5, §4.7, §4.8, §6, §7 revised. canopyds.com moves onto Sites as the first site that isn't the demo, and D13's Astro stands after a framework review. There are no preview hostnames: a client site's canvas loads its assets from the site's live address, and Preview opens the draft in a new tab, whose bar holds the only Publish.
 
-**Revision note (2026-11-09, review of the build):** D51 to D59 added; D6, D8, D18, D39, D41 revised; §1, §2, §4.4, §4.7, §6, §7 revised. Nothing has launched, and the MVP is defined (D51); the MCP endpoint leaves v1 (D59); what visitors write to is a runtime component, with Booking after Forms (D52, D55); Gallery and Events are Sites features built tab first (D54); client sites keep both boxes when the builder becomes the production build (D57). What the review found, and what is still to decide, is in `docs/canopy-sites/REVIEW_FINDINGS.md`.
+**Revision note (2026-11-09, review of the build):** D51 to D60 added; D6, D8, D18, D39, D41 revised; §1, §2, §4.4, §4.7, §6, §7 revised. Nothing has launched, and the MVP is defined (D51); the MCP endpoint leaves v1 (D59); what visitors write to is a runtime component, with Booking after Forms (D52, D55); Gallery and Events are Sites features built tab first (D54); client sites keep both boxes when the builder becomes the production build (D57). What the review found, and what is still to decide, is in `docs/canopy-sites/REVIEW_FINDINGS.md`.
 
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
@@ -50,7 +50,7 @@ The MVP, the part of v1 that launches first, is D51; its order is ROADMAP's "The
 
 - Unified portal at `sites.canopyds.com`, same codebase as Canopy Forms (`forms.canopyds.com`), account products decide chrome
 - Account model: Account (tenant) → Memberships → Users; one Plan per Account spanning both products
-- Site model, build pipeline (builder + Caddy), preview per change, publish by atomic swap, restore to a published version (§4.5)
+- Site model, build pipeline (builder + nginx), preview per change, publish by atomic swap, restore to a published version (§4.5)
 - Content contract: versioned Zod schemas shared by portal and site repos
 - Change pipeline: ChangeSet → validate → preflight → preview build → publish (commit + swap)
 - Quick edit chat (Claude API, shared guidance + site guide, token metering per account)
@@ -94,7 +94,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D3 | Client has **publishing authority**, gated by a preview they can see first | M |
 | D4 | Per-site Git repos on the GitHub org. Clients get repo access to back the portability claim | M |
 | D5 | Content lives in the repo. Media lives in the repo (`src/assets`), optimized by Astro at build. No external object storage; stays off cloud storage | M/R |
-| D6 | **Builder owns all builds** (preview and publish), and its published output is served from both boxes (D57): a static server on each serves every site from `/srv/sites/<slug>/current`. Coolify hosts the portal stack, not per-site builds. Fallback written into ROADMAP | R |
+| D6 | **Builder owns all builds** (preview and publish), and its published output is served from both boxes (D57): nginx on each box serves every site from `/srv/sites/<slug>/current` (D60). Coolify hosts the portal stack, not per-site builds. Fallback written into ROADMAP | R |
 | D7 | Quick edit runs on a **Claude Platform API key**, pay-as-you-go. Subscription credits do not cover shared production use (support.claude.com article 15036540, checked 2026-10-15). Measure cost in practice before optimizing | R |
 | D8 | Site-edit tools are **one set**, shaped to be served as an MCP server. The portal's chat and canvas use them today; a client's own LLM gets them when the MCP endpoint ships, after v1 (D59) | M |
 | D9 | **Guardrails live in the tool layer**, not the guidance. A client's LLM gets the guidance (D30) but may ignore it. Schema validation, locked fields, preflight, preview-before-publish, rate limits, scoped keys are enforced server-side | R |
@@ -148,6 +148,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D57 | **Client sites keep both boxes, and moving to the builder never risks a live site.** Webber and Fox both serve every client site today, with Cloudflare routing between them. When the builder becomes the production build (E36), it builds once and its output is served from both; a site's presence on Fox is never retired. Revises D6 | M |
 | D58 | **Portability is the repo (D4) and an export**: a copy of the site with the CMS stripped out, leaving the pages | M |
 | D59 | **The public MCP endpoint is after v1.** It would mostly serve Michael, and a client's text is Michael in Quick Edit acting as the client (D49). The tool layer stays one set of tools for every surface (D8, D9), and the endpoint's half of D30 waits for it | M |
+| D60 | **nginx with one fixed config serves the builder's output, in place of Caddy** (2026-11-10). Every site already runs on the same nginx config (clean URLs, the trailing-slash redirect, the 404 page, cache and CORS headers), so one shared copy carries each site's URL behavior over unchanged; Caddy's automatic TLS and admin API do nothing behind the tunnel. A hostname is a link to its site's `current`, so nothing generates or reloads config and the portal holds no channel into the server. Each box runs a builder that builds from git, as Fox's nightly redeploy does today, so Fox never depends on Webber pushing to it (the Redundancy design's rule). A publish stays commit and push, then swap. Serving from Cloudflare's edge is ruled out: it would make Cloudflare the de facto host. Revises D6 and D27 | M/R |
 
 ---
 
@@ -158,7 +159,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 ```
 Internet → Cloudflare → cloudflared tunnel → Traefik (coolify-proxy)
    ├── sites.canopyds.com / forms.canopyds.com → portal (Next.js)
-   ├── <client-domain>                         → Caddy → /srv/sites/<slug>/current
+   ├── <client-domain>                         → nginx → /srv/sites/<slug>/current
    └── sites.canopyds.com/demo                 → portal → builder output (D23)
 ```
 
@@ -168,12 +169,12 @@ Unchanged: Cloudflare, tunnel, Traefik, webber, Umami, Postgres, Coolify as the 
 
 | Service | Role |
 |---|---|
-| `portal` | Next.js app (this repo). Admin UI, operator, quick edit, MCP endpoint, Caddy config writer |
+| `portal` | Next.js app (this repo). Admin UI, operator, quick edit, MCP endpoint |
 | `builder` | Node worker. Holds a working clone per site, applies ChangeSets, validates against the contract, runs preflight and `astro build`, writes `/srv/sites/<slug>/builds/<id>/`, flips symlinks, commits + pushes on publish. One queue per site. Pinned Node image (removes the nixpacks Node drift that broke Toro Z) |
-| `caddy` | Static file server, hostname → folder. Config generated by the portal from the `Site` table, reloaded via Caddy admin API |
+| `nginx` | Static file server on each box, with one fixed config: a hostname is a link to its site's `current` (D60) |
 | `postgres` | Existing Forms DB, extended |
 
-Shared volume `/srv/sites` between builder and caddy.
+Shared volume `/srv/sites` between builder and nginx.
 
 ### 4.3 Repos
 
@@ -300,7 +301,7 @@ Unpublished changes and Preview sit in the Sites chrome, whichever tab made the 
 | Area | Requirement |
 |---|---|
 | Preview latency | Target < 60 s from "send" to viewable preview for sites the size of H&H/Toro Z |
-| Publish latency | Symlink swap: seconds. Commit + push async, failure surfaces in operator but does not un-publish |
+| Publish latency | Commit and push, then the symlink swap: seconds (D60). A push that fails publishes nothing |
 | Restore | Seconds: a rebuild of a published version's content (§4.5). Builds retained: last N (default 5) |
 | Editor responsiveness | Visitor performance is Canopy's by design (D29); the target is the editor's own speed. A text edit shows on the canvas with no server round trip; saving the draft is at most one; no editor read waits on GitHub (the builder answers from its clone); build status is pushed to the page, not polled |
 | Isolation | One build queue per site; builds never touch `current` until complete |
