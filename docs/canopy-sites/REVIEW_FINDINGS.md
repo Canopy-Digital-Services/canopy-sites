@@ -72,7 +72,7 @@ Decided, Michael, 2026-11-09 (PRD D56): text a graphic interacts with is Canopy'
 
 ### F25. Production dependencies carry known advisories
 
-`npm audit --omit=dev` on 2026-11-09 reports 22: 1 critical, 18 high, 3 moderate. Three are direct dependencies on a request path: `next` 16.1.6 (critical; the app serves `/_next/image`), `nodemailer` 7.0.12 (high; every email goes through it), and `sharp` 0.34.5 (high; it draws the claim link's picture today, and will process owners' uploads once the media pipeline exists). Most of the rest arrive through the Prisma CLI, which runs at container start for migrations. npm reports a fix for each; nodemailer's and sharp's are major-version moves. Basis: the audit was run; no advisory was exercised.
+`npm audit --omit=dev` on 2026-11-10 reports 17, none critical: 15 high, 2 moderate. None is a direct dependency on a request path since `next` 16.4.5, `nodemailer` 10.3.1, and `sharp` 0.35.5 (the day before it reported 22, one critical, those three among them). Fifteen arrive through the Prisma CLI, which runs at container start for migrations and brings its local dev server's packages with it; npm reports a fix for each within Prisma 7. One is `js-yaml` under `gray-matter`, which reads the portal's own help pages. One is `uuid`, a declared dependency that nothing imports. Basis: the audit was run; no advisory was exercised.
 
 ### F27. The portal runs on a Node line past its end of life
 
