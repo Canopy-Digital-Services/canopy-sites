@@ -1,9 +1,14 @@
 Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
 
-## Planned
+## In progress
 
-- [Epic 33: Visual Editor](epic-33-visual-editor.md), built next (ROADMAP "Visual editor next"). Move it to the table below when it ships.
-- [Epic 37: canopyds.com on Sites](epic-37-canopyds-on-sites.md), after E33 (ROADMAP "canopyds.com on Sites"). Move it to the table below when it ships.
+Each epic's Status line says what has been released and what is left. Move an epic to the table below when it ships.
+
+- [Epic 33: Visual Editor](epic-33-visual-editor.md)
+- [Epic 37: canopyds.com on Sites](epic-37-canopyds-on-sites.md)
+- [Epic 38: Link and claim](epic-38-link-and-claim.md)
+- [Epic 40: Toro Z on Sites](epic-40-toroz-on-sites.md)
+- [Epic 42: Fur-Ever Friends on Sites](epic-42-fur-ever-friends-on-sites.md)
 
 ## Completed Epics
 

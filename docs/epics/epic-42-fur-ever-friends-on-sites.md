@@ -1,6 +1,6 @@
 # Epic 42: Fur-Ever Friends on Sites
 
-**Status:** Approved (Michael, 2026-11-06), with section 6's decisions. In progress: 4.1 next.
+**Status:** Approved (Michael, 2026-11-06), with section 6's decisions. In progress: 4.1 to 4.4 live and the site linked; in 4.5, acceptance and the eval passed acting as Jane, and a claim link is copied for Michael's phone (progress log, 2026-11-06). Left: Michael claims the account and publishes an edit that shows on furever.skibri.us.
 **Phase:** 5, beside T1 (`docs/canopy-sites/ROADMAP.md`): a site Michael controls, so the owner's claim is tested end to end before Toro Z's link goes out
 **Predecessor:** Epic 40 (Toro Z on Sites), the worked example; Epic 38 (Link and claim)
 **Successor:** Toro Z's claim link, held in Epic 40 4.7
