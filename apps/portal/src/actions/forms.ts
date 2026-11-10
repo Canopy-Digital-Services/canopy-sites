@@ -19,6 +19,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
 import { fieldProblem, savedField } from "@/lib/field-rules";
+import { requireId, requireIds } from "@/lib/ids";
 
 type FieldInput = {
   name?: string; // Optional on create, ignored on update
@@ -29,6 +30,17 @@ type FieldInput = {
   options?: unknown;
   validation?: unknown;
 };
+
+/**
+ * The caller's form, by the id the client sent: a string, and a form of the
+ * session's account. Everything an action does after this goes by `form.id`,
+ * the id of the row this returned.
+ */
+async function ownedForm(formId: unknown) {
+  const id = requireId(formId, "form id");
+  const accountId = await getCurrentAccountId();
+  return { form: await getOwnedFormMinimal(id, accountId), accountId };
+}
 
 // ============================================================================
 // FIELD ACTIONS
@@ -62,8 +74,7 @@ async function generateUniqueName(
 }
 
 export async function createField(formId: string, data: FieldInput) {
-  const accountId = await getCurrentAccountId();
-  const form = await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   // The same rules the editor keeps, whatever sent the field.
   const problem = fieldProblem(data);
@@ -72,7 +83,7 @@ export async function createField(formId: string, data: FieldInput) {
 
   // Generate unique name from label if not provided
   const fieldName = data.name?.trim() || await generateUniqueName(
-    formId,
+    form.id,
     form.honeypotField,
     slugify(saved.label)
   );
@@ -81,7 +92,7 @@ export async function createField(formId: string, data: FieldInput) {
   }
 
   const lastField = await prisma.field.findFirst({
-    where: { formId },
+    where: { formId: form.id },
     orderBy: { order: "desc" },
     select: { order: true },
   });
@@ -90,7 +101,7 @@ export async function createField(formId: string, data: FieldInput) {
 
   const field = await prisma.field.create({
     data: {
-      formId,
+      formId: form.id,
       name: fieldName,
       type: saved.type as FieldType,
       label: saved.label,
@@ -102,7 +113,7 @@ export async function createField(formId: string, data: FieldInput) {
     },
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
   return field;
 }
 
@@ -111,13 +122,12 @@ export async function updateField(
   fieldId: string,
   data: FieldInput
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const field = await prisma.field.findFirst({
     where: {
-      id: fieldId,
-      formId,
+      id: requireId(fieldId, "field id"),
+      formId: form.id,
     },
   });
 
@@ -135,7 +145,7 @@ export async function updateField(
   // Options and validation are written whole: a field whose rules were
   // cleared stores none.
   const updated = await prisma.field.update({
-    where: { id: fieldId },
+    where: { id: field.id },
     data: {
       label: saved.label,
       required: saved.required,
@@ -145,18 +155,17 @@ export async function updateField(
     },
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
   return updated;
 }
 
 export async function checkFieldHasData(formId: string, fieldName: string) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const count = await prisma.submission.count({
     where: {
-      formId,
-      data: { path: [fieldName], not: Prisma.DbNull },
+      formId: form.id,
+      data: { path: [requireId(fieldName, "field name")], not: Prisma.DbNull },
     },
   });
 
@@ -168,13 +177,12 @@ export async function deleteField(
   fieldId: string,
   purgeData?: boolean
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const field = await prisma.field.findFirst({
     where: {
-      id: fieldId,
-      formId,
+      id: requireId(fieldId, "field id"),
+      formId: form.id,
     },
   });
 
@@ -186,15 +194,15 @@ export async function deleteField(
     await prisma.$executeRaw`
       UPDATE submissions
       SET data = data - ${field.name}
-      WHERE "formId" = ${formId}
+      WHERE "formId" = ${form.id}
     `;
   }
 
-  await prisma.field.delete({ where: { id: fieldId } });
+  await prisma.field.delete({ where: { id: field.id } });
 
   // Reorder remaining fields
   const remaining = await prisma.field.findMany({
-    where: { formId },
+    where: { formId: form.id },
     orderBy: { order: "asc" },
     select: { id: true },
   });
@@ -208,27 +216,27 @@ export async function deleteField(
     )
   );
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
 }
 
 export async function reorderFields(formId: string, fieldIds: string[]) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
+  const order = requireIds(fieldIds, "field ids");
 
   const fields = await prisma.field.findMany({
-    where: { formId },
+    where: { formId: form.id },
     select: { id: true },
   });
 
   const ownedIds = new Set(fields.map((field) => field.id));
-  for (const fieldId of fieldIds) {
+  for (const fieldId of order) {
     if (!ownedIds.has(fieldId)) {
       throw new Error("Invalid field order");
     }
   }
 
   await prisma.$transaction(
-    fieldIds.map((fieldId, index) =>
+    order.map((fieldId, index) =>
       prisma.field.update({
         where: { id: fieldId },
         data: { order: index + 1 },
@@ -236,7 +244,7 @@ export async function reorderFields(formId: string, fieldIds: string[]) {
     )
   );
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
 }
 
 // ============================================================================
@@ -251,8 +259,7 @@ export async function updateFormBasics(
     honeypotField?: string | null;
   }
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const updateData: {
     name?: string;
@@ -272,18 +279,18 @@ export async function updateFormBasics(
     const honeypotField = data.honeypotField?.trim() || null;
     // A filled honeypot marks the submission as spam, so a honeypot named
     // for a field would mark every answer to that field as spam.
-    if (honeypotField && await prisma.field.count({ where: { formId, name: honeypotField } })) {
+    if (honeypotField && await prisma.field.count({ where: { formId: form.id, name: honeypotField } })) {
       throw new Error(`A field is already named "${honeypotField}", so the honeypot can't be.`);
     }
     updateData.honeypotField = honeypotField;
   }
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
   revalidatePath(`/forms`);
 }
 
@@ -300,8 +307,7 @@ export async function updateAfterSubmission(
     maxSubmissions?: number | null;
   }
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const updateData: {
     successMessage?: string | null;
@@ -352,11 +358,11 @@ export async function updateAfterSubmission(
   }
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
 }
 
 // Legacy alias for backwards compatibility (if needed)
@@ -366,8 +372,7 @@ export async function updateFormHeader(
   formId: string,
   data: { title?: string | null; description?: string | null }
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   const MAX_TITLE = 120;
   const MAX_DESC = 400;
@@ -391,11 +396,11 @@ export async function updateFormHeader(
   }
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: updateData,
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
 }
 
 export async function updateFormAppearance(
@@ -404,29 +409,27 @@ export async function updateFormAppearance(
     defaultTheme?: unknown;
   }
 ) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: {
       defaultTheme: data.defaultTheme || undefined,
     },
   });
 
-  revalidatePath(`/forms/${formId}`);
-  revalidatePath(`/f/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
+  revalidatePath(`/f/${form.id}`);
 }
 
 export async function toggleFormPublished(formId: string, published: boolean) {
-  const accountId = await getCurrentAccountId();
-  const form = await getOwnedFormMinimal(formId, accountId);
+  const { form, accountId } = await ownedForm(formId);
 
   // Unpublishing is always allowed; it releases a slot and cannot violate a
   // plan limit. Re-publishing an already-published form is also a no-op.
   if (published && !form.published) {
     // Submissions store only fields, so a form without one has nothing to take.
-    if ((await prisma.field.count({ where: { formId } })) === 0) {
+    if ((await prisma.field.count({ where: { formId: form.id } })) === 0) {
       throw new Error("A form needs a field before it can be published.");
     }
 
@@ -446,40 +449,37 @@ export async function toggleFormPublished(formId: string, published: boolean) {
   }
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: { published },
   });
 
-  revalidatePath(`/forms/${formId}`);
-  revalidatePath(`/f/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
+  revalidatePath(`/f/${form.id}`);
 }
 
 export async function deleteForm(formId: string) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   await prisma.form.delete({
-    where: { id: formId },
+    where: { id: form.id },
   });
 
   revalidatePath(`/forms`);
 }
 
 export async function markAllSubmissionsRead(formId: string) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   await prisma.submission.updateMany({
-    where: { formId, status: "NEW" },
+    where: { formId: form.id, status: "NEW" },
     data: { status: "READ" },
   });
 
-  revalidatePath(`/forms/${formId}`);
+  revalidatePath(`/forms/${form.id}`);
 }
 
 export async function updateFormThumbnail(formId: string, thumbnailBase64: string) {
-  const accountId = await getCurrentAccountId();
-  await getOwnedFormMinimal(formId, accountId);
+  const { form } = await ownedForm(formId);
 
   // Max ~1.5MB decoded image
   if (thumbnailBase64.length > 2_000_000) {
@@ -489,7 +489,7 @@ export async function updateFormThumbnail(formId: string, thumbnailBase64: strin
   const thumbnailBytes = Buffer.from(thumbnailBase64, "base64");
 
   await prisma.form.update({
-    where: { id: formId },
+    where: { id: form.id },
     data: { thumbnail: thumbnailBytes },
   });
 }

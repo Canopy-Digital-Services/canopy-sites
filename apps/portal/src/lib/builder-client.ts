@@ -123,10 +123,12 @@ export function requestReset(site: BuilderSite, tag: string) {
 /**
  * Whether a request path names a file inside a site. `segments` are a
  * catch-all route's params, which Next has decoded once: each is one name,
- * so none may be `.` or `..` or hold a separator or a NUL.
+ * so none may be `.` or `..` or hold a separator or a NUL. One that still
+ * holds any of those percent-encoded is refused as well: no built file is
+ * named that way, and nothing after this gets to decode it.
  */
 export function isSiteFilePath(segments: string[]): boolean {
-  return segments.every((s) => s !== "." && s !== ".." && !/[/\\\0]/.test(s));
+  return segments.every((s) => s !== "." && s !== ".." && !/[/\\\0]|%(?:2e|2f|5c|00)/i.test(s));
 }
 
 /**

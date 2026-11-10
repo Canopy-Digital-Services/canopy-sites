@@ -24,7 +24,9 @@ export const baseStyles = `
 
 /* Admin preview only: instant tooltip pinned above the Submit button.
    Class + data-attribute are added by the embed when options.preview is true,
-   so this never reaches production embeds. */
+   so this never reaches production embeds. It lines up with the button's
+   own alignment so it stays inside the form, and sits above the preview's
+   marks and outlines. */
 .canopy-root .canopy-submit-preview {
   position: relative;
 }
@@ -47,7 +49,7 @@ export const baseStyles = `
   pointer-events: none;
   opacity: 0;
   transition: opacity 120ms ease-out;
-  z-index: 1;
+  z-index: 3;
 }
 
 .canopy-root .canopy-submit-preview::before {
@@ -61,7 +63,18 @@ export const baseStyles = `
   pointer-events: none;
   opacity: 0;
   transition: opacity 120ms ease-out;
-  z-index: 1;
+  z-index: 3;
+}
+
+.canopy-root .canopy-submit-preview[data-align="left"]::after {
+  left: 0;
+  transform: none;
+}
+
+.canopy-root .canopy-submit-preview[data-align="right"]::after {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .canopy-root .canopy-submit-preview:hover::after,

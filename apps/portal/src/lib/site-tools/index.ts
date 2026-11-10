@@ -604,7 +604,7 @@ export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: 
 /** A change the account owns, or a ToolError that reveals nothing else. */
 async function ownedChange(accountId: string, changeSetId: string) {
   const changeSet = await prisma.changeSet.findFirst({
-    where: { id: changeSetId, site: { accountId } },
+    where: { id: String(changeSetId), site: { accountId } },
     include: { site: true, builds: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   if (!changeSet) throw new ToolError("No such change.");

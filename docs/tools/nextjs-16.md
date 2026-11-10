@@ -1,12 +1,11 @@
 # Next.js 16 Documentation
 
-**Last Updated:** January 2025  
-**Current Version:** 16.1.6
+**Installed version:** `next` in `package-lock.json` (16.4.5 as of 2026-11-10)
 **Official Docs:** https://nextjs.org/docs
 
 ## Overview
 
-Next.js 16 was released on October 21, 2025, representing a major update with significant performance improvements, new caching models, and breaking changes. Version 16.1.4 is the current stable release as of January 2025.
+Next.js 16 was released on October 21, 2025, representing a major update with significant performance improvements, new caching models, and breaking changes.
 
 ## Critical Changes from Next.js 15
 
@@ -360,12 +359,33 @@ export default async function AdminLayout({
 ## Project-Specific Notes
 
 This project (Canopy Forms) currently:
-- ✅ Using Next.js 16.1.6
 - ✅ Already using async `params` correctly (awaiting them)
 - ⚠️ `searchParams` may need to be awaited (verify each usage)
 - ✅ Using App Router correctly
 - ✅ Has `next.config.ts` with standalone output for Docker
 - ✅ No custom webpack config (Turbopack works automatically)
+
+### Upgrading `next` in this repo
+
+- **Keep `next` at the repo root.** `npm install next@<version> -w @canopy/portal` over the existing lockfile puts the new `next` in `apps/portal/node_modules`, and the production Dockerfile copies only the root `node_modules` (seen 2026-11-10 with npm 10.8.2). Remove it and add it back so npm places it afresh, then install from the lockfile:
+
+  ```bash
+  npm uninstall next -w @canopy/portal --package-lock-only
+  npm install next@<version> -w @canopy/portal --package-lock-only
+  npm ci
+  ```
+
+  Afterwards the lockfile has `node_modules/next` and no `apps/portal/node_modules/*` entry.
+- **Read each release's notes for security fixes, not only `npm audit`.** A security release can be out for days before its advisories reach the audit (16.4.5 on 2026-11-10).
+- **Run the browser smoke on the dev server and on a production build.** They differ: see the Radix slot below.
+
+### A route's `params` are decoded once
+
+A catch-all route's `params` arrive decoded one time per segment: `%20` is a space, `%2F` is a `/` inside one segment, and `%252e` is the text `%2e`. The dev server and a production build agree (verified on 16.4.5, 2026-11-10). Never decode them again, and check them before using them as a path (`isSiteFilePath` in `src/lib/builder-client.ts`).
+
+### `asChild` and the Radix slot (root `overrides`)
+
+On the dev server from 16.4, the children an async server component passes to a client component can arrive as lazy elements. `@radix-ui/react-slot` before 1.2.4 renders nothing for a lazy `asChild` child, so the server sends an empty `TooltipTrigger asChild` (or `Button asChild`) and hydration fails on the page. A production build is not affected. The root `package.json` pins the slot to 1.2.4 through `overrides` for that reason (verified 2026-11-10: the forms list's view toggle). Delete the override when `radix-ui` depends on `@radix-ui/react-slot` 1.2.4 or later by itself.
 
 ## Troubleshooting
 

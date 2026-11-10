@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { getCurrentAccountId } from "@/lib/auth-utils";
-import { SubmissionStatus } from "@prisma/client";
 import { getOwnedForm } from "@/lib/data-access/forms";
+import { setSubmissionSpam, setSubmissionStatus } from "@/actions/submissions";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { answerHasParts, formatCompositeValue } from "@/lib/composite-format";
@@ -10,42 +9,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageContent } from "@/components/patterns/page-content";
-
-async function updateStatus(
-  formId: string,
-  submissionId: string,
-  status: string
-) {
-  "use server";
-
-  const accountId = await getCurrentAccountId();
-  await getOwnedForm(formId, accountId);
-
-  await prisma.submission.update({
-    where: { id: submissionId },
-    data: { status: status as SubmissionStatus },
-  });
-
-  redirect(`/forms/${formId}/submissions/${submissionId}`);
-}
-
-async function toggleSpam(
-  formId: string,
-  submissionId: string,
-  currentIsSpam: boolean
-) {
-  "use server";
-
-  const accountId = await getCurrentAccountId();
-  await getOwnedForm(formId, accountId);
-
-  await prisma.submission.update({
-    where: { id: submissionId },
-    data: { isSpam: !currentIsSpam },
-  });
-
-  redirect(`/forms/${formId}/submissions/${submissionId}`);
-}
 
 export default async function SubmissionDetailPage({
   params,
@@ -192,7 +155,7 @@ export default async function SubmissionDetailPage({
         </CardHeader>
         <CardFooter>
           <div className="flex flex-wrap gap-2">
-            <form action={updateStatus.bind(null, formId, submissionId, "READ")}>
+            <form action={setSubmissionStatus.bind(null, formId, submissionId, "READ")}>
               <Button
                 type="submit"
                 variant={submission.status === "NEW" ? "default" : "outline"}
@@ -202,7 +165,7 @@ export default async function SubmissionDetailPage({
               </Button>
             </form>
             <form
-              action={updateStatus.bind(null, formId, submissionId, "ARCHIVED")}
+              action={setSubmissionStatus.bind(null, formId, submissionId, "ARCHIVED")}
             >
               <Button
                 type="submit"
@@ -212,7 +175,7 @@ export default async function SubmissionDetailPage({
                 Archive
               </Button>
             </form>
-            <form action={updateStatus.bind(null, formId, submissionId, "NEW")}>
+            <form action={setSubmissionStatus.bind(null, formId, submissionId, "NEW")}>
               <Button
                 type="submit"
                 variant="outline"
@@ -222,7 +185,7 @@ export default async function SubmissionDetailPage({
               </Button>
             </form>
             <form
-              action={toggleSpam.bind(null, formId, submissionId, submission.isSpam)}
+              action={setSubmissionSpam.bind(null, formId, submissionId, !submission.isSpam)}
             >
               <Button
                 type="submit"

@@ -74,5 +74,20 @@ export default async function HostedFormRoute({ params }: Props) {
     return <FormNotAvailable />;
   }
 
-  return <HostedFormPage form={form} />;
+  // A client component's props go to the browser whole, so it gets the
+  // fields it renders from, by name, and never the row.
+  return (
+    <HostedFormPage
+      form={{
+        id: form.id,
+        slug: form.slug,
+        title: form.title,
+        description: form.description,
+        successMessage: form.successMessage,
+        redirectUrl: form.redirectUrl,
+        defaultTheme: form.defaultTheme,
+        fields: form.fields,
+      }}
+    />
+  );
 }

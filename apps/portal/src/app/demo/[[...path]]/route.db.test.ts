@@ -116,21 +116,20 @@ describe("/demo", () => {
       ["../../../demo/status"],
       ["..\\..\\..\\demo\\status"],
       ["services\0"],
+      // The same, still percent-encoded after that one decode.
+      ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
+      ["_astro", "%2E%2E", "%2e%2e", "preview", "index.html"],
+      ["..%2F..%2F..%2Fdemo%2Fstatus"],
+      ["..%5c..%5Cdemo%5cstatus"],
+      ["services%00"],
     ]) {
       expect((await get(path)).status, JSON.stringify(path)).toBe(404);
     }
     expect(builder.requests).toEqual([]);
 
-    // A segment still encoded after that is a name like any other, and no build has it.
-    for (const path of [
-      ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
-      ["_astro", "%2E%2E", "%2e%2e", "preview", "index.html"],
-      ["..%2F..%2F..%2Fdemo%2Fstatus"],
-    ]) {
-      expect((await get(path)).status, JSON.stringify(path)).toBe(404);
-    }
-    expect(builder.requests.length).toBeGreaterThan(0);
-    for (const asked of builder.requests) expect(asked).toMatch(FILES);
+    // Any other name is sent as it is, encoded once, under the demo's files.
+    expect((await get(["a b", "50%", "café.html"])).status).toBe(404);
+    expect(builder.requests).toEqual(["/v1/sites/demo/files/current/a%20b/50%25/caf%C3%A9.html"]);
   });
 
   it("is a 404 unless the site with the demo slug is marked as the demo", async () => {

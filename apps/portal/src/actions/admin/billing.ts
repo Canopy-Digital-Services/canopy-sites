@@ -7,6 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
+import { requireId } from "@/lib/ids";
 import { parseBillingInput } from "@/lib/billing";
 import { revalidatePath } from "next/cache";
 
@@ -15,6 +16,7 @@ export async function setAccountBilling(
   status: string,
   billingRef: string
 ): Promise<{ success: true }> {
+  requireId(accountId, "account id");
   const session = await requireGlobalAdmin();
 
   const input = parseBillingInput(status, billingRef);

@@ -5,6 +5,20 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.7] - 2026-11-10
+
+### Fixed
+
+- Forms: every action that takes an id accepts only a string id, and a form's actions do their work through the form the ownership check found
+- Forms: a submission's status and spam flag change only through its own form, and take only a status the schema has and a true or false flag
+- Forms: a hosted form's page sends the browser only what it shows (the form's title, fields, and look), no longer the whole form's settings
+- The demo site and the Editor's canvas answer 404 for an address part that still holds an encoded dot or separator, without asking the builder
+- Forms: in the editor's preview, the "For preview only" tooltip lines up with a Submit button aligned left or right instead of running outside the form
+
+### Changed
+
+- `next` 16.4.5, `sharp` 0.35.5, and `nodemailer` 10.3.1, past their known advisories
+
 ## [5.14.6] - 2026-11-10
 
 ### Fixed
