@@ -383,7 +383,7 @@ Goal: a release that fails to start leaves the one before it serving, and a chan
 
 - A `/healthz` route, a Dockerfile `HEALTHCHECK`, and health-gated deploys on the portal apps (F28); a migration is written so the release before it can run against it
 - A workflow on pull requests to `main`: build, lint, and the suite against a Postgres service (F29)
-- The portal on Node 24, with Vitest 5 (F27); `next`, `nodemailer`, and `sharp` past their advisories (F25)
+- The portal on Node 24, with Vitest 5 (F27); the Prisma CLI past its advisories, and `uuid` dropped (F25)
 - Acceptance: a migration that fails on dev leaves dev serving the previous release; a pull request with a failing test shows it failed
 
 ### E49 · Alerting and records
