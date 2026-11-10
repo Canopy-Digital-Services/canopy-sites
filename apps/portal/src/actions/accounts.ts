@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireGlobalAdmin, getCurrentMembership } from "@/lib/auth-utils";
 import { clearSessionCookie, getSession } from "@/lib/session";
 import { isActing } from "@/lib/act-as";
+import { requireId } from "@/lib/ids";
 import {
   AccountHasSiteError,
   deleteAccountAndSoleMembers,
@@ -20,6 +21,7 @@ import { revalidatePath } from "next/cache";
  * itself. An account that owns a site is refused until the site moves.
  */
 export async function deleteAccount(accountId: string) {
+  requireId(accountId, "account id");
   const session = await requireGlobalAdmin();
 
   const own = await getSoleMembership(session.user.id);

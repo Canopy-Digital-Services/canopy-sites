@@ -7,6 +7,7 @@
 
 import { prisma } from "@/lib/db";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
+import { requireId } from "@/lib/ids";
 import { getPlan } from "@/lib/data-access/plans";
 import { revalidatePath } from "next/cache";
 
@@ -29,6 +30,8 @@ export async function setAccountPlan(
   unpublishedCount: number;
   resolutionRequired: boolean;
 }> {
+  requireId(accountId, "account id");
+  requireId(planCode, "plan code");
   const session = await requireGlobalAdmin();
   const actorEmail = session.user?.email ?? "unknown";
 
