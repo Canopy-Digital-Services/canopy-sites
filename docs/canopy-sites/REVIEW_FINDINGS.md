@@ -82,6 +82,10 @@ Decided, Michael, 2026-11-09 (PRD D56): text a graphic interacts with is Canopy'
 
 Decided, Michael, 2026-11-10: he needs it (PRD section 7, ROADMAP E49). Today a stopped portal, a stopped builder, a failed nightly rebuild, and a failed publish are each silent: the first sign is a client's message. Basis: read, and Michael's word that nothing alerts him.
 
+### F32. The portal's mail has no sender of its own
+
+Decided, Michael, 2026-11-10: not moved yet. It is a risk to track, and a fast follow. The portal sends through the mail account that carries Canopy's own mailboxes and a client's, under one small daily ceiling (ROADMAP, the MVP's item 6; the detail is on the private page). On a day that ceiling is reached, the portal's mail doesn't go out, and little says so: the operator sees it for a claim link ("Copy the link instead"), a password reset answers as if it had been sent, a request to Michael waits in the operator console with no email, and a submission notification fails in the container's output only. Sending from Canopy's own server was checked and ruled out (the private page). The candidate is Cloudflare Email Sending over SMTP: the portal already sends that way, so it moves by changing four variables on each app, and the mailboxes stay where they are. A cap on notification mail and confirmed recipients come with Forms opening up, not with this. Basis: the sending code is read; the ceiling is the provider's published limit; the candidate is from Cloudflare's documentation, not set up.
+
 ## Before launch: to decide
 
 ### F28. A failed migration takes the portal down, and every deploy blips

@@ -38,7 +38,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friend
 3. **E47, tool layer fixes** (F1 to F5).
 4. **E48, deploys and checks** (F25, F27, F28, F29).
 5. **E49, alerting and records** (F26, F31).
-6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). A plan or provider with headroom, and a cap on notification mail, come before claim links go to clients.
+6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
 7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
 8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
 9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
