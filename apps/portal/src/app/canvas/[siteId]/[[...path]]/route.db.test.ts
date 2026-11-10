@@ -11,7 +11,7 @@ vi.mock("next/headers", () => import("../../../../../test/next-request"));
 const BUILDER = "http://builder.test:4100";
 const FILES = /^\/v1\/sites\/[a-z0-9-]+\/files\/(current|preview)\/(.*)$/;
 const PAGES = ["", "services", "about"];
-const builder = { previewBuild: "", calls: [] as string[], requests: [] as string[] };
+const builder = { previewBuild: "", notFoundPage: false, calls: [] as string[], requests: [] as string[] };
 const live = { requests: [] as string[] };
 
 vi.stubEnv("BUILDER_URL", BUILDER);
@@ -28,6 +28,8 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
   const view = files[1];
   const path = decodeURIComponent(files[2]);
   builder.calls.push(`${view}:${path}`);
+  // A page the build doesn't have: its own 404 page when it has one, else the builder's plain 404.
+  if (!PAGES.includes(path) && !builder.notFoundPage) return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
   const found = PAGES.includes(path);
   return new Response(`<html><head><title>t</title></head><body>${found ? view : "not found"}</body></html>`, {
     status: found ? 200 : 404,
@@ -62,6 +64,7 @@ beforeEach(async () => {
   builder.calls = [];
   builder.requests = [];
   builder.previewBuild = "";
+  builder.notFoundPage = false;
   live.requests = [];
 });
 
@@ -159,6 +162,12 @@ describe("/canvas (PRD D47)", () => {
         ["../../../demo/status"],
         ["..\\..\\..\\demo\\status"],
         ["services\0"],
+        // The same, still percent-encoded after that one decode.
+        ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
+        ["%2E%2E", "%2e%2e", "preview", "index.html"],
+        ["..%2F..%2F..%2Fdemo%2Fstatus"],
+        ["..%5c..%5Cdemo%5cstatus"],
+        ["services%00"],
       ]) {
         expect((await get(site.id, path)).status, JSON.stringify(path)).toBe(404);
       }
@@ -166,18 +175,15 @@ describe("/canvas (PRD D47)", () => {
     expect(builder.requests).toEqual([]);
     expect(live.requests).toEqual([]);
 
-    // A segment still encoded after that is a name like any other, and no build has it.
+    // Any other name is sent as it is, encoded once, under the site's files; the site's own 404 page answers.
     resetRequest();
     await signInAs(demo.user.id);
-    for (const path of [
-      ["%2e%2e", "%2e%2e", "%2e%2e", "demo", "status"],
-      ["%2E%2E", "%2e%2e", "preview", "index.html"],
-      ["..%2F..%2F..%2Fdemo%2Fstatus"],
-    ]) {
-      expect((await get(demo.site.id, path)).status, JSON.stringify(path)).toBe(404);
-    }
-    expect(builder.requests.length).toBeGreaterThan(0);
-    for (const asked of builder.requests) expect(asked.startsWith("/v1/sites/demo/files/"), asked).toBe(true);
+    builder.notFoundPage = true;
+    expect((await get(demo.site.id, ["a b", "50%", "café"])).status).toBe(404);
+    expect(builder.requests).toEqual([
+      "/v1/sites/demo/files/preview/a%20b/50%25/caf%C3%A9",
+      "/v1/sites/demo/files/current/a%20b/50%25/caf%C3%A9",
+    ]);
   });
 
   it("is a 404 for a client site with no live address", async () => {
