@@ -20,6 +20,7 @@
     "contract:build": "npm run build -w @canopy/site-contract"
   },
   "overrides": {
+    "@radix-ui/react-slot": "1.2.4",
     "lodash": "^4.17.22"
   }
 }
