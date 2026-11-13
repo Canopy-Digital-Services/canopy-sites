@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.19.0] - 2026-11-13
+
+### Added
+
+- Sites: once a preview is published, its bar offers Close this window, since the tab has nothing left to do. The Preview links open the tab so that it can close itself; a tab opened another way says "You can close this tab." instead
+
 ## [5.18.0] - 2026-11-13
 
 ### Added
