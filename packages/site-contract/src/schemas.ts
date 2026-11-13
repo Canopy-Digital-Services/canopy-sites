@@ -376,6 +376,8 @@ export const FaqSchema = z
     id: Id,
     question: text(200, "Question", "As a customer would ask it."),
     answer: paragraph(1200, "Answer"),
+    /** Where the answer sends the reader next, shown after it. Canopy's, like a page's buttons (D50). */
+    link: canopy(field(CtaFields, { kind: "link", label: "Link", description: "Where the answer sends the reader next, shown after it." })).optional(),
   })
   .strict();
 
@@ -435,6 +437,9 @@ export const TeamMemberSchema = z
     id: Id,
     name: text(80, "Name"),
     role: text(60, "Role", "Their title or what they do, as the business says it."),
+    note: text(60, "Note", "A short line shown with the role: a credential, a branch of service, years in the trade.").optional(),
+    /** Which part of the team they are shown in, when a site shows more than one (Board, Staff). The templates place people by it, so it is Canopy's. */
+    group: canopy(text(40, "Group", "Which part of the team they are shown in, when the site shows more than one.")).optional(),
     bio: paragraph(800, "Bio").optional(),
     photo: field(AssetPath, { kind: "image", label: "Photo", description: "A headshot. Its alt text is the person's name." }).optional(),
   })
