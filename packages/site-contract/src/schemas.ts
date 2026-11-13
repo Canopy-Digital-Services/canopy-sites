@@ -212,11 +212,13 @@ export const SiteSchema = z
         bookingUrl: field(HttpsUrl, { kind: "url", label: "Booking link" }).optional(),
       })
       .strict(),
+    // Optional: an organization that keeps no hours (it meets at events, or works
+    // by its own calendar) has none to state, and shouldn't have to invent a line.
     hours: field(z.discriminatedUnion("kind", [WeeklyHours, FreeformHours]), {
       kind: "hours",
       label: "Hours",
       description: "The regular week, 24-hour times. One-off closures and holiday hours are announcements.",
-    }),
+    }).optional(),
     socials: uniqueIds(SocialSchema, 10),
     credentials: CredentialsSchema.optional(),
   })

@@ -20,15 +20,6 @@ export async function getAccountSite(accountId: string): Promise<AccountSite | n
   });
 }
 
-/**
- * The zone the account's site keeps its dates in, or null when the account
- * has no site (a Forms-only account stores no zone).
- */
-export async function getAccountTimeZone(accountId: string): Promise<string | null> {
-  const site = await prisma.site.findUnique({ where: { accountId }, select: { timeZone: true } });
-  return site?.timeZone ?? null;
-}
-
 const ownerEmail = {
   memberships: {
     where: { role: "OWNER" as const },
@@ -67,7 +58,7 @@ export async function getSiteForOperator(siteId: string) {
   const site = await prisma.site.findUnique({
     where: { id: siteId },
     include: {
-      account: { select: { id: true, ...ownerEmail } },
+      account: { select: { id: true, timeZone: true, ...ownerEmail } },
       builds: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -77,7 +68,8 @@ export async function getSiteForOperator(siteId: string) {
   });
   if (!site) return null;
   const { account, builds, ...rest } = site;
-  return { ...rest, ownerEmail: account.memberships[0]?.user.email ?? null, latestBuild: builds[0] ?? null };
+  // After the spread on purpose: the site's own column of this name is retired, and the zone is the account's.
+  return { ...rest, timeZone: account.timeZone, ownerEmail: account.memberships[0]?.user.email ?? null, latestBuild: builds[0] ?? null };
 }
 
 export type OperatorSite = NonNullable<Awaited<ReturnType<typeof getSiteForOperator>>>;

@@ -61,6 +61,8 @@ export default function SignupPage() {
       const formData = new FormData();
       formData.append("email", email);
       formData.append("password", password);
+      // The account's time zone starts as this browser's.
+      formData.append("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone ?? "");
 
       const result = await signUp(formData);
 

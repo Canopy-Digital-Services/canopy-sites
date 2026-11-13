@@ -20,7 +20,7 @@ export async function sendClaimLink(siteId: string, how: "copy" | "email"): Prom
   const session = await requireGlobalAdmin();
   const site = await prisma.site.findUnique({
     where: { id: String(siteId) },
-    select: { id: true, accountId: true, timeZone: true },
+    select: { id: true, accountId: true, account: { select: { timeZone: true } } },
   });
   if (!site) return { error: "That site doesn't exist." };
   const owner = await prisma.membership.findFirst({
@@ -47,6 +47,6 @@ export async function sendClaimLink(siteId: string, how: "copy" | "email"): Prom
       ? { success: true, message: `Sent to ${link.email}.` }
       : { error: "The email didn't go out. Copy the link instead." };
   }
-  const expires = link.expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: site.timeZone });
+  const expires = link.expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: site.account.timeZone });
   return { success: true, url: link.url, expires };
 }

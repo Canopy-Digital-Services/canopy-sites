@@ -46,6 +46,7 @@ Identify which layer a change touches before starting.
 
 - **Form-first**: `Account → Form → Field / Submission`. A Sites account also has at most one `Site` (unique `accountId`, PRD D19), allowed only on a plan with `sitesEnabled`; an account that owns a site cannot be deleted (`onDelete: Restrict`), so reassign the site first.
 - Forms own `allowedOrigins[]`. Origin control is per form, not per account.
+- **An account has one time zone**, `Account.timeZone` (an IANA name, checked by `isTimeZone` in `src/lib/time-zone.ts`): the business's. Emails state times in it, and its site's dates follow it (quick edit's "today", the builder's nightly rebuild). Signup records the browser's, Link a site sets Pacific, and `UTC` is an account nobody has given one. The Account page changes it (`setAccountTimeZone`, for the owner or an operator acting as them), which also tells the builder (`sendSiteTimeZone`). A site has no zone of its own.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
 - Publishing needs at least one field: `toggleFormPublished` refuses without one, since a submission stores only fields. The editor's Fields step and the Publish tab's button hold until there is one.
@@ -343,7 +344,7 @@ Plan (code PK, displayName, description?, maxPublishedForms?, sitesEnabled, isPu
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
-         status:AccountStatus, billingRef?)
+         status:AccountStatus, billingRef?, timeZone)
   └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
   └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
   │        as the account (PRD D49); deleting the operator keeps the row
@@ -357,7 +358,7 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, lockedFields[],
-           fixedLists[], maxBuildsRetained, isDemo, timeZone), one per account,
+           fixedLists[], maxBuildsRetained, isDemo), one per account,
            onDelete Restrict; lockedFields and fixedLists are address patterns
            (site/contact/phone, classes), PRD D50
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,

@@ -15,8 +15,10 @@ import { generateToken, hashToken } from "@/lib/auth-utils";
 import { hashPassword } from "@/lib/password";
 import { sendEmail } from "@/lib/email";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
+import { getAccountTimeZone } from "@/lib/data-access/accounts";
 import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor, senderFor } from "@/lib/product";
+import { UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
 import type { PasswordTokenPurpose } from "@prisma/client";
 
 const HOUR = 60 * 60 * 1000;
@@ -51,26 +53,27 @@ export async function issuePasswordToken(
   return { id: row.id, token, expiresAt };
 }
 
-/** Who a user is to the emails and pages a claim needs: their account's host, product, and site. */
+/** Who a user is to the emails and pages a claim needs: their account's host, product, time zone, and site. */
 async function accountOf(userId: string) {
   const membership = await getSoleMembership(userId);
   const entitlements = membership ? await getAccountEntitlements(membership.accountId) : { sitesEnabled: false };
+  const timeZone = membership ? await getAccountTimeZone(membership.accountId) : UNKNOWN_TIME_ZONE;
   const site = membership
     ? await prisma.site.findUnique({
         where: { accountId: membership.accountId },
-        select: { id: true, name: true, productionHostnames: true, timeZone: true },
+        select: { id: true, name: true, productionHostnames: true },
       })
     : null;
-  return { entitlements, site };
+  return { entitlements, timeZone, site };
 }
 
-function claimEmail(args: { url: string; expiresAt: Date; site: { name: string; productionHostnames: string[]; timeZone: string } | null; productName: string }) {
+function claimEmail(args: { url: string; expiresAt: Date; timeZone: string; site: { name: string; productionHostnames: string[] } | null; productName: string }) {
   const { url, site, productName } = args;
   const what = site?.productionHostnames[0] ?? "your website";
   const expires = args.expiresAt.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
-    timeZone: site?.timeZone ?? "America/Los_Angeles",
+    timeZone: args.timeZone,
   });
   const subject = site ? `Your website account for ${site.name}` : `Your ${productName} account`;
   const text = [
@@ -116,13 +119,13 @@ export async function createClaimLink(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, password: true } });
   if (user.password !== null) throw new ClaimError(`${user.email} has already claimed the account.`);
 
-  const { entitlements, site } = await accountOf(userId);
+  const { entitlements, timeZone, site } = await accountOf(userId);
   const { id, token, expiresAt } = await issuePasswordToken(userId, "CLAIM", { createdByUserId: opts.createdByUserId });
   const url = `${appUrlFor(entitlements)}/claim?token=${token}`;
 
   let emailed = false;
   if (opts.email) {
-    const { subject, text, html } = claimEmail({ url, expiresAt, site, productName: productNameFor(entitlements) });
+    const { subject, text, html } = claimEmail({ url, expiresAt, timeZone, site, productName: productNameFor(entitlements) });
     emailed = await sendEmail({ to: user.email, subject, text, html, from: senderFor(entitlements) });
     if (emailed) await prisma.passwordToken.update({ where: { id }, data: { emailedAt: new Date() } });
   }

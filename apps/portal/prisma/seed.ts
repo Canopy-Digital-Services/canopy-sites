@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { hashPassword } from '../src/lib/password';
+import { CANOPY_TIME_ZONE } from '../src/lib/time-zone';
 
 // Create connection pool
 const pool = new Pool({
@@ -73,7 +74,7 @@ async function main() {
         password: hashedPassword,
         roleCode: 'GLOBAL_ADMIN',
         memberships: {
-          create: { role: 'OWNER', account: { create: { planCode: 'PAID' } } },
+          create: { role: 'OWNER', account: { create: { planCode: 'PAID', timeZone: CANOPY_TIME_ZONE } } },
         },
       },
     });

@@ -89,8 +89,8 @@ export async function sendNewSubmissionNotification(options: {
   productName: string;
   /** The sender, from `senderFor` on the form's account. */
   from?: string;
-  /** The zone the time is written in: the account's site's, null for UTC. */
-  timeZone?: string | null;
+  /** The zone the time is written in, from `Account.timeZone`. */
+  timeZone: string;
 }): Promise<boolean> {
 
   const { text, html } = renderNotificationEmail({

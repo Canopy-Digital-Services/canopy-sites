@@ -38,6 +38,21 @@ describe("validateSite", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("passes for a site that states no hours, and still checks the hours a site does state", async () => {
+    const dir = await copyFixture();
+    await edit(dir, "site.json", (d) => {
+      delete d.hours;
+    });
+    expect((await validateSite(dir)).issues).toEqual([]);
+
+    await edit(dir, "site.json", (d) => {
+      d.hours = { kind: "freeform", text: "" };
+    });
+    const result = await validateSite(dir);
+    expect(result.ok).toBe(false);
+    expect(formatIssues(result.issues)).toContain("site/hours/text");
+  });
+
   it("fails with readable, located errors on a bad fixture", async () => {
     const dir = await copyFixture();
     await edit(dir, "services.json", (d) => {

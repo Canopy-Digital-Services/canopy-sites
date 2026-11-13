@@ -151,7 +151,7 @@ export async function listHelpRequestsForOperator(options: { siteId?: string; ta
     orderBy: { sentAt: "desc" },
     take: options.take ?? 100,
     include: {
-      site: { select: { id: true, name: true, timeZone: true } },
+      site: { select: { id: true, name: true, account: { select: { timeZone: true } } } },
       createdBy: { select: { email: true } },
       closedBy: { select: { email: true } },
     },

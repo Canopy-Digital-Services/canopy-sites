@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createAccount, createSite, resetDatabase } from "../../../test/db";
-import { prisma } from "@/lib/db";
-import { getAccountSite, getAccountTimeZone, listAccountsAvailableForSite } from "./sites";
+import { getAccountSite, listAccountsAvailableForSite } from "./sites";
 
 beforeEach(resetDatabase);
 
@@ -20,26 +19,6 @@ describe("getAccountSite", () => {
 
     expect(await getAccountSite(a.id)).toBeNull();
     expect((await getAccountSite(b.id))?.id).toBe(siteB.id);
-  });
-});
-
-describe("getAccountTimeZone", () => {
-  it("returns the zone of the account's own site", async () => {
-    const { account: a } = await createAccount({ planCode: "SITES" });
-    const { account: b } = await createAccount({ planCode: "SITES" });
-    await createSite(a.id);
-    const siteB = await createSite(b.id);
-    await prisma.site.update({ where: { id: siteB.id }, data: { timeZone: "America/New_York" } });
-
-    expect(await getAccountTimeZone(a.id)).toBe("America/Los_Angeles");
-    expect(await getAccountTimeZone(b.id)).toBe("America/New_York");
-  });
-
-  it("returns null for an account with no site", async () => {
-    const { account } = await createAccount({ planCode: "FREE" });
-    await createSite((await createAccount({ planCode: "SITES" })).account.id);
-
-    expect(await getAccountTimeZone(account.id)).toBeNull();
   });
 });
 

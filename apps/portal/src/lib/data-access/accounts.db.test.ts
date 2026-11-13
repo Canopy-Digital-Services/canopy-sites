@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { createAccount, createForm, resetDatabase } from "../../../test/db";
-import { listAccountsMetadata } from "./accounts";
+import { getAccountTimeZone, listAccountsMetadata } from "./accounts";
 
 beforeEach(resetDatabase);
 
@@ -37,5 +37,16 @@ describe("listAccountsMetadata", () => {
     });
     expect(rows.get(b.account.id)).toMatchObject({ formsCount: 1, submissionsCount: 1, roleCode: "GLOBAL_ADMIN" });
     expect(rows.get(empty.account.id)).toMatchObject({ formsCount: 0, publishedFormsCount: 0, submissionsCount: 0 });
+  });
+});
+
+describe("getAccountTimeZone", () => {
+  it("returns the account's own zone, UTC until one is set", async () => {
+    const { account: a } = await createAccount();
+    const { account: b } = await createAccount();
+    await prisma.account.update({ where: { id: b.id }, data: { timeZone: "America/New_York" } });
+
+    expect(await getAccountTimeZone(a.id)).toBe("UTC");
+    expect(await getAccountTimeZone(b.id)).toBe("America/New_York");
   });
 });

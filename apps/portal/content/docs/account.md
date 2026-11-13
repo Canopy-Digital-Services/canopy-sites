@@ -1,6 +1,6 @@
 ---
 title: Account
-description: Email, password, and account deletion.
+description: Email, time zone, password, and account deletion.
 icon: UserCog
 ---
 
@@ -36,6 +36,14 @@ Your email address is shown on the Account page. It's used for:
 - Receiving email notifications (your address is added as the first recipient automatically when you enable notifications on a form)
 
 Email addresses cannot currently be changed from the Account page.
+
+## Time zone
+
+Your account has one time zone. Email notifications give each submission's time in it, and on a Canopy Sites website a dated announcement starts and ends on its days.
+
+To change it, open **Time zone** on the Account page and pick your city, or any city that shares your time. Search by city ("Denver") or by the zone's name ("Mountain Time"). It saves as soon as you pick.
+
+A new account starts in the time zone of the browser it was created in. Canopy sets it for Canopy Sites accounts.
 
 ## Changing your password
 

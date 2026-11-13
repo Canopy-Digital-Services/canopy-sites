@@ -28,10 +28,60 @@ function Tooltip({
   )
 }
 
+/** Keeps Radix's handler off an event that happened outside the trigger's
+    own elements (Radix skips an event that is `defaultPrevented`). */
+function ownEventsOnly(event: React.SyntheticEvent<HTMLElement>) {
+  if (!event.currentTarget.contains(event.target as Node)) event.preventDefault()
+}
+
+/** The keys that walk focus to a control: Tab between controls, the arrows
+    and Home/End within a group of them. */
+const FOCUS_KEYS = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"])
+
+/** Whether one of those keys was the last thing pressed. With a modifier
+    they switch tabs and windows instead. */
+let walkingFocus = false
+if (typeof document !== "undefined") {
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      walkingFocus = FOCUS_KEYS.has(event.key) && !event.altKey && !event.ctrlKey && !event.metaKey
+    },
+    true
+  )
+  document.addEventListener("pointerdown", () => (walkingFocus = false), true)
+  window.addEventListener("blur", () => (walkingFocus = false))
+}
+
+/** On focus, a tooltip names a control someone has walked to with the
+    keyboard. Focus handed back by a list or dialog as it closes, or by the
+    window as it returns, opens nothing: the user was just there.
+
+    A trigger may also wrap a whole control, popup included (a font picker
+    and its list). The popup is portalled out of the trigger, but React still
+    bubbles its events here, so focus moving into it, or the pointer moving
+    over it, would open the tooltip on top of it, where it also takes the
+    first Escape. Only the trigger's own focus and hover open it. */
 function TooltipTrigger({
+  onFocus,
+  onPointerMove,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      onFocus={(event) => {
+        onFocus?.(event)
+        if (!walkingFocus) event.preventDefault()
+        ownEventsOnly(event)
+      }}
+      onPointerMove={(event) => {
+        onPointerMove?.(event)
+        ownEventsOnly(event)
+      }}
+      {...props}
+    />
+  )
 }
 
 function TooltipContent({
