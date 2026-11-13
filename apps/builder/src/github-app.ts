@@ -13,8 +13,15 @@ import { createPrivateKey, sign, type KeyObject } from "node:crypto";
  * tokens stay in this process: git gets the token through its environment
  * (gitEnv), and site build steps get no secret.
  *
+ * The App is public, so that a client's org can install it, which means any
+ * GitHub account can. The builder therefore builds only for the accounts it
+ * is told to: the App's own owner, always, and those named in
+ * GITHUB_APP_OWNERS. An installation anywhere else is not listed, and a repo
+ * there gets no token, whatever a site's row says.
+ *
  *   GITHUB_APP_ID           the App's numeric id
  *   GITHUB_APP_PRIVATE_KEY  the PEM, as is or base64-encoded (one line)
+ *   GITHUB_APP_OWNERS       other accounts whose repos it builds: logins, comma-separated
  */
 
 const API = "https://api.github.com";
@@ -24,6 +31,8 @@ const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 export interface AppConfig {
   appId: string;
   key: KeyObject;
+  /** Accounts besides the App's owner whose repos the builder builds, lowercased. */
+  otherOwners: string[];
 }
 
 /** Thrown when the App can't reach a repo: it isn't installed there, or GitHub refused. */
@@ -34,9 +43,13 @@ export function appConfig(env: Record<string, string | undefined> = process.env)
   const appId = env.GITHUB_APP_ID?.trim();
   const raw = env.GITHUB_APP_PRIVATE_KEY?.trim();
   if (!appId || !raw) return null;
+  const otherOwners = (env.GITHUB_APP_OWNERS ?? "")
+    .split(",")
+    .map((o) => o.trim().toLowerCase())
+    .filter(Boolean);
   const pem = raw.startsWith("-----BEGIN") ? raw.replace(/\\n/g, "\n") : Buffer.from(raw, "base64").toString("utf8");
   try {
-    return { appId, key: createPrivateKey(pem) };
+    return { appId, key: createPrivateKey(pem), otherOwners };
   } catch {
     throw new AppAccessError("The Canopy Sites GitHub App's private key on the builder can't be read");
   }
@@ -64,14 +77,35 @@ const tokens = new Map<string, { token: string; expiresAt: number }>();
 /** `owner/name`, lowercased → the id of the installation that covers it. */
 const installations = new Map<string, string>();
 
-/** Forgets cached tokens and installations (tests). */
+/** The App's own owner, by App id: asked once, since it only changes if the App is transferred. */
+const appOwners = new Map<string, string>();
+
+/** Forgets cached tokens, installations, and the App's owner (tests). */
 export function clearTokenCache() {
   tokens.clear();
   installations.clear();
+  appOwners.clear();
 }
 
 const asApp = (cfg: AppConfig, now: number) => ({ ...HEADERS, Authorization: `Bearer ${appJwt(cfg, now)}` });
 const reason = async (res: Response) => ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
+
+/**
+ * The accounts the builder builds for, lowercased: the App's own owner and
+ * those the configuration names. The App is public, so an installation proves
+ * only that someone installed it, not that Canopy builds for them.
+ */
+async function allowedOwners(cfg: AppConfig, fetchImpl: Fetch, now: number): Promise<Set<string>> {
+  let own = appOwners.get(cfg.appId);
+  if (!own) {
+    const res = await fetchImpl(`${API}/app`, { headers: asApp(cfg, now) });
+    if (!res.ok) throw new AppAccessError(`The Canopy Sites GitHub App refused: ${await reason(res)}`);
+    own = ((await res.json()) as { owner?: { login?: string } }).owner?.login?.toLowerCase();
+    if (!own) throw new AppAccessError("The Canopy Sites GitHub App didn't say who owns it");
+    appOwners.set(cfg.appId, own);
+  }
+  return new Set([own, ...cfg.otherOwners]);
+}
 
 /**
  * The installation that covers a repo, by its owner and name: the App's
@@ -109,6 +143,9 @@ async function mintToken(cfg: AppConfig, installationId: string, repo: string | 
  */
 export async function repoToken(cfg: AppConfig, owner: string, repo: string, fetchImpl: Fetch = fetch, now = Date.now()): Promise<string> {
   const key = `${owner}/${repo}`.toLowerCase();
+  if (!(await allowedOwners(cfg, fetchImpl, now)).has(owner.toLowerCase())) {
+    throw new AppAccessError(`The builder doesn't build for ${owner}: ${owner}/${repo} is outside the accounts it is set up for (GITHUB_APP_OWNERS)`);
+  }
   const hit = tokens.get(key);
   if (hit && hit.expiresAt - REFRESH_MARGIN_MS > now) return hit.token;
 
@@ -157,17 +194,20 @@ async function reposOf(cfg: AppConfig, installationId: string, fetchImpl: Fetch,
 }
 
 /**
- * Every repo the App is installed on, across all its installations (Canopy's
- * org and each client's), sorted by `owner/name`. A suspended installation is
- * left out: its repos can't be reached until its owner lifts the suspension.
+ * Every repo the builder builds for: those the App is installed on in the
+ * accounts it is set up for (Canopy's org and each client's named in
+ * GITHUB_APP_OWNERS), sorted by `owner/name`. An installation in any other
+ * account is left out, and so is a suspended one, whose repos can't be
+ * reached until its owner lifts the suspension.
  */
 export async function appRepos(cfg: AppConfig, fetchImpl: Fetch = fetch, now = Date.now()): Promise<AppRepo[]> {
+  const owners = await allowedOwners(cfg, fetchImpl, now);
   const ids: string[] = [];
   for (let page = 1; page <= 10; page++) {
     const res = await fetchImpl(`${API}/app/installations?per_page=100&page=${page}`, { headers: asApp(cfg, now) });
     if (!res.ok) throw new AppAccessError(`Listing the App's installations failed: ${await reason(res)}`);
-    const list = (await res.json()) as Array<{ id: number; suspended_at?: string | null }>;
-    for (const i of list) if (!i.suspended_at) ids.push(String(i.id));
+    const list = (await res.json()) as Array<{ id: number; suspended_at?: string | null; account?: { login?: string } | null }>;
+    for (const i of list) if (!i.suspended_at && owners.has(i.account?.login?.toLowerCase() ?? "")) ids.push(String(i.id));
     if (list.length < 100) break;
   }
   const repos = (await Promise.all(ids.map((id) => reposOf(cfg, id, fetchImpl, now)))).flat();
