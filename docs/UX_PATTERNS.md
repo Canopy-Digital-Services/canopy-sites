@@ -58,6 +58,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 39. `PageContent` on admin pages, except the form editor.
 40. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
 41. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+42. `LocalTime` for a date or time shown without a zone. Never `toLocaleString` or its kin in a page or component without a `timeZone` (section 10, Dates and times).
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -604,6 +605,14 @@ Action hierarchy responds to state: the likely next action takes `default` while
 Filters use title-case labels with uppercase enum values as params, in a `ToggleLinkGroup` (section 6).
 
 Empty states: a plain `text-sm text-muted-foreground` line suffices inline; use `EmptyState` ([empty-state.tsx](src/components/patterns/empty-state.tsx)) with `icon`, `title`, `description`, `action` for prominent ones. This is the one place an orienting sentence is welcome (section 5).
+
+### Dates and times
+
+A time with no zone beside it means the viewer's own clock, and only the browser knows that zone. `LocalTime` ([local-time.tsx](src/components/local-time.tsx)) writes it there, from a server or a client component: `<LocalTime value={row.createdAt} />`, with `format="date"` for the day alone.
+
+Never format one in a page or component with `toLocaleString`, `toLocaleDateString`, or a date's `get*` parts unless it names a `timeZone`. The server's zone is UTC, a client component renders there first, and React keeps the server's text through hydration: `suppressHydrationWarning` hides the mismatch and fixes nothing. Quick Edit's lists showed UTC that way, except for a row that arrived after load (fixed 2026-11-12).
+
+Name a zone where the reader's clock isn't the one that matters, or where there is no browser: the operator's pages about a site and the emails about one use `Site.timeZone`, as the site's own dates do (quick edit's "today", the nightly rebuild).
 
 ### Type chooser
 
