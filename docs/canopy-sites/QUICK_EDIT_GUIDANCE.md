@@ -79,7 +79,8 @@ Written into the schemas as each field's description, beside its kind and label 
 - `id` fields: stable once set; never renamed to match a new name.
 - `reviews`: a real customer's exact words and name, as the owner gives them.
 - `site.credentials`: a certification's `name` is the full name (structured data and anyone spelling it out use it); `shortName` is for tight spaces such as a line of designations; `number` is written without a leading #; `verifyOn` is where a buyer can look it up. NAICS codes are six digits each, in the order shown.
-- `faqs`: a question as a customer would ask it; page order is list order.
+- `faqs`: a question as a customer would ask it; page order is list order. `link` is where the answer sends the reader next, shown after it, and is Canopy's.
+- `team`: `note` is a short line shown with the role (a credential, a branch of service, years in the trade). `group` is which part of the team a person is shown in, when the site shows more than one, and is Canopy's.
 
 Each new collection adds its descriptions when it enters the contract.
 

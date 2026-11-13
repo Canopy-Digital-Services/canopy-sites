@@ -218,9 +218,9 @@ Collections (v1), from what H&H and Toro Z actually contain:
 | `events` | dated, one-off | |
 | `announcements` | short, dated, optional expiry | |
 | `gallery` | images with alt, width, height, order | |
-| `team` | people, role, photo optional, bio | Toro Z `coaches` |
+| `team` | people, role, photo optional, bio; a short note shown with the role, and the group a person is shown in (Canopy's), both optional (0.7.0) | Toro Z `coaches`; the note and group from the VETS site's board and team |
 | `reviews` | quote, attribution, source | H&H reviews section |
-| `faqs` | question, answer, in page order | canopyds.com's contact page (contract 0.4.0); a page's section gives them a heading |
+| `faqs` | question, answer, in page order; an optional link shown after the answer, Canopy's like a button (0.7.0) | canopyds.com's contact page (contract 0.4.0); a page's section gives them a heading |
 | `text` | long-form markdown pages | H&H policies, bios |
 | `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme`. Canopy edits it in the repo; the tool layer never exposes it (D29) |
 
