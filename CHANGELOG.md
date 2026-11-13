@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.18.0] - 2026-11-13
+
+### Added
+
+- Sites: the builder builds only for the GitHub accounts it is set up for. The Canopy Sites App is public now, so that a client's own org can install it, which means anyone can. A repo in any other account is left out of Link a site and is never read, built, or pushed to
+
 ## [5.17.0] - 2026-11-13
 
 ### Added
