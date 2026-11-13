@@ -55,6 +55,7 @@ export function PreviewView({
   const [loadError, setLoadError] = useState(false);
   const [pending, setPending] = useState<Pending | null | undefined>(undefined);
   const [published, setPublished] = useState(false);
+  const [cantClose, setCantClose] = useState(false);
   const [isPublishing, startPublish] = useTransition();
   const activeRef = useRef(0);
   const slotKey = useRef(0);
@@ -209,6 +210,16 @@ export function PreviewView({
     });
   }
 
+  // A browser lets a page close its own tab only when the portal opened it (the
+  // Preview links do, with rel="opener"). Opened another way, the tab stays, and
+  // the bar says so instead of leaving a button that does nothing.
+  function closeWindow() {
+    window.close();
+    setTimeout(() => {
+      if (!window.closed) setCantClose(true);
+    }, 300);
+  }
+
   const building = pending?.buildStatus === "QUEUED" || pending?.buildStatus === "RUNNING";
   const failed = pending?.status === "DRAFT" && pending.buildStatus === "FAILED";
   const ready = Boolean(pending?.publishable && pending.publishable === shownBuild);
@@ -262,6 +273,15 @@ export function PreviewView({
           <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
             Publish
           </Button>
+        ) : null}
+        {published ? (
+          cantClose ? (
+            <span className="font-normal opacity-90">You can close this tab.</span>
+          ) : (
+            <Button variant="outline" size="sm" className="text-foreground" onClick={closeWindow}>
+              Close this window
+            </Button>
+          )
         ) : null}
       </div>
     </div>
