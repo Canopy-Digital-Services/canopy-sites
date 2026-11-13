@@ -1,7 +1,7 @@
 import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { Log, run, StepError } from "./run.ts";
-import { AppAccessError, appConfig, installationToken } from "./github-app.ts";
+import { AppAccessError, appConfig, repoToken } from "./github-app.ts";
 
 const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/;
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/;
@@ -20,8 +20,9 @@ export interface RepoRef {
  * BUILDER_ALLOW_LOCAL_REPOS=1 (development, against a bare repo on disk).
  *
  * The token is the Canopy Sites GitHub App's, limited to this repo
- * (github-app.ts). A per-site fine-grained token in GIT_TOKEN_<SLUG> is the
- * fallback while sites move to the App, and goes once none needs it.
+ * (github-app.ts), whichever org or account owns it. A per-site fine-grained
+ * token in GIT_TOKEN_<SLUG> is the fallback while sites move to the App, and
+ * goes once none needs it.
  */
 export async function resolveRepo(slug: string, repoUrl: string, branch: string): Promise<RepoRef> {
   if (!BRANCH.test(branch) || branch.includes("..")) throw new StepError(`"${branch}" is not a branch name the builder accepts`);
@@ -32,13 +33,13 @@ export async function resolveRepo(slug: string, repoUrl: string, branch: string)
     const pat = process.env[envName];
     try {
       const app = appConfig();
-      if (app) return { remote, branch, token: await installationToken(app, gh[2]) };
+      if (app) return { remote, branch, token: await repoToken(app, gh[1], gh[2]) };
     } catch (err) {
       if (!(err instanceof AppAccessError) || !pat) throw new StepError((err as Error).message);
       console.warn(JSON.stringify({ event: "github_app_fallback", slug, message: err.message }));
     }
     if (pat) return { remote, branch, token: pat };
-    throw new StepError(`No access to ${gh[1]}/${gh[2]}: add it to the Canopy Sites GitHub App`);
+    throw new StepError(`No access to ${gh[1]}/${gh[2]}: install the Canopy Sites GitHub App on it`);
   }
   if (process.env.BUILDER_ALLOW_LOCAL_REPOS === "1" && path.isAbsolute(repoUrl) && !repoUrl.includes("..")) {
     return { remote: repoUrl, branch };
