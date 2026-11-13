@@ -28,10 +28,36 @@ function Tooltip({
   )
 }
 
+/** Keeps Radix's handler off an event that happened outside the trigger's
+    own elements (Radix skips an event that is `defaultPrevented`). */
+function ownEventsOnly(event: React.SyntheticEvent<HTMLElement>) {
+  if (!event.currentTarget.contains(event.target as Node)) event.preventDefault()
+}
+
+/** A trigger may wrap a whole control, popup included (a font picker and its
+    list). The popup is portalled out of the trigger, but React still bubbles
+    its events here, so focus moving into it, or the pointer moving over it,
+    would open the tooltip on top of it, where it also takes the first
+    Escape. Only the trigger's own focus and hover open it. */
 function TooltipTrigger({
+  onFocus,
+  onPointerMove,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      onFocus={(event) => {
+        onFocus?.(event)
+        ownEventsOnly(event)
+      }}
+      onPointerMove={(event) => {
+        onPointerMove?.(event)
+        ownEventsOnly(event)
+      }}
+      {...props}
+    />
+  )
 }
 
 function TooltipContent({

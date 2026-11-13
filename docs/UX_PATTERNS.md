@@ -280,6 +280,8 @@ With `asChild`, put props on the element itself. A wrapper component breaks ref 
 
 Only when the disabled state has a reason worth showing. Loading and in-flight states need no tooltip. Reference: [publish-content.tsx](src/components/forms/publish-content.tsx) on a form with no fields, or at the `maxPublishedForms` cap.
 
+**A trigger may wrap a control that has a popup** (the Appearance toolbar's `Tip` round `FontPicker` and `SizePicker`). React bubbles the portalled popup's events to the trigger, so `TooltipTrigger` in [tooltip.tsx](src/components/ui/tooltip.tsx) drops focus and pointer movement that come from outside its own elements: the tooltip opens for the control, never over its open list, where it would also take the first Escape. The cause is the wrapper, so the guard lives there, not as `stopPropagation` in `SearchSelect` or `Select`. `ColorPicker` needs none: its popover is a sibling of its tooltip, not a child of the trigger.
+
 ### Toasts
 
 `useToast` from [use-toast.ts](src/hooks/use-toast.ts) provides `toast.success` / `.error` / `.info` / `.warning` / `.loading` (returns an id to dismiss), plus helpers `showSaving()`, `showSaved()`, `showError()`.
