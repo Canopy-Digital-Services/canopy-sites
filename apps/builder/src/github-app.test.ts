@@ -5,7 +5,8 @@ import { resolveRepo } from "./git.ts";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const PEM = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
-const ENV = { GITHUB_APP_ID: "123", GITHUB_APP_PRIVATE_KEY: PEM };
+// The App belongs to "org"; the builder is also set up for a client's org and for "canopy" (any case).
+const ENV = { GITHUB_APP_ID: "123", GITHUB_APP_PRIVATE_KEY: PEM, GITHUB_APP_OWNERS: "client-org, Canopy" };
 const HOUR = 60 * 60 * 1000;
 
 function reply(status: number, body: unknown) {
@@ -22,6 +23,7 @@ const token = (value: string, now = Date.now()) => reply(201, { token: value, ex
 function github(installed: Record<string, number>, now = Date.now()) {
   return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
+    if (url.endsWith("/app")) return reply(200, { owner: { login: "Org" } });
     const lookup = /\/repos\/([^/]+)\/([^/]+)\/installation$/.exec(url);
     if (lookup) {
       const id = installed[`${lookup[1]}/${lookup[2]}`];
@@ -45,7 +47,8 @@ afterEach(() => {
 
 describe("appConfig", () => {
   it("reads the id and the key as PEM or base64, and is null when either is missing", () => {
-    expect(appConfig(ENV)).toMatchObject({ appId: "123" });
+    expect(appConfig(ENV)).toMatchObject({ appId: "123", otherOwners: ["client-org", "canopy"] });
+    expect(appConfig({ ...ENV, GITHUB_APP_OWNERS: undefined })).toMatchObject({ otherOwners: [] });
     expect(appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: Buffer.from(PEM).toString("base64") })).not.toBeNull();
     expect(appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: PEM.replace(/\n/g, "\\n") })).not.toBeNull();
     expect(appConfig({ ...ENV, GITHUB_APP_ID: "" })).toBeNull();
@@ -76,13 +79,13 @@ describe("repoToken", () => {
 
     expect(await repoToken(cfg, "org", "toroz", fetchImpl, now)).toBe("ghs_456_toroz");
     expect(await repoToken(cfg, "org", "toroz", fetchImpl, now + 30 * 60 * 1000)).toBe("ghs_456_toroz");
-    expect(calls(fetchImpl)).toEqual(["/repos/org/toroz/installation", "/app/installations/456/access_tokens"]);
-    const init = fetchImpl.mock.calls[1][1] as RequestInit;
+    expect(calls(fetchImpl)).toEqual(["/app", "/repos/org/toroz/installation", "/app/installations/456/access_tokens"]);
+    const init = fetchImpl.mock.calls[2][1] as RequestInit;
     expect(JSON.parse(String(init.body))).toEqual({ repositories: ["toroz"], permissions: { contents: "write", metadata: "read" } });
 
     // A new token near the hour's end, from the installation it already knows.
     await repoToken(cfg, "org", "toroz", fetchImpl, now + 56 * 60 * 1000);
-    expect(calls(fetchImpl).slice(2)).toEqual(["/app/installations/456/access_tokens"]);
+    expect(calls(fetchImpl).slice(3)).toEqual(["/app/installations/456/access_tokens"]);
   });
 
   it("reaches a repo in a client's own org through that org's installation", async () => {
@@ -98,9 +101,23 @@ describe("repoToken", () => {
     const fetchImpl = github({ "canopy/website": 1 });
 
     expect(await repoToken(cfg, "canopy", "website", fetchImpl)).toBe("ghs_1_website");
-    await expect(repoToken(cfg, "someone-else", "website", fetchImpl)).rejects.toThrow("isn't installed on someone-else/website");
+    await expect(repoToken(cfg, "client-org", "website", fetchImpl)).rejects.toThrow("isn't installed on client-org/website");
     // Owner and name are matched as GitHub matches them: without regard to case.
     expect(await repoToken(cfg, "Canopy", "Website", fetchImpl)).toBe("ghs_1_website");
+  });
+
+  it("builds only for the App's owner and the accounts it is set up for, though anyone can install a public App", async () => {
+    const cfg = appConfig(ENV)!;
+    const fetchImpl = github({ "stranger/their-site": 9, "org/toroz": 456 });
+
+    await expect(repoToken(cfg, "stranger", "their-site", fetchImpl)).rejects.toThrow("The builder doesn't build for stranger");
+    // It never asked GitHub for the stranger's installation, let alone a token.
+    expect(calls(fetchImpl)).toEqual(["/app"]);
+
+    // With no accounts named, only the App's own owner counts.
+    const alone = appConfig({ ...ENV, GITHUB_APP_OWNERS: "" })!;
+    expect(await repoToken(alone, "org", "toroz", fetchImpl)).toBe("ghs_456_toroz");
+    await expect(repoToken(alone, "client-org", "their-site", github({ "client-org/their-site": 2 }))).rejects.toBeInstanceOf(AppAccessError);
   });
 
   it("refuses with the reason when the App isn't installed on the repo", async () => {
@@ -119,6 +136,7 @@ describe("repoToken", () => {
     const fetchImpl = github({ "org/toroz": 789 }, later);
     expect(await repoToken(cfg, "org", "toroz", fetchImpl, later)).toBe("ghs_789_toroz");
     expect(calls(fetchImpl)).toEqual(["/app/installations/456/access_tokens", "/repos/org/toroz/installation", "/app/installations/789/access_tokens"]);
+    // (No second /app: who owns the App is asked once.)
   });
 });
 
@@ -130,7 +148,8 @@ describe("appRepos", () => {
     const cfg = appConfig(ENV)!;
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(reply(200, [{ id: 456 }]))
+      .mockResolvedValueOnce(reply(200, { owner: { login: "org" } }))
+      .mockResolvedValueOnce(reply(200, [{ id: 456, account: { login: "org" } }]))
       .mockResolvedValueOnce(token("ghs_list"))
       .mockResolvedValueOnce(page(Array.from({ length: 100 }, (_, i) => `org/site-${String(i).padStart(3, "0")}`), 101))
       .mockResolvedValueOnce(page(["org/toroz"], 101));
@@ -141,12 +160,20 @@ describe("appRepos", () => {
     expect(repos.at(-1)).toEqual({ fullName: "org/toroz", url: "https://github.com/org/toroz", private: true, defaultBranch: "main" });
   });
 
-  it("lists the repos of every installation, Canopy's and each client's, and leaves out a suspended one", async () => {
+  it("lists the repos of Canopy's installation and each client's it is set up for, and leaves out a stranger's and a suspended one", async () => {
     const cfg = appConfig(ENV)!;
-    const byInstallation: Record<string, string[]> = { "1": ["canopy/toroz", "canopy/demo"], "3": ["client-org/their-site"] };
+    const byInstallation: Record<string, string[]> = { "1": ["canopy/toroz", "canopy/demo"], "3": ["client-org/their-site"], "4": ["stranger/their-site"] };
     const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
-      if (url.includes("/app/installations?")) return reply(200, [{ id: 1 }, { id: 2, suspended_at: "2026-11-01T00:00:00Z" }, { id: 3 }]);
+      if (url.endsWith("/app")) return reply(200, { owner: { login: "org" } });
+      if (url.includes("/app/installations?")) {
+        return reply(200, [
+          { id: 1, account: { login: "Canopy" } },
+          { id: 2, account: { login: "client-org" }, suspended_at: "2026-11-01T00:00:00Z" },
+          { id: 3, account: { login: "client-org" } },
+          { id: 4, account: { login: "stranger" } },
+        ]);
+      }
       const mint = /\/app\/installations\/(\d+)\/access_tokens$/.exec(url);
       if (mint) return token(`ghs_${mint[1]}`);
       const who = String(new Headers(init?.headers).get("Authorization")).replace("Bearer ghs_", "");
@@ -154,7 +181,7 @@ describe("appRepos", () => {
     });
 
     expect((await appRepos(cfg, fetchImpl)).map((r) => r.fullName)).toEqual(["canopy/demo", "canopy/toroz", "client-org/their-site"]);
-    expect(calls(fetchImpl).some((u) => u.includes("/installations/2/"))).toBe(false);
+    expect(calls(fetchImpl).some((u) => u.includes("/installations/2/") || u.includes("/installations/4/"))).toBe(false);
   });
 });
 
