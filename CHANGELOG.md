@@ -5,6 +5,17 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.14.8] - 2026-11-12
+
+### Fixed
+
+- Sites: publishing from any page of the preview keeps "Published. It will be live in a few minutes." It was replaced by "No unpublished changes" over the live page whenever the preview had moved off the page it opened on, so a publish that worked read as one that failed
+- Sites: an expired claim link's page offers only "Email me a new link", and says "Check your email" once it is sent. It no longer offers Sign in to an owner who has no password yet
+
+### Added
+
+- Sites: on a phone, Quick Edit's reply that changed the draft carries a Preview button, since the draft's own card sits below the chat there
+
 ## [5.14.7] - 2026-11-10
 
 ### Fixed
