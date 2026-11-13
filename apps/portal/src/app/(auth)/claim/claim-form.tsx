@@ -110,7 +110,10 @@ const PROBLEMS = {
   invalid: { title: "This link isn't valid", resend: false },
 } as const;
 
-/** An expired link offers a new one by email; a used one points to sign-in. */
+/**
+ * An expired link offers a new one by email and nothing else: its owner has
+ * no password yet, so sign-in leads nowhere. A used one points to sign-in.
+ */
 export function ClaimProblem({ state, token }: { state: keyof typeof PROBLEMS; token: string }) {
   const { title, resend } = PROBLEMS[state];
   const [message, setMessage] = useState("");
@@ -135,7 +138,7 @@ export function ClaimProblem({ state, token }: { state: keyof typeof PROBLEMS; t
       </CardHeader>
       <CardContent>
         <div className="space-y-1 text-center">
-          <h2 className="text-xl font-heading font-semibold">{title}</h2>
+          <h2 className="text-xl font-heading font-semibold">{message ? "Check your email" : title}</h2>
           {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
           {error ? (
             <p role="alert" className="text-sm text-destructive">
@@ -144,16 +147,21 @@ export function ClaimProblem({ state, token }: { state: keyof typeof PROBLEMS; t
           ) : null}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-center gap-2">
-        {resend && !message ? (
-          <Button onClick={sendNew} disabled={isPending}>
-            {isPending ? "Sending..." : "Email me a new link"}
+      {resend ? (
+        message ? null : (
+          <CardFooter className="flex justify-center">
+            <Button onClick={sendNew} disabled={isPending}>
+              {isPending ? "Sending..." : "Email me a new link"}
+            </Button>
+          </CardFooter>
+        )
+      ) : (
+        <CardFooter className="flex justify-center">
+          <Button asChild>
+            <Link href="/login">Sign in</Link>
           </Button>
-        ) : null}
-        <Button variant={resend && !message ? "outline" : "default"} asChild>
-          <Link href="/login">Sign in</Link>
-        </Button>
-      </CardFooter>
+        </CardFooter>
+      )}
     </Card>
   );
 }
