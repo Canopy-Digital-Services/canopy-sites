@@ -66,7 +66,7 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
               <dt className="text-muted-foreground">Contract</dt>
               <dd className={site.contractVersion ? "font-mono" : "text-muted-foreground"}>{site.contractVersion ?? "Not read yet"}</dd>
               <dt className="text-muted-foreground">Created</dt>
-              <dd>{site.createdAt.toLocaleDateString()}</dd>
+              <dd>{site.createdAt.toLocaleDateString("en-US", { dateStyle: "medium", timeZone: site.timeZone })}</dd>
             </dl>
           </CardContent>
           <CardFooter>

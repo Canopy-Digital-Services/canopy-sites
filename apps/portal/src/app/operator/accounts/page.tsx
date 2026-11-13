@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { LocalTime } from "@/components/local-time";
 import { Users } from "lucide-react";
 import { DeleteAccountButton } from "./delete-account-button";
 import { ChangePlanButton } from "./change-plan-button";
@@ -52,7 +53,7 @@ export default async function AccountsPage() {
       header: "Created",
       cell: (account: typeof accounts[0]) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(account.createdAt).toLocaleDateString()}
+          <LocalTime value={account.createdAt} format="date" />
         </span>
       ),
     },
@@ -61,9 +62,7 @@ export default async function AccountsPage() {
       header: "Last Login",
       cell: (account: typeof accounts[0]) => (
         <span className="text-sm text-muted-foreground">
-          {account.lastLoginAt
-            ? new Date(account.lastLoginAt).toLocaleDateString()
-            : "Never"}
+          {account.lastLoginAt ? <LocalTime value={account.lastLoginAt} format="date" /> : "Never"}
         </span>
       ),
     },
