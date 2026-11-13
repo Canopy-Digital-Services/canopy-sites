@@ -18,7 +18,7 @@ import {
 import { formatIssues, readContent, validateSite, writeContent } from "@canopy/site-contract/node";
 import { fetchBranch, git, gitEnv, resetTree, resolveRepo, showFile, syncClone, type Clone, type RepoRef } from "./git.ts";
 import { buildEnv, Log, run, StepError } from "./run.ts";
-import { claimOutput, handOver, insideBuilds, keepPrivate, sealBuild, siteUser, stopAll, type SiteUser } from "./sandbox.ts";
+import { claimOutput, handOver, insideBuilds, keepPrivate, pagesDir, sealBuild, siteUser, stopAll, type SiteUser } from "./sandbox.ts";
 
 export const SITES_ROOT = process.env.SITES_ROOT ?? "/srv/sites";
 const RETAIN = Number(process.env.BUILDS_RETAINED ?? 5);
@@ -261,8 +261,16 @@ async function buildAs(site: SiteRef, id: string, log: Log) {
   } finally {
     await stopAll(user);
   }
-  await claimOutput(path.join(d.repo, "dist"));
-  await rename(path.join(d.repo, "dist"), path.join(d.builds, id));
+  const dist = path.join(d.repo, "dist");
+  await claimOutput(dist);
+  const pages = await pagesDir(dist);
+  if (pages !== dist) {
+    // A site with a server: its prerendered pages are the build (PRD D62).
+    log.add("The site has a server: taking its prerendered pages (dist/client)");
+    await claimOutput(pages);
+  }
+  await rename(pages, path.join(d.builds, id));
+  if (pages !== dist) await rm(dist, { recursive: true, force: true });
   await sealBuild(path.join(d.builds, id));
 }
 
