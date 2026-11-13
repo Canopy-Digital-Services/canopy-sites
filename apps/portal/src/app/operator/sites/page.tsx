@@ -7,6 +7,7 @@ import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
+import { LocalTime } from "@/components/local-time";
 import { LinkSiteButton } from "./link-site-button";
 import { listAppRepos } from "@/lib/builder-client";
 import { normalizeGitHubRepo } from "@/lib/sites";
@@ -60,7 +61,9 @@ export default async function SitesPage() {
       key: "createdAt",
       header: "Created",
       cell: (site: OperatorSiteListItem) => (
-        <span className="text-sm text-muted-foreground">{new Date(site.createdAt).toLocaleDateString()}</span>
+        <span className="text-sm text-muted-foreground">
+          <LocalTime value={site.createdAt} format="date" />
+        </span>
       ),
     },
   ];

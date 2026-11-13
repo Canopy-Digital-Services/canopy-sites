@@ -10,11 +10,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
+import { LocalTime } from "@/components/local-time";
 
 type Pending = { id: string; summary: string; status: string; error: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
-type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest };
+type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest; changeSetId?: string };
 
 export function QuickEditWorkspace({
   siteId,
@@ -36,7 +37,7 @@ export function QuickEditWorkspace({
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <QuickEdit examples={examples} />
+      <QuickEdit examples={examples} previewHref={`/preview/${siteId}`} pendingId={pending?.id ?? null} />
       <div className="space-y-6">
         {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
@@ -47,7 +48,16 @@ export function QuickEditWorkspace({
   );
 }
 
-function QuickEdit({ examples }: { examples: Promise<string[]> }) {
+function QuickEdit({
+  examples,
+  previewHref,
+  pendingId,
+}: {
+  examples: Promise<string[]>;
+  previewHref: string;
+  /** The site's draft, so the reply that last changed it can open its preview. */
+  pendingId: string | null;
+}) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -56,10 +66,13 @@ function QuickEdit({ examples }: { examples: Promise<string[]> }) {
   const seq = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Preview under the newest reply that changed the draft, where the draft's own card is stacked
+  // out of view below the chat; it goes once the draft is published or discarded.
+  const previewAt = pendingId ? messages.findLast((m) => m.changeSetId === pendingId)?.id : undefined;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
-  }, [messages, isPending]);
+  }, [messages, isPending, previewAt]);
 
   function send(text: string) {
     const message = text.trim();
@@ -73,7 +86,16 @@ function QuickEdit({ examples }: { examples: Promise<string[]> }) {
         return;
       }
       setConversationId(result.conversationId);
-      setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.reply, helpRequest: result.helpRequest ?? undefined }]);
+      setMessages((m) => [
+        ...m,
+        {
+          id: ++seq.current,
+          role: "assistant",
+          text: result.reply,
+          helpRequest: result.helpRequest ?? undefined,
+          changeSetId: result.changeSetId ?? undefined,
+        },
+      ]);
       if (result.changeSetId) router.refresh();
     });
   }
@@ -109,6 +131,14 @@ function QuickEdit({ examples }: { examples: Promise<string[]> }) {
             >
               {m.text}
             </p>
+            {m.id === previewAt ? (
+              <Button size="sm" className="lg:hidden" asChild>
+                <a href={previewHref} target="_blank" rel="noopener">
+                  Preview
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            ) : null}
             {m.helpRequest ? <HelpRequestCard request={m.helpRequest} onSent={() => router.refresh()} /> : null}
           </div>
         ))}
@@ -265,10 +295,17 @@ function SentRequests({ requests }: { requests: SentRequest[] }) {
           {requests.map((r) => (
             <li key={r.id} className="space-y-1 text-sm">
               <p>{r.summary}</p>
-              <p className="flex items-center gap-2 text-xs text-muted-foreground" suppressHydrationWarning>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${REQUEST_STATUS[r.status].dot}`} />
-                {REQUEST_STATUS[r.status].label}
-                {r.sentAt ? ` · ${new Date(r.sentAt).toLocaleDateString("en-US", { dateStyle: "medium" })}` : null}
+                <span>
+                  {REQUEST_STATUS[r.status].label}
+                  {r.sentAt ? (
+                    <>
+                      {" · "}
+                      <LocalTime value={r.sentAt} format="date" />
+                    </>
+                  ) : null}
+                </span>
               </p>
               {r.note ? <p className="whitespace-pre-wrap text-muted-foreground">{r.note}</p> : null}
             </li>
@@ -291,9 +328,8 @@ function RecentChanges({ recent }: { recent: Recent[] }) {
           {recent.map((c) => (
             <li key={c.id} className="text-sm">
               <p>{c.summary}</p>
-              {/* Local time in the browser; the server renders UTC. */}
-              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
-                {c.publishedAt ? new Date(c.publishedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : null}
+              <p className="text-xs text-muted-foreground">
+                {c.publishedAt ? <LocalTime value={c.publishedAt} /> : null}
                 {c.by ? ` · ${c.by}` : null}
               </p>
             </li>
