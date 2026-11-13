@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
+import { LocalTime } from "@/components/local-time";
 
 type Pending = { id: string; summary: string; status: string; error: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
@@ -294,10 +295,17 @@ function SentRequests({ requests }: { requests: SentRequest[] }) {
           {requests.map((r) => (
             <li key={r.id} className="space-y-1 text-sm">
               <p>{r.summary}</p>
-              <p className="flex items-center gap-2 text-xs text-muted-foreground" suppressHydrationWarning>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className={`h-2 w-2 shrink-0 rounded-full ${REQUEST_STATUS[r.status].dot}`} />
-                {REQUEST_STATUS[r.status].label}
-                {r.sentAt ? ` · ${new Date(r.sentAt).toLocaleDateString("en-US", { dateStyle: "medium" })}` : null}
+                <span>
+                  {REQUEST_STATUS[r.status].label}
+                  {r.sentAt ? (
+                    <>
+                      {" · "}
+                      <LocalTime value={r.sentAt} format="date" />
+                    </>
+                  ) : null}
+                </span>
               </p>
               {r.note ? <p className="whitespace-pre-wrap text-muted-foreground">{r.note}</p> : null}
             </li>
@@ -320,9 +328,8 @@ function RecentChanges({ recent }: { recent: Recent[] }) {
           {recent.map((c) => (
             <li key={c.id} className="text-sm">
               <p>{c.summary}</p>
-              {/* Local time in the browser; the server renders UTC. */}
-              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
-                {c.publishedAt ? new Date(c.publishedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : null}
+              <p className="text-xs text-muted-foreground">
+                {c.publishedAt ? <LocalTime value={c.publishedAt} /> : null}
                 {c.by ? ` · ${c.by}` : null}
               </p>
             </li>
