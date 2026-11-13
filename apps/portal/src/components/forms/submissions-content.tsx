@@ -15,6 +15,7 @@ import { DataTable } from "@/components/patterns/data-table";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { ArrowRight, Download, ChevronDown, FileText, CheckCheck } from "lucide-react";
 import { markAllSubmissionsRead } from "@/actions/forms";
+import { LocalTime } from "@/components/local-time";
 
 type Submission = {
   id: string;
@@ -49,8 +50,7 @@ export function SubmissionsContent({
       header: "Date",
       cell: (s: Submission) => (
         <span className="text-sm">
-          {s.createdAt.slice(0, 10)}{" "}
-          {s.createdAt.slice(11, 19)}
+          <LocalTime value={s.createdAt} />
         </span>
       ),
     },

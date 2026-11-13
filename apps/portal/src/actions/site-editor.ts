@@ -100,12 +100,17 @@ export async function refreshPendingChange(
 /**
  * Publish, from the preview page only (PRD D47): the build the page showed,
  * which the tool layer refuses unless it is the draft's current build.
+ *
+ * No revalidatePath here: it refreshes the caller's route, and the preview
+ * page keeps its address in step with the site's own navigation outside the
+ * router, so a refresh on any page but the one it opened on remounts the
+ * view and drops what Publish just said. The owner's other tabs hear of a
+ * publish through announceDraft.
  */
 export async function publishPreview(input: { changeSetId: string; buildId: string }): Promise<Result<{ commit: string | null }>> {
   try {
     const ctx = await context();
     const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), { name: ctx.email.split("@")[0], email: ctx.email });
-    revalidatePath("/quick-edit");
     return { success: true, ...result };
   } catch (err) {
     return failure(err);

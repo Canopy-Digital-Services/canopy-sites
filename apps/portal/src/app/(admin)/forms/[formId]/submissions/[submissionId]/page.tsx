@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageContent } from "@/components/patterns/page-content";
+import { LocalTime } from "@/components/local-time";
 
 export default async function SubmissionDetailPage({
   params,
@@ -78,7 +79,7 @@ export default async function SubmissionDetailPage({
         </Badge>
         {submission.isSpam && <Badge variant="destructive">SPAM</Badge>}
         <span className="text-sm text-muted-foreground">
-          {submission.createdAt.toLocaleString()}
+          <LocalTime value={submission.createdAt} />
         </span>
       </div>
 
