@@ -352,6 +352,8 @@ Reference: [field-row.tsx](src/components/forms/field-row.tsx), [form-fields-man
 
 Standard shadcn `Input`, `Label`, `Textarea`, `Select`. Spacing: `space-y-2` for a label + input pair, `space-y-4` between sections, `gap-2`/`gap-3` inline.
 
+**A list too long to scan**: `SearchSelect` ([search-select.tsx](src/components/ui/search-select.tsx)), a trigger showing the choice and a popover with a search box over the list. Options carry a `label` and an optional muted `detail`, and search matches both, so a zone is found by its city or by "Pacific Time". Name the trigger with `aria-labelledby` pointing at the heading it sits under rather than a second visible label. It saves on choose where the setting stands alone (the Account page's Time zone); `Select` stays the choice for a list short enough to read. `FontPicker` is the same shape with typeface previews.
+
 **Checkbox**: `onCheckedChange` receives `boolean | "indeterminate"`, so narrow with `checked === true`. Pair with a `Label` sharing `id`/`htmlFor`, plus `cursor-pointer` and `font-normal` to distinguish it from a field label.
 
 **Dependent options**: when a checkbox only makes sense while its parent is on, render it inside the parent's conditional block rather than disabling it, and align hint text under the label with `ml-6` (checkbox width plus gap) so the hint belongs to that option, not the group. Reference: "Include responses in the email" in [after-submission-section.tsx](src/components/forms/after-submission-section.tsx).

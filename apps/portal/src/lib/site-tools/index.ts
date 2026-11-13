@@ -44,7 +44,7 @@ import { z } from "zod";
 import type { ChangeSetSource, Prisma, Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
-import { BuilderError, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
+import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 import { changedFields, type FieldChange } from "./changes";
 
@@ -541,6 +541,23 @@ async function draftView(site: ToolSite) {
       : null,
     collections: COLLECTION_NAMES.filter((c) => c in read.published),
   };
+}
+
+/**
+ * Tells the builder the zone of the account's site now, after the account's
+ * zone changed: the builder keeps each site's zone for the nightly rebuild
+ * and takes a new one from any read. Never throws. A builder that can't be
+ * reached learns the zone at the site's next read from the Editor or quick
+ * edit, so the change that called this still stands.
+ */
+export async function sendSiteTimeZone(accountId: string): Promise<void> {
+  const site = await prisma.site.findUnique({ where: { accountId }, include: withZone });
+  if (!site?.repoUrl || !builderConfigured()) return;
+  try {
+    await fetchContent(builderSite(site));
+  } catch (err) {
+    console.error(JSON.stringify({ event: "site_time_zone_not_sent", slug: site.slug, message: (err as Error).message }));
+  }
 }
 
 /**

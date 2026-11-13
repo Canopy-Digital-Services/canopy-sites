@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { PageHeader } from "@/components/patterns/page-header";
 import {
   Card,
@@ -13,14 +13,19 @@ import {
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
+import { SearchSelect } from "@/components/ui/search-select";
 import { changePassword } from "@/actions/auth";
-import { deleteSelfAccount } from "@/actions/accounts";
+import { deleteSelfAccount, setAccountTimeZone } from "@/actions/accounts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
+import type { TimeZoneOption } from "@/lib/time-zone";
 
 type AccountDashboardProps = {
   email: string;
+  /** The account's time zone, and every zone it can be changed to. */
+  timeZone: string;
+  timeZones: TimeZoneOption[];
   planDisplayName: string;
   publishedFormsCount: number;
   maxPublishedForms: number | null;
@@ -33,6 +38,8 @@ type AccountDashboardProps = {
 
 export function AccountDashboard({
   email,
+  timeZone,
+  timeZones,
   planDisplayName,
   publishedFormsCount,
   maxPublishedForms,
@@ -44,6 +51,7 @@ export function AccountDashboard({
     <div className="max-w-[640px] mx-auto space-y-6">
       <PageHeader title="Account" />
       <EmailSection email={email} />
+      <TimeZoneSection timeZone={timeZone} timeZones={timeZones} />
       <PlanSection
         planDisplayName={planDisplayName}
         publishedFormsCount={publishedFormsCount}
@@ -71,6 +79,46 @@ function EmailSection({ email }: { email: string }) {
       </CardHeader>
       <CardContent>
         <p className="text-sm">{email}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The account's zone. Choosing one saves it; a refused save puts the old one back. */
+function TimeZoneSection({ timeZone, timeZones }: { timeZone: string; timeZones: TimeZoneOption[] }) {
+  const { toast, showSaved } = useToast();
+  const [value, setValue] = useState(timeZone);
+  // The zone the server last took, to go back to when it refuses one.
+  const saved = useRef(timeZone);
+  const [, startTransition] = useTransition();
+
+  function choose(next: string) {
+    if (next === value) return;
+    setValue(next);
+    startTransition(async () => {
+      try {
+        const result = await setAccountTimeZone(next);
+        if ("error" in result) {
+          setValue(saved.current);
+          toast.error(result.error);
+          return;
+        }
+        saved.current = next;
+        showSaved();
+      } catch {
+        setValue(saved.current);
+        toast.error("Something went wrong. Try again.");
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle id="time-zone-title">Time zone</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <SearchSelect aria-labelledby="time-zone-title" value={value} options={timeZones} onChange={choose} />
       </CardContent>
     </Card>
   );
