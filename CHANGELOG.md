@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sites: publishing from any page of the preview keeps "Published. It will be live in a few minutes." It was replaced by "No unpublished changes" over the live page whenever the preview had moved off the page it opened on, so a publish that worked read as one that failed
 - Sites: an expired claim link's page offers only "Email me a new link", and says "Check your email" once it is sent. It no longer offers Sign in to an owner who has no password yet
+- Times show in the viewer's own time zone instead of UTC: Quick Edit's Recently published and Sent to Michael, a form's submissions, and the operator's Created and Last Login dates
 
 ### Added
 
