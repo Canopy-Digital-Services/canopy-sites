@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireGlobalAdmin, getCurrentMembership } from "@/lib/auth-utils";
+import { requireGlobalAdmin, getCurrentAccountId, getCurrentMembership } from "@/lib/auth-utils";
 import { clearSessionCookie, getSession } from "@/lib/session";
 import { isActing } from "@/lib/act-as";
 import { requireId } from "@/lib/ids";
@@ -10,6 +10,8 @@ import {
   deleteAccountAndSoleMembers,
   getSoleMembership,
 } from "@/lib/data-access/memberships";
+import { sendSiteTimeZone } from "@/lib/site-tools";
+import { canonicalTimeZone } from "@/lib/time-zone";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -84,5 +86,23 @@ export async function deleteSelfAccount(): Promise<{ success: true } | { error: 
   }
   // The user's sessions went with them; this clears the browser's cookie.
   await clearSessionCookie();
+  return { success: true };
+}
+
+/**
+ * Sets the time zone of the signed-in user's account, or of the client's when
+ * a Global Admin is acting as it (PRD D49): `getCurrentAccountId` resolves
+ * both. The zone is whatever the client sent, so only one the runtime knows
+ * is stored. An account with a site tells the builder, so the site's nightly
+ * rebuild moves to the new local midnight.
+ */
+export async function setAccountTimeZone(timeZone: string): Promise<{ success: true } | { error: string }> {
+  const accountId = await getCurrentAccountId();
+  const zone = canonicalTimeZone(timeZone);
+  if (!zone) return { error: "That isn't a time zone we know." };
+
+  await prisma.account.update({ where: { id: accountId }, data: { timeZone: zone } });
+  await sendSiteTimeZone(accountId);
+  revalidatePath("/account");
   return { success: true };
 }

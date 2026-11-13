@@ -31,7 +31,7 @@ const { validateSessionToken } = await import("@/lib/session");
 const { getCurrentAccountId } = await import("@/lib/auth-utils");
 const { actAsClient, stopActing } = await import("@/actions/admin/act-as");
 const { changePassword, signOutAction } = await import("@/actions/auth");
-const { deleteSelfAccount } = await import("@/actions/accounts");
+const { deleteSelfAccount, setAccountTimeZone } = await import("@/actions/accounts");
 const { saveCanvasEdits } = await import("@/actions/site-editor");
 const { default: FormPage } = await import("@/app/(admin)/forms/[formId]/page");
 
@@ -132,6 +132,15 @@ describe("acting as a client (PRD D49)", () => {
     expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).password).toBe(before.password);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: operator.id } })).passwordChangedAt).toBeNull();
     expect(await prisma.account.count({ where: { id: client.id } })).toBe(1);
+  });
+
+  it("sets the client's time zone, not the operator's own account's", async () => {
+    const { client, own } = await acting();
+
+    expect(await setAccountTimeZone("America/Denver")).toEqual({ success: true });
+
+    expect((await prisma.account.findUniqueOrThrow({ where: { id: client.id } })).timeZone).toBe("America/Denver");
+    expect((await prisma.account.findUniqueOrThrow({ where: { id: own.id } })).timeZone).toBe("UTC");
   });
 
   it("names the operator, not the owner, on an edit made in the client's site", async () => {

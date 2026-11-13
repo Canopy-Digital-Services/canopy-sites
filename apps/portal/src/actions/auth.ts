@@ -19,7 +19,7 @@ import { sendEmail } from "@/lib/email";
 import { isActing } from "@/lib/act-as";
 import { createClaimLink, issuePasswordToken } from "@/lib/claim";
 import { normalizeEmail } from "@/lib/validation";
-import { isTimeZone, UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
+import { canonicalTimeZone, UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor, senderFor, signInElsewhere, signupElsewhere } from "@/lib/product";
@@ -42,8 +42,7 @@ export async function signUp(formData: FormData) {
   const password = formData.get("password") as string;
   // The browser's zone, as the signup form read it. It is whatever the client
   // sent, so anything that isn't a zone leaves the account on UTC.
-  const sentZone = formData.get("timeZone");
-  const timeZone = isTimeZone(sentZone) ? sentZone : UNKNOWN_TIME_ZONE;
+  const timeZone = canonicalTimeZone(formData.get("timeZone")) ?? UNKNOWN_TIME_ZONE;
 
   // Signup makes a Forms account, which lives on the Forms host (PRD D22).
   const formsSignup = await signupElsewhere();
