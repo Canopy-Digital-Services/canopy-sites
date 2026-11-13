@@ -1,16 +1,41 @@
 import { generateKeyPairSync, verify } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AppAccessError, appConfig, appJwt, clearTokenCache, installationRepos, installationToken } from "./github-app.ts";
+import { AppAccessError, appConfig, appJwt, appRepos, clearTokenCache, repoToken } from "./github-app.ts";
 import { resolveRepo } from "./git.ts";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const PEM = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
-const ENV = { GITHUB_APP_ID: "123", GITHUB_APP_INSTALLATION_ID: "456", GITHUB_APP_PRIVATE_KEY: PEM };
+const ENV = { GITHUB_APP_ID: "123", GITHUB_APP_PRIVATE_KEY: PEM };
 const HOUR = 60 * 60 * 1000;
 
 function reply(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
+
+const token = (value: string, now = Date.now()) => reply(201, { token: value, expires_at: new Date(now + HOUR).toISOString() });
+
+/**
+ * GitHub, as far as the App sees it: `installed` maps `owner/name` to the id
+ * of the installation that covers it. Every token names its installation and
+ * repo, so a test can see which one a job was given.
+ */
+function github(installed: Record<string, number>, now = Date.now()) {
+  return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    const lookup = /\/repos\/([^/]+)\/([^/]+)\/installation$/.exec(url);
+    if (lookup) {
+      const id = installed[`${lookup[1]}/${lookup[2]}`];
+      return id ? reply(200, { id }) : reply(404, { message: "Not Found" });
+    }
+    const mint = /\/app\/installations\/(\d+)\/access_tokens$/.exec(url);
+    if (mint) {
+      const repo = (JSON.parse(String(init?.body)) as { repositories?: string[] }).repositories?.[0];
+      return Object.values(installed).includes(Number(mint[1])) ? token(`ghs_${mint[1]}_${repo ?? "list"}`, now) : reply(404, { message: "Not Found" });
+    }
+    return reply(500, { message: `unexpected ${url}` });
+  });
+}
+const calls = (fetchImpl: ReturnType<typeof vi.fn>) => fetchImpl.mock.calls.map((c) => String(c[0]).replace("https://api.github.com", ""));
 
 beforeEach(() => clearTokenCache());
 afterEach(() => {
@@ -19,8 +44,8 @@ afterEach(() => {
 });
 
 describe("appConfig", () => {
-  it("reads the id, the installation, and the key as PEM or base64, and is null when any is missing", () => {
-    expect(appConfig(ENV)).toMatchObject({ appId: "123", installationId: "456" });
+  it("reads the id and the key as PEM or base64, and is null when either is missing", () => {
+    expect(appConfig(ENV)).toMatchObject({ appId: "123" });
     expect(appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: Buffer.from(PEM).toString("base64") })).not.toBeNull();
     expect(appConfig({ ...ENV, GITHUB_APP_PRIVATE_KEY: PEM.replace(/\n/g, "\\n") })).not.toBeNull();
     expect(appConfig({ ...ENV, GITHUB_APP_ID: "" })).toBeNull();
@@ -43,67 +68,120 @@ describe("appJwt", () => {
   });
 });
 
-describe("installationToken", () => {
-  it("asks for Contents write on the one repo, and reuses the token until near its expiry", async () => {
+describe("repoToken", () => {
+  it("finds the repo's installation, asks for Contents write on the one repo, and reuses the token until near its expiry", async () => {
     const cfg = appConfig(ENV)!;
     const now = Date.now();
-    const fetchImpl = vi.fn(async () => reply(201, { token: "ghs_one", expires_at: new Date(now + HOUR).toISOString() }));
+    const fetchImpl = github({ "org/toroz": 456 }, now);
 
-    expect(await installationToken(cfg, "toroz", fetchImpl, now)).toBe("ghs_one");
-    expect(await installationToken(cfg, "toroz", fetchImpl, now + 30 * 60 * 1000)).toBe("ghs_one");
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("https://api.github.com/app/installations/456/access_tokens");
+    expect(await repoToken(cfg, "org", "toroz", fetchImpl, now)).toBe("ghs_456_toroz");
+    expect(await repoToken(cfg, "org", "toroz", fetchImpl, now + 30 * 60 * 1000)).toBe("ghs_456_toroz");
+    expect(calls(fetchImpl)).toEqual(["/repos/org/toroz/installation", "/app/installations/456/access_tokens"]);
+    const init = fetchImpl.mock.calls[1][1] as RequestInit;
     expect(JSON.parse(String(init.body))).toEqual({ repositories: ["toroz"], permissions: { contents: "write", metadata: "read" } });
 
-    await installationToken(cfg, "toroz", fetchImpl, now + 56 * 60 * 1000);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    // A new token near the hour's end, from the installation it already knows.
+    await repoToken(cfg, "org", "toroz", fetchImpl, now + 56 * 60 * 1000);
+    expect(calls(fetchImpl).slice(2)).toEqual(["/app/installations/456/access_tokens"]);
+  });
+
+  it("reaches a repo in a client's own org through that org's installation", async () => {
+    const cfg = appConfig(ENV)!;
+    const fetchImpl = github({ "canopy/toroz": 1, "client-org/their-site": 2 });
+
+    expect(await repoToken(cfg, "canopy", "toroz", fetchImpl)).toBe("ghs_1_toroz");
+    expect(await repoToken(cfg, "client-org", "their-site", fetchImpl)).toBe("ghs_2_their-site");
+  });
+
+  it("never answers for a repo of the same name under another owner", async () => {
+    const cfg = appConfig(ENV)!;
+    const fetchImpl = github({ "canopy/website": 1 });
+
+    expect(await repoToken(cfg, "canopy", "website", fetchImpl)).toBe("ghs_1_website");
+    await expect(repoToken(cfg, "someone-else", "website", fetchImpl)).rejects.toThrow("isn't installed on someone-else/website");
+    // Owner and name are matched as GitHub matches them: without regard to case.
+    expect(await repoToken(cfg, "Canopy", "Website", fetchImpl)).toBe("ghs_1_website");
   });
 
   it("refuses with the reason when the App isn't installed on the repo", async () => {
     const cfg = appConfig(ENV)!;
-    const fetchImpl = vi.fn(async () => reply(422, { message: "There is at least one repository that does not exist or is not accessible" }));
-    await expect(installationToken(cfg, "elsewhere", fetchImpl)).rejects.toBeInstanceOf(AppAccessError);
+    await expect(repoToken(cfg, "org", "elsewhere", github({}))).rejects.toBeInstanceOf(AppAccessError);
+    await expect(repoToken(cfg, "org", "elsewhere", github({}))).rejects.toThrow("The Canopy Sites GitHub App isn't installed on org/elsewhere");
+  });
+
+  it("asks for the installation again when the one it remembered is gone", async () => {
+    const cfg = appConfig(ENV)!;
+    const now = Date.now();
+    expect(await repoToken(cfg, "org", "toroz", github({ "org/toroz": 456 }, now), now)).toBe("ghs_456_toroz");
+
+    // The App was removed and installed again: a new installation id.
+    const later = now + 2 * HOUR;
+    const fetchImpl = github({ "org/toroz": 789 }, later);
+    expect(await repoToken(cfg, "org", "toroz", fetchImpl, later)).toBe("ghs_789_toroz");
+    expect(calls(fetchImpl)).toEqual(["/app/installations/456/access_tokens", "/repos/org/toroz/installation", "/app/installations/789/access_tokens"]);
   });
 });
 
-describe("installationRepos", () => {
-  it("lists every repo the App is installed on, across pages, sorted", async () => {
+describe("appRepos", () => {
+  const page = (names: string[], total: number) =>
+    reply(200, { total_count: total, repositories: names.map((n) => ({ full_name: n, private: true, default_branch: "main" })) });
+
+  it("lists every repo of one installation, across pages, sorted", async () => {
     const cfg = appConfig(ENV)!;
-    const page = (names: string[], total: number) =>
-      reply(200, { total_count: total, repositories: names.map((n) => ({ full_name: `org/${n}`, private: true, default_branch: "main" })) });
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(reply(201, { token: "ghs_list", expires_at: new Date(Date.now() + HOUR).toISOString() }))
-      .mockResolvedValueOnce(page(Array.from({ length: 100 }, (_, i) => `site-${String(i).padStart(3, "0")}`), 101))
-      .mockResolvedValueOnce(page(["toroz"], 101));
+      .mockResolvedValueOnce(reply(200, [{ id: 456 }]))
+      .mockResolvedValueOnce(token("ghs_list"))
+      .mockResolvedValueOnce(page(Array.from({ length: 100 }, (_, i) => `org/site-${String(i).padStart(3, "0")}`), 101))
+      .mockResolvedValueOnce(page(["org/toroz"], 101));
 
-    const repos = await installationRepos(cfg, fetchImpl);
+    const repos = await appRepos(cfg, fetchImpl);
 
     expect(repos).toHaveLength(101);
     expect(repos.at(-1)).toEqual({ fullName: "org/toroz", url: "https://github.com/org/toroz", private: true, defaultBranch: "main" });
   });
+
+  it("lists the repos of every installation, Canopy's and each client's, and leaves out a suspended one", async () => {
+    const cfg = appConfig(ENV)!;
+    const byInstallation: Record<string, string[]> = { "1": ["canopy/toroz", "canopy/demo"], "3": ["client-org/their-site"] };
+    const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/app/installations?")) return reply(200, [{ id: 1 }, { id: 2, suspended_at: "2026-11-01T00:00:00Z" }, { id: 3 }]);
+      const mint = /\/app\/installations\/(\d+)\/access_tokens$/.exec(url);
+      if (mint) return token(`ghs_${mint[1]}`);
+      const who = String(new Headers(init?.headers).get("Authorization")).replace("Bearer ghs_", "");
+      return page(byInstallation[who] ?? [], (byInstallation[who] ?? []).length);
+    });
+
+    expect((await appRepos(cfg, fetchImpl)).map((r) => r.fullName)).toEqual(["canopy/demo", "canopy/toroz", "client-org/their-site"]);
+    expect(calls(fetchImpl).some((u) => u.includes("/installations/2/"))).toBe(false);
+  });
 });
 
 describe("resolveRepo", () => {
-  it("reaches a site's repo with the App's token for that repo", async () => {
+  it("reaches a site's repo with the App's token for that repo, whichever org owns it", async () => {
     for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v);
-    vi.stubGlobal("fetch", vi.fn(async () => reply(201, { token: "ghs_app", expires_at: new Date(Date.now() + HOUR).toISOString() })));
+    vi.stubGlobal("fetch", github({ "org/toroz": 456, "client-org/their-site": 7 }));
 
     expect(await resolveRepo("toroz", "https://github.com/org/toroz", "main")).toEqual({
       remote: "https://github.com/org/toroz.git",
       branch: "main",
-      token: "ghs_app",
+      token: "ghs_456_toroz",
+    });
+    expect(await resolveRepo("theirs", "https://github.com/client-org/their-site", "main")).toEqual({
+      remote: "https://github.com/client-org/their-site.git",
+      branch: "main",
+      token: "ghs_7_their-site",
     });
   });
 
   it("falls back to the site's own token while the App can't reach the repo, and says what to do with neither", async () => {
     for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v);
-    vi.stubGlobal("fetch", vi.fn(async () => reply(422, { message: "not accessible" })));
+    vi.stubGlobal("fetch", github({}));
     vi.stubEnv("GIT_TOKEN_CANOPYDS", "github_pat_x");
 
     expect(await resolveRepo("canopyds", "https://github.com/org/canopy-website", "main")).toMatchObject({ token: "github_pat_x" });
-    await expect(resolveRepo("toroz", "https://github.com/org/toroz", "main")).rejects.toThrow(/can't reach toroz/);
+    await expect(resolveRepo("toroz", "https://github.com/org/toroz", "main")).rejects.toThrow("isn't installed on org/toroz");
   });
 
   it("falls back to the site's token when the App's key can't be read", async () => {
@@ -117,6 +195,6 @@ describe("resolveRepo", () => {
     vi.stubEnv("GITHUB_APP_ID", "");
     vi.stubEnv("GIT_TOKEN_DEMO", "github_pat_demo");
     expect(await resolveRepo("demo", "https://github.com/org/canopy-demo-site", "main")).toMatchObject({ token: "github_pat_demo" });
-    await expect(resolveRepo("toroz", "https://github.com/org/toroz", "main")).rejects.toThrow("No access to org/toroz: add it to the Canopy Sites GitHub App");
+    await expect(resolveRepo("toroz", "https://github.com/org/toroz", "main")).rejects.toThrow("No access to org/toroz: install the Canopy Sites GitHub App on it");
   });
 });
