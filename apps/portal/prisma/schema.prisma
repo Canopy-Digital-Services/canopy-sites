@@ -157,7 +157,8 @@ model Site {
   maxBuildsRetained   Int      @default(5)
   // A sales demo, never a client's site (PRD D23): Stats shows sample data.
   isDemo              Boolean  @default(false)
-  // IANA zone for the site's dates: the builder rebuilds at its local midnight (PRD D42)
+  /// Unused since the zone moved to Account.timeZone (2026-11-12): nothing
+  /// reads or writes it. Dropped by a migration in the next production release.
   timeZone            String   @default("America/Los_Angeles")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

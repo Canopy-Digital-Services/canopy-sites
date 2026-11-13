@@ -14,6 +14,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSoleMembership, MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { DEFAULT_LOCKED_FIELDS, normalizeGitHubRepo, parseLinkSite, type FieldErrors, type LinkSiteInput } from "@/lib/sites";
+import { CANOPY_TIME_ZONE } from "@/lib/time-zone";
 
 export type LinkSiteResult =
   | { success: true; siteId: string; accountId: string; attached: boolean }
@@ -117,7 +118,8 @@ export async function createLinkedSite(
           data: {
             email: site.email,
             password: null,
-            memberships: { create: { role: "OWNER", account: { create: { planCode: "SITES" } } } },
+            // The operator's browser isn't the client's, so the zone is Canopy's own until the owner changes it.
+            memberships: { create: { role: "OWNER", account: { create: { planCode: "SITES", timeZone: CANOPY_TIME_ZONE } } } },
           },
           select: { memberships: { select: { accountId: true } } },
         });

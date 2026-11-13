@@ -139,6 +139,22 @@ describe("signUp", () => {
     expect(await cookieSession()).toMatchObject({ userId: user.id, rememberMe: false });
   });
 
+  it("gives the account the browser's time zone, and UTC when what it sent isn't one", async () => {
+    const zoneOf = async (email: string) =>
+      (await prisma.user.findUniqueOrThrow({ where: { email }, include: { memberships: { include: { account: true } } } })).memberships[0].account
+        .timeZone;
+
+    await signUp(form({ email: "ny@example.com", password: "long-enough-pw", timeZone: "America/New_York" }));
+    await signUp(form({ email: "bogus@example.com", password: "long-enough-pw", timeZone: "Mars/Olympus_Mons" }));
+    await signUp(form({ email: "long@example.com", password: "long-enough-pw", timeZone: "A".repeat(5000) }));
+    await signUp(form({ email: "none@example.com", password: "long-enough-pw" }));
+
+    expect(await zoneOf("ny@example.com")).toBe("America/New_York");
+    expect(await zoneOf("bogus@example.com")).toBe("UTC");
+    expect(await zoneOf("long@example.com")).toBe("UTC");
+    expect(await zoneOf("none@example.com")).toBe("UTC");
+  });
+
   it("rejects a registered email without creating anything", async () => {
     await signUp(form({ email: "taken@example.com", password: "long-enough-pw" }));
     const result = await signUp(form({ email: "taken@example.com", password: "another-pw-1" }));

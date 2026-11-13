@@ -57,12 +57,12 @@ Flow:
 1. Validate email format and password length (`passwordProblem` in `src/lib/password-policy.ts`: 8 to 128 characters)
 2. Refuse if throttled; check for an existing user with the same email and reject if found
 3. Hash the password (see Password storage)
-4. Create User, Account, and an `OWNER` Membership in one write
+4. Create User, Account, and an `OWNER` Membership in one write. The account's `timeZone` is the browser's, which the signup form sends; anything that isn't a zone leaves it on `UTC`
 5. Create a session and set the cookie
 
 ### Operator link (PRD D49)
 
-A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES`, its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
+A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES` in Pacific time (the operator's browser isn't the client's), its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
 
 ### Claim (PRD D49)
 

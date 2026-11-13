@@ -84,6 +84,23 @@ describe("the operator's claim link (PRD D49)", () => {
     expect((await prisma.passwordToken.findFirstOrThrow({ where: { userId: owner.id } })).emailedAt).not.toBeNull();
   });
 
+  it("gives the expiry date in the account's time zone", async () => {
+    const { site, owner } = await linkedSite();
+    // 22 hours ahead of the site's retired column (Pacific), so the two name different days almost all day.
+    await prisma.account.update({ where: { id: site.accountId }, data: { timeZone: "Pacific/Kiritimati" } });
+    const expiry = async () =>
+      (await prisma.passwordToken.findFirstOrThrow({ where: { userId: owner.id }, orderBy: { createdAt: "desc" } })).expiresAt.toLocaleDateString(
+        "en-US",
+        { month: "long", day: "numeric", timeZone: "Pacific/Kiritimati" }
+      );
+
+    const copied = await sendClaimLink(site.id, "copy");
+    expect((copied as { expires: string }).expires).toBe(await expiry());
+
+    await sendClaimLink(site.id, "email");
+    expect(vi.mocked(sendEmail).mock.calls[0][0].text).toContain(`expires on ${await expiry()}.`);
+  });
+
   it("is refused to anyone who isn't a Global Admin, and for an owner who has claimed", async () => {
     const { site, owner } = await linkedSite();
     await signInAs(owner.id);

@@ -53,7 +53,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
             {requests.map((r) => {
               const status = STATUS[r.status as keyof typeof STATUS];
               const when = (d: Date | null) =>
-                d ? d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: r.site.timeZone }) : null;
+                d ? d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: r.site.account.timeZone }) : null;
               const about = fieldLabel(r.address);
               const acting = Boolean(r.actAsId);
               return (

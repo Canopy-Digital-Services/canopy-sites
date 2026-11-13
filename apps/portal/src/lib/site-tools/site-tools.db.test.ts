@@ -79,6 +79,19 @@ beforeEach(async () => {
   builder.buildStatus = "succeeded";
 });
 
+describe("the site's time zone", () => {
+  it("is its account's, for the builder and for the view quick edit reads today's date from", async () => {
+    const { account } = await siteAccount();
+    await prisma.account.update({ where: { id: account.id }, data: { timeZone: "America/New_York" } });
+    const { fetchContent } = await import("@/lib/builder-client");
+
+    const view = await tools.getContentView(account.id);
+
+    expect(view.site.timeZone).toBe("America/New_York");
+    expect(vi.mocked(fetchContent).mock.lastCall?.[0]).toMatchObject({ timeZone: "America/New_York" });
+  });
+});
+
 describe("proposeChange", () => {
   it("records a DRAFT change with a queued build and starts the preview at the published commit", async () => {
     const { ctx, site } = await siteAccount();
