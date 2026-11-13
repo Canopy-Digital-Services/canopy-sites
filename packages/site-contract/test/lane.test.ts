@@ -67,6 +67,21 @@ describe("classes and team", () => {
     );
   });
 
+  it("accept a person's note and group, and an FAQ's link, each optional", async () => {
+    const c = await load();
+    c.team[0].note = "IKF champion";
+    c.team[0].group = "Coaches";
+    c.faqs = [
+      { id: "cost", question: "Is it free?", answer: "Yes, for members.", link: { label: "Join", href: "/join" } },
+      { id: "who", question: "Who is it for?", answer: "Anyone starting out." },
+    ];
+    expect(messages(c)).toEqual([]);
+
+    c.team[0].note = "";
+    c.faqs[0].link = { label: "Join" };
+    expect(messages(c)).toEqual(expect.arrayContaining([expect.stringMatching(/^team\/0\/note: /), expect.stringMatching(/^faqs\/0\/link\/href: /)]));
+  });
+
   it("checks that a team photo exists under src/assets", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "site-contract-"));
     await cp(GOOD, dir, { recursive: true });
@@ -116,6 +131,29 @@ describe("laneViolations", () => {
       d.pages[0].hero.subheadline = "New line";
     });
     expect(laneViolations(c, after)).toEqual([]);
+  });
+
+  it("lets the owner write a person's note, and keeps their group and an FAQ's link Canopy's", async () => {
+    const c = await load();
+    c.team[0].note = "IKF champion";
+    c.team[0].group = "Coaches";
+    c.faqs = [{ id: "cost", question: "Is it free?", answer: "Yes, for members.", link: { label: "Join", href: "/join" } }];
+
+    const owners = edit(c, (d) => {
+      d.team[0].note = "Two-time IKF champion";
+      d.team[1].note = "Black belt";
+      d.team.push({ id: "maria", name: "Coach Maria", role: "Youth", note: "Former national team" });
+      d.faqs[0].answer = "Yes. Joining is free too.";
+      d.faqs.push({ id: "when", question: "When do you meet?", answer: "Every month." });
+    });
+    expect(laneViolations(c, owners)).toEqual([]);
+
+    const canopys = edit(c, (d) => {
+      d.team[0].group = "Owners";
+      d.team[1].group = "Coaches";
+      d.faqs[0].link.href = "/elsewhere";
+    });
+    expect(reasons(laneViolations(c, canopys)).sort()).toEqual(["canopy faqs/cost/link", "canopy team/iggy/group", "canopy team/steven/group"]);
   });
 
   it("refuses changes to Canopy's fields: SEO, navigation, eyebrows, buttons, ids", async () => {
