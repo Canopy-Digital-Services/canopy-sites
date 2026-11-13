@@ -126,7 +126,7 @@ export function DraftStatus() {
       />
       {siteId ? (
         <Button size="sm" asChild>
-          <a href={`/preview/${siteId}`} target="_blank" rel="noopener">
+          <a href={`/preview/${siteId}`} target="_blank" rel="opener">
             Preview
             <ExternalLink className="h-4 w-4" />
           </a>
