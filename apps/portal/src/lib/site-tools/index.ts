@@ -110,27 +110,31 @@ type DraftOp = AddressOp & { summary?: string };
 const shapeError = (error: z.ZodError) =>
   new ToolError(`The change isn't in the right shape: ${error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
 
+/** The site's dates follow its account's time zone (`Account.timeZone`). */
+const withZone = { account: { select: { timeZone: true } } } as const;
+type ToolSite = Site & { account: { timeZone: string } };
+
 /** The account's site with what the tools need. Throws when there is none. */
-async function siteFor(accountId: string) {
-  const site = await prisma.site.findUnique({ where: { accountId } });
+async function siteFor(accountId: string): Promise<ToolSite> {
+  const site = await prisma.site.findUnique({ where: { accountId }, include: withZone });
   if (!site) throw new ToolError("This account has no site.");
   if (!site.repoUrl) throw new ToolError("This site has no repository set up yet.");
   return site;
 }
 
 /** The site with this id when the account owns it (PRD D44), or a ToolError that reveals nothing else. */
-async function ownedSite(accountId: string, siteId: string) {
-  const site = await prisma.site.findFirst({ where: { id: String(siteId), accountId } });
+async function ownedSite(accountId: string, siteId: string): Promise<ToolSite> {
+  const site = await prisma.site.findFirst({ where: { id: String(siteId), accountId }, include: withZone });
   if (!site) throw new ToolError("No such site.");
   if (!site.repoUrl) throw new ToolError("This site has no repository set up yet.");
   return site;
 }
 
-const builderSite = (site: Pick<Site, "slug" | "repoUrl" | "defaultBranch" | "timeZone">): BuilderSite => ({
+const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
   slug: site.slug,
   repoUrl: site.repoUrl ?? "",
   branch: site.defaultBranch,
-  timeZone: site.timeZone,
+  timeZone: site.account.timeZone,
 });
 
 function asOps(json: Prisma.JsonValue): ChangeOp[] {
@@ -169,7 +173,7 @@ interface SiteRead {
   guide: SiteGuide;
 }
 
-async function readSite(site: Site): Promise<SiteRead> {
+async function readSite(site: ToolSite): Promise<SiteRead> {
   const { commit, content, guide, contractVersion } = await builderCall(() => fetchContent(builderSite(site)));
   // The repo owns its contract version (PRD D24); a Canopy push can move it
   // without the portal publishing anything, so every read records it.
@@ -259,7 +263,7 @@ async function supersedeBuilds(tx: Prisma.TransactionClient, changeSetId: string
 }
 
 /** Asks the builder for a preview; a failure is recorded on the build and returned, not thrown. */
-async function startBuild(site: Site, buildId: string, ops: ChangeOp[], baseCommit: string): Promise<string | null> {
+async function startBuild(site: ToolSite, buildId: string, ops: ChangeOp[], baseCommit: string): Promise<string | null> {
   try {
     await requestPreview(builderSite(site), buildId, builderOps(ops), baseCommit);
     return null;
@@ -276,7 +280,7 @@ async function startBuild(site: Site, buildId: string, ops: ChangeOp[], baseComm
  * re-checked, and rebuilt. One that no longer fits, or that still holds the
  * pointer ops of a pre-draft proposal, fails with the reason.
  */
-async function syncDraft(site: Site, read: SiteRead): Promise<Pending | null> {
+async function syncDraft(site: ToolSite, read: SiteRead): Promise<Pending | null> {
   const pending = await pendingChange(site.id);
   if (!pending || pending.baseCommit === read.commit) return pending;
   const ops = asOps(pending.ops);
@@ -400,7 +404,7 @@ export interface DraftWriteResult {
 /** Two writes that land together: the one that loses the race runs again on top of the winner. */
 class WriteRace extends Error {}
 
-async function writeDraft(site: Site, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
+async function writeDraft(site: ToolSite, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await writeDraftOnce(site, ctx, read, w);
@@ -411,7 +415,7 @@ async function writeDraft(site: Site, ctx: ToolContext, read: SiteRead, w: Draft
   }
 }
 
-async function writeDraftOnce(site: Site, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
+async function writeDraftOnce(site: ToolSite, ctx: ToolContext, read: SiteRead, w: DraftWrite): Promise<DraftWriteResult> {
   const pending = await syncDraft(site, read);
   let existing: DraftOp[] = [];
   if (pending) {
@@ -506,7 +510,7 @@ function report(before: RawContent, after: RawContent, guide: SiteGuide): { chan
   return { changes: changedFields(before, after), warnings };
 }
 
-async function draftView(site: Site) {
+async function draftView(site: ToolSite) {
   const read = await readSite(site);
   const pending = await syncDraft(site, read);
   let content = read.published;
@@ -519,7 +523,7 @@ async function draftView(site: Site) {
   }
   const build = pending?.builds[0];
   return {
-    site: { id: site.id, name: site.name, slug: site.slug, isDemo: site.isDemo, lockedFields: site.lockedFields, timeZone: site.timeZone },
+    site: { id: site.id, name: site.name, slug: site.slug, isDemo: site.isDemo, lockedFields: site.lockedFields, timeZone: site.account.timeZone },
     commit: read.commit,
     published: read.published,
     content,
@@ -605,7 +609,7 @@ export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: 
 async function ownedChange(accountId: string, changeSetId: string) {
   const changeSet = await prisma.changeSet.findFirst({
     where: { id: String(changeSetId), site: { accountId } },
-    include: { site: true, builds: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { site: { include: withZone }, builds: { orderBy: { createdAt: "desc" }, take: 1 } },
   });
   if (!changeSet) throw new ToolError("No such change.");
   return changeSet;

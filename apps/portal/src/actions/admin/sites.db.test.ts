@@ -52,7 +52,7 @@ describe("linkSite (PRD D49)", () => {
     });
     expect(owner).toMatchObject({ password: null, roleCode: "USER" });
     expect(owner.memberships).toHaveLength(1);
-    expect(owner.memberships[0]).toMatchObject({ role: "OWNER", account: { planCode: "SITES", status: "ACTIVE" } });
+    expect(owner.memberships[0]).toMatchObject({ role: "OWNER", account: { planCode: "SITES", status: "ACTIVE", timeZone: "America/Los_Angeles" } });
     expect(await prisma.site.findUniqueOrThrow({ where: { accountId: owner.memberships[0].accountId } })).toMatchObject({
       name: "Toro Z Muay Thai",
       slug: "toroz",
@@ -61,7 +61,6 @@ describe("linkSite (PRD D49)", () => {
       productionHostnames: ["torozmuaythai.com", "www.torozmuaythai.com"],
       umamiWebsiteId: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
       lockedFields: DEFAULT_LOCKED_FIELDS,
-      timeZone: "America/Los_Angeles",
       isDemo: false,
     });
   });

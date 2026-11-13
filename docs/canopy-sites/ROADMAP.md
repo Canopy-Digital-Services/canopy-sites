@@ -54,7 +54,7 @@ E30 is built first as the demo slice (PRD D23): the builder, preview and publish
 
 ### Visual editor next (decided 2026-10-17)
 
-E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild with `Site.timeZone` (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
+E33 is built next as the visual editor (PRD D35 to D45), on H&H as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild in the account's time zone (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
 
 ### canopyds.com on Sites (decided 2026-10-19)
 
@@ -224,7 +224,7 @@ Epic 40 (T1) takes three of these ahead of the rest, because Toro Z depends on t
 
 - Claude API, tool use, tools = E31 layer in-process. Model names and per-model roles (classify vs edit) in env, not code
 - Definitions module shared with E34 (PRD D30): tool names, descriptions, schemas, core guidance, quick edit persona, wording from `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md`. Replace `runbook.ts`; cut the guidance doc to its placement rules and numbers. Tool definitions identical across sites so the shared prefix caches product-wide
-- Prompt assembly: core guidance + persona (cached, shared) + the prose of `SITE_GUIDE.md`, read through the builder from the published commit (PRD D31; E33 reads its front matter) + JSON Schema for every collection, carrying C3's field descriptions. Drop `Site.runbookOverlay` and its operator textarea; resolve dates with `Site.timeZone` (added in E33)
+- Prompt assembly: core guidance + persona (cached, shared) + the prose of `SITE_GUIDE.md`, read through the builder from the published commit (PRD D31; E33 reads its front matter) + JSON Schema for every collection, carrying C3's field descriptions. Drop `Site.runbookOverlay` and its operator textarea; resolve dates with the account's zone, `Account.timeZone`
 - Alt text limit 125
 - Verbatim copy (PRD D32): the guidance and the scripted edits cover asking for quoted text, typo corrections reported back, and site-rule conflicts. Update the demo's suggested prompts to quote their text
 - Tool-result checks per the guidance doc section 2: stale mentions, date and weekday mismatches, duplicates, link reachability, expired-announcement pruning
@@ -245,7 +245,7 @@ Goal: the owner clicks a marked field on their own site and changes it, and Publ
 - Marked fields only (D35), through C3's `field()` in the site's templates. A bridge script (replacing `src/app/demo/editor-mockup.ts`) reports the marked fields, applies text edits to every element with the edited address, and reports navigation, over postMessage only
 - Editors on the canvas for plain text, prices, and an announcement's message and dates; every other marked field opens the quick edit popover scoped to it (D37)
 - The draft (D38, from E31): saved as the owner edits, merged per field, versioned, rebased on a Canopy push. The builder answers content reads from its clone and builds newest first; build status is pushed to the page; unpublished changes sit in the Sites chrome, and E37 moves Publish from there to the preview page (PRD D47)
-- Site guide front matter enforced in the tool layer, with counters on the canvas (D40); the nightly rebuild at `Site.timeZone` midnight (D42)
+- Site guide front matter enforced in the tool layer, with counters on the canvas (D40); the nightly rebuild at midnight in the account's zone (D42)
 - New code resolves the site by id with an ownership check (D44)
 
 ### E34 · Public MCP endpoint and API keys

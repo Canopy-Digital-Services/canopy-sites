@@ -12,6 +12,7 @@
  * so the design tokens aren't available here — these values mirror them.
  */
 import { formatFieldValue } from "@/lib/composite-format";
+import { UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
 import { isValidEmail } from "@/lib/validation";
 
 /** Shape this module needs from a Field row. */
@@ -84,7 +85,7 @@ function pickReplyTo(
  * `submissionsUrl` is null for recipients with no account on this form's
  * account — they can't sign in, so a dashboard link would only dead-end them.
  * `productName` is the form's account's product, for the footer.
- * `timeZone` is the zone of the account's site, null when it has none.
+ * `timeZone` is the form's account's zone (`Account.timeZone`).
  */
 export function renderNotificationEmail(input: {
   formName: string;
@@ -92,7 +93,7 @@ export function renderNotificationEmail(input: {
   submissionsUrl: string | null;
   responses?: ResponseLine[] | null;
   productName: string;
-  timeZone?: string | null;
+  timeZone: string;
 }): { text: string; html?: string } {
   const { formName, submittedAt, submissionsUrl, responses, productName } = input;
   const timestamp = formatSubmittedAt(submittedAt, input.timeZone);
@@ -108,12 +109,12 @@ export function renderNotificationEmail(input: {
 }
 
 /**
- * The time with its zone named ("Nov 12, 2026, 4:20 PM PST"). An email has no
- * browser to take the reader's zone from, and a time with no zone beside it
- * reads as the reader's own. The site's zone when the account has a site,
- * UTC when it has none or the stored zone is one this runtime doesn't know.
+ * The time in the account's zone, with the zone named ("Nov 12, 2026, 4:20 PM
+ * PST"). An email has no browser to take the reader's zone from, and a time
+ * with no zone beside it reads as the reader's own. In UTC if the stored zone
+ * is one this runtime doesn't know.
  */
-function formatSubmittedAt(submittedAt: Date, timeZone?: string | null): string {
+function formatSubmittedAt(submittedAt: Date, timeZone: string): string {
   const inZone = (zone: string) =>
     submittedAt
       .toLocaleString("en-US", {
@@ -129,14 +130,12 @@ function formatSubmittedAt(submittedAt: Date, timeZone?: string | null): string 
       // clients draw as a box.
       .replace(/\u202f/g, " ");
 
-  if (timeZone) {
-    try {
-      return inZone(timeZone);
-    } catch {
-      // An unknown zone is a RangeError; the email still goes out, in UTC.
-    }
+  try {
+    return inZone(timeZone);
+  } catch {
+    // An unknown zone is a RangeError; the email still goes out, in UTC.
+    return inZone(UNKNOWN_TIME_ZONE);
   }
-  return inZone("UTC");
 }
 
 function renderText(

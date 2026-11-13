@@ -612,9 +612,9 @@ A time with no zone beside it means the viewer's own clock, and only the browser
 
 Never format one in a page or component with `toLocaleString`, `toLocaleDateString`, or a date's `get*` parts unless it names a `timeZone`. The server's zone is UTC, a client component renders there first, and React keeps the server's text through hydration: `suppressHydrationWarning` hides the mismatch and fixes nothing. Quick Edit's lists showed UTC that way, except for a row that arrived after load (fixed 2026-11-12).
 
-Name a zone where the reader's clock isn't the one that matters, or where there is no browser: the operator's pages about a site and the emails about one use `Site.timeZone`, as the site's own dates do (quick edit's "today", the nightly rebuild).
+Name a zone where the reader's clock isn't the one that matters, or where there is no browser: the operator's pages about a site and every email use the account's zone (`Account.timeZone`), as a site's own dates do (quick edit's "today", the nightly rebuild).
 
-A time of day in an email has its zone's abbreviation beside it ("Nov 12, 2026, 4:20 PM PST"), since the reader takes a bare one for their own clock. The submission notification writes it in the account's site's zone, and in UTC for an account with no site, which stores no zone (`formatSubmittedAt` in [submission-email.ts](src/lib/submission-email.ts)). Pass the locale (`"en-US"`) as well as the `timeZone`: with neither, the text follows whatever the container is set to. The notification read as UTC with no zone named that way (fixed 2026-11-12).
+A time of day in an email has its zone's abbreviation beside it ("Nov 12, 2026, 4:20 PM PST"), since the reader takes a bare one for their own clock. The submission notification writes it in the account's zone (`formatSubmittedAt` in [submission-email.ts](src/lib/submission-email.ts)). Pass the locale (`"en-US"`) as well as the `timeZone`: with neither, the text follows whatever the container is set to. The notification read as UTC with no zone named that way (fixed 2026-11-12).
 
 ### Type chooser
 
