@@ -107,7 +107,11 @@ export function SearchSelect({ value, options, onChange, id, disabled, "aria-lab
               aria-label="Search"
               aria-controls={listId}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                // Matches read from the top, wherever the list had scrolled to.
+                if (listRef.current) listRef.current.scrollTop = 0;
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && shown.length > 0) {
                   e.preventDefault();
