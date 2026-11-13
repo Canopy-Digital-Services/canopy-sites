@@ -10,11 +10,12 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 2. [Account Creation (Signup)](#account-creation-signup)
 3. [Authentication (Sign-in)](#authentication-sign-in)
 4. [Session Management](#session-management)
-5. [Password Change](#password-change)
-6. [Password Reset](#password-reset)
-7. [Account Deletion](#account-deletion)
-8. [Operator Account Management](#operator-account-management)
-9. [Billing](#billing)
+5. [Time Zone](#time-zone)
+6. [Password Change](#password-change)
+7. [Password Reset](#password-reset)
+8. [Account Deletion](#account-deletion)
+9. [Operator Account Management](#operator-account-management)
+10. [Billing](#billing)
 
 ---
 
@@ -57,12 +58,12 @@ Flow:
 1. Validate email format and password length (`passwordProblem` in `src/lib/password-policy.ts`: 8 to 128 characters)
 2. Refuse if throttled; check for an existing user with the same email and reject if found
 3. Hash the password (see Password storage)
-4. Create User, Account, and an `OWNER` Membership in one write
+4. Create User, Account, and an `OWNER` Membership in one write. The account's `timeZone` is the browser's, which the signup form sends; anything that isn't a zone leaves it on `UTC`
 5. Create a session and set the cookie
 
 ### Operator link (PRD D49)
 
-A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES`, its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
+A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES` in Pacific time (the operator's browser isn't the client's), its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
 
 ### Claim (PRD D49)
 
@@ -141,6 +142,13 @@ Deleting rows is how sessions end, immediately and everywhere:
 | User or account deletion | All, by cascade |
 
 ---
+
+## Time Zone
+
+**Route:** `/account`
+**Action:** `setAccountTimeZone()` in `src/actions/accounts.ts`
+
+Any member of the account, or an operator acting as it, picks the account's zone; choosing saves. The action stores only a zone the runtime knows, spelled as the runtime spells it (`canonicalTimeZone`), and for an account with a site asks the builder for the site's content, which is how the builder learns a zone (`sendSiteTimeZone`). A builder that can't be reached doesn't fail the save: it learns the zone at the site's next read.
 
 ## Password Change
 
@@ -241,7 +249,7 @@ Non-admins are silently redirected to their home (`/forms` or `/editor`).
 
 A Global Admin opens a Sites client's account from the site's Owner card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
 
-A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section, switching on a form's notifications fills in the owner's email as the first recipient (never the operator's), and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author, a help request's sender (with its `actAsId`, and no email goes out for it, sent or closed). The `ActAs` row is the record for the rest.
+A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section (the time zone stays, and is how the operator sets a client's), switching on a form's notifications fills in the owner's email as the first recipient (never the operator's), and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author, a help request's sender (with its `actAsId`, and no email goes out for it, sent or closed). The `ActAs` row is the record for the rest.
 
 ### Role system
 

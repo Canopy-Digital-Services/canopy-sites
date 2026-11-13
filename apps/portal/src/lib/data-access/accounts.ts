@@ -133,3 +133,9 @@ export async function getAccountSubmissionsCount(
     },
   });
 }
+
+/** The account's time zone, an IANA name (`src/lib/time-zone.ts`). */
+export async function getAccountTimeZone(accountId: string): Promise<string> {
+  const account = await prisma.account.findUniqueOrThrow({ where: { id: accountId }, select: { timeZone: true } });
+  return account.timeZone;
+}
