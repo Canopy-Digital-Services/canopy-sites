@@ -72,13 +72,21 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
     }
   }, [open]);
 
-  // Scroll selected item into view when opening
-  useEffect(() => {
-    if (open && listRef.current) {
-      const selected = listRef.current.querySelector("[data-selected=true]");
-      selected?.scrollIntoView({ block: "nearest" });
-    }
-  }, [open]);
+  // The chosen font, mid-list as the list opens. The popover mounts after
+  // `open` changes, so this runs from the list's own ref, and it moves the
+  // list's scroll alone: scrollIntoView would move the page under a popover
+  // that isn't placed yet.
+  const listMounted = useCallback((list: HTMLDivElement | null) => {
+    listRef.current = list;
+    const chosen = list?.querySelector<HTMLElement>("[data-selected=true]");
+    if (list && chosen) list.scrollTop = chosen.offsetTop - (list.clientHeight - chosen.offsetHeight) / 2;
+  }, []);
+
+  // Matches read from the top, wherever the list had scrolled to.
+  function searchFor(next: string) {
+    setSearch(next);
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }
 
   // Load the shown font so the trigger renders in its own typeface
   useEffect(() => {
@@ -142,7 +150,7 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
               className="flex h-9 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
               placeholder="Search fonts..."
               value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => searchFor(e.target.value)}
               autoComplete="off"
               spellCheck={false}
             />
@@ -150,7 +158,7 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
               <button
                 type="button"
                 className="ml-1 text-muted-foreground hover:text-foreground"
-                onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+                onClick={() => { searchFor(""); searchRef.current?.focus(); }}
                 tabIndex={-1}
               >
                 ✕
@@ -160,10 +168,10 @@ export function FontPicker({ value, onChange, id, variant = "body", showInherit 
 
           {/* Font list */}
           <div
-            ref={listRef}
+            ref={listMounted}
             id="font-picker-listbox"
             role="listbox"
-            className="max-h-60 overflow-y-auto p-1"
+            className="relative max-h-60 overflow-y-auto p-1"
           >
             {/* Inherit option — pinned at top when not searching, embedded forms only */}
             {!isSearching && showInherit && (
