@@ -20,6 +20,10 @@ model Account {
   // outside the portal; billingRef points there. Status gates nothing yet.
   status                 AccountStatus @default(ACTIVE)
   billingRef             String?
+  // IANA zone of the business. Emails state times in it, and its site's dates
+  // follow it: the builder rebuilds at its local midnight (PRD D42). Signup
+  // records the browser's; UTC is an account nobody has told us the zone of.
+  timeZone               String        @default("UTC")
 
   plan          Plan           @relation(fields: [planCode], references: [code])
   memberships   Membership[]

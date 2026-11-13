@@ -343,7 +343,7 @@ Plan (code PK, displayName, description?, maxPublishedForms?, sitesEnabled, isPu
 Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
-         status:AccountStatus, billingRef?)
+         status:AccountStatus, billingRef?, timeZone)
   └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
   └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
   │        as the account (PRD D49); deleting the operator keeps the row
