@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/site-editor";
+import { browserEditStorage, clearUnsavedEdits, keepUnsavedEdits, unsavedEdits } from "@/lib/unsaved-edits";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
 import { sitePath, type LiveSite } from "@/lib/site-live";
@@ -93,7 +94,10 @@ export function CanvasEditor({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "updating" | "error">("idle");
+  // "unsent": a save never reached the server (the portal restarted with a new
+  // build under this page, or the connection dropped). The edits wait in the
+  // browser (lib/unsaved-edits) and are saved once the page is reloaded.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "updating" | "error" | "unsent">("idle");
   const [dates, setDates] = useState<{ startsOn: string; endsOn: string } | null>(null);
   const selectedRef = useRef<Selected | null>(null);
   const hashRef = useRef<string | null>(null);
@@ -225,24 +229,105 @@ export function CanvasEditor({
     [refreshInPlace],
   );
 
+  /**
+   * Sends edits to the draft: first any an earlier save couldn't send (20 a
+   * call, the action's limit), then the new ones. Waiting edits the site no
+   * longer accepts are dropped, so they can't hold back what was typed now.
+   * Throws when the server can't be reached at all; `left` then holds what
+   * had not been saved.
+   */
+  const send = useCallback(
+    async (waiting: Edit[], edits: Edit[], left: { edits: Edit[] }) => {
+      let last: Awaited<ReturnType<typeof saveCanvasEdits>> | null = null;
+      let dropped: string | null = null;
+      let savedAny = false;
+      for (let i = 0; i < waiting.length; i += 20) {
+        const batch = waiting.slice(i, i + 20);
+        const r = await saveCanvasEdits({ siteId, edits: batch });
+        if ("error" in r) {
+          dropped = r.issues?.[0]?.message ?? r.error;
+          left.edits = left.edits.filter((e) => !waiting.includes(e));
+          break;
+        }
+        last = r;
+        savedAny = true;
+        left.edits = left.edits.filter((e) => !batch.includes(e));
+      }
+      if (edits.length) {
+        last = await saveCanvasEdits({ siteId, edits });
+        if (!("error" in last)) savedAny = true;
+        left.edits = [];
+      }
+      return { last, dropped, savedAny };
+    },
+    [siteId],
+  );
+
   const save = useCallback(
-    (edits: Edit[], revert: () => void) => {
+    (edits: Edit[], revert: () => void, afterReload = false) => {
       setSaveState("saving");
+      // The chain never rejects: one failed save must not stop every later one.
       saveChain.current = saveChain.current.then(async () => {
-        const result = await saveCanvasEdits({ siteId, edits });
-        if ("error" in result) {
-          toast.error(result.issues?.[0]?.message ?? result.error);
+        const storage = browserEditStorage();
+        const now = Date.now();
+        const addresses = new Set(edits.map((e) => e.address));
+        const waiting = unsavedEdits(storage, siteId, now).filter((e) => !addresses.has(e.address));
+        const left = { edits: [...waiting, ...edits] };
+        if (!left.edits.length) {
+          setSaveState("idle");
+          return;
+        }
+        let sent: Awaited<ReturnType<typeof send>>;
+        try {
+          sent = await send(waiting, edits, left);
+        } catch {
+          // Never reached the server's code. Keep the text on screen and the edits
+          // in the browser; a reload gets a page the server will answer.
+          clearUnsavedEdits(storage, siteId);
+          const kept = keepUnsavedEdits(storage, siteId, left.edits, now);
+          setSaveState("unsent");
+          toast.error(
+            kept
+              ? "Your changes aren't saving: this page is out of date. Reload it and they'll be saved."
+              : "Your changes aren't saving: this page is out of date. Reload it, then make the change again.",
+            { id: "unsent", duration: Infinity, action: { label: "Reload", onClick: () => window.location.reload() } },
+          );
+          return;
+        }
+        clearUnsavedEdits(storage, siteId);
+        toast.dismiss("unsent");
+        const { last, dropped, savedAny } = sent;
+        if (savedAny) announceDraft("changed");
+        if (dropped) toast.error(`Changes from before couldn't be saved: ${dropped}`);
+        if (last && "error" in last) {
+          toast.error(last.issues?.[0]?.message ?? last.error);
           revert();
           setSaveState("error");
           return;
         }
+        if (!last) {
+          setSaveState("error");
+          return;
+        }
         setSaveState("saved");
-        if (result.buildError) toast.error(result.buildError);
-        announceDraft("changed");
+        if (last.buildError) toast.error(last.buildError);
+        if (afterReload) {
+          const n = waiting.length;
+          toast.success(n === 1 ? "Saved the change you made before the page reloaded." : `Saved the ${n} changes you made before the page reloaded.`);
+          if (last.changeSetId) reloadWhenBuilt(last.changeSetId);
+        }
       });
     },
-    [siteId],
+    [reloadWhenBuilt, send, siteId],
   );
+
+  // Edits a save couldn't send before this page was loaded: save them now.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current) return;
+    resumed.current = true;
+    if (unsavedEdits(browserEditStorage(), siteId, Date.now()).length) save([], () => {}, true);
+  }, [save, siteId]);
 
   const announcementOf = useCallback(
     (address: string) => {
@@ -417,6 +502,13 @@ export function CanvasEditor({
             <span className="text-sm text-muted-foreground">Saved</span>
           ) : saveState === "error" ? (
             <span className="text-sm text-destructive">Not saved</span>
+          ) : saveState === "unsent" ? (
+            <span className="flex items-center gap-2 text-sm text-destructive">
+              Not saved
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                Reload to save
+              </Button>
+            </span>
           ) : null}
           <ToggleGroup
             type="single"

@@ -36,7 +36,14 @@ RUN npx prisma generate
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
-RUN npm run build
+# Next salts every server action's id with this key. Left unset, each build
+# makes a new key, so a page left open across a deploy can no longer call the
+# server: its saves fail until it is reloaded. Set as a build arg, the same
+# key every build, an action keeps its id for as long as its file and name
+# don't change. Base64 of 32 random bytes; one key per environment.
+ARG NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+
+RUN NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

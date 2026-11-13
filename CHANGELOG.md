@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.19.1] - 2026-11-13
+
+### Fixed
+
+- Sites: an edit in the Editor is no longer lost when its save can't reach the server. A release restarted the portal while an Editor was open; the page, from the old build, could no longer call the new one, its first save failed, and every edit after it sat on "Saving" and was never sent. Now a save that can't get through shows "Not saved" with a Reload to save button, the text stays on screen, the edits are kept in the browser, and they are saved when the page reloads. One failed save no longer stops the ones after it
+- A page left open across a release keeps working. The build now takes a fixed key for server action ids (`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, a build arg), so the server still recognizes calls from a page loaded before the restart
+
 ## [5.19.0] - 2026-11-13
 
 ### Added
