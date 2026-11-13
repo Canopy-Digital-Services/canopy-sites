@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.17.0] - 2026-11-13
+
+### Added
+
+- Site contract 0.7.0: an FAQ can carry a link shown after its answer, and a person on the team a note shown with the role ("Navy veteran") and a group they are shown in (Board, Team). The note is the owner's to edit; the link and the group are Canopy's, so an owner adds a person without a group
+
 ## [5.16.0] - 2026-11-13
 
 ### Added
