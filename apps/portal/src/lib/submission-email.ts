@@ -2,7 +2,7 @@
  * Content for new-submission notification emails.
  *
  * Two shapes, chosen per form by `Form.emailIncludeResponses`:
- *   - off (default): metadata only — form name, timestamp, dashboard link.
+ *   - off (default): metadata only — form name, time, dashboard link.
  *     This is the Epic 4 privacy-focused email and the behavior every existing
  *     form keeps.
  *   - on: every submitted value, plus a Reply-To pointing at the submitter, so
@@ -84,6 +84,7 @@ function pickReplyTo(
  * `submissionsUrl` is null for recipients with no account on this form's
  * account — they can't sign in, so a dashboard link would only dead-end them.
  * `productName` is the form's account's product, for the footer.
+ * `timeZone` is the zone of the account's site, null when it has none.
  */
 export function renderNotificationEmail(input: {
   formName: string;
@@ -91,9 +92,10 @@ export function renderNotificationEmail(input: {
   submissionsUrl: string | null;
   responses?: ResponseLine[] | null;
   productName: string;
+  timeZone?: string | null;
 }): { text: string; html?: string } {
   const { formName, submittedAt, submissionsUrl, responses, productName } = input;
-  const timestamp = submittedAt.toLocaleString();
+  const timestamp = formatSubmittedAt(submittedAt, input.timeZone);
 
   if (!responses || responses.length === 0) {
     return { text: renderText(formName, timestamp, submissionsUrl, null, productName) };
@@ -103,6 +105,38 @@ export function renderNotificationEmail(input: {
     text: renderText(formName, timestamp, submissionsUrl, responses, productName),
     html: renderHtml(formName, timestamp, submissionsUrl, responses, productName),
   };
+}
+
+/**
+ * The time with its zone named ("Nov 12, 2026, 4:20 PM PST"). An email has no
+ * browser to take the reader's zone from, and a time with no zone beside it
+ * reads as the reader's own. The site's zone when the account has a site,
+ * UTC when it has none or the stored zone is one this runtime doesn't know.
+ */
+function formatSubmittedAt(submittedAt: Date, timeZone?: string | null): string {
+  const inZone = (zone: string) =>
+    submittedAt
+      .toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+        timeZone: zone,
+      })
+      // ICU puts a narrow no-break space before AM/PM, which some mail
+      // clients draw as a box.
+      .replace(/\u202f/g, " ");
+
+  if (timeZone) {
+    try {
+      return inZone(timeZone);
+    } catch {
+      // An unknown zone is a RangeError; the email still goes out, in UTC.
+    }
+  }
+  return inZone("UTC");
 }
 
 function renderText(

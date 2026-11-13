@@ -2,6 +2,7 @@ import { sendNewSubmissionNotification } from "./email";
 import type { ResponseLine } from "./submission-email";
 import { getAccountEntitlements } from "./data-access/entitlements";
 import { listAccountMemberEmails } from "./data-access/memberships";
+import { getAccountTimeZone } from "./data-access/sites";
 import { appUrlFor, productNameFor, senderFor } from "./product";
 
 /**
@@ -39,6 +40,7 @@ export function queueNewSubmissionNotification(options: {
     const appUrl = appUrlFor(entitlements);
     const productName = productNameFor(entitlements);
     const from = senderFor(entitlements);
+    const timeZone = await getEmailTimeZone(accountId);
 
     for (const email of notifyEmails) {
       try {
@@ -55,6 +57,7 @@ export function queueNewSubmissionNotification(options: {
           appUrl,
           productName,
           from,
+          timeZone,
         });
 
         if (success) {
@@ -78,6 +81,19 @@ async function getEmailEntitlements(accountId: string): Promise<{ sitesEnabled: 
   } catch (error) {
     console.error(`Entitlement lookup failed for account ${accountId}:`, error);
     return { sitesEnabled: false };
+  }
+}
+
+/**
+ * The zone the email writes the submission's time in: the account's site's,
+ * or null (UTC) for an account with no site or when the lookup fails.
+ */
+async function getEmailTimeZone(accountId: string): Promise<string | null> {
+  try {
+    return await getAccountTimeZone(accountId);
+  } catch (error) {
+    console.error(`Time zone lookup failed for account ${accountId}:`, error);
+    return null;
   }
 }
 

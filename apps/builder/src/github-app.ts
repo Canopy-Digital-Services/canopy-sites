@@ -2,16 +2,19 @@ import { createPrivateKey, sign, type KeyObject } from "node:crypto";
 
 /**
  * The "Canopy Sites" GitHub App (Epic 38 section 4.2): how the builder
- * reaches a site's repo. The App is owned by the org and installed only on
- * the site repos, with Contents read and write. The builder signs a JWT with
- * the App's private key, trades it for an installation token limited to the
- * one repo a job names, and caches that token until shortly before its hour
- * is up. The key and the tokens stay in this process: git gets the token
- * through its environment (gitEnv), and site build steps get no secret.
+ * reaches a site's repo. The App is owned by Canopy's org and installed only
+ * on site repos, with Contents read and write: on Canopy's org for the sites
+ * Canopy holds, and on a client's own org or account for a site whose repo is
+ * theirs (PRD D61). Each of those is a separate installation, so the builder
+ * never holds one installation's id: it signs a JWT with the App's private
+ * key, asks GitHub which installation covers the repo a job names (by owner
+ * and name), and trades the JWT for a token of that installation limited to
+ * that one repo, cached until shortly before its hour is up. The key and the
+ * tokens stay in this process: git gets the token through its environment
+ * (gitEnv), and site build steps get no secret.
  *
- *   GITHUB_APP_ID               the App's numeric id
- *   GITHUB_APP_INSTALLATION_ID  its installation on the org
- *   GITHUB_APP_PRIVATE_KEY      the PEM, as is or base64-encoded (one line)
+ *   GITHUB_APP_ID           the App's numeric id
+ *   GITHUB_APP_PRIVATE_KEY  the PEM, as is or base64-encoded (one line)
  */
 
 const API = "https://api.github.com";
@@ -20,7 +23,6 @@ const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 export interface AppConfig {
   appId: string;
-  installationId: string;
   key: KeyObject;
 }
 
@@ -30,12 +32,11 @@ export class AppAccessError extends Error {}
 /** The App's settings from the environment, or null when it isn't configured. */
 export function appConfig(env: Record<string, string | undefined> = process.env): AppConfig | null {
   const appId = env.GITHUB_APP_ID?.trim();
-  const installationId = env.GITHUB_APP_INSTALLATION_ID?.trim();
   const raw = env.GITHUB_APP_PRIVATE_KEY?.trim();
-  if (!appId || !installationId || !raw) return null;
+  if (!appId || !raw) return null;
   const pem = raw.startsWith("-----BEGIN") ? raw.replace(/\\n/g, "\n") : Buffer.from(raw, "base64").toString("utf8");
   try {
-    return { appId, installationId, key: createPrivateKey(pem) };
+    return { appId, key: createPrivateKey(pem) };
   } catch {
     throw new AppAccessError("The Canopy Sites GitHub App's private key on the builder can't be read");
   }
@@ -59,37 +60,67 @@ const HEADERS = {
 };
 
 type Fetch = typeof fetch;
-const cache = new Map<string, { token: string; expiresAt: number }>();
+const tokens = new Map<string, { token: string; expiresAt: number }>();
+/** `owner/name`, lowercased → the id of the installation that covers it. */
+const installations = new Map<string, string>();
 
-/** Forgets cached tokens (tests). */
+/** Forgets cached tokens and installations (tests). */
 export function clearTokenCache() {
-  cache.clear();
+  tokens.clear();
+  installations.clear();
+}
+
+const asApp = (cfg: AppConfig, now: number) => ({ ...HEADERS, Authorization: `Bearer ${appJwt(cfg, now)}` });
+const reason = async (res: Response) => ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
+
+/**
+ * The installation that covers a repo, by its owner and name: the App's
+ * installation on that owner's org or account, if this repo is one of the
+ * repos chosen for it. Remembered, since it changes only when the App is
+ * removed and installed again (repoToken forgets it when a token is refused).
+ */
+async function repoInstallation(cfg: AppConfig, owner: string, repo: string, fetchImpl: Fetch, now: number): Promise<string> {
+  const key = `${owner}/${repo}`.toLowerCase();
+  const hit = installations.get(key);
+  if (hit) return hit;
+  const res = await fetchImpl(`${API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/installation`, { headers: asApp(cfg, now) });
+  if (res.status === 404) throw new AppAccessError(`The Canopy Sites GitHub App isn't installed on ${owner}/${repo}`);
+  if (!res.ok) throw new AppAccessError(`The Canopy Sites GitHub App can't reach ${owner}/${repo}: ${await reason(res)}`);
+  const { id } = (await res.json()) as { id: number };
+  installations.set(key, String(id));
+  return String(id);
+}
+
+/** A token of one installation: for one of its repos with Contents write, or for listing its repos. */
+async function mintToken(cfg: AppConfig, installationId: string, repo: string | null, fetchImpl: Fetch, now: number): Promise<Response> {
+  const body = repo ? { repositories: [repo], permissions: { contents: "write", metadata: "read" } } : { permissions: { metadata: "read" } };
+  return fetchImpl(`${API}/app/installations/${installationId}/access_tokens`, {
+    method: "POST",
+    headers: { ...asApp(cfg, now), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 /**
- * An installation token for one repo (by name, under the installation's
- * owner) with Contents write, or for listing the installation's repos when
- * `repo` is null. Cached per repo.
+ * A token for one repo, named by owner and name, with Contents write and
+ * nothing else of its owner's. Cached per repo. The owner is part of the
+ * question: a repo of the same name under another owner is another repo, and
+ * usually another installation.
  */
-export async function installationToken(cfg: AppConfig, repo: string | null, fetchImpl: Fetch = fetch, now = Date.now()): Promise<string> {
-  const key = repo ?? "*";
-  const hit = cache.get(key);
+export async function repoToken(cfg: AppConfig, owner: string, repo: string, fetchImpl: Fetch = fetch, now = Date.now()): Promise<string> {
+  const key = `${owner}/${repo}`.toLowerCase();
+  const hit = tokens.get(key);
   if (hit && hit.expiresAt - REFRESH_MARGIN_MS > now) return hit.token;
 
-  const body = repo
-    ? { repositories: [repo], permissions: { contents: "write", metadata: "read" } }
-    : { permissions: { metadata: "read" } };
-  const res = await fetchImpl(`${API}/app/installations/${cfg.installationId}/access_tokens`, {
-    method: "POST",
-    headers: { ...HEADERS, Authorization: `Bearer ${appJwt(cfg, now)}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const detail = ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
-    throw new AppAccessError(repo ? `The Canopy Sites GitHub App can't reach ${repo}: ${detail}` : `The Canopy Sites GitHub App refused: ${detail}`);
+  let res = await mintToken(cfg, await repoInstallation(cfg, owner, repo, fetchImpl, now), repo, fetchImpl, now);
+  if (res.status === 404 || res.status === 401 || res.status === 403) {
+    // The installation we remembered may be gone (the App removed and installed again): ask once more.
+    installations.delete(key);
+    res = await mintToken(cfg, await repoInstallation(cfg, owner, repo, fetchImpl, now), repo, fetchImpl, now);
   }
+  if (!res.ok) throw new AppAccessError(`The Canopy Sites GitHub App can't reach ${owner}/${repo}: ${await reason(res)}`);
   const { token, expires_at } = (await res.json()) as { token: string; expires_at: string };
-  cache.set(key, { token, expiresAt: Date.parse(expires_at) });
+  tokens.set(key, { token, expiresAt: Date.parse(expires_at) });
   return token;
 }
 
@@ -102,9 +133,11 @@ export interface AppRepo {
   defaultBranch: string;
 }
 
-/** Every repo the App is installed on, sorted by name. */
-export async function installationRepos(cfg: AppConfig, fetchImpl: Fetch = fetch): Promise<AppRepo[]> {
-  const token = await installationToken(cfg, null, fetchImpl);
+/** The repos one installation covers. */
+async function reposOf(cfg: AppConfig, installationId: string, fetchImpl: Fetch, now: number): Promise<AppRepo[]> {
+  const minted = await mintToken(cfg, installationId, null, fetchImpl, now);
+  if (!minted.ok) throw new AppAccessError(`The Canopy Sites GitHub App refused: ${await reason(minted)}`);
+  const { token } = (await minted.json()) as { token: string };
   const repos: AppRepo[] = [];
   for (let page = 1; page <= 10; page++) {
     const res = await fetchImpl(`${API}/installation/repositories?per_page=100&page=${page}`, {
@@ -120,5 +153,23 @@ export async function installationRepos(cfg: AppConfig, fetchImpl: Fetch = fetch
     }
     if (repos.length >= body.total_count || body.repositories.length === 0) break;
   }
+  return repos;
+}
+
+/**
+ * Every repo the App is installed on, across all its installations (Canopy's
+ * org and each client's), sorted by `owner/name`. A suspended installation is
+ * left out: its repos can't be reached until its owner lifts the suspension.
+ */
+export async function appRepos(cfg: AppConfig, fetchImpl: Fetch = fetch, now = Date.now()): Promise<AppRepo[]> {
+  const ids: string[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const res = await fetchImpl(`${API}/app/installations?per_page=100&page=${page}`, { headers: asApp(cfg, now) });
+    if (!res.ok) throw new AppAccessError(`Listing the App's installations failed: ${await reason(res)}`);
+    const list = (await res.json()) as Array<{ id: number; suspended_at?: string | null }>;
+    for (const i of list) if (!i.suspended_at) ids.push(String(i.id));
+    if (list.length < 100) break;
+  }
+  const repos = (await Promise.all(ids.map((id) => reposOf(cfg, id, fetchImpl, now)))).flat();
   return repos.sort((a, b) => a.fullName.localeCompare(b.fullName));
 }

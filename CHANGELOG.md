@@ -5,12 +5,24 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.15.0] - 2026-11-12
+
+### Added
+
+- Sites: a site's repo can live in the client's own GitHub org or account, not only in Canopy's. The Canopy Sites GitHub App is installed there on that one repo, and the builder finds the installation from the repo's owner and name, so nothing is set up on the builder per client. Link a site lists the repos of every installation
+
+### Fixed
+
+- Forms: a submission's notification email names the time zone of its time ("Nov 12, 2026, 4:20 PM PST"): the zone of the account's site, or UTC, named, for an account with no site. It gave a UTC time with no zone, which read as the recipient's own
+- Sites: the builder reads the owner in a site's repo address. It used only the repo's name, under Canopy's org
+
 ## [5.14.8] - 2026-11-12
 
 ### Fixed
 
 - Sites: publishing from any page of the preview keeps "Published. It will be live in a few minutes." It was replaced by "No unpublished changes" over the live page whenever the preview had moved off the page it opened on, so a publish that worked read as one that failed
 - Sites: an expired claim link's page offers only "Email me a new link", and says "Check your email" once it is sent. It no longer offers Sign in to an owner who has no password yet
+- Times show in the viewer's own time zone instead of UTC: Quick Edit's Recently published and Sent to Michael, a form's submissions, and the operator's Created and Last Login dates
 
 ### Added
 

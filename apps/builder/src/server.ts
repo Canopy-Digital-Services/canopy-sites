@@ -17,7 +17,7 @@ import {
   type SiteRef,
 } from "./sites.ts";
 import { StepError } from "./run.ts";
-import { AppAccessError, appConfig, installationRepos } from "./github-app.ts";
+import { AppAccessError, appConfig, appRepos } from "./github-app.ts";
 
 /**
  * Internal API for the portal. Not routed by Traefik: only containers on the
@@ -93,13 +93,14 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   if (req.method === "GET" && url.pathname === "/healthz") return json(res, 200, { ok: true });
   if (!authorized(req)) return json(res, 401, { error: "Unauthorized" });
 
-  // GET /v1/repos: the repos the Canopy Sites GitHub App is installed on, for
-  // the portal's Link a site picker. 404 when the App isn't configured.
+  // GET /v1/repos: the repos the Canopy Sites GitHub App is installed on, in
+  // Canopy's org and in each client's, for the portal's Link a site picker.
+  // 404 when the App isn't configured.
   if (req.method === "GET" && url.pathname === "/v1/repos") {
     try {
       const app = appConfig();
       if (!app) return json(res, 404, { error: "The Canopy Sites GitHub App isn't configured on the builder" });
-      return json(res, 200, { repos: await installationRepos(app) });
+      return json(res, 200, { repos: await appRepos(app) });
     } catch (err) {
       if (err instanceof AppAccessError) return json(res, 502, { error: err.message });
       throw err;
