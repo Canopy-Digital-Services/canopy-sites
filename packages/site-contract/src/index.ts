@@ -46,7 +46,7 @@ export { migrateContent } from "./migrate.js";
 export { FIXED_EVERYWHERE, LaneRuleError, laneViolations, type LaneReason, type LaneRules, type LaneViolation } from "./lane.js";
 
 /** Keep in step with package.json; a test checks it. */
-export const CONTRACT_VERSION = "0.5.0";
+export const CONTRACT_VERSION = "0.6.0";
 
 export interface SiteContent {
   site?: Site;
