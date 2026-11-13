@@ -133,7 +133,7 @@ function QuickEdit({
             </p>
             {m.id === previewAt ? (
               <Button size="sm" className="lg:hidden" asChild>
-                <a href={previewHref} target="_blank" rel="noopener">
+                <a href={previewHref} target="_blank" rel="opener">
                   Preview
                   <ExternalLink className="h-4 w-4" />
                 </a>
@@ -253,7 +253,7 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
         <Button asChild>
-          <a href={`/preview/${siteId}`} target="_blank" rel="noopener">
+          <a href={`/preview/${siteId}`} target="_blank" rel="opener">
             Preview
             <ExternalLink className="h-4 w-4" />
           </a>
