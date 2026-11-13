@@ -89,7 +89,7 @@ Email notifications are configured per form under **Edit → Submission Settings
 
 ### What the email contains
 
-Every notification includes the form name and a timestamp. Recipients who can sign in to this account also get a link to the submission in the dashboard; recipients who don't have an account don't, since the link would only send them to a login screen.
+Every notification includes the form name and the time the submission came in, with its time zone beside it (for example, "Nov 12, 2026, 4:20 PM PST"). The time is in your website's time zone if Canopy hosts your website, and in UTC otherwise. Recipients who can sign in to this account also get a link to the submission in the dashboard; recipients who don't have an account don't, since the link would only send them to a login screen.
 
 With **Include responses in the email** checked, each notification also contains:
 

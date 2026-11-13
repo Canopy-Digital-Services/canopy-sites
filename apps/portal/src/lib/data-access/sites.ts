@@ -20,6 +20,15 @@ export async function getAccountSite(accountId: string): Promise<AccountSite | n
   });
 }
 
+/**
+ * The zone the account's site keeps its dates in, or null when the account
+ * has no site (a Forms-only account stores no zone).
+ */
+export async function getAccountTimeZone(accountId: string): Promise<string | null> {
+  const site = await prisma.site.findUnique({ where: { accountId }, select: { timeZone: true } });
+  return site?.timeZone ?? null;
+}
+
 const ownerEmail = {
   memberships: {
     where: { role: "OWNER" as const },
