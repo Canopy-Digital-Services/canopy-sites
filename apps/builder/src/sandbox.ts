@@ -96,6 +96,22 @@ export async function claimOutput(dist: string) {
   if (!info.isDirectory()) throw new StepError("The build's dist is not a directory");
 }
 
+const isRealDir = async (p: string) => (await lstat(p).catch(() => null))?.isDirectory() ?? false;
+
+/**
+ * Where a finished build left its pages. A static site builds them into
+ * `dist/`. A site with a server (Astro with an adapter, PRD D62) builds its
+ * prerendered pages and assets into `dist/client/`, beside the server's own
+ * code in `dist/server/`, and has no page at `dist/` itself. The builder
+ * takes the pages and never runs or serves the server's code: what such a
+ * site renders per request is its own app's to serve.
+ */
+export async function pagesDir(dist: string): Promise<string> {
+  const client = path.join(dist, "client");
+  const serverBuild = (await isRealDir(client)) && (await isRealDir(path.join(dist, "server"))) && !(await lstat(path.join(dist, "index.html")).catch(() => null));
+  return serverBuild ? client : dist;
+}
+
 export async function sealBuild(buildDir: string) {
   const env = { PATH: process.env.PATH ?? "/usr/bin:/bin" };
   await run("chown", ["-R", "0:0", buildDir], { cwd: "/", env });
