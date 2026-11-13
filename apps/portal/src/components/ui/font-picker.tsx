@@ -1,259 +1,74 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Popover } from "radix-ui";
-import { ChevronDown, Check, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect } from "react";
+import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { CURATED_FONTS, CURATED_HEADING_FONTS, ALL_GOOGLE_FONTS } from "@/lib/google-fonts";
 import { loadFonts } from "@/lib/load-fonts";
 
 const INHERIT_VALUE = "inherit";
 const INHERIT_LABEL = "Inherit from host page";
 
+const fontOption = (font: string): SearchSelectOption => ({ value: font, label: font });
+const CURATED = {
+  body: { fonts: CURATED_FONTS, options: CURATED_FONTS.map(fontOption) },
+  heading: { fonts: CURATED_HEADING_FONTS, options: CURATED_HEADING_FONTS.map(fontOption) },
+};
+const ALL_FONTS = ALL_GOOGLE_FONTS.map(fontOption);
+
+const typeface = (font: string | undefined) => (font ? { fontFamily: `'${font}', sans-serif` } : undefined);
+
 type FontPickerProps = {
   value: string;
   onChange: (value: string) => void;
-  label?: string;
   id?: string;
   /** "body" shows body-optimized fonts; "heading" shows heading/display fonts. */
   variant?: "body" | "heading";
   /**
    * Whether the "Inherit from host page" sentinel is offered. Embedded forms
    * inherit from the host page's CSS, so they get this option. Hosted forms
-   * have no host page to inherit from — pass false to hide it.
+   * have no host page to inherit from: pass false to hide it.
    */
   showInherit?: boolean;
   /**
    * The font an unset value renders in, when it's known: Inter on a hosted
    * page, the text font for the title and labels. The trigger names it, and
    * so does the inherit option, rather than a vague "Default". Left out, an
-   * unset value can only be named as the host page's font.
+   * unset value can only be named as the host page's font, so a picker
+   * without the inherit option needs it.
    */
   unsetFont?: string;
 };
 
+/**
+ * A `SearchSelect` of fonts, each drawn in its own typeface: a curated list,
+ * every Google font behind the search, and on an embedded form the inherit
+ * option above them.
+ */
 export function FontPicker({ value, onChange, id, variant = "body", showInherit = true, unsetFont }: FontPickerProps) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const unset = value === INHERIT_VALUE || !value;
+  const curated = CURATED[variant];
+  const inherit: SearchSelectOption = { value: INHERIT_VALUE, label: unsetFont ?? INHERIT_LABEL, ruleBelow: true };
 
-  const isInherit = value === INHERIT_VALUE || !value;
-  const inheritLabel = unsetFont ?? INHERIT_LABEL;
   // The font the trigger shows, set or not, so it renders in its own typeface.
-  const shownFont = isInherit ? unsetFont : value;
-  const displayLabel = isInherit ? inheritLabel : value;
-
-  const isSearching = search.trim().length > 0;
-  const query = search.trim().toLowerCase();
-  const curatedList = variant === "heading" ? CURATED_HEADING_FONTS : CURATED_FONTS;
-
-  const filteredFonts = isSearching
-    ? ALL_GOOGLE_FONTS.filter((f) => f.toLowerCase().includes(query))
-    : curatedList;
-
-  const handleSelect = useCallback((font: string) => {
-    onChange(font);
-    setOpen(false);
-    setSearch("");
-  }, [onChange]);
-
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen) {
-      setSearch("");
-    }
-  }, []);
-
-  // Focus search input when popover opens
+  const shownFont = unset ? unsetFont : value;
   useEffect(() => {
-    if (open) {
-      setTimeout(() => searchRef.current?.focus(), 0);
-    }
-  }, [open]);
-
-  // The chosen font, mid-list as the list opens. The popover mounts after
-  // `open` changes, so this runs from the list's own ref, and it moves the
-  // list's scroll alone: scrollIntoView would move the page under a popover
-  // that isn't placed yet.
-  const listMounted = useCallback((list: HTMLDivElement | null) => {
-    listRef.current = list;
-    const chosen = list?.querySelector<HTMLElement>("[data-selected=true]");
-    if (list && chosen) list.scrollTop = chosen.offsetTop - (list.clientHeight - chosen.offsetHeight) / 2;
-  }, []);
-
-  // Matches read from the top, wherever the list had scrolled to.
-  function searchFor(next: string) {
-    setSearch(next);
-    if (listRef.current) listRef.current.scrollTop = 0;
-  }
-
-  // Load the shown font so the trigger renders in its own typeface
-  useEffect(() => {
-    if (shownFont) {
-      loadFonts([shownFont]);
-    }
+    if (shownFont) loadFonts([shownFont]);
   }, [shownFont]);
 
-  // Load curated fonts so each option can render in its own typeface
-  useEffect(() => {
-    if (open) {
-      loadFonts(curatedList);
-    }
-  }, [open, curatedList]);
-
   return (
-    <Popover.Root open={open} onOpenChange={handleOpenChange}>
-      <Popover.Trigger asChild>
-        <button
-          id={id}
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          aria-controls="font-picker-listbox"
-          aria-haspopup="listbox"
-          className={cn(
-            "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus:outline-none focus:ring-1 focus:ring-ring",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-            open && "ring-1 ring-ring"
-          )}
-        >
-          <span
-            className="truncate text-left"
-            style={shownFont ? { fontFamily: `'${shownFont}', sans-serif` } : undefined}
-          >
-            {displayLabel}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </button>
-      </Popover.Trigger>
-
-      <Popover.Portal>
-        <Popover.Content
-          className={cn(
-            "z-50 w-[var(--radix-popover-trigger-width)] rounded-md border bg-popover text-popover-foreground shadow-md",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          )}
-          sideOffset={4}
-          align="start"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          {/* Search input */}
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <input
-              ref={searchRef}
-              className="flex h-9 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-              placeholder="Search fonts..."
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => searchFor(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {search && (
-              <button
-                type="button"
-                className="ml-1 text-muted-foreground hover:text-foreground"
-                onClick={() => { searchFor(""); searchRef.current?.focus(); }}
-                tabIndex={-1}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Font list */}
-          <div
-            ref={listMounted}
-            id="font-picker-listbox"
-            role="listbox"
-            className="relative max-h-60 overflow-y-auto p-1"
-          >
-            {/* Inherit option — pinned at top when not searching, embedded forms only */}
-            {!isSearching && showInherit && (
-              <FontOption
-                font={INHERIT_VALUE}
-                label={inheritLabel}
-                selected={value === INHERIT_VALUE || !value}
-                onSelect={handleSelect}
-              />
-            )}
-
-            {/* Separator between inherit and curated list */}
-            {!isSearching && showInherit && (
-              <div className="mx-2 my-1 border-t" />
-            )}
-
-            {/* Font results */}
-            {filteredFonts.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No fonts found.
-              </div>
-            ) : (
-              filteredFonts.map((font) => (
-                <FontOption
-                  key={font}
-                  font={font}
-                  label={font}
-                  selected={value === font}
-                  onSelect={handleSelect}
-                />
-              ))
-            )}
-
-            {/* Search hint */}
-            {!isSearching && (
-              <>
-                <div className="mx-2 my-1 border-t" />
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  Search to browse all {ALL_GOOGLE_FONTS.length.toLocaleString()} Google Fonts
-                </div>
-              </>
-            )}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-type FontOptionProps = {
-  font: string;
-  label: string;
-  selected: boolean;
-  onSelect: (font: string) => void;
-};
-
-function FontOption({ font, label, selected, onSelect }: FontOptionProps) {
-  return (
-    <div
-      role="option"
-      aria-selected={selected}
-      data-selected={selected}
-      className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-        "hover:bg-accent hover:text-accent-foreground",
-        selected && "bg-accent text-accent-foreground"
-      )}
-      onClick={() => onSelect(font)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onSelect(font);
-      }}
-      tabIndex={0}
-    >
-      <Check
-        className={cn(
-          "mr-2 h-4 w-4 shrink-0",
-          selected ? "opacity-100" : "opacity-0"
-        )}
-      />
-      <span style={font !== "inherit" ? { fontFamily: `'${font}', sans-serif` } : undefined}>
-        {label}
-      </span>
-    </div>
+    <SearchSelect
+      id={id}
+      // With no inherit option to hold the tick, an unset value ticks the
+      // font it renders in, which is the one the trigger names.
+      value={unset ? (showInherit ? INHERIT_VALUE : unsetFont ?? "") : value}
+      options={showInherit ? [inherit, ...curated.options] : curated.options}
+      searchOptions={ALL_FONTS}
+      onChange={onChange}
+      // The curated fonts, so each option can render in its own typeface.
+      onOpen={() => loadFonts(curated.fonts)}
+      placeholder="Search fonts..."
+      footer={`Search to browse all ${ALL_GOOGLE_FONTS.length.toLocaleString()} Google Fonts`}
+      labelStyle={(option) => typeface(option.value === INHERIT_VALUE ? unsetFont : option.value)}
+    />
   );
 }
