@@ -5,6 +5,24 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.16.0] - 2026-11-13
+
+### Added
+
+- A time zone for every account, the business's own. The Account page has a Time zone section: a searchable list of every zone by city, offset, and name, so "Denver" and "Mountain Time" both find it. Signup records the browser's zone. Until now only a site had a zone, with no way to change it
+- Sites: a site with a server of its own (Astro with an adapter) can be on Canopy Sites. The builder takes its prerendered pages as the build and never runs or serves the server's code
+- Site contract 0.6.0: a site states hours only if it keeps them. Hours a site does state are checked as before
+
+### Changed
+
+- Everything that used a site's time zone uses its account's: the submission notification, the claim email and the operator's copied claim link, the operator's site and requests pages, quick edit's "today", and a site's builds and nightly rebuild. A Forms account's notification states its time in the account's zone, and in UTC only when nobody has given the account one. An account with a site keeps its site's zone, and every other existing account starts in Pacific time
+- Forms: the font picker takes the keyboard like the other searchable lists. The arrow keys move through the fonts, Enter takes the first match, and Tab no longer stops on every font
+
+### Fixed
+
+- Forms: the font picker opens on the chosen font instead of the top of the list, and typing a search shows its first match
+- A control's tooltip no longer opens over its own list (the Appearance toolbar's Font and Size showed theirs over the open list, and it took the first Escape), or when a closing list or dialog hands focus back to the control
+
 ## [5.15.0] - 2026-11-12
 
 ### Added
