@@ -5,6 +5,18 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.20.0] - 2026-11-14
+
+### Added
+
+- Sites: **Stats shows each site's real numbers** (Epic 35): visitors, pageviews, views per visit, visitors per day, top pages, and how visitors found the site, for the last 7, 30, or 90 days, read from Umami. Days are counted in the account's time zone. The demo keeps its sample data
+- "How they found you" (it was Referrers) names sources the way an owner reads them (Google, Facebook) and adds "Typed in or from an app" for the people who came with no referrer, usually most of a small site's visitors
+- When Umami can't be reached, Stats says it can't load right now instead of failing
+
+### Fixed
+
+- Views per visit divides pageviews by visits; it divided by visitors, which overstated it for anyone who came back
+
 ## [5.19.1] - 2026-11-13
 
 ### Fixed
