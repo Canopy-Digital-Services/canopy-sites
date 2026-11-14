@@ -34,7 +34,7 @@ export function RankedList({
               <th scope="col" className="pb-2 text-left font-semibold">
                 {labelHeading}
               </th>
-              <th scope="col" className="w-20 pb-2 text-right font-semibold">
+              <th scope="col" className="w-16 pb-2 text-right font-semibold sm:w-20">
                 {valueHeading}
               </th>
               <th scope="col" className="w-14 pb-2 text-right font-semibold">
