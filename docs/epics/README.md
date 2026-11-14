@@ -40,5 +40,6 @@ Each epic's Status line says what has been released and what is left. Move an ep
 | [Epic 28: Account Audit and Membership Model](epic-28-account-audit-membership.md) | v5.1.0 | 2026-10-16 | ✅ Complete |
 | [Epic 29: Plan Extension, Site Model, Operator Sites](epic-29-plan-site-model-operator-sites.md) | v5.2.0 | 2026-10-16 | ✅ Complete |
 | [Epic 30: Builder, Preview, and the Demo Slice](epic-30-demo-slice.md) | v5.3.0 | 2026-10-16 | ✅ Complete |
+| [Epic 35: Stats](epic-35-stats.md) | v5.20.0 | 2026-11-14 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

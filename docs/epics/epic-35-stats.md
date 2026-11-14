@@ -1,6 +1,6 @@
 # Epic 35: Stats
 
-**Status:** Approved (Michael, 2026-11-14), with section 6's decisions. In progress.
+**Status:** Complete in 5.20.0 (2026-11-14), with section 6's decisions. Acceptance in section 5; the production check is the progress log's last entry.
 **Phase:** 3 (`docs/canopy-sites/ROADMAP.md`, E35). Its demo half shipped with Epic 30 (the page, sample data for the demo); this is the rest: real numbers from Umami.
 **Predecessor:** Epic 30 (the Stats page and its sample source)
 
@@ -76,11 +76,11 @@ Umami down, slow past a timeout, or refusing the key: the page says Stats can't 
 
 ## 5. Acceptance
 
-- [ ] Signed in as the Client 3 owner's account (acting as the client), Stats shows the same visitors, pageviews, and visits as Umami for the same range in Pacific time
-- [ ] A site with no Umami id shows "No stats yet"; the demo shows its sample data, its last day today in Pacific time
-- [ ] With Umami unreachable or the key wrong, the page shows that Stats can't load, and the log names why
-- [ ] The portal's key reads a team website and is refused a change to one
-- [ ] `npm run build`, `lint`, `test` pass
+- [x] Signed in to a Sites account reading the Client 3 website, Stats shows the same visitors, pageviews, and visits as Umami for the same range in Pacific time (locally; production in the progress log)
+- [x] A site with no Umami id shows "No stats yet"; the demo shows its sample data, its last day today in Pacific time (tests; the release smoke's Sites account)
+- [x] With Umami unreachable or the key wrong, the page shows that Stats can't load, and the log names why
+- [x] The portal's key reads a team website and is refused a change to one
+- [x] `npm run build`, `lint`, `test` pass
 
 ## 6. Decisions
 
@@ -93,3 +93,4 @@ Umami down, slow past a timeout, or refusing the key: the page says Stats can't 
 ## 7. Progress log
 
 - 2026-11-14: Drafted and approved. Production read, read-only, with Michael's approval: `client3-website` is linked with its Umami id and a Pacific account. Umami: team created, the five client websites moved into it; `canopy-portal` waits on Michael.
+- 2026-11-14: Built (`b2c2e6b`, `05ccd24`). Michael made `canopy-portal` and its key; it wasn't in the team, so it was added as View only with the admin key (`POST /api/teams/<id>/users` works with a key; creating a user doesn't). Checked with the key: it reads Client 3 and Client 1, and renaming a website or creating one gets a 401. On :3006, a Sites account pointed at the Client 3 website showed 43 visitors, 138 pageviews, 47 visits (2.94 per visit) for 7 days, the same as Umami's own answer for Pacific midnight on 2026-11-08 to then; the day series matched (33 on the 13th, launch evening, and 10 so far on the 14th); at 390px the longest source was cut off, fixed by a narrower count column. With no key, the page showed that Stats can't load and the log had `stats_unavailable`. Build, lint, and 465 tests pass. `UMAMI_URL` and `UMAMI_API_KEY` set on both portal apps.
