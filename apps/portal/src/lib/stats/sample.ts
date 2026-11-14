@@ -10,12 +10,15 @@
  */
 
 import { datesEnding } from "./range";
+import { DIRECT_SOURCE } from "./sources";
 import type { DailyStats, SiteStats, StatsTotals } from "./types";
 
 export const SAMPLE_MIN_VISITORS = 20;
 export const SAMPLE_MAX_VISITORS = 70;
 export const SAMPLE_MIN_VIEWS_PER_VISITOR = 1.6;
 export const SAMPLE_MAX_VIEWS_PER_VISITOR = 2.4;
+/** Up to this share of visitors come back for a second visit the same day. */
+export const SAMPLE_MAX_EXTRA_VISITS = 0.15;
 
 /** Sunday to Saturday. Salons are quiet Sunday and Monday. */
 const WEEKDAY = [0.58, 0.64, 0.98, 1, 1.06, 1.14, 1.2];
@@ -30,7 +33,7 @@ const PAGES = [
 /** Where visitors come from, with their usual share. */
 const REFERRERS = [
   { source: "Google", weight: 0.36 },
-  { source: "Direct", weight: 0.22 },
+  { source: DIRECT_SOURCE, weight: 0.22 },
   { source: "Instagram", weight: 0.17 },
   { source: "Google Maps", weight: 0.11 },
   { source: "Facebook", weight: 0.08 },
@@ -73,7 +76,7 @@ function apportion(total: number, weights: number[]): number[] {
   return shares;
 }
 
-type SampleDay = DailyStats & { pages: number[]; referrers: number[] };
+type SampleDay = DailyStats & { visits: number; pages: number[]; referrers: number[] };
 
 function sampleDay(siteId: string, date: string): SampleDay {
   const site = seededRandom(hash(siteId));
@@ -94,15 +97,17 @@ function sampleDay(siteId: string, date: string): SampleDay {
   const pageviews = Math.round(visitors * viewsPerVisitor);
   const pages = apportion(pageviews, PAGES.map((p) => p.weight * (0.8 + 0.4 * random())));
   const referrers = apportion(visitors, REFERRERS.map((r) => r.weight * (0.7 + 0.6 * random())));
+  // Drawn last, so the numbers above stay what they were before visits existed.
+  const visits = Math.round(visitors * (1 + SAMPLE_MAX_EXTRA_VISITS * random()));
 
-  return { date, visitors, pageviews, pages, referrers };
+  return { date, visitors, visits, pageviews, pages, referrers };
 }
 
-function sum(days: DailyStats[]): StatsTotals {
-  return days.reduce((t, d) => ({ visitors: t.visitors + d.visitors, pageviews: t.pageviews + d.pageviews }), {
-    visitors: 0,
-    pageviews: 0,
-  });
+function sum(days: SampleDay[]): StatsTotals {
+  return days.reduce(
+    (t, d) => ({ visitors: t.visitors + d.visitors, visits: t.visits + d.visits, pageviews: t.pageviews + d.pageviews }),
+    { visitors: 0, visits: 0, pageviews: 0 },
+  );
 }
 
 /** Most first; ties keep their declared order. */
@@ -110,9 +115,9 @@ function ranked<T extends { count: number }>(items: T[]): T[] {
   return items.filter((item) => item.count > 0).sort((a, b) => b.count - a.count);
 }
 
-/** Sample stats for the `days` days ending today (UTC), today included. */
-export function sampleSiteStats(siteId: string, days: number, today: Date): SiteStats {
-  const current = datesEnding(today, days).map((date) => sampleDay(siteId, date));
+/** Sample stats for the `days` days ending today in `timeZone`, today included. */
+export function sampleSiteStats(siteId: string, days: number, today: Date, timeZone = "UTC"): SiteStats {
+  const current = datesEnding(today, days, timeZone).map((date) => sampleDay(siteId, date));
 
   const pageCounts = PAGES.map((p, i) => ({ path: p.path, count: current.reduce((n, d) => n + d.pages[i], 0) }));
   const referrerCounts = REFERRERS.map((r, i) => ({ source: r.source, count: current.reduce((n, d) => n + d.referrers[i], 0) }));

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { getSiteStats, parseStatsRange } from "./index";
+import { DIRECT_SOURCE } from "./sources";
 import {
+  SAMPLE_MAX_EXTRA_VISITS,
   SAMPLE_MAX_VIEWS_PER_VISITOR,
   SAMPLE_MAX_VISITORS,
   SAMPLE_MIN_VIEWS_PER_VISITOR,
@@ -60,8 +62,11 @@ describe("sampleSiteStats", () => {
     const stats = sampleSiteStats(SITE, days, TODAY);
     expect(stats.totals).toEqual({
       visitors: stats.daily.reduce((n, d) => n + d.visitors, 0),
+      visits: expect.any(Number),
       pageviews: stats.daily.reduce((n, d) => n + d.pageviews, 0),
     });
+    expect(stats.totals.visits).toBeGreaterThanOrEqual(stats.totals.visitors);
+    expect(stats.totals.visits).toBeLessThanOrEqual(Math.ceil(stats.totals.visitors * (1 + SAMPLE_MAX_EXTRA_VISITS)) + days);
     expect(stats.topPages.reduce((n, p) => n + p.pageviews, 0)).toBe(stats.totals.pageviews);
     expect(stats.referrers.reduce((n, r) => n + r.visitors, 0)).toBe(stats.totals.visitors);
   });
@@ -69,21 +74,31 @@ describe("sampleSiteStats", () => {
   it("lists the demo site's pages and the expected referrers, most first", () => {
     const { topPages, referrers } = sampleSiteStats(SITE, 30, TODAY);
     expect(topPages.map((p) => p.path).sort()).toEqual(["/demo/", "/demo/policies", "/demo/services"]);
-    expect(referrers.map((r) => r.source).sort()).toEqual(["Direct", "Facebook", "Google", "Google Maps", "Instagram", "Yelp"]);
+    expect(referrers.map((r) => r.source).sort()).toEqual(
+      [DIRECT_SOURCE, "Facebook", "Google", "Google Maps", "Instagram", "Yelp"].sort(),
+    );
     expect(topPages.map((p) => p.pageviews)).toEqual([...topPages.map((p) => p.pageviews)].sort((a, b) => b - a));
     expect(referrers.map((r) => r.visitors)).toEqual([...referrers.map((r) => r.visitors)].sort((a, b) => b - a));
   });
+
+  it("ends on today in the zone it is given", () => {
+    // 03:00 UTC on the 17th is still the 16th in Los Angeles.
+    const lateEvening = new Date("2026-10-17T03:00:00Z");
+    expect(sampleSiteStats(SITE, 7, lateEvening, "America/Los_Angeles").daily.at(-1)?.date).toBe("2026-10-16");
+    expect(sampleSiteStats(SITE, 7, lateEvening).daily.at(-1)?.date).toBe("2026-10-17");
+  });
 });
 
-describe("getSiteStats", () => {
-  it("serves sample data to a demo site", async () => {
-    const stats = await getSiteStats({ id: SITE, isDemo: true }, "7d", TODAY);
-    expect(stats).toEqual(sampleSiteStats(SITE, 7, TODAY));
-    expect(stats?.sample).toBe(true);
+describe("getSiteStats for the demo and for a site with no source", () => {
+  const demo = { id: SITE, isDemo: true, umamiWebsiteId: null, productionHostnames: [] };
+
+  it("serves sample data to a demo site, in the account's zone", async () => {
+    const result = await getSiteStats(demo, "7d", { timeZone: "America/Los_Angeles", now: TODAY });
+    expect(result).toEqual({ status: "ready", stats: sampleSiteStats(SITE, 7, TODAY, "America/Los_Angeles") });
   });
 
-  it("has no stats for a site that isn't a demo", async () => {
-    expect(await getSiteStats({ id: SITE, isDemo: false }, "30d", TODAY)).toBeNull();
+  it("has no stats for a site that isn't a demo and has no Umami website", async () => {
+    expect(await getSiteStats({ ...demo, isDemo: false }, "30d", { timeZone: "UTC", now: TODAY })).toEqual({ status: "none" });
   });
 });
 

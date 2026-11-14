@@ -1,9 +1,9 @@
 /**
  * Sites. An account has at most one (PRD D19). Client code reaches a site
- * only through getAccountSite with the session's account, and sees only its
- * id, name, slug, whether it is the demo site, and its production hostnames
- * (where it is live): the rest (locked fields, repo) is operator
- * configuration. The operator
+ * only through getAccountSite (or getAccountStatsSite, for Stats) with the
+ * session's account, and sees only its id, name, slug, whether it is the
+ * demo site, and its production hostnames (where it is live): the rest
+ * (locked fields, repo) is operator configuration. The operator
  * functions below read every site and must only be called behind
  * requireGlobalAdmin.
  */
@@ -18,6 +18,27 @@ export async function getAccountSite(accountId: string): Promise<AccountSite | n
     where: { accountId },
     select: { id: true, name: true, slug: true, isDemo: true, productionHostnames: true },
   });
+}
+
+/**
+ * What the Stats page reads its numbers by: the account's site with its
+ * Umami website id and hostnames, and the account's zone, which its days
+ * are counted in. Null when the account has no site.
+ */
+export async function getAccountStatsSite(accountId: string) {
+  const site = await prisma.site.findUnique({
+    where: { accountId },
+    select: {
+      id: true,
+      isDemo: true,
+      umamiWebsiteId: true,
+      productionHostnames: true,
+      account: { select: { timeZone: true } },
+    },
+  });
+  if (!site) return null;
+  const { account, ...rest } = site;
+  return { site: rest, timeZone: account.timeZone };
 }
 
 const ownerEmail = {

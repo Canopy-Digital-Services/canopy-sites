@@ -1,6 +1,7 @@
 // Formatting shared by the server-rendered Stats parts and the client chart.
 // Fixed locale and UTC so the server render and hydration always agree, and
-// a stats day (a UTC date) never shifts with the viewer's time zone.
+// a stats day (a calendar date in the account's zone, YYYY-MM-DD) prints as
+// that date whatever the viewer's time zone.
 
 const count = new Intl.NumberFormat("en-US");
 const ratio = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

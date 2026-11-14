@@ -1,7 +1,7 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
-import { ChartLine } from "lucide-react";
+import { AlertCircle, ChartLine } from "lucide-react";
 import { getCurrentAccountId } from "@/lib/auth-utils";
-import { getAccountSite } from "@/lib/data-access/sites";
+import { getAccountStatsSite } from "@/lib/data-access/sites";
 import { getSiteStats, parseStatsRange } from "@/lib/stats";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
@@ -21,23 +21,33 @@ export default async function StatsPage({
   searchParams: Promise<{ range?: string | string[] }>;
 }) {
   const range = parseStatsRange((await searchParams).range);
-  const site = await getAccountSite(await getCurrentAccountId());
-  const stats = site ? await getSiteStats(site, range) : null;
+  const found = await getAccountStatsSite(await getCurrentAccountId());
+  const result = found ? await getSiteStats(found.site, range, { timeZone: found.timeZone }) : { status: "none" as const };
 
-  if (!stats) {
+  if (result.status !== "ready") {
     return (
       <PageContent>
         <div className="space-y-6">
           <PageHeader title="Stats" />
-          <EmptyState
-            icon={<ChartLine className="h-9 w-9" />}
-            title="No stats yet"
-            description="Stats appear here once your site is live."
-          />
+          {result.status === "unavailable" ? (
+            <EmptyState
+              icon={<AlertCircle className="h-9 w-9" />}
+              title="Stats can't load right now"
+              description="Try again in a few minutes."
+            />
+          ) : (
+            <EmptyState
+              icon={<ChartLine className="h-9 w-9" />}
+              title="No stats yet"
+              description="Stats appear here once your site is live."
+            />
+          )}
         </div>
       </PageContent>
     );
   }
+
+  const { stats } = result;
 
   return (
     <PageContent width="wide">
@@ -73,7 +83,7 @@ export default async function StatsPage({
             total={stats.totals.pageviews}
           />
           <RankedList
-            title="Referrers"
+            title="How they found you"
             labelHeading="Source"
             valueHeading="Visitors"
             rows={stats.referrers.map((r) => ({ label: r.source, value: r.visitors }))}
