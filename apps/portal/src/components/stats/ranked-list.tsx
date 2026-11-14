@@ -43,6 +43,13 @@ export function RankedList({
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="py-2 text-muted-foreground">
+                  None in this range
+                </td>
+              </tr>
+            ) : null}
             {rows.map((row) => (
               <tr key={row.label}>
                 <td>
