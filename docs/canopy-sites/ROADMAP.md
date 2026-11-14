@@ -261,8 +261,7 @@ After v1 (PRD D59), and not scheduled.
 
 ### E35 · Stats
 
-- Umami API client; per-site `umamiWebsiteId`. Stats page: visitors, pageviews, top pages, referrers, selectable date range. Every Sites account gets the same Stats; there is no `analyticsTier` in v1 (PRD D21)
-- Acceptance: H&H stats match the Umami dashboard for the same range
+From `docs/epics/epic-35-stats.md`. The page and the demo's sample data shipped with E30; E35 reads every other site's numbers from Umami with a view-only key, in the account's time zone, with the VETS site as the first case (2026-11-14). Every Sites account gets the same Stats; there is no `analyticsTier` in v1 (PRD D21).
 
 ---
 
