@@ -1,11 +1,13 @@
 /**
  * The shape every stats source returns, so the Stats page never knows where
- * the numbers came from. Dates are UTC calendar days (`YYYY-MM-DD`).
+ * the numbers came from. Dates are calendar days (`YYYY-MM-DD`) in the
+ * account's time zone.
  */
 
 export type DailyStats = { date: string; visitors: number; pageviews: number };
 
-export type StatsTotals = { visitors: number; pageviews: number };
+/** Visitors are people; visits are their separate trips to the site. */
+export type StatsTotals = { visitors: number; visits: number; pageviews: number };
 
 export type PageStats = { path: string; pageviews: number };
 
