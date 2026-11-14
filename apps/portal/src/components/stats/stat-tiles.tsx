@@ -8,7 +8,7 @@ export function StatTiles({ totals }: { totals: StatsTotals }) {
   const tiles = [
     { label: "Visitors", value: formatCount(totals.visitors) },
     { label: "Pageviews", value: formatCount(totals.pageviews) },
-    { label: "Views per visit", value: totals.visitors ? formatRatio(totals.pageviews / totals.visitors) : "0" },
+    { label: "Views per visit", value: totals.visits ? formatRatio(totals.pageviews / totals.visits) : "0" },
   ];
 
   return (
