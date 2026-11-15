@@ -151,7 +151,6 @@ Root `package.json` scripts delegate to the portal workspace (`npm run build`, `
 
 - `npm run embed:build` rebuilds `public/embed.js` from `embed/src/*`. Required after any embed change.
 - `npm run fonts:sync` downloads the self-hosted font set from Fontsource (`npm pack`, not installed) into `public/fonts/`, `src/lib/self-hosted-fonts.json`, and the admin fonts in `src/app/fonts/`. Output is committed. The catalog is the curated picker lists plus `EXTRA_FAMILIES` in `scripts/sync-fonts.ts`; to self-host a new font, add it there and rerun. `-- --update` refetches everything.
-- `npm run db:push` exists. **Never run it.** It mutates the database without creating a migration, so the change never reaches deployed environments.
 
 `npm run build`, `npm run lint`, and `npm test` must pass before committing. **`docs/VERIFICATION_CHECKLIST.md` is the quality gate** and specifies which further checks apply to which change type.
 
