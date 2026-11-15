@@ -11,9 +11,12 @@
  * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
  * push. One person edits at a time (PRD D64): every write takes or keeps the
  * site's hold for its caller (hold.ts) and is refused while someone else has
- * it, and a publish or a discard that leaves no draft gives it up. That
- * person's own writes are never refused: the last to a field wins, and ones
- * that arrive together are applied one after the other.
+ * it, and a publish or a discard that leaves no draft gives it up. The draft
+ * is its author's: nobody else adds to it, and anyone on the account
+ * publishes or discards it, so one person's unfinished changes never go out
+ * inside another's publish. The author's own writes are never refused: the
+ * last to a field wins, and ones that arrive together are applied one after
+ * the other.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -51,7 +54,7 @@ import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPrevi
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 import { personName } from "@/lib/person";
 import { changedFields, type FieldChange } from "./changes";
-import { editingNotice } from "@/lib/site-hold-policy";
+import { draftNotice, editingNotice } from "@/lib/site-hold-policy";
 import { currentHold, extendHold, releaseHold, takeHold } from "./hold";
 
 export type { FieldChange } from "./changes";
@@ -69,11 +72,14 @@ export class ToolError extends Error {
   outOfLane: boolean;
   /** Set when someone else is editing the site (PRD D64): who, as the account's people know them. */
   heldBy?: string;
-  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean; heldBy?: string } = {}) {
+  /** Set when the site's draft is someone else's to publish or discard first (PRD D64): whose. */
+  draftBy?: string;
+  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean; heldBy?: string; draftBy?: string } = {}) {
     super(message);
     this.issues = issues;
     this.outOfLane = options.outOfLane ?? false;
     this.heldBy = options.heldBy;
+    this.draftBy = options.draftBy;
   }
 }
 
@@ -151,6 +157,40 @@ async function requireHold(siteId: string, ctx: ToolContext): Promise<void> {
 }
 
 /**
+ * The site's draft when it is someone else's: last changed by a person who
+ * isn't the caller (PRD D64). A draft nobody is recorded on (its author was
+ * taken off the account) is nobody's, and anyone carries it on.
+ */
+async function othersDraft(siteId: string, userId: string | null): Promise<{ by: string; summary: string } | null> {
+  const draft = await prisma.changeSet.findFirst({
+    where: { siteId, status: { in: [...PENDING] } },
+    orderBy: { createdAt: "desc" },
+    select: { summary: true, updatedBy: { select: { id: true, name: true, email: true } } },
+  });
+  if (!draft?.updatedBy || draft.updatedBy.id === userId) return null;
+  return { by: personName(draft.updatedBy), summary: draft.summary };
+}
+
+/**
+ * The caller may add to the site's draft from here (PRD D64): the draft, if
+ * there is one, is theirs, and the site is theirs to hold. A draft belongs to
+ * the person who made it until it is published or discarded, which anyone on
+ * the account may do, so one person's unfinished changes never go out inside
+ * another's publish. Checked before the hold, so someone who can't edit
+ * doesn't take the site by trying.
+ */
+async function requireEdit(siteId: string, ctx: ToolContext): Promise<void> {
+  const draft = await othersDraft(siteId, ctx.userId);
+  if (draft) {
+    // Its author still at work is the fuller answer.
+    const editor = await otherEditor(siteId, ctx.userId ?? "");
+    if (editor) throw new ToolError(`${editingNotice(editor)}.`, undefined, { heldBy: editor });
+    throw new ToolError(`${draftNotice(draft.by)}. Publish or discard them first.`, undefined, { draftBy: draft.by });
+  }
+  await requireHold(siteId, ctx);
+}
+
+/**
  * The caller published or discarded, and the site has no draft left: they are
  * done, so the site is free at once rather than when their hold runs out
  * (PRD D64). With a draft still pending (an edit saved while the publish was
@@ -162,9 +202,9 @@ async function doneEditing(siteId: string, ctx: ToolContext): Promise<void> {
   await releaseHold(siteId, ctx.userId);
 }
 
-/** Takes or keeps the hold on the account's site for the caller: what Quick Edit does before it spends a model call. */
+/** The caller may edit the account's site, and holds it from here: what Quick Edit checks before it spends a model call. */
 export async function holdSite(ctx: ToolContext): Promise<void> {
-  await requireHold((await siteFor(ctx.accountId)).id, ctx);
+  await requireEdit((await siteFor(ctx.accountId)).id, ctx);
 }
 
 /** What an editing page needs to know about who has the site (PRD D64). */
@@ -174,16 +214,30 @@ export interface SiteEditing {
   /** Where the draft and the published list stand: a page compares it to tell that the site moved while it wasn't holding it. */
   marker: string;
   hasDraft: boolean;
+  /** Whose the draft is, when it is someone else's to publish or discard before the viewer can edit; null otherwise. */
+  draftBy: string | null;
+  /** What that draft changes, so the viewer sees what they would publish or discard. */
+  draftSummary: string | null;
 }
 
-async function siteStanding(siteId: string): Promise<Pick<SiteEditing, "marker" | "hasDraft">> {
+async function siteStanding(siteId: string, userId: string | null): Promise<Omit<SiteEditing, "by">> {
   const [last, pending] = await Promise.all([
     prisma.changeSet.findFirst({ where: { siteId }, orderBy: { updatedAt: "desc" }, select: { id: true, version: true, status: true } }),
-    prisma.changeSet.count({ where: { siteId, status: { in: [...PENDING] } } }),
+    prisma.changeSet.findFirst({
+      where: { siteId, status: { in: [...PENDING] } },
+      orderBy: { createdAt: "desc" },
+      select: { summary: true, updatedBy: { select: { id: true, name: true, email: true } } },
+    }),
   ]);
   // A preview finishing (DRAFT to PREVIEWED) changes nothing a page shows as content.
   const state = last && PENDING.includes(last.status as (typeof PENDING)[number]) ? "PENDING" : last?.status;
-  return { marker: last ? `${last.id}:${last.version}:${state}` : "", hasDraft: pending > 0 };
+  const theirs = pending?.updatedBy && pending.updatedBy.id !== userId ? pending.updatedBy : null;
+  return {
+    marker: last ? `${last.id}:${last.version}:${state}` : "",
+    hasDraft: pending !== null,
+    draftBy: theirs ? personName(theirs) : null,
+    draftSummary: theirs && pending ? pending.summary : null,
+  };
 }
 
 /**
@@ -194,14 +248,14 @@ async function siteStanding(siteId: string): Promise<Pick<SiteEditing, "marker" 
 export async function getSiteEditing(accountId: string, userId: string): Promise<SiteEditing | null> {
   const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
   if (!site) return null;
-  const [by, standing] = await Promise.all([otherEditor(site.id, userId), siteStanding(site.id)]);
+  const [by, standing] = await Promise.all([otherEditor(site.id, userId), siteStanding(site.id, userId)]);
   return { by, ...standing };
 }
 
 /** Where the account's site stands now: what an editing page adopts after its own write, so only someone else's reads as a move. */
 export async function getSiteMarker(accountId: string): Promise<string> {
   const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
-  return site ? (await siteStanding(site.id)).marker : "";
+  return site ? (await siteStanding(site.id, null)).marker : "";
 }
 
 /** Who else is making edits on the site, as the account's people know them, or null. Takes nothing. */
@@ -215,24 +269,24 @@ export async function otherEditor(siteId: string, userId: string): Promise<strin
  * person's hold going when they have one and never takes one: a page that is
  * only open holds nothing. With `take`, the person has started an edit that
  * hasn't reached the server yet (a field opened in the Editor), and the site
- * becomes theirs unless someone else has it. `mine` says whether it is.
+ * becomes theirs unless someone else has it, or the draft is someone else's
+ * to publish or discard first. `mine` says whether it is.
  */
 export async function keepSiteHold(ctx: ToolContext & { userId: string }, take = false): Promise<SiteEditing & { mine: boolean }> {
   const site = await siteFor(ctx.accountId);
+  const standing = await siteStanding(site.id, ctx.userId);
   let mine: boolean;
   let by: string | null = null;
-  if (take) {
+  // Someone else's draft comes first: opening a field doesn't take a site the person can't edit yet.
+  if (take && !standing.draftBy) {
     const hold = await takeHold(site.id, ctx.userId);
     mine = hold.held;
     if (!hold.held) by = hold.by;
   } else {
     mine = await extendHold(site.id, ctx.userId);
-    if (!mine) {
-      const holder = await currentHold(site.id);
-      by = holder && holder.userId !== ctx.userId ? holder.by : null;
-    }
+    if (!mine) by = await otherEditor(site.id, ctx.userId);
   }
-  return { by, mine, ...(await siteStanding(site.id)) };
+  return { by, mine, ...standing };
 }
 
 const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
@@ -712,7 +766,7 @@ export async function getDraftView(accountId: string, siteId: string) {
  */
 export async function proposeChange(ctx: ToolContext, input: { summary: string; ops: unknown; conversationId?: string }) {
   const site = await siteFor(ctx.accountId);
-  await requireHold(site.id, ctx);
+  await requireEdit(site.id, ctx);
   if (isRateLimited(`site-tools:propose:${ctx.accountId}`, PROPOSALS_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
@@ -745,7 +799,7 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
  */
 export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: unknown }): Promise<DraftWriteResult> {
   const site = await ownedSite(ctx.accountId, siteId);
-  await requireHold(site.id, ctx);
+  await requireEdit(site.id, ctx);
   if (isRateLimited(`site-tools:save:${ctx.accountId}`, SAVES_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }

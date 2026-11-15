@@ -132,7 +132,7 @@ export function DraftStatus() {
       </Tooltip>
       {heldBy ? null : (
         <ConfirmDialog
-          title="Discard changes"
+          title={pending.by ? `Discard ${pending.by}'s changes` : "Discard changes"}
           description="Every unpublished change goes, and your site stays as it is now."
           onConfirm={discard}
           destructive

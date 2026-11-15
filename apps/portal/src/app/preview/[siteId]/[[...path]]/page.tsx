@@ -32,7 +32,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ siteId
 
   const start = path?.length ? `/${path.join("/")}` : await previewStartPath(accountId, site.id).catch(() => "/");
   // Who has the site as the page renders. Opening the page takes nothing; Publish is the edit here.
-  const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false };
+  const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false, draftBy: null, draftSummary: null };
   return (
     <SiteHoldProvider initial={editing} reload={false}>
       <PreviewView

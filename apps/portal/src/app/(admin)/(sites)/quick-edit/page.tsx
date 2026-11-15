@@ -48,7 +48,7 @@ export default async function QuickEditPage() {
     // becomes this person's when they send a message.
     getSiteEditing(accountId, session.user.id),
   ]);
-  const editing = held ?? { by: null, marker: "", hasDraft: false };
+  const editing = held ?? { by: null, marker: "", hasDraft: false, draftBy: null, draftSummary: null };
   // Not awaited: reading content fetches from GitHub, so the page renders
   // at once and the pages list and the examples stream in.
   const view: Promise<ContentView | Error> = getContentView(accountId).catch((err: unknown) =>

@@ -699,21 +699,82 @@ describe("one person edits at a time (PRD D64)", () => {
     expect(builder.publishes).toHaveLength(1);
   });
 
-  it("passes to the next person once the hold has run out, with the draft the first left", async () => {
-    const { site, jane, bob } = await twoPeople();
-    await tools.saveDraft(jane, site.id, { ops: price("$90") });
+  it("keeps a draft its author's: once they have gone quiet, nobody else adds to it, and nobody takes the site by trying", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    const saved = await tools.saveDraft(jane, site.id, { ops: price("$90") });
     await lapse(site.id);
     expect(await hold.currentHold(site.id)).toBeNull();
 
-    const saved = await tools.saveDraft(bob, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
-    expect(saved.version).toBe(2);
-    expect(await hold.currentHold(site.id)).toMatchObject({ userId: bob.userId });
-    // One draft per site (D38): Bob's edit joined Jane's.
-    const view = await tools.getDraftView(bob.accountId, site.id);
-    expect((view.content.services as Menu)[0].services[0].priceLabel).toBe("$90");
-    expect(view.content.site).toMatchObject({ name: "Demo Salon & Spa" });
-    // And now it is Jane who waits.
-    await expect(tools.saveDraft(jane, site.id, { ops: price("$95") })).rejects.toMatchObject({ heldBy: expect.stringContaining("@test.invalid") });
+    // Bob's own change would go out with hers, or hers with his: refused, naming whose draft it is.
+    const refused = await tools.saveDraft(bob, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] }).catch((e) => e);
+    expect(refused).toBeInstanceOf(ToolError);
+    expect(refused).toMatchObject({ message: "Jane Doe has unpublished changes. Publish or discard them first.", draftBy: "Jane Doe" });
+    await expect(tools.proposeChange(bob, { summary: "Closed Monday", ops: ANNOUNCE })).rejects.toMatchObject({ draftBy: "Jane Doe" });
+    await expect(tools.holdSite(bob)).rejects.toMatchObject({ draftBy: "Jane Doe" });
+    // Opening a field in the Editor doesn't take the site either, and his page is told why.
+    expect(await tools.keepSiteHold({ ...bob, userId: bobId }, true)).toMatchObject({
+      by: null,
+      mine: false,
+      draftBy: "Jane Doe",
+      draftSummary: "Haircut price: $90",
+    });
+    expect(await hold.currentHold(site.id)).toBeNull();
+
+    // The draft is as she left it, and cost the account none of its saves or proposals.
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: saved.changeSetId! } });
+    expect(cs).toMatchObject({ version: 1, updatedByUserId: jane.userId });
+    expect(cs.ops).toEqual([PRICE_OP]);
+    expect(isRateLimited(`site-tools:propose:${bob.accountId}`, 2, 60 * 60 * 1000)).toBe(false);
+
+    // Jane carries on with her own.
+    expect((await tools.saveDraft(jane, site.id, { ops: price("$95") })).version).toBe(2);
+  });
+
+  it("lets anyone on the account publish or discard a draft its author left, and edit once it is gone", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    const first = await tools.saveDraft(jane, site.id, { ops: price("$90") });
+    await tools.refreshChange(jane.accountId, first.changeSetId!);
+    await lapse(site.id);
+
+    // Bob looks it over and publishes it: recorded as hers to edit, his to publish.
+    await tools.publishChange(bob, first.changeSetId!, first.buildId!, author);
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId! } })).toMatchObject({
+      status: "PUBLISHED",
+      updatedByUserId: jane.userId,
+      publishedByUserId: bobId,
+    });
+    expect(await hold.currentHold(site.id)).toBeNull();
+    // With no draft left, the site is his to edit.
+    const second = await tools.saveDraft(bob, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId! } })).toMatchObject({ updatedByUserId: bobId });
+
+    // And Jane, finding his, discards it and starts her own.
+    await lapse(site.id);
+    await expect(tools.saveDraft(jane, site.id, { ops: price("$95") })).rejects.toMatchObject({ draftBy: expect.stringContaining("@test.invalid") });
+    await tools.discardChange(jane, second.changeSetId!);
+    expect((await tools.saveDraft(jane, site.id, { ops: price("$95") })).changeSetId).not.toBe(second.changeSetId);
+  });
+
+  it("names the person still at work, not their draft, while they are editing", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    await tools.saveDraft(jane, site.id, { ops: price("$90") });
+    await expect(tools.saveDraft(bob, site.id, { ops: price("$95") })).rejects.toMatchObject({
+      message: "Jane Doe is currently making edits.",
+      heldBy: "Jane Doe",
+    });
+    // The page is told both: who is at work now, and whose the draft will still be when they stop.
+    expect(await tools.getSiteEditing(bob.accountId, bobId)).toMatchObject({ by: "Jane Doe", draftBy: "Jane Doe", hasDraft: true });
+    // To Jane it is her own draft, and nobody else's.
+    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toMatchObject({ by: null, draftBy: null, draftSummary: null, hasDraft: true });
+  });
+
+  it("treats a draft whose author was taken off the account as nobody's: anyone carries it on", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    const saved = await tools.saveDraft(bob, site.id, { ops: price("$90") });
+    await prisma.user.delete({ where: { id: bobId } });
+    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toMatchObject({ draftBy: null, hasDraft: true });
+    const more = await tools.saveDraft(jane, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+    expect(more).toMatchObject({ changeSetId: saved.changeSetId, version: 2 });
   });
 
   it("holds a site for one of two people who ask at the same moment", async () => {
@@ -757,7 +818,7 @@ describe("one person edits at a time (PRD D64)", () => {
   it("holds nothing for a page that is only open: looking, and asking who has the site, never take it", async () => {
     const { site, jane, bob, bobId } = await twoPeople();
     // Rendering a page looks, and the open page asks; neither is an edit.
-    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toEqual({ by: null, marker: "", hasDraft: false });
+    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toEqual({ by: null, marker: "", hasDraft: false, draftBy: null, draftSummary: null });
     expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, mine: false });
     expect(await tools.keepSiteHold({ ...bob, userId: bobId })).toMatchObject({ by: null, mine: false });
     expect(await prisma.siteHold.count()).toBe(0);
@@ -848,7 +909,7 @@ describe("one person edits at a time (PRD D64)", () => {
     expect(await hold.currentHold(site.id)).toBeNull();
   });
 
-  it("records who last changed a draft and who published it, and names a draft to the people who didn't (PRD D64)", async () => {
+  it("records whose a draft is and who published it, and names a draft to everyone but its author (PRD D64)", async () => {
     const { site, jane, bob, bobId } = await twoPeople();
     const first = await tools.saveDraft(jane, site.id, { ops: price("$90") });
     expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: first.changeSetId! } })).toMatchObject({ createdByUserId: jane.userId, updatedByUserId: jane.userId });
@@ -856,17 +917,11 @@ describe("one person edits at a time (PRD D64)", () => {
     expect((await tools.getEditorChanges(jane.accountId, jane.userId)).pending).toMatchObject({ by: null });
     expect((await tools.getEditorChanges(bob.accountId, bobId)).pending).toMatchObject({ by: "Jane Doe" });
 
-    // Jane goes quiet; Bob adds to her draft and publishes it.
+    // Jane goes quiet; Bob publishes her draft.
+    await tools.refreshChange(jane.accountId, first.changeSetId!);
     await lapse(site.id);
-    const second = await tools.saveDraft(bob, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
-    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId! } })).toMatchObject({ createdByUserId: jane.userId, updatedByUserId: bobId });
-    expect((await tools.getEditorChanges(jane.accountId, jane.userId)).pending).toMatchObject({ by: expect.stringContaining("@test.invalid") });
-    expect((await tools.getEditorChanges(bob.accountId, bobId)).pending).toMatchObject({ by: null });
-
-    await tools.refreshChange(bob.accountId, second.changeSetId!);
-    await tools.publishChange(bob, second.changeSetId!, second.buildId!, author);
-    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: second.changeSetId! } })).toMatchObject({ status: "PUBLISHED", publishedByUserId: bobId });
-    // The published list names who published, not who started the draft.
+    await tools.publishChange(bob, first.changeSetId!, first.buildId!, author);
+    // The published list names who published, not whose draft it was.
     const { recent } = await tools.getEditorChanges(jane.accountId, jane.userId);
     expect(recent[0].by).toEqual(expect.stringContaining("@test.invalid"));
     expect(recent[0].by).not.toBe("Jane Doe");
