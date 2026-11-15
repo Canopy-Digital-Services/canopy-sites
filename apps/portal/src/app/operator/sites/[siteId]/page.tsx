@@ -10,8 +10,10 @@ import { AssignSiteButton } from "./assign-site-button";
 import { SiteSettingsForm } from "./site-settings-form";
 import { SiteBuildsCard } from "./site-builds-card";
 import { PeopleCard, type PersonRow } from "./people-card";
+import { WelcomeVideoCard } from "./welcome-video-card";
 import { listPeopleAccess } from "@/lib/claim";
 import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
+import { welcomeVideoState } from "@/lib/welcome-video";
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   await requireGlobalAdmin();
@@ -19,10 +21,11 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
 
   const site = await getSiteForOperator(siteId);
   if (!site) notFound();
-  const [accounts, access, openRequests] = await Promise.all([
+  const [accounts, access, openRequests, welcome] = await Promise.all([
     listAccountsAvailableForSite(),
     listPeopleAccess(site.accountId),
     countOpenHelpRequests(site.id),
+    welcomeVideoState(site),
   ]);
   const when = (d: Date) => d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: site.timeZone });
   const people: PersonRow[] = access.map((person) => ({
@@ -46,6 +49,8 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
         <PageHeader title={site.name} backHref="/operator/sites" />
 
         <PeopleCard siteId={site.id} siteName={site.name} accountId={site.accountId} people={people} />
+
+        <WelcomeVideoCard siteId={site.id} state={typeof welcome === "object" ? { uploadedAt: when(welcome.uploadedAt) } : welcome} />
 
         <Card>
           <CardHeader>
