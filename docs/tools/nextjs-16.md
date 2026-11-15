@@ -1,27 +1,26 @@
 # Next.js 16 Documentation
 
 **Installed version:** `next` in `package-lock.json` (16.4.5 as of 2026-11-10)
-**Official Docs:** https://nextjs.org/docs
+**Official Docs:** https://nextjs.org/docs. The installed package also carries the docs for its own version in `node_modules/next/dist/docs/` (`/app/node_modules/next/dist/docs/` in the dev container; the upgrade guide is `01-app/02-guides/upgrading/version-16.md`). Check a claim there first: it matches the code that runs.
 
 ## Overview
 
-Next.js 16 was released on October 21, 2025, representing a major update with significant performance improvements, new caching models, and breaking changes.
+Next.js 16 (October 21, 2025) made Turbopack the default bundler, removed synchronous access to the request APIs, renamed middleware to proxy, and replaced the experimental caching flags with Cache Components.
 
-## Critical Changes from Next.js 15
+The statements below were checked on 2026-11-15 against the bundled upgrade guide and the types of 16.4.5.
 
-### System Requirements (Breaking)
+## Changes from Next.js 15
+
+### System Requirements
 
 - **Node.js**: 20.9.0+ required (Node.js 18 no longer supported)
 - **TypeScript**: 5.1.0+ required
 - **Browsers**: Chrome 111+, Edge 111+, Firefox 111+, Safari 16.4+
 
-### Turbopack is Now Default
+### Turbopack is the Default Bundler
 
-Turbopack is **stable** and serves as the **default bundler** for all projects:
-- No configuration needed—`next dev` and `next build` use Turbopack automatically
-- **2-5× faster** production builds
-- **Up to 10× faster** Fast Refresh (Hot Module Replacement)
-- Remove `--turbopack` or `--turbo` flags from scripts (no longer needed)
+- `next dev` and `next build` use Turbopack with no flag. `--turbopack` and `--turbo` are no longer needed in scripts.
+- `next build` fails when it finds a custom `webpack` config, unless it runs with `--webpack` (build with webpack) or `--turbopack` (ignore that config).
 
 **Opting Out:**
 ```bash
@@ -29,24 +28,10 @@ next dev --webpack    # Use webpack for dev
 next build --webpack  # Use webpack for build
 ```
 
-**Note:** Projects with custom webpack configurations will fail builds to prevent misconfiguration issues.
+### Async Request APIs
 
-## Breaking Changes
+`params` and `searchParams` are promises. Synchronous access, which Next.js 15 still allowed with a warning, is removed.
 
-### 1. Async Request APIs
-
-**`params` and `searchParams` are now async** and must be awaited:
-
-**Before (Next.js 15):**
-```typescript
-export default function Page({ params, searchParams }) {
-  const { id } = params;
-  const { filter } = searchParams;
-  // ...
-}
-```
-
-**After (Next.js 16):**
 ```typescript
 export default async function Page({ 
   params, 
@@ -78,31 +63,12 @@ export async function GET(
 - `headers()` - must be awaited
 - `draftMode()` - must be awaited
 
-**Client Components Note:** If your page uses `"use client"`, you cannot make it async. Use Server Components for pages that need async params/searchParams.
+**Client Components Note:** A `"use client"` page cannot be async. It reads `params` or `searchParams` with React's `use()`, or the query string with `useSearchParams`, which is what this repo's client pages do.
 
-### 2. Middleware → Proxy Migration
+### Middleware → Proxy
 
-**`middleware.ts` is deprecated** and replaced with `proxy.ts`:
+**`middleware.ts` is deprecated** and replaced with `proxy.ts`: the same API under a renamed file and export.
 
-**Old (Next.js 15):**
-```typescript
-// middleware.ts (root or src/)
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: '/admin/:path*',
-};
-```
-
-**New (Next.js 16):** same API, renamed file and export.
 ```typescript
 // proxy.ts or src/proxy.ts (same place middleware.ts went)
 import { NextResponse, type NextRequest } from 'next/server';
@@ -120,69 +86,33 @@ export const config = { matcher: '/admin/:path*' };
 **Key differences** (verified against `next` 16.1.6 in `node_modules`, 2026-10-15):
 - File: `proxy.ts` at the project root or `src/proxy.ts` (`PROXY_LOCATION_REGEXP` in `next/dist/lib/constants.js`). Not under `app/`.
 - Export: a function named `proxy` or a default export. There are no `ProxyRequest`/`ProxyResponse` types: use `NextRequest`/`NextResponse`.
-- Runtime: Node.js, so Prisma works there.
+- Runtime: Node.js only, so Prisma works there. The `edge` runtime is not supported in `proxy`.
+- Config options with `middleware` in the name were renamed too: `skipMiddlewareUrlNormalize` → `skipProxyUrlNormalize`, `experimental.middlewarePrefetch` → `experimental.proxyPrefetch`.
 
-**Authorization stays in server layout guards** (`requireAuth`, `requireGlobalAdmin`), not the proxy. This repo has no proxy. A server component cannot set cookies (only server actions and route handlers can), which is why sessions roll their idle expiry in the database rather than in the cookie (Epic 28).
+**Authorization stays in server layout guards** (`requireAuth`, `requireGlobalAdmin`), not the proxy. This repo has no proxy. The reference implementation is `src/app/(admin)/layout.tsx`: the layout awaits `requireAuth()` from `@/lib/auth-utils`, which redirects a signed-out request to `/login`, then `requireHomeHost`. There is no `auth()` helper and no `@/lib/auth` module (no auth library, `docs/AGENT_CONTEXT.md` section 1). A server component cannot set cookies (only server actions and route handlers can), which is why sessions roll their idle expiry in the database rather than in the cookie (Epic 28).
 
-**Automated Migration:**
-```bash
-npx @next/codemod@latest middleware-to-proxy .
-```
+### `next lint` is Removed
 
-### 3. Configuration Changes
+The `next lint` command no longer exists, and `next build` no longer lints. The portal's `lint` script runs `eslint` with the flat config in `eslint.config.mjs`.
 
-**`experimental.middlewarePrefetch` → `experimental.proxyPrefetch`**
+### Caching APIs
 
-```typescript
-// next.config.ts
-const nextConfig = {
-  experimental: {
-    proxyPrefetch: 'strict', // was middlewarePrefetch
-  },
-};
-```
+- `revalidateTag(tag, profile)` takes a required second argument, a `cacheLife` profile such as `'max'`. The one-argument call is a type error.
+- `updateTag(tag)` expires a tag immediately from a Server Action, and `refresh()` refreshes the client router from one.
+- `cacheLife` and `cacheTag` lost the `unstable_` prefix (`unstable_cacheLife` and `unstable_cacheTag` remain as aliases). `unstable_cache` and `unstable_noStore` keep theirs: `next/cache` exports no `cache` or `noStore` (read from `next/cache.d.ts` in 16.4.5, 2026-11-14).
+- `revalidatePath` is unchanged. It is the only one of these the portal calls (as of 2026-11-15).
 
-### 4. `unstable_` Prefixes
+### Cache Components (opt-in)
 
-`cacheLife` and `cacheTag` lost the prefix (`unstable_cacheLife` and `unstable_cacheTag` remain as aliases). `unstable_cache` and `unstable_noStore` keep theirs: `next/cache` exports no `cache` or `noStore` (read from `next/cache.d.ts` in 16.4.5, 2026-11-14).
+`cacheComponents: true` in `next.config.ts` turns on the `"use cache"` directive, and it is how Partial Prerendering is enabled in 16. The `experimental.ppr`, `experimental.dynamicIO`, and `experimental.useCache` flags are gone. **The portal does not enable it.**
 
-## New Features
+`"use cache"` goes at the top of a file, which caches every export, or as the first statement of an async function or component:
 
-### Cache Components
-
-Next.js 16 introduces a new opt-in caching model using the `"use cache"` directive:
-
-**Enable in Config:**
-```typescript
-// next.config.ts
-const nextConfig = {
-  cacheComponents: true,
-};
-```
-
-**Usage:**
-```typescript
-// app/products/page.tsx
-'use cache';
-
-export default async function ProductsPage() {
-  const products = await fetchProducts();
-  return <ProductList products={products} />;
-}
-```
-
-**Benefits:**
-- Component-level caching granularity
-- Automatic cache key generation
-- 60-80% TTFB reduction on mixed-content pages
-- Sub-100ms response times for static shell content
-
-**Cache Control:**
 ```typescript
 import { cacheLife, cacheTag } from 'next/cache';
 
 export async function getProduct(id: string) {
-  'use cache'; // a directive: first statement of the function, or of the file
+  'use cache';
   const product = await fetchProduct(id);
   
   // Set cache duration: a profile name ('seconds', 'minutes', 'hours', 'days',
@@ -196,144 +126,17 @@ export async function getProduct(id: string) {
 }
 ```
 
-### React 19.2 Support
+### React Canary in the App Router
 
-Next.js 16 ships with React 19.2, which includes:
+The App Router runs on a React canary. It has the 19.2 features (`useEffectEvent`, `<Activity />`) and also `<ViewTransition>`, which the stable `react` package does not export. See [`react-19.md`](./react-19.md).
 
-**View Transitions:**
-```typescript
-import { ViewTransition } from 'react';
+### Separate Output Directories
 
-export default function Page() {
-  return (
-    <ViewTransition>
-      <AnimatedContent />
-    </ViewTransition>
-  );
-}
-```
+`next dev` writes to `.next/dev` and `next build` to `.next`, and a lockfile stops a second `next dev` or `next build` in the same project. The rule against building on the host still holds, because the container writes `apps/portal/.next` as root ([`docker.md`](./docker.md)).
 
-**`useEffectEvent` Hook:**
-```typescript
-import { useEffectEvent } from 'react';
+### Parallel Routes Need `default.js`
 
-function Chat({ roomId, onReceiveMessage }) {
-  const onMessage = useEffectEvent(onReceiveMessage);
-  
-  useEffect(() => {
-    const connection = connect(roomId);
-    connection.on('message', onMessage);
-    return () => connection.disconnect();
-  }, [roomId]); // onMessage not needed in deps
-}
-```
-
-**`<Activity />` Component:**
-Keeps parts of UI mounted but hidden, preserving state while deferring side effects.
-
-### Enhanced Routing
-
-- Layout deduplication
-- Incremental prefetching
-- Optimized navigations
-
-### Improved Logging
-
-Build and development logs now show detailed timing breakdowns for better debugging.
-
-## Migration Guide
-
-### Automated Migration
-
-Use the official codemod:
-```bash
-npx @next/codemod@canary upgrade latest
-```
-
-This automatically:
-- Updates `next.config.js`
-- Migrates `middleware.ts` → `proxy.ts`
-- Updates async params/searchParams
-- Removes the `unstable_` prefix from the APIs that lost it (section 4 above)
-- Updates configuration properties
-
-### Manual Migration Steps
-
-1. **Update Dependencies:**
-   ```bash
-   npm install next@latest react@latest react-dom@latest
-   ```
-
-2. **Update Node.js:** Ensure Node.js 20.9+ is installed
-
-3. **Update TypeScript:** Ensure TypeScript 5.1.0+ is installed
-
-4. **Migrate Middleware:**
-   - Rename `middleware.ts` → `proxy.ts` (same directory) and the exported `middleware` function → `proxy`
-
-5. **Update Route Handlers:**
-   - Make `params` and `searchParams` async
-   - Add `await` when accessing them
-
-6. **Update Page Components:**
-   - Make page components async if using params/searchParams
-   - Add `await` when accessing params/searchParams
-
-7. **Update Config:**
-   - Change `experimental.middlewarePrefetch` → `experimental.proxyPrefetch`
-   - Drop the `unstable_` prefix from `cacheLife` and `cacheTag` only (section 4 above)
-
-8. **Remove Turbopack Flags:**
-   - Remove `--turbopack` or `--turbo` from package.json scripts
-
-## Common Patterns
-
-### Server Component with Async Params
-
-```typescript
-// app/posts/[slug]/page.tsx
-export default async function PostPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ preview?: string }>;
-}) {
-  const { slug } = await params;
-  const { preview } = await searchParams;
-  
-  const post = await getPost(slug, { preview: preview === 'true' });
-  
-  return <PostContent post={post} />;
-}
-```
-
-### Route Handler with Async Params
-
-```typescript
-// app/api/users/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const user = await getUser(id);
-  return NextResponse.json(user);
-}
-```
-
-### Server Layout Guard (Auth Pattern)
-
-The reference implementation is `src/app/(admin)/layout.tsx`: the layout awaits `requireAuth()` from `@/lib/auth-utils`, which redirects a signed-out request to `/login`, then `requireHomeHost`. This repo has no `auth()` helper and no `@/lib/auth` module (no auth library, `docs/AGENT_CONTEXT.md` section 1).
-
-## Performance Improvements
-
-- **2-5× faster** production builds (Turbopack)
-- **Up to 10× faster** Fast Refresh (Turbopack)
-- **60-80% TTFB reduction** with Cache Components
-- **Sub-100ms** response times for static content
+Every parallel route slot (`@name`) needs an explicit `default.js`, or the build fails. The portal has no parallel routes (as of 2026-11-15).
 
 ## Project-Specific Notes
 
@@ -363,36 +166,11 @@ A catch-all route's `params` arrive decoded one time per segment: `%20` is a spa
 
 On the dev server from 16.4, the children an async server component passes to a client component can arrive as lazy elements. `@radix-ui/react-slot` before 1.2.4 renders nothing for a lazy `asChild` child, so the server sends an empty `TooltipTrigger asChild` (or `Button asChild`) and hydration fails on the page. A production build is not affected. The root `package.json` pins the slot to 1.2.4 through `overrides` for that reason (verified 2026-11-10: the forms list's view toggle). Delete the override when `radix-ui` depends on `@radix-ui/react-slot` 1.2.4 or later by itself.
 
-## Troubleshooting
-
-### "Cannot access Request information synchronously"
-
-**Error:** `Cannot access Request information synchronously with Page or Layout or Route 'params' or Page 'searchParams'`
-
-**Solution:** Make the component async and await params/searchParams:
-```typescript
-export default async function Page({ params }) {
-  const { id } = await params; // Add await
-}
-```
-
-### "Turbopack build failed"
-
-**Cause:** Custom webpack configuration incompatible with Turbopack
-
-**Solution:** Use `--webpack` flag or migrate webpack config to Turbopack equivalents
-
-### "middleware.ts not found"
-
-**Cause:** Migrated to `proxy.ts` but code still references middleware
-
-**Solution:** Rename the exported function to `proxy` (or export a default) and keep the file at the root or in `src/`
-
 ## Resources
 
 - **Official Documentation**: https://nextjs.org/docs
 - **Upgrade Guide**: https://nextjs.org/docs/app/guides/upgrading/version-16
 - **Proxy Documentation**: https://nextjs.org/docs/app/getting-started/proxy
 - **Cache Components**: https://nextjs.org/docs/app/api-reference/directives/use-cache
-- **Turbopack**: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+- **Turbopack**: https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack
 - **Changelog**: https://nextjs.org/blog
