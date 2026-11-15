@@ -179,7 +179,7 @@ The portal builds with Next.js standalone output (`output: "standalone"` in `app
 
 `apps/portal/Dockerfile` is the reference for each:
 
-- **Layer caching:** the deps stage copies only the lockfile and every workspace's `package.json` before `npm ci`, so the install layer is rebuilt only when a manifest changes. A new workspace needs its manifest added there (and in `Dockerfile.dev`).
+- **Layer caching:** the deps stage copies only the lockfile, every workspace's `package.json`, and the script that checks the install (`apps/portal/scripts/check-optional-packages.mjs`, `docs/AGENT_CONTEXT.md` section 8) before `npm ci`, so the install layer is rebuilt only when one of those changes. A new workspace needs its manifest added there (and in `Dockerfile.dev`).
 - **Build arguments:** `NEXT_PUBLIC_APP_URL` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` are `ARG`s, because Next bakes them in at build time.
 - **Non-root:** the runner stage runs as `nextjs` (UID 1001).
 - **Standalone output copying:** the runner stage's paths sit under `apps/portal/` because the standalone output mirrors the workspace layout; what each copied piece is for is in `docs/PRISMA_MIGRATIONS.md` ("Dockerfile (runner stage)").
