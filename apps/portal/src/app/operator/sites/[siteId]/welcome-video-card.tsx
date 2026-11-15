@@ -1,13 +1,15 @@
 "use client";
 
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { removeSiteWelcomeVideo } from "@/actions/admin/welcome-video";
 import {
   CAPTIONS_LENGTH_HEADER,
   isMp4,
@@ -22,7 +24,8 @@ export type WelcomeVideoCardState = "no-storage" | "none" | "missing" | { upload
 
 /**
  * The site's welcome video (ROADMAP E39) on the operator's page: whether it
- * has one, and the upload of an MP4 with its captions, which replaces it.
+ * has one, the upload of an MP4 with its captions, which replaces it, and
+ * taking it away.
  */
 export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: WelcomeVideoCardState }) {
   const router = useRouter();
@@ -37,6 +40,9 @@ export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: Wel
   /** The share of the upload sent so far, while one is under way. */
   const [progress, setProgress] = useState<number | null>(null);
   const uploading = progress !== null;
+  const [removing, startRemoving] = useTransition();
+  const busy = uploading || removing;
+  const hasVideo = state === "missing" || typeof state === "object";
 
   const tooLarge = (video?.size ?? 0) + (captions?.size ?? 0) > WELCOME_UPLOAD_MAX_BYTES;
   const errors = {
@@ -79,6 +85,15 @@ export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: Wel
     router.refresh();
   }
 
+  function remove() {
+    startRemoving(async () => {
+      const result = await removeSiteWelcomeVideo(siteId);
+      if ("error" in result) toast.error(result.error);
+      else toast.success(result.message);
+      router.refresh();
+    });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -102,7 +117,7 @@ export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: Wel
                 id="welcome-video"
                 type="file"
                 accept="video/mp4,.mp4"
-                disabled={uploading}
+                disabled={busy}
                 aria-invalid={errors.video ? true : undefined}
                 onChange={(e) => void chooseVideo(e.target.files?.[0] ?? null)}
               />
@@ -115,7 +130,7 @@ export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: Wel
                 id="welcome-captions"
                 type="file"
                 accept="text/vtt,.vtt"
-                disabled={uploading}
+                disabled={busy}
                 aria-invalid={errors.captions ? true : undefined}
                 onChange={(e) => void chooseCaptions(e.target.files?.[0] ?? null)}
               />
@@ -124,10 +139,23 @@ export function WelcomeVideoCard({ siteId, state }: { siteId: string; state: Wel
             </div>
             {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={uploading}>
+          <CardFooter className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={busy}>
               {uploading ? `Uploading ${Math.floor(progress * 100)}%` : typeof state === "object" ? "Replace" : "Upload"}
             </Button>
+            {hasVideo ? (
+              <ConfirmDialog
+                title="Remove welcome video"
+                description="Clears how far each person watched. A video you upload later opens once for each of them again."
+                onConfirm={remove}
+                destructive
+                trigger={
+                  <Button type="button" variant="outline" disabled={busy}>
+                    Remove
+                  </Button>
+                }
+              />
+            ) : null}
           </CardFooter>
         </form>
       )}
