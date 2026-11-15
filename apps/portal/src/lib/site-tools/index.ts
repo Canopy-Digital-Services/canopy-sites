@@ -9,8 +9,10 @@
  *
  * Every source writes one draft per site (PRD D38): the pending ChangeSet.
  * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
- * push. The last write to a field wins; writes that arrive together are
- * applied one after the other, never refused.
+ * push. One person edits at a time (PRD D64): every write takes or keeps the
+ * site's hold for its caller (hold.ts) and is refused while someone else has
+ * it. That person's own writes are never refused: the last to a field wins,
+ * and ones that arrive together are applied one after the other.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -48,6 +50,7 @@ import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPrevi
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 import { personName } from "@/lib/person";
 import { changedFields, type FieldChange } from "./changes";
+import { currentHold, takeHold } from "./hold";
 
 export type { FieldChange } from "./changes";
 
@@ -62,10 +65,13 @@ export class ToolError extends Error {
    * to Michael (PRD D34); the message itself only says what was refused.
    */
   outOfLane: boolean;
-  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean } = {}) {
+  /** Set when someone else is editing the site (PRD D64): who, as the account's people know them. */
+  heldBy?: string;
+  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean; heldBy?: string } = {}) {
     super(message);
     this.issues = issues;
     this.outOfLane = options.outOfLane ?? false;
+    this.heldBy = options.heldBy;
   }
 }
 
@@ -129,6 +135,22 @@ async function ownedSite(accountId: string, siteId: string): Promise<ToolSite> {
   if (!site) throw new ToolError("No such site.");
   if (!site.repoUrl) throw new ToolError("This site has no repository set up yet.");
   return site;
+}
+
+/**
+ * The caller holds the site from here, or a ToolError naming who does (PRD
+ * D64). Every write calls it before anything else it would refuse or count,
+ * so a person who can't edit right now uses up nothing. A caller that is no
+ * person never takes the hold, and waits like anyone while a person has it.
+ */
+async function requireHold(siteId: string, ctx: ToolContext): Promise<void> {
+  const holder = ctx.userId ? await takeHold(siteId, ctx.userId) : await currentHold(siteId).then((h) => (h ? { held: false as const, by: h.by } : { held: true as const }));
+  if (!holder.held) throw new ToolError(`${holder.by} is editing the site.`, undefined, { heldBy: holder.by });
+}
+
+/** Takes or keeps the hold on the account's site for the caller: what Quick Edit does before it spends a model call. */
+export async function holdSite(ctx: ToolContext): Promise<void> {
+  await requireHold((await siteFor(ctx.accountId)).id, ctx);
 }
 
 const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
@@ -589,6 +611,7 @@ export async function getDraftView(accountId: string, siteId: string) {
  */
 export async function proposeChange(ctx: ToolContext, input: { summary: string; ops: unknown; conversationId?: string }) {
   const site = await siteFor(ctx.accountId);
+  await requireHold(site.id, ctx);
   if (isRateLimited(`site-tools:propose:${ctx.accountId}`, PROPOSALS_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
@@ -621,6 +644,7 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
  */
 export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: unknown }): Promise<DraftWriteResult> {
   const site = await ownedSite(ctx.accountId, siteId);
+  await requireHold(site.id, ctx);
   if (isRateLimited(`site-tools:save:${ctx.accountId}`, SAVES_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
@@ -686,6 +710,7 @@ export async function refreshChange(accountId: string, changeSetId: string) {
  */
 export async function publishChange(ctx: ToolContext, changeSetId: string, buildId: string, author: { name: string; email: string }) {
   const changeSet = await ownedChange(ctx.accountId, changeSetId);
+  await requireHold(changeSet.siteId, ctx);
   const build = changeSet.builds[0];
   const current = build && (build.draftVersion === null || build.draftVersion === changeSet.version);
   if (changeSet.status !== "PREVIEWED" || build?.status !== "SUCCEEDED" || !current) {
@@ -796,8 +821,9 @@ function leftoverSummary(ops: ChangeOp[]): string {
   return [...new Set(lines)].join("; ").slice(0, 1000);
 }
 
-export async function discardChange(accountId: string, changeSetId: string) {
-  const changeSet = await ownedChange(accountId, changeSetId);
+export async function discardChange(ctx: ToolContext, changeSetId: string) {
+  const changeSet = await ownedChange(ctx.accountId, changeSetId);
+  await requireHold(changeSet.siteId, ctx);
   if (!PENDING.includes(changeSet.status as (typeof PENDING)[number])) throw new ToolError("Only a pending change can be discarded.");
   await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "DISCARDED" } });
 }

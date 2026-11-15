@@ -11,7 +11,7 @@ import { collections, jsonSchemaFor, type AvoidWarning, type CollectionName } fr
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
-import { getContentView, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
+import { getContentView, holdSite, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
 import { draftHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
 import { BASE_RUNBOOK } from "./runbook";
 
@@ -162,6 +162,8 @@ export async function runQuickEdit(
   const message = input.message.trim();
   if (!message) throw new QuickEditError("Type what you'd like to change.");
   if (message.length > 2000) throw new QuickEditError("That's a long message. Try something shorter.");
+  // Someone else editing the site is refused here (PRD D64), before the message counts or costs anything.
+  await holdSite(ctx);
   if (isRateLimited(`quick-edit:${ctx.accountId}`, MESSAGES_PER_HOUR, 60 * 60 * 1000)) {
     throw new QuickEditError("That's a lot of edits for one hour. Try again a little later.");
   }
@@ -192,6 +194,8 @@ export async function runQuickEdit(
   let reply = "";
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
+    // A long reply outlasts a hold: keep it each round, and stop if the site has passed to someone else.
+    if (round > 0) await holdSite(ctx);
     let response: Anthropic.Message;
     try {
       response = await anthropic().messages.create({

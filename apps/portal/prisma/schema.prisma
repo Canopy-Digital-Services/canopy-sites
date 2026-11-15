@@ -103,6 +103,7 @@ model User {
   sessionHandoffs       SessionHandoff[]
   changeSets            ChangeSet[]
   conversations         Conversation[]
+  siteHolds             SiteHold[]
   helpRequestsSent      HelpRequest[]    @relation("HelpRequestSender")
   helpRequestsClosed    HelpRequest[]    @relation("HelpRequestCloser")
 
@@ -171,8 +172,25 @@ model Site {
   builds        Build[]
   conversations Conversation[]
   helpRequests  HelpRequest[]
+  hold          SiteHold?
 
   @@map("sites")
+}
+
+/// Who is editing a site now (PRD D64): one row per site, taken and kept by
+/// every write to the site and by its editing pages, and free once expiresAt
+/// has passed. Only src/lib/site-tools/hold.ts reads or writes it.
+model SiteHold {
+  siteId    String   @id
+  userId    String
+  takenAt   DateTime @default(now())
+  expiresAt DateTime
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("site_holds")
 }
 
 // One proposed edit to a site's content, from any source (PRD section 4.5).

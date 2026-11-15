@@ -146,7 +146,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 
 | Event | Sessions ended |
 |-------|----------------|
-| Sign-out | This browser's (and its acting as a client) |
+| Sign-out | This browser's (and its acting as a client). The user's holds on sites they were editing are released too (PRD D64) |
 | Password change | Every other session; this browser stays signed in |
 | Password reset | All of the user's |
 | User or account deletion | All, by cascade |
