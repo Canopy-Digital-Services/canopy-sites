@@ -13,8 +13,17 @@ import { PeopleCard, type PersonRow } from "./people-card";
 import { WelcomeVideoCard } from "./welcome-video-card";
 import { listPeopleAccess } from "@/lib/claim";
 import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
-import { welcomeVideoState } from "@/lib/welcome-video";
+import { SITES_TABS } from "@/lib/sites-tabs";
+import { welcomeVideoStates } from "@/lib/welcome-video";
 import { clock } from "@/lib/welcome-video-limits";
+
+/** A person's welcome videos in the tabs' order, "Watched Quick Edit 4:12 of 5:03 · Editor 0:40 of 2:10", or null when they have played none. */
+function watchedLine(watched: { tab: string; seconds: number; of: number }[]): string | null {
+  const parts = SITES_TABS.flatMap(({ id, label }) =>
+    watched.filter((w) => w.tab === id).map((w) => `${label} ${clock(w.seconds)} of ${clock(w.of)}`),
+  );
+  return parts.length ? `Watched ${parts.join(" · ")}` : null;
+}
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   await requireGlobalAdmin();
@@ -26,7 +35,7 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
     listAccountsAvailableForSite(),
     listPeopleAccess(site.accountId),
     countOpenHelpRequests(site.id),
-    welcomeVideoState(site),
+    welcomeVideoStates(site.id),
   ]);
   const when = (d: Date) => d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: site.timeZone });
   const people: PersonRow[] = access.map((person) => ({
@@ -42,7 +51,7 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
         person.link.by ? ` by ${person.link.by}` : " at their request"
       }`,
     lastSignIn: person.lastLoginAt && when(person.lastLoginAt),
-    watched: person.watched && `Watched ${clock(person.watched.seconds)} of ${clock(person.watched.of)}`,
+    watched: watchedLine(person.watched),
   }));
 
   return (
@@ -52,7 +61,13 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
 
         <PeopleCard siteId={site.id} siteName={site.name} accountId={site.accountId} people={people} />
 
-        <WelcomeVideoCard siteId={site.id} state={typeof welcome === "object" ? { uploadedAt: when(welcome.uploadedAt) } : welcome} />
+        <WelcomeVideoCard
+          siteId={site.id}
+          videos={
+            welcome &&
+            welcome.map(({ tab, state }) => ({ tab, state: typeof state === "object" ? { uploadedAt: when(state.uploadedAt) } : state }))
+          }
+        />
 
         <Card>
           <CardHeader>

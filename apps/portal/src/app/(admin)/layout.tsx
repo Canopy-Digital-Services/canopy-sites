@@ -14,7 +14,7 @@ import { SitesNav } from "@/components/sites/sites-nav";
 import { DraftStatus } from "@/components/sites/draft-status";
 import { ActingBanner } from "@/components/acting-banner";
 import { homePathFor, productFor, productMetadata, requireHomeHost } from "@/lib/product";
-import { welcomeVideoFor } from "@/lib/welcome-video";
+import { welcomeVideosFor } from "@/lib/welcome-video";
 
 export async function generateMetadata(): Promise<Metadata> {
   return productMetadata(productFor(await getCurrentEntitlements()));
@@ -32,7 +32,7 @@ export default async function AdminLayout({
   await requireHomeHost(entitlements);
   // The account's products pick the chrome and the title; the hostname plays no part.
   const product = productFor(entitlements);
-  const welcome = product === "sites" ? await welcomeVideoFor(session, accountId) : null;
+  const welcome = product === "sites" ? await welcomeVideosFor(session, accountId) : [];
 
   // When a downgrade has unpublished all of the account's forms, block every
   // admin route with the resolution dialog. The user picks which forms stay

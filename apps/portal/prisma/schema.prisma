@@ -117,22 +117,15 @@ model User {
 // as OWNER; getCurrentAccountId enforces that. Platform roles (GLOBAL_ADMIN)
 // stay on User.roleCode, separate from this per-account role.
 model Membership {
-  id                    String         @id @default(cuid())
-  userId                String
-  accountId             String
-  role                  MembershipRole
-  createdAt             DateTime       @default(now())
-  // When the site's welcome video opened by itself for this person (ROADMAP
-  // E39). Null means it hasn't, so their next signed-in page opens it.
-  welcomeShownAt        DateTime?
-  // The furthest point this person has played of it and its length, in whole
-  // seconds: "Watched 4:12 of 5:03" on the operator's people card. Null until
-  // they play it, and again when the site gets a different video.
-  welcomeWatchedSeconds Int?
-  welcomeVideoSeconds   Int?
+  id        String         @id @default(cuid())
+  userId    String
+  accountId String
+  role      MembershipRole
+  createdAt DateTime       @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  welcomeViews WelcomeView[]
 
   @@unique([userId, accountId])
   @@index([accountId])
@@ -171,9 +164,6 @@ model Site {
   maxBuildsRetained   Int      @default(5)
   // A sales demo, never a client's site (PRD D23): Stats shows sample data.
   isDemo              Boolean  @default(false)
-  // The site's welcome video (ROADMAP E39): the name of its two files under
-  // MEDIA_DIR, a hash of the MP4. Null means none. src/lib/welcome-video.ts.
-  welcomeVideoKey     String?
   /// Retired 2026-11-12, when the zone moved to Account.timeZone. @ignore keeps
   /// it out of the client, so no query names the column. Remove it, with its
   /// migration, once main's schema carries this @ignore (AGENT_CONTEXT
@@ -188,8 +178,49 @@ model Site {
   conversations Conversation[]
   helpRequests  HelpRequest[]
   hold          SiteHold?
+  welcomeVideos WelcomeVideo[]
 
   @@map("sites")
+}
+
+/// A site's welcome video for one tab of its portal (ROADMAP E39): a
+/// walkthrough of that tab, opened once for each person on the account the
+/// first time they visit it. `tab` is a SitesTabId (src/lib/sites-tabs.ts),
+/// and `key`, a hash of the MP4, names its two files under MEDIA_DIR. A tab
+/// with no row has no video. src/lib/welcome-video.ts.
+model WelcomeVideo {
+  id     String @id @default(cuid())
+  siteId String
+  tab    String
+  key    String
+
+  site  Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  views WelcomeView[]
+
+  @@unique([siteId, tab])
+  @@map("welcome_videos")
+}
+
+/// One person's viewing of one welcome video. The row is made when the video
+/// opens by itself for them, which it then doesn't do again. It goes with
+/// the video when the operator removes it, so the tab's next video opens for
+/// them as a first one does.
+model WelcomeView {
+  videoId        String
+  membershipId   String
+  shownAt        DateTime @default(now())
+  // The furthest point they have played and the video's length, in whole
+  // seconds: "Quick Edit 4:12 of 5:03" on the operator's people card. Null
+  // until they play it, and again when the tab gets a different video.
+  watchedSeconds Int?
+  videoSeconds   Int?
+
+  video      WelcomeVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  membership Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@id([videoId, membershipId])
+  @@index([membershipId])
+  @@map("welcome_views")
 }
 
 /// Who is editing a site now (PRD D64): one row per site, taken and kept by
