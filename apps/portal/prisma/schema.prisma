@@ -115,11 +115,14 @@ model User {
 // as OWNER; getCurrentAccountId enforces that. Platform roles (GLOBAL_ADMIN)
 // stay on User.roleCode, separate from this per-account role.
 model Membership {
-  id        String         @id @default(cuid())
-  userId    String
-  accountId String
-  role      MembershipRole
-  createdAt DateTime       @default(now())
+  id             String         @id @default(cuid())
+  userId         String
+  accountId      String
+  role           MembershipRole
+  createdAt      DateTime       @default(now())
+  // When the site's welcome video opened by itself for this person (ROADMAP
+  // E39). Null means it hasn't, so their next signed-in page opens it.
+  welcomeShownAt DateTime?
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -161,6 +164,9 @@ model Site {
   maxBuildsRetained   Int      @default(5)
   // A sales demo, never a client's site (PRD D23): Stats shows sample data.
   isDemo              Boolean  @default(false)
+  // The site's welcome video (ROADMAP E39): the name of its two files under
+  // MEDIA_DIR, a hash of the MP4. Null means none. src/lib/welcome-video.ts.
+  welcomeVideoKey     String?
   /// Unused since the zone moved to Account.timeZone (2026-11-12): nothing
   /// reads or writes it. Dropped by a migration in the next production release.
   timeZone            String   @default("America/Los_Angeles")
