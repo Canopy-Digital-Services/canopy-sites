@@ -35,6 +35,8 @@ type Refusal = {
   issues?: Array<{ address?: string; message: string }>;
   /** Set when the refusal is that someone else is editing the site (PRD D64): who. */
   heldBy?: string;
+  /** Set when the refusal is that the draft is someone else's to publish or discard first (PRD D64): whose. */
+  draftBy?: string;
 };
 type Result<T> = ({ success: true } & T) | Refusal;
 
@@ -48,7 +50,12 @@ async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolCont
 
 function failure(err: unknown): Refusal {
   if (err instanceof ToolError) {
-    return { error: err.message, issues: err.issues?.map((i) => ({ address: i.address, message: i.message })), ...(err.heldBy ? { heldBy: err.heldBy } : {}) };
+    return {
+      error: err.message,
+      issues: err.issues?.map((i) => ({ address: i.address, message: i.message })),
+      ...(err.heldBy ? { heldBy: err.heldBy } : {}),
+      ...(err.draftBy ? { draftBy: err.draftBy } : {}),
+    };
   }
   if (err instanceof QuickEditError) return { error: err.message };
   console.error(JSON.stringify({ event: "site_editor_error", message: (err as Error).message }));
@@ -81,7 +88,9 @@ export async function sendQuickEdit(input: {
  * person's hold going when they have one, and takes one only with `take`,
  * which the Editor sends when its person opens a field.
  */
-export async function keepHold(input?: { take?: boolean }): Promise<Result<{ by: string | null; mine: boolean; marker: string; hasDraft: boolean }>> {
+export async function keepHold(input?: {
+  take?: boolean;
+}): Promise<Result<{ by: string | null; mine: boolean; marker: string; hasDraft: boolean; draftBy: string | null; draftSummary: string | null }>> {
   try {
     const ctx = await context();
     return { success: true, ...(await keepSiteHold(ctx, input?.take === true)) };

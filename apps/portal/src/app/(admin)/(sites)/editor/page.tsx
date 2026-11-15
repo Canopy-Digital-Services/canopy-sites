@@ -55,7 +55,7 @@ export default async function EditorPage() {
 
   // Who has the site as the page renders (PRD D64). Opening the page takes nothing: the site
   // becomes this person's when they open a field.
-  const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false };
+  const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false, draftBy: null, draftSummary: null };
   const content = view.content as { pages?: Page[]; announcements?: Announcement[] };
   const pages: CanvasPage[] = (content.pages ?? []).map((p) => ({
     path: p.path.replace(/\/$/, "") || "/",

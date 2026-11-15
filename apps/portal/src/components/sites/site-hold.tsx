@@ -7,17 +7,21 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { keepHold } from "@/actions/site-editor";
-import { ASK_EVERY_MS, editingNotice, isActivityMessage, shouldAsk, wasIdle } from "@/lib/site-hold-policy";
+import { ASK_EVERY_MS, draftNotice, editingNotice, isActivityMessage, shouldAsk, wasIdle } from "@/lib/site-hold-policy";
 import { DRAFT_CHANGED, DRAFT_PUBLISHED, HOLD_CHANGED } from "./draft-status";
 
 type Hold = {
   /** Who else is making edits; null while nobody is, or this person is. */
   by: string | null;
   hasDraft: boolean;
+  /** Whose the draft is, when it is someone else's to publish or discard before this person can edit; null otherwise. */
+  draftBy: string | null;
+  /** What that draft changes. */
+  draftSummary: string | null;
   /** Goes up when the site moved under this page: whatever shows the site mounts again. */
   epoch: number;
-  /** A write was just refused because someone else has the site: say so now, not at the page's next turn. */
-  heldBy: (by: string) => void;
+  /** A write was just refused because the site or its draft is someone else's: say so now, not at the page's next turn. */
+  refused: (refusal: { heldBy?: string; draftBy?: string }) => void;
   /**
    * This person has started an edit the server hasn't seen yet (a field
    * opened on the canvas): the site becomes theirs now, unless someone else
@@ -36,8 +40,10 @@ export const SITE_MOVED = "canopy:site-moved";
 const HoldContext = createContext<Hold>({
   by: null,
   hasDraft: false,
+  draftBy: null,
+  draftSummary: null,
   epoch: 0,
-  heldBy: () => {},
+  refused: () => {},
   begin: () => {},
   marker: () => "",
   wrote: () => {},
@@ -52,8 +58,9 @@ export const useSiteHold = () => useContext(HoldContext);
  * From then the page keeps their hold going by asking about every 25 seconds
  * while they are active, and stops once they have gone quiet, so the hold
  * runs out on its own. Everyone else's page asks the same question to learn
- * who is making edits. The tool layer decides who may write: this only keeps
- * a hold between writes and shows the answer.
+ * who is making edits, and whose the draft is when it isn't theirs to add to.
+ * The tool layer decides who may write: this only keeps a hold between
+ * writes and shows the answer.
  */
 export function SiteHoldProvider({
   initial,
@@ -61,7 +68,7 @@ export function SiteHoldProvider({
   children,
 }: {
   /** Who has the site as the page rendered (`getSiteEditing`). */
-  initial: { by: string | null; marker: string; hasDraft: boolean };
+  initial: { by: string | null; marker: string; hasDraft: boolean; draftBy: string | null; draftSummary: string | null };
   /** False for a page that follows the draft itself, as the preview page does: it is never refreshed from here. */
   reload?: boolean;
   children: React.ReactNode;
@@ -69,6 +76,7 @@ export function SiteHoldProvider({
   const router = useRouter();
   const [by, setBy] = useState(initial.by);
   const [hasDraft, setHasDraft] = useState(initial.hasDraft);
+  const [draft, setDraft] = useState({ by: initial.draftBy, summary: initial.draftSummary });
   const [epoch, setEpoch] = useState(0);
   const page = useRef({
     by: initial.by,
@@ -101,6 +109,7 @@ export function SiteHoldProvider({
         const result = await keepHold({ take });
         if ("error" in result) continue;
         setHasDraft(result.hasDraft);
+        setDraft((d) => (d.by === result.draftBy && d.summary === result.draftSummary ? d : { by: result.draftBy, summary: result.draftSummary }));
         if (result.by !== null) {
           p.by = result.by;
           p.mine = false;
@@ -186,11 +195,18 @@ export function SiteHoldProvider({
     };
   }, [ask]);
 
-  const heldBy = useCallback((name: string) => {
-    page.current.by = name;
-    page.current.mine = false;
-    setBy(name);
-  }, []);
+  const refused = useCallback(
+    (refusal: { heldBy?: string; draftBy?: string }) => {
+      if (refusal.heldBy) {
+        page.current.by = refusal.heldBy;
+        page.current.mine = false;
+        setBy(refusal.heldBy);
+      }
+      // Whose draft it is comes with what it changes: ask for both.
+      if (refusal.draftBy) void ask();
+    },
+    [ask],
+  );
 
   const begin = useCallback(() => {
     page.current.take = true;
@@ -204,8 +220,8 @@ export function SiteHoldProvider({
   }, []);
 
   const value = useMemo(
-    () => ({ by, hasDraft, epoch, heldBy, begin, marker, wrote }),
-    [by, hasDraft, epoch, heldBy, begin, marker, wrote],
+    () => ({ by, hasDraft, draftBy: draft.by, draftSummary: draft.summary, epoch, refused, begin, marker, wrote }),
+    [by, hasDraft, draft, epoch, refused, begin, marker, wrote],
   );
   return <HoldContext.Provider value={value}>{children}</HoldContext.Provider>;
 }
@@ -221,32 +237,48 @@ function PreviewLink({ href }: { href: string }) {
   );
 }
 
-/** Who is making edits, where the page's own editing would be. */
-export function SiteHeldNotice({ by, previewHref }: { by: string; previewHref?: string }) {
+/**
+ * Why this person can't edit right now, in the one line everyone else is
+ * shown: someone is making edits, or someone's draft waits to be published
+ * or discarded. Null when they can.
+ */
+export function blockedNotice(hold: Pick<Hold, "by" | "draftBy">): string | null {
+  if (hold.by) return editingNotice(hold.by);
+  if (hold.draftBy) return draftNotice(hold.draftBy);
+  return null;
+}
+
+/** That line, where the page's own editing would be. */
+export function SiteNotice({ title, previewHref }: { title: string; previewHref?: string }) {
   return (
     <div role="status">
-      <EmptyState title={editingNotice(by)} action={previewHref ? <PreviewLink href={previewHref} /> : undefined} />
+      <EmptyState title={title} action={previewHref ? <PreviewLink href={previewHref} /> : undefined} />
     </div>
   );
 }
 
 /**
- * The Editor's canvas, with the site behind frosted glass and who is making
- * edits over it while someone else has the site. What it wraps stays mounted
- * and out of reach meanwhile, and mounts again when the site comes back, so
- * it never shows what it held before.
+ * The Editor's canvas, with the site behind frosted glass while this person
+ * can't edit it: someone else is making edits, or someone else's draft waits
+ * to be published or discarded, in which case what it changes is listed. What
+ * it wraps stays mounted and out of reach meanwhile, and mounts again when
+ * the site has moved, so it never shows what it held before.
  */
 export function BehindGlass({ previewHref, children }: { previewHref: string; children: React.ReactNode }) {
-  const { by, hasDraft, epoch } = useSiteHold();
+  const hold = useSiteHold();
+  const title = blockedNotice(hold);
   return (
     <div className="relative">
-      <div key={epoch} inert={by !== null} aria-hidden={by !== null ? true : undefined}>
+      <div key={hold.epoch} inert={title !== null} aria-hidden={title !== null ? true : undefined}>
         {children}
       </div>
-      {by !== null ? (
+      {title !== null ? (
         <div role="status" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 rounded-lg bg-background/60 px-6 text-center backdrop-blur-md">
-          <h3 className="font-heading text-[1.375rem] font-semibold leading-tight">{editingNotice(by)}</h3>
-          {hasDraft ? <PreviewLink href={previewHref} /> : null}
+          <div className="space-y-2">
+            <h3 className="font-heading text-[1.375rem] font-semibold leading-tight">{title}</h3>
+            {!hold.by && hold.draftSummary ? <p className="mx-auto max-w-xl text-sm text-muted-foreground">{hold.draftSummary}</p> : null}
+          </div>
+          {hold.hasDraft ? <PreviewLink href={previewHref} /> : null}
         </div>
       ) : null}
     </div>

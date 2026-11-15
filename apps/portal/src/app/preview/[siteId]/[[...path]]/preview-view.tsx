@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getSitePreviewState, publishPreview } from "@/actions/site-editor";
 import { announceDraft } from "@/components/sites/draft-status";
 import { useSiteHold } from "@/components/sites/site-hold";
-import { editingNotice } from "@/lib/site-hold-policy";
+import { editingNotice, theirChanges } from "@/lib/site-hold-policy";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
 type Pending = {
@@ -205,7 +205,7 @@ export function PreviewView({
       const result = await publishPreview({ changeSetId: pending.id, buildId: shownBuild });
       if ("error" in result) {
         toast.error(result.error);
-        if (result.heldBy) hold.heldBy(result.heldBy);
+        hold.refused(result);
         check();
         return;
       }
@@ -232,7 +232,8 @@ export function PreviewView({
   else if (pending === undefined) message = "Loading";
   else if (pending === null) message = "No unpublished changes";
   else if (failed) message = "This preview couldn't be built";
-  else if (ready) message = "Previewing unpublished changes";
+  // Someone else's draft says whose: publishing it is this person's call on their work (PRD D64).
+  else if (ready) message = hold.draftBy ? `Previewing ${theirChanges(hold.draftBy)}` : "Previewing unpublished changes";
   else message = "Updating preview";
 
   return (

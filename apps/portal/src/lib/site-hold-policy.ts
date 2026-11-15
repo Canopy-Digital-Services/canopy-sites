@@ -42,7 +42,12 @@ export function editingNotice(by: string): string {
   return `${by} is currently making edits`;
 }
 
-/** What a draft is called to someone who didn't make its last change. */
+/** What a draft is called to anyone but the person who made it. */
 export function theirChanges(by: string): string {
   return `${by}'s unpublished changes`;
+}
+
+/** What everyone else is told while a person's draft waits to be published or discarded, where they would edit. */
+export function draftNotice(by: string): string {
+  return `${by} has unpublished changes`;
 }

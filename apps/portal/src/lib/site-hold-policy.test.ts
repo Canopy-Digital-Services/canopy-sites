@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editingNotice, IDLE_AFTER_MS, isActivityMessage, shouldAsk, theirChanges, wasIdle } from "./site-hold-policy";
+import { draftNotice, editingNotice, IDLE_AFTER_MS, isActivityMessage, shouldAsk, theirChanges, wasIdle } from "./site-hold-policy";
 
 const now = 1_800_000_000_000;
 
@@ -38,5 +38,6 @@ describe("how an editing page follows the site's hold (PRD D64)", () => {
   it("has one wording for who has the site, and for a draft someone else last changed", () => {
     expect(editingNotice("Jane Doe")).toBe("Jane Doe is currently making edits");
     expect(theirChanges("Jane Doe")).toBe("Jane Doe's unpublished changes");
+    expect(draftNotice("Jane Doe")).toBe("Jane Doe has unpublished changes");
   });
 });

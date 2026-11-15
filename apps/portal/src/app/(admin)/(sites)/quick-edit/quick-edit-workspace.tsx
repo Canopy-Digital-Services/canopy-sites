@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft } from "@/components/sites/draft-status";
-import { SiteHeldNotice, useSiteHold } from "@/components/sites/site-hold";
+import { blockedNotice, SiteNotice, useSiteHold } from "@/components/sites/site-hold";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { theirChanges } from "@/lib/site-hold-policy";
 import { LocalTime } from "@/components/local-time";
 
@@ -39,16 +40,19 @@ export function QuickEditWorkspace({
   /** What the owner sent Canopy (PRD D34), newest first. */
   requests: SentRequest[];
 }) {
-  // While someone else is making edits (PRD D64), who it is stands where the chat would be, and
-  // the draft, which is theirs to preview and discard, is offered only as a Preview beside their
-  // name. The chat stays mounted underneath, so a conversation is still there when the site is free.
+  // Why this person can't edit, where the chat would be (PRD D64). While someone else is making
+  // edits, the draft is theirs to preview and discard, and is offered only as a Preview beside
+  // their name. Once they have stopped, their draft's card is back with Preview and Discard: it
+  // has to be published or discarded before anyone else edits. The chat stays mounted
+  // underneath, so a conversation is still there when the site is free.
   const hold = useSiteHold();
+  const blocked = blockedNotice(hold);
   const previewHref = `/preview/${siteId}`;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0">
-        {hold.by ? <SiteHeldNotice by={hold.by} previewHref={hold.hasDraft ? previewHref : undefined} /> : null}
-        <div hidden={hold.by !== null}>
+        {blocked ? <SiteNotice title={blocked} previewHref={hold.by && hold.hasDraft ? previewHref : undefined} /> : null}
+        <div hidden={blocked !== null}>
           <QuickEdit examples={examples} previewHref={previewHref} pendingId={pending?.id ?? null} />
         </div>
       </div>
@@ -73,7 +77,7 @@ function QuickEdit({
   pendingId: string | null;
 }) {
   const router = useRouter();
-  const { heldBy } = useSiteHold();
+  const { refused } = useSiteHold();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -98,7 +102,7 @@ function QuickEdit({
       const result = await sendQuickEdit({ conversationId, message });
       if ("error" in result) {
         setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.error }]);
-        if (result.heldBy) heldBy(result.heldBy);
+        refused(result);
         return;
       }
       setConversationId(result.conversationId);
@@ -246,7 +250,7 @@ function StatusLine({ status, error }: { status: string; error: string | null })
 /** The draft, with Preview (a new tab, where Publish lives, PRD D47) and Discard. */
 function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }) {
   const router = useRouter();
-  const { heldBy } = useSiteHold();
+  const { refused } = useSiteHold();
   const [state, setState] = useState({ status: pending.status, error: pending.error });
   const [isPending, startTransition] = useTransition();
 
@@ -262,6 +266,19 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
     }, 2000);
     return () => clearInterval(timer);
   }, [pending.id, state.status, router]);
+
+  function discard() {
+    startTransition(async () => {
+      const result = await discardPendingChange(pending.id);
+      if ("error" in result) {
+        toast.error(result.error);
+        refused(result);
+      } else {
+        announceDraft("published");
+      }
+      router.refresh();
+    });
+  }
 
   return (
     <Card>
@@ -279,24 +296,24 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
-        <Button
-          variant="ghost"
-          disabled={isPending}
-          onClick={() =>
-            startTransition(async () => {
-              const result = await discardPendingChange(pending.id);
-              if ("error" in result) {
-                toast.error(result.error);
-                if (result.heldBy) heldBy(result.heldBy);
-              } else {
-                announceDraft("published");
-              }
-              router.refresh();
-            })
-          }
-        >
-          Discard
-        </Button>
+        {pending.by ? (
+          // Someone else's work: discarding it asks first, and says whose.
+          <ConfirmDialog
+            title={`Discard ${pending.by}'s changes`}
+            description="Every unpublished change goes, and your site stays as it is now."
+            onConfirm={discard}
+            destructive
+            trigger={
+              <Button variant="ghost" disabled={isPending}>
+                Discard
+              </Button>
+            }
+          />
+        ) : (
+          <Button variant="ghost" disabled={isPending} onClick={discard}>
+            Discard
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
