@@ -41,7 +41,7 @@ import {
   type SiteGuide,
 } from "@canopy/site-contract";
 import { z } from "zod";
-import type { ChangeSetSource, Prisma, Site } from "@prisma/client";
+import { Prisma, type ChangeSetSource, type Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
@@ -474,25 +474,32 @@ async function writeDraftOnce(site: ToolSite, ctx: ToolContext, read: SiteRead, 
     : undefined;
   const ops = merged as unknown as Prisma.InputJsonValue;
 
-  const { changeSetId, buildId } = await prisma.$transaction(async (tx) => {
-    let changeSetId: string;
-    if (pending) {
-      const saved = await tx.changeSet.updateMany({
-        where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
-        data: { ops, version, summary, status: "DRAFT", error: null, ...(conversationId && !pending.conversationId ? { conversationId } : {}) },
-      });
-      if (saved.count === 0) throw new WriteRace();
-      await supersedeBuilds(tx, pending.id);
-      changeSetId = pending.id;
-    } else {
-      const created = await tx.changeSet.create({
-        data: { siteId: site.id, source: ctx.source, createdByUserId: ctx.userId, conversationId, summary, ops, baseCommit: read.commit, version },
-      });
-      changeSetId = created.id;
-    }
-    const build = await tx.build.create({ data: { siteId: site.id, changeSetId, baseCommit: read.commit, draftVersion: version } });
-    return { changeSetId, buildId: build.id };
-  });
+  const { changeSetId, buildId } = await prisma
+    .$transaction(async (tx) => {
+      let changeSetId: string;
+      if (pending) {
+        const saved = await tx.changeSet.updateMany({
+          where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
+          data: { ops, version, summary, status: "DRAFT", error: null, ...(conversationId && !pending.conversationId ? { conversationId } : {}) },
+        });
+        if (saved.count === 0) throw new WriteRace();
+        await supersedeBuilds(tx, pending.id);
+        changeSetId = pending.id;
+      } else {
+        const created = await tx.changeSet.create({
+          data: { siteId: site.id, source: ctx.source, createdByUserId: ctx.userId, conversationId, summary, ops, baseCommit: read.commit, version },
+        });
+        changeSetId = created.id;
+      }
+      const build = await tx.build.create({ data: { siteId: site.id, changeSetId, baseCommit: read.commit, draftVersion: version } });
+      return { changeSetId, buildId: build.id };
+    })
+    .catch((err: unknown) => {
+      // Another first write made the site's draft just now: the database holds
+      // a site to one (the partial index on change_sets), so this one joins it.
+      if (!pending && err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") throw new WriteRace();
+      throw err;
+    });
 
   const buildError = await startBuild(site, buildId, merged, read.commit);
   return { changeSetId, buildId, version, summary, buildError, changes, warnings };
@@ -684,11 +691,12 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
     throw new ToolError("Only a change with a finished preview can be published.");
   }
   if (build.id !== buildId) throw new ToolError("The preview changed since this page loaded. Look it over again, then publish.");
+  const sent = asOps(changeSet.ops);
   let commit: string | null;
   try {
     ({ commit } = await requestPublish(builderSite(changeSet.site), {
       buildId: build.id,
-      ops: builderOps(asOps(changeSet.ops)),
+      ops: builderOps(sent),
       baseCommit: changeSet.baseCommit,
       message: `${changeSet.summary}\n\nPublished from Canopy Sites by ${author.email}`,
       authorName: author.name,
@@ -696,15 +704,95 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
     }));
   } catch (err) {
     if (err instanceof BuilderError && /changed since/.test(err.message)) {
-      await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "FAILED", error: err.message } });
+      // The site moved because this same change went live from another tab:
+      // it is published, and that Publish's answer is this one's too.
+      const now = await prisma.changeSet.findUnique({ where: { id: changeSet.id }, select: { status: true, publishedCommit: true } });
+      if (now?.status === "PUBLISHED") return { commit: now.publishedCommit };
+      // Only the change as it was read: a save that landed since is a draft to keep.
+      await prisma.changeSet.updateMany({
+        where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
+        data: { status: "FAILED", error: err.message },
+      });
     }
     throw err instanceof BuilderError ? new ToolError(err.message) : err;
   }
-  await prisma.changeSet.update({
-    where: { id: changeSet.id },
-    data: { status: "PUBLISHED", publishedCommit: commit, publishedAt: new Date() },
-  });
+  await recordPublish(changeSet, sent, commit);
   return { commit };
+}
+
+/** One op as the builder got it, to tell what went live from what was saved after. */
+const opKey = (op: ChangeOp) => JSON.stringify(builderOps([op])[0]);
+
+/**
+ * Records that a change went live, against the row as it is now, not as the
+ * publish read it. The change is live whatever its row has become since (a
+ * second Publish's refusal, a discard), so it ends PUBLISHED with the ops that
+ * were sent. Edits saved while the publish was in flight weren't sent: they
+ * become the site's new draft, brought onto the published commit and built.
+ */
+async function recordPublish(
+  changeSet: Awaited<ReturnType<typeof ownedChange>>,
+  sent: ChangeOp[],
+  commit: string | null,
+): Promise<void> {
+  const published = { status: "PUBLISHED" as const, error: null, publishedCommit: commit, publishedAt: new Date() };
+  // The usual case: nothing was saved since the publish was sent.
+  const untouched = await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version }, data: published });
+  if (untouched.count === 1) return;
+
+  const went = new Set(sent.map(opKey));
+  let kept = false;
+  for (let attempt = 0; attempt < 5 && !kept; attempt++) {
+    const row = await prisma.changeSet.findUnique({ where: { id: changeSet.id } });
+    if (!row) return;
+    const pending = PENDING.includes(row.status as (typeof PENDING)[number]);
+    const left = pending ? asOps(row.ops).filter((op) => !went.has(opKey(op))) : [];
+    kept = await prisma.$transaction(async (tx) => {
+      const moved = await tx.changeSet.updateMany({
+        where: { id: row.id, version: row.version },
+        data: { ...published, ops: sent as unknown as Prisma.InputJsonValue, summary: changeSet.summary, version: changeSet.version },
+      });
+      if (moved.count === 0) return false; // Another save landed; read the row again.
+      await supersedeBuilds(tx, row.id);
+      if (left.length) {
+        await tx.changeSet.create({
+          data: {
+            siteId: row.siteId,
+            source: row.source,
+            createdByUserId: row.createdByUserId,
+            conversationId: row.conversationId,
+            summary: leftoverSummary(left),
+            ops: left as unknown as Prisma.InputJsonValue,
+            // The commit it was typed against: syncDraft below moves it onto the published one.
+            baseCommit: changeSet.baseCommit,
+            version: 1,
+          },
+        });
+      }
+      return true;
+    });
+    if (!kept || !left.length) continue;
+    // The publish stands whatever happens here: a draft this can't build now is
+    // rebased and built at the site's next read.
+    try {
+      const draft = await syncDraft(changeSet.site, await readSite(changeSet.site));
+      if (draft && draft.builds.length === 0) {
+        const fresh = await prisma.build.create({ data: { siteId: draft.siteId, changeSetId: draft.id, baseCommit: draft.baseCommit, draftVersion: draft.version } });
+        await startBuild(changeSet.site, fresh.id, asOps(draft.ops), draft.baseCommit);
+      }
+    } catch (err) {
+      console.error(JSON.stringify({ event: "leftover_draft_not_built", slug: changeSet.site.slug, message: (err as Error).message }));
+    }
+  }
+}
+
+/** A summary for edits kept from a publish, until the draft's next write describes it from the content. */
+function leftoverSummary(ops: ChangeOp[]): string {
+  const lines = ops.map((op) => {
+    if (!isAddressOp(op)) return "A change";
+    return (op as DraftOp).summary ?? fieldInfo(op.address)?.label ?? op.address.split("/").pop() ?? op.address;
+  });
+  return [...new Set(lines)].join("; ").slice(0, 1000);
 }
 
 export async function discardChange(accountId: string, changeSetId: string) {
