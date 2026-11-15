@@ -56,7 +56,7 @@ describe("the operator's claim link (PRD D49)", () => {
   it("is a link on the account's home host that the operator copies; nothing is emailed", async () => {
     const { site, owner, operator } = await linkedSite();
 
-    const result = await sendClaimLink(site.id, "copy");
+    const result = await sendClaimLink(site.id, owner.id, "copy");
 
     expect(result).toMatchObject({ success: true });
     const url = (result as { url: string }).url;
@@ -74,7 +74,7 @@ describe("the operator's claim link (PRD D49)", () => {
   it("emails from the Sites sender and records when", async () => {
     const { site, owner } = await linkedSite();
 
-    expect(await sendClaimLink(site.id, "email")).toEqual({ success: true, message: `Sent to ${owner.email}.` });
+    expect(await sendClaimLink(site.id, owner.id, "email")).toEqual({ success: true, message: `Sent to ${owner.email}.` });
 
     const mail = vi.mocked(sendEmail).mock.calls[0][0];
     expect(mail).toMatchObject({ to: owner.email, from: "Canopy Sites <sites@example.com>" });
@@ -94,30 +94,30 @@ describe("the operator's claim link (PRD D49)", () => {
         { month: "long", day: "numeric", timeZone: "Pacific/Kiritimati" }
       );
 
-    const copied = await sendClaimLink(site.id, "copy");
+    const copied = await sendClaimLink(site.id, owner.id, "copy");
     expect((copied as { expires: string }).expires).toBe(await expiry());
 
-    await sendClaimLink(site.id, "email");
+    await sendClaimLink(site.id, owner.id, "email");
     expect(vi.mocked(sendEmail).mock.calls[0][0].text).toContain(`expires on ${await expiry()}.`);
   });
 
   it("is refused to anyone who isn't a Global Admin, and for an owner who has claimed", async () => {
     const { site, owner } = await linkedSite();
     await signInAs(owner.id);
-    await expect(sendClaimLink(site.id, "copy")).rejects.toThrow();
+    await expect(sendClaimLink(site.id, owner.id, "copy")).rejects.toThrow();
     expect(await prisma.passwordToken.count()).toBe(0);
 
     const { user: admin } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
     await signInAs(admin.id);
     await prisma.user.update({ where: { id: owner.id }, data: { password: "set" } });
-    expect(await sendClaimLink(site.id, "copy")).toEqual({ error: `${owner.email} has already claimed the account.` });
+    expect(await sendClaimLink(site.id, owner.id, "copy")).toEqual({ error: `${owner.email} has already claimed the account.` });
   });
 });
 
 describe("claiming (PRD D49)", () => {
   it("sets the password, signs the owner in to stay signed in, and the link works once", async () => {
     const { site, owner } = await linkedSite();
-    const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
+    const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
     resetRequest();
 
     expect(await readClaim(tokenOf(url))).toEqual({ state: "ready", email: owner.email, siteId: site.id, siteName: site.name });
@@ -142,7 +142,7 @@ describe("claiming (PRD D49)", () => {
 
   it("previews with the site's name, never the owner's email or the link's token", async () => {
     const { site, owner } = await linkedSite();
-    const url = ((await sendClaimLink(site.id, "copy")) as { url: string }).url;
+    const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
 
     const preview = claimPreview(await readClaim(tokenOf(url)), "Canopy Sites");
     expect(preview.title).toBe(`Claim your ${site.name} website`);
@@ -156,9 +156,9 @@ describe("claiming (PRD D49)", () => {
   });
 
   it("refuses a link after a week, and one a newer link replaced", async () => {
-    const { site } = await linkedSite();
-    const first = tokenOf(((await sendClaimLink(site.id, "copy")) as { url: string }).url);
-    const second = tokenOf(((await sendClaimLink(site.id, "copy")) as { url: string }).url);
+    const { site, owner } = await linkedSite();
+    const first = tokenOf(((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url);
+    const second = tokenOf(((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url);
 
     expect(await readClaim(first)).toEqual({ state: "expired" });
     expect(await claimAccount({ token: first, password: "my new password" })).toHaveProperty("error");
@@ -170,7 +170,7 @@ describe("claiming (PRD D49)", () => {
 
   it("claims once when the same link is submitted twice at once", async () => {
     const { site, owner } = await linkedSite();
-    const token = tokenOf(((await sendClaimLink(site.id, "copy")) as { url: string }).url);
+    const token = tokenOf(((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url);
 
     const results = await Promise.all([
       claimAccount({ token, password: "first new password" }),
@@ -190,7 +190,7 @@ describe("claiming (PRD D49)", () => {
     expect(await readClaim(reset)).toEqual({ state: "invalid" });
     expect(await claimAccount({ token: reset, password: "my new password" })).toHaveProperty("error");
 
-    const claim = tokenOf(((await sendClaimLink(site.id, "copy")) as { url: string }).url);
+    const claim = tokenOf(((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url);
     expect(await resetPassword(form({ token: claim, password: "my new password" }))).toHaveProperty("error");
     expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).password).toBeNull();
   });
@@ -225,7 +225,7 @@ describe("before claiming (PRD D49)", () => {
 
   it("an expired link sends a new one to the same address, and a used one doesn't", async () => {
     const { site, owner } = await linkedSite();
-    const token = tokenOf(((await sendClaimLink(site.id, "copy")) as { url: string }).url);
+    const token = tokenOf(((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url);
     await prisma.passwordToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
     resetRequest();
 
@@ -238,14 +238,38 @@ describe("before claiming (PRD D49)", () => {
   });
 });
 
-describe("addAccountMember", () => {
-  it("adds a member with no password and hands back a claim link", async () => {
+describe("a person added to the account (PRD D63)", () => {
+  it("has no password and a claim link, which sets their own", async () => {
     const { account } = await linkedSite();
 
-    const result = await addAccountMember(account.id, "partner@example.com");
+    const result = await addAccountMember(account.id, "partner@example.com", "  Pat   Partner ");
 
     expect(result).toMatchObject({ success: true, email: "partner@example.com" });
-    expect((result as { claimUrl: string }).claimUrl).toMatch(/^https:\/\/sites\.example\.com\/claim\?token=/);
-    expect(await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" } })).toMatchObject({ password: null });
+    const url = (result as { claimUrl: string }).claimUrl;
+    expect(url).toMatch(/^https:\/\/sites\.example\.com\/claim\?token=/);
+    expect(await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" } })).toMatchObject({ password: null, name: "Pat Partner" });
+
+    resetRequest();
+    requestHeaders.set("cf-connecting-ip", "203.0.113.20");
+    expect(await claimAccount({ token: tokenOf(url), password: "a long password" })).toEqual({ success: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" } })).password).not.toBeNull();
+  });
+
+  it("gets a new link from the operator like the owner does, and only on their own site's account", async () => {
+    const { account, site, owner } = await linkedSite();
+    await addAccountMember(account.id, "partner@example.com");
+    const partner = await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" } });
+
+    const copied = await sendClaimLink(site.id, partner.id, "copy");
+    expect((copied as { url: string }).url).toMatch(/\/claim\?token=/);
+    expect(await sendClaimLink(site.id, partner.id, "email")).toEqual({ success: true, message: "Sent to partner@example.com." });
+    // The owner's own link is untouched by a link made for someone else.
+    expect(await prisma.passwordToken.count({ where: { userId: owner.id } })).toBe(0);
+
+    // A person from another account never gets a link through this site.
+    const { user: stranger } = await createAccount({ planCode: "SITES" });
+    await prisma.user.update({ where: { id: stranger.id }, data: { password: null } });
+    expect(await sendClaimLink(site.id, stranger.id, "copy")).toEqual({ error: "That person isn't on this site's account." });
+    expect(await prisma.passwordToken.count({ where: { userId: stranger.id } })).toBe(0);
   });
 });
