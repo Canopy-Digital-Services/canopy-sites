@@ -34,7 +34,7 @@ The CLI plugin (`docker compose`) is integrated into the Docker CLI as a subcomm
 - **Better Performance**: Faster command execution
 - **Context Support**: Works with Docker contexts and remote hosts
 - **Consistent Flags**: Uses standard Docker CLI flags (`--context`, `DOCKER_HOST`, etc.)
-- **Version Field**: The `version` field in `docker-compose.yml` is now **obsolete** (ignored by v2)
+- **Version Field**: The `version` field in a compose file is now **obsolete** (ignored by v2)
 
 ### Installation
 
@@ -100,9 +100,7 @@ docker compose up -d --build portal
 
 ### Development Workflow (with Hot Reload)
 
-**Every compose command in this repo takes `-f docker-compose.dev.yml`.** It is the only compose file in use.
-
-As of 2026-11-14 the root `docker-compose.yml` is unmaintained and fails validation (`services.portal.build additional properties 'SITES_URL' not allowed`), so a compose command without `-f` stops with that error. Delete this paragraph when that file is repaired or removed.
+**Every compose command in this repo takes `-f docker-compose.dev.yml`.** It is the only compose file, and without `-f` Compose stops with `no configuration file provided: not found`.
 
 ```bash
 # Start development environment (with hot reload)
@@ -131,7 +129,7 @@ What to run after a schema change, a dependency change, or a `Dockerfile.dev` ch
 
 **To test the production image**, build `apps/portal/Dockerfile` directly with the repo root as context; the command is in that file's header.
 
-## docker-compose.yml Syntax
+## Compose File Syntax
 
 ### Version Field (Obsolete)
 
@@ -311,7 +309,7 @@ The variables are listed in `docs/AGENT_CONTEXT.md` section 7, and where the dev
 
 **Issue: Warning about `version` field being obsolete**
 
-**Solution:** Remove the `version` field from `docker-compose.yml` to eliminate this warning. It's not needed in Compose v2:
+**Solution:** Remove the `version` field from the compose file to eliminate this warning. It's not needed in Compose v2:
 
 ```yaml
 # Remove this line:
@@ -324,7 +322,7 @@ services:
 
 **Issue: Warnings about environment variables not being set**
 
-**Solution:** Add default values to optional environment variables in `docker-compose.yml`:
+**Solution:** Add default values to optional environment variables in the compose file:
 
 ```yaml
 environment:
