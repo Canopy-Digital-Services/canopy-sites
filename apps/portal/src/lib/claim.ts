@@ -217,8 +217,8 @@ export type PersonAccess = {
   /** The newest claim link: when it was made, whether the portal emailed it, and by whom. */
   link: { createdAt: Date; emailedAt: Date | null; by: string | null } | null;
   lastLoginAt: Date | null;
-  /** How far they have played the site's welcome video (ROADMAP E39), in seconds of its length; null until they play it. */
-  watched: { seconds: number; of: number } | null;
+  /** How far they have played each of the site's welcome videos (ROADMAP E39), in seconds of its length; a tab's is listed once they play it. */
+  watched: { tab: string; seconds: number; of: number }[];
 };
 
 /**
@@ -232,8 +232,7 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
     orderBy: { createdAt: "asc" },
     select: {
       role: true,
-      welcomeWatchedSeconds: true,
-      welcomeVideoSeconds: true,
+      welcomeViews: { select: { watchedSeconds: true, videoSeconds: true, video: { select: { tab: true } } } },
       user: {
         select: {
           id: true,
@@ -250,7 +249,7 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
       },
     },
   });
-  const people = memberships.map(({ role, user, welcomeWatchedSeconds, welcomeVideoSeconds }): PersonAccess => {
+  const people = memberships.map(({ role, user, welcomeViews }): PersonAccess => {
     const newest = user.passwordTokens[0];
     const used = user.passwordTokens
       .map((t) => t.usedAt)
@@ -265,8 +264,9 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
       claimedAt: used ?? null,
       link: newest ? { createdAt: newest.createdAt, emailedAt: newest.emailedAt, by: newest.createdBy?.email ?? null } : null,
       lastLoginAt: user.lastLoginAt,
-      watched:
-        welcomeWatchedSeconds !== null && welcomeVideoSeconds !== null ? { seconds: welcomeWatchedSeconds, of: welcomeVideoSeconds } : null,
+      watched: welcomeViews.flatMap(({ watchedSeconds, videoSeconds, video }) =>
+        watchedSeconds !== null && videoSeconds !== null ? [{ tab: video.tab, seconds: watchedSeconds, of: videoSeconds }] : [],
+      ),
     };
   });
   return [...people.filter((p) => p.role === "OWNER"), ...people.filter((p) => p.role !== "OWNER")];

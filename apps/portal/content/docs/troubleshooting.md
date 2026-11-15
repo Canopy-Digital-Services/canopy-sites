@@ -84,4 +84,4 @@ The **?** button in the bottom-right corner of any page has these options:
 - **Contact support** sends us a message. Replies go to your account email address.
 - **Give feedback** is for feature requests and anything that felt rough to use.
 
-On Canopy Sites, the same button has **Welcome video**, which replays the walkthrough recorded for your site.
+On Canopy Sites, a tab with a walkthrough recorded for your site has **Welcome video** on the same button, which replays it.

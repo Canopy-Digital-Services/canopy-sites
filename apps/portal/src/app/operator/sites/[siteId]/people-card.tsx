@@ -29,13 +29,13 @@ export type PersonRow = {
   claimedAt: string | null;
   link: string | null;
   lastSignIn: string | null;
-  /** How far they have played the welcome video, as "Watched 4:12 of 5:03"; null until they play it. */
+  /** How far they have played each welcome video, as "Watched Quick Edit 4:12 of 5:03 · Editor 0:40 of 2:10"; null until they play one. */
   watched: string | null;
 };
 
 /**
  * The people on the site's account (PRD D63), owner first: whether each has
- * claimed, their claim link, their last sign-in, how far they got in the
+ * claimed, their claim link, their last sign-in, how far they got in each
  * welcome video, renaming, and removing anyone but the owner. Acting as the
  * client (PRD D49) is the account's, so it sits in the footer.
  */

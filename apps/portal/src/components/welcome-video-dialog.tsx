@@ -4,20 +4,23 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { welcomeVideoWatched } from "@/actions/welcome";
+import type { SitesTabId } from "@/lib/sites-tabs";
 
 type WelcomeVideoDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The tab the video walks through, which its watched figure is kept under. */
+  tab: SitesTabId;
   video: string;
   captions: string;
 };
 
 /**
- * The site's welcome video (ROADMAP E39) in a dialog: the browser's own
- * player, captions on, started by the person and never by the page. Closing
- * it unmounts the player, which stops it.
+ * One of the site's welcome videos (ROADMAP E39) in a dialog: the browser's
+ * own player, captions on, started by the person and never by the page.
+ * Closing it unmounts the player, which stops it.
  */
-export function WelcomeVideoDialog({ open, onOpenChange, video, captions }: WelcomeVideoDialogProps) {
+export function WelcomeVideoDialog({ open, onOpenChange, tab, video, captions }: WelcomeVideoDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -29,7 +32,7 @@ export function WelcomeVideoDialog({ open, onOpenChange, video, captions }: Welc
         <DialogHeader className="px-6 py-4">
           <DialogTitle>Welcome video</DialogTitle>
         </DialogHeader>
-        <Player video={video} captions={captions} />
+        <Player tab={tab} video={video} captions={captions} />
       </DialogContent>
     </Dialog>
   );
@@ -40,10 +43,10 @@ const REPORT_EVERY = 10;
 
 /**
  * The player, which also tells the server the furthest point the person has
- * played (the operator's "Watched 4:12 of 5:03"): as it plays, when it
+ * played (the operator's "Quick Edit 4:12 of 5:03"): as it plays, when it
  * pauses or ends, and when the dialog closes on it.
  */
-function Player({ video, captions }: { video: string; captions: string }) {
+function Player({ tab, video, captions }: { tab: SitesTabId; video: string; captions: string }) {
   // Nothing draws these, so they stay out of state.
   const watched = useRef({ furthest: 0, reported: 0, length: 0 });
 
@@ -51,8 +54,8 @@ function Player({ video, captions }: { video: string; captions: string }) {
     const w = watched.current;
     if (w.length === 0 || Math.floor(w.furthest) <= Math.floor(w.reported)) return;
     w.reported = w.furthest;
-    void welcomeVideoWatched(w.furthest, w.length);
-  }, []);
+    void welcomeVideoWatched(tab, w.furthest, w.length);
+  }, [tab]);
 
   // Closing the dialog removes a playing video with no pause event.
   useEffect(() => report, [report]);

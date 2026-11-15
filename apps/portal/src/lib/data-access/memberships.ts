@@ -64,59 +64,18 @@ export async function sessionCanUseAccount(session: SessionAccess, accountId: st
 }
 
 /**
- * Whether the site's welcome video (ROADMAP E39) has yet to open by itself
- * for the session's own user: they are one of the account's people and their
- * membership has no shown time. Never true for a Global Admin acting as the
- * account (PRD D49), who is not one of its people.
+ * The id of the session user's own membership of the account, or null when
+ * they have none. An operator acting as the account (PRD D49) has none: what
+ * is recorded against a person, such as a welcome video they were shown
+ * (ROADMAP E39), is never recorded for the operator standing in for them.
  */
-export async function welcomeNotYetShown(session: SessionAccess, accountId: string): Promise<boolean> {
-  if (session.actingAs) return false;
+export async function ownMembershipId(session: SessionAccess, accountId: string): Promise<string | null> {
+  if (session.actingAs) return null;
   const membership = await prisma.membership.findUnique({
     where: { userId_accountId: { userId: session.user.id, accountId } },
-    select: { welcomeShownAt: true },
+    select: { id: true },
   });
-  return membership !== null && membership.welcomeShownAt === null;
-}
-
-/** Records that the welcome video opened for the session's own user. The first time stays; acting records nothing. */
-export async function markWelcomeShown(session: SessionAccess, accountId: string): Promise<void> {
-  if (session.actingAs) return;
-  await prisma.membership.updateMany({
-    where: { userId: session.user.id, accountId, welcomeShownAt: null },
-    data: { welcomeShownAt: new Date() },
-  });
-}
-
-/**
- * How far the signed-in person has played their site's welcome video: the
- * furthest point of a video `length` seconds long. It only moves forward,
- * an account whose site has no video keeps no figure, and an operator
- * acting as the client records nothing: the figure is the person's.
- */
-export async function recordWelcomeWatched(session: SessionAccess, accountId: string, seconds: number, length: number): Promise<void> {
-  if (session.actingAs) return;
-  await prisma.membership.updateMany({
-    where: {
-      userId: session.user.id,
-      accountId,
-      account: { site: { welcomeVideoKey: { not: null } } },
-      OR: [{ welcomeWatchedSeconds: null }, { welcomeWatchedSeconds: { lt: seconds } }],
-    },
-    data: { welcomeWatchedSeconds: seconds, welcomeVideoSeconds: length },
-  });
-}
-
-/**
- * For the transaction that changes or removes a site's welcome video: what
- * each person on the account watched was of the video it had, so that goes.
- * A removal also forgets that it was shown to them, so the next video opens
- * once for each of them, as a first one does; a replacement doesn't.
- */
-export function forgetWelcomeVideo(accountId: string, removed: boolean) {
-  return prisma.membership.updateMany({
-    where: { accountId },
-    data: { welcomeWatchedSeconds: null, welcomeVideoSeconds: null, ...(removed ? { welcomeShownAt: null } : {}) },
-  });
+  return membership?.id ?? null;
 }
 
 /** The email of the account's first owner, or null when it has none. */
