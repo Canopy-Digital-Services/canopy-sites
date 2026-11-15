@@ -167,9 +167,11 @@ model Site {
   // The site's welcome video (ROADMAP E39): the name of its two files under
   // MEDIA_DIR, a hash of the MP4. Null means none. src/lib/welcome-video.ts.
   welcomeVideoKey     String?
-  /// Unused since the zone moved to Account.timeZone (2026-11-12): nothing
-  /// reads or writes it. Dropped by a migration in the next production release.
-  timeZone            String   @default("America/Los_Angeles")
+  /// Retired 2026-11-12, when the zone moved to Account.timeZone. @ignore keeps
+  /// it out of the client, so no query names the column. Remove it, with its
+  /// migration, once main's schema carries this @ignore (AGENT_CONTEXT
+  /// section 5, dropping a column).
+  timeZone            String   @default("America/Los_Angeles") @ignore
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

@@ -303,6 +303,7 @@ This project (Canopy Forms) currently:
 - ⚠️ DATABASE_URL is only defined in Docker container environment
 - ✅ Migrations squashed into single `0_baseline` — shadow database works
 - ✅ `prisma migrate dev` works inside the container
+- ⚠️ A query without `select` names every column the schema declares, and a `create` inserts every `@default`. Retiring or dropping a column follows `docs/AGENT_CONTEXT.md` section 5 ("Dropping a column takes two production releases").
 
 ### Migration Workflow for This Project
 
