@@ -8,9 +8,14 @@ const builder = vi.hoisted(() => ({
   commit: "a".repeat(40),
   content: {} as Record<string, unknown>,
   previews: [] as Array<{ buildId: string; ops: unknown[]; baseCommit: string }>,
-  publishes: [] as Array<{ buildId: string; baseCommit: string }>,
+  publishes: [] as Array<{ buildId: string; baseCommit: string; ops: unknown[] }>,
   guide: null as string | null,
   buildStatus: "succeeded" as "queued" | "running" | "succeeded" | "failed",
+  /** The publish the builder is running, and something to run in the middle of one. */
+  publishing: null as null | Promise<void>,
+  duringPublish: null as null | (() => Promise<unknown>),
+  /** A push the portal hasn't read: the builder refuses the next publish. */
+  moved: false,
 }));
 vi.mock("@/lib/builder-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
@@ -22,8 +27,24 @@ vi.mock("@/lib/builder-client", async () => {
       return { id: buildId, status: "queued" };
     }),
     fetchBuild: vi.fn(async (_slug, id: string) => ({ id, status: builder.buildStatus, log: "", error: builder.buildStatus === "failed" ? "boom" : undefined })),
-    requestPublish: vi.fn(async (_site, args: { buildId: string; baseCommit: string }) => {
+    requestPublish: vi.fn(async (_site, args: { buildId: string; baseCommit: string; ops: unknown[] }) => {
+      // The builder runs one job per site: a second publish of a build waits for the
+      // first, then finds the branch moved (apps/builder/src/sites.ts, publish).
+      if (builder.moved || builder.publishes.some((p) => p.buildId === args.buildId)) {
+        await builder.publishing;
+        if (builder.duringPublish) await builder.duringPublish();
+        await new Promise((r) => setTimeout(r, 50));
+        throw new actual.BuilderError("The site changed since this preview. Preview the change again.");
+      }
+      let done!: () => void;
+      builder.publishing = new Promise<void>((r) => (done = r));
       builder.publishes.push(args);
+      try {
+        if (builder.duringPublish) await builder.duringPublish();
+      } finally {
+        builder.publishing = null;
+        done();
+      }
       return { commit: "b".repeat(40), log: "" };
     }),
   };
@@ -77,6 +98,9 @@ beforeEach(async () => {
   builder.publishes = [];
   builder.guide = null;
   builder.buildStatus = "succeeded";
+  builder.publishing = null;
+  builder.duringPublish = null;
+  builder.moved = false;
 });
 
 describe("the site's time zone", () => {
@@ -378,6 +402,64 @@ describe("refresh and publish", () => {
     expect(builder.publishes).toMatchObject([{ buildId }]);
   });
 
+  it("records one publish when Publish is pressed twice, and answers both with it", async () => {
+    const { ctx } = await siteAccount();
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(ctx.accountId, changeSetId);
+    const author = { name: "O", email: "o@test.invalid" };
+    const results = await Promise.all([
+      tools.publishChange(ctx, changeSetId, buildId, author),
+      tools.publishChange(ctx, changeSetId, buildId, author),
+    ]);
+    // The builder published once and refused the second; the change that went live reads as published.
+    expect(builder.publishes).toHaveLength(1);
+    expect(results).toEqual([{ commit: "b".repeat(40) }, { commit: "b".repeat(40) }]);
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } });
+    expect(cs).toMatchObject({ status: "PUBLISHED", error: null, publishedCommit: "b".repeat(40) });
+  });
+
+  it("keeps a refusal from the builder off a change that has moved on", async () => {
+    const { ctx, site } = await siteAccount();
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(ctx.accountId, changeSetId);
+    // A Canopy push the portal hasn't read yet: the builder refuses, and an edit saved meanwhile stays a draft.
+    builder.moved = true;
+    builder.duringPublish = () =>
+      tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+    await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/changed since this preview/);
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } });
+    expect(cs).toMatchObject({ status: "DRAFT", version: 2 });
+  });
+
+  it("keeps an edit saved during a publish as the site's new draft", async () => {
+    const { ctx, site } = await siteAccount();
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(ctx.accountId, changeSetId);
+    builder.duringPublish = async () => {
+      await tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+      // The publish moves the branch: the price is now what the repo holds.
+      builder.commit = "b".repeat(40);
+      (builder.content.services as Menu)[0].services[0].priceLabel = "$90";
+    };
+    await tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" });
+
+    // What went live is recorded as it was sent: the price, and not the name.
+    expect(builder.publishes[0].ops).toEqual([PRICE_OP]);
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } });
+    expect(cs).toMatchObject({ status: "PUBLISHED", publishedCommit: "b".repeat(40), version: 1 });
+    expect(cs.ops).toMatchObject([PRICE_OP]);
+
+    // The name is still a draft, on the published commit, with a build of its own.
+    const view = await tools.getDraftView(ctx.accountId, site.id);
+    expect(view.pending).toMatchObject({ status: "DRAFT", buildStatus: "QUEUED" });
+    expect(view.pending!.id).not.toBe(changeSetId);
+    expect(view.content.site).toMatchObject({ name: "Demo Salon & Spa" });
+    const draft = await prisma.changeSet.findUniqueOrThrow({ where: { id: view.pending!.id } });
+    expect(draft.baseCommit).toBe("b".repeat(40));
+    expect(draft.ops).toEqual([{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }]);
+    expect(builder.previews.at(-1)).toMatchObject({ baseCommit: "b".repeat(40), ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+  });
+
   it("discards only a pending change", async () => {
     const { ctx } = await siteAccount();
     const { changeSetId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
@@ -413,6 +495,21 @@ describe("saveDraft (the canvas)", () => {
     const view = await tools.getDraftView(ctx.accountId, site.id);
     expect((view.content.services as Menu)[0].services[0].priceLabel).toBe("$90");
     expect(view.content.site).toMatchObject({ name: "Demo Salon & Spa", description: "A salon and spa." });
+  });
+
+  it("keeps two first writes at once in one draft, which the database holds a site to", async () => {
+    const { ctx, site } = await siteAccount();
+    await Promise.all([
+      tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] }),
+      tools.saveDraft(ctx, site.id, { ops: [{ op: "replace", address: "site/description", value: "A salon and spa." }] }),
+    ]);
+    expect(await prisma.changeSet.count({ where: { siteId: site.id, status: { in: ["DRAFT", "PREVIEWED"] } } })).toBe(1);
+    const view = await tools.getDraftView(ctx.accountId, site.id);
+    expect(view.content.site).toMatchObject({ name: "Demo Salon & Spa", description: "A salon and spa." });
+    // Not by the code's care alone: a second pending change can't be stored.
+    await expect(
+      prisma.changeSet.create({ data: { siteId: site.id, source: "EDITOR", summary: "Another draft", ops: [], baseCommit: builder.commit } }),
+    ).rejects.toMatchObject({ code: "P2002" });
   });
 
   it("drops an edit set back to the published value, and the draft when every edit is undone", async () => {

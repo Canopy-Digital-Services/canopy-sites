@@ -34,7 +34,7 @@ Client 2 is on Sites only as the demo's copy (PRD D23): the `client2` repo was n
 Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site, Client 2, and the Client 3 site claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
 
 1. **the test site' claim** (Epic 42), with the owner as the owner: the claim's test before a client's.
-2. **E47, tool layer fixes** (F1 to F5).
+2. **E47, tool layer fixes** (F1, F3, F5; F2 and F4 were fixed with E54).
 3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the Client 3 site's claim links go out.
 4. **E48, deploys and checks** (F25, F27, F28, F29).
 5. **E49, alerting and records** (F26, F31).
@@ -375,9 +375,9 @@ The MVP's own work (PRD D51), from the 2026-11-09 review. Each finding's detail 
 
 ### E47 · Tool layer fixes
 
-Goal: a draft and a publish hold up when two things happen at once, and a guide rule the site already breaks doesn't stop an owner's edit.
+Goal: a guide rule the site already breaks doesn't stop an owner's edit, a builder restart doesn't strand a draft's build, and a publish runs the guardrails again. Two writes landing together (F2, F4) were fixed with E54, which needed them first.
 
-- F1 to F5, each landing with the test that fails without it. F2 to F5 have tests beside the catalog that pass while the defect is present
+- F1, F3, and F5, each landing with the test that fails without it. F3 and F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
 
 ### E53 · People on an account

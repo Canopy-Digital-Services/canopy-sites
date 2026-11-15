@@ -5,7 +5,7 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - **An entry is deleted by the commit that fixes it**, or when Michael decides against it. Delete this file, and the line in `ROADMAP.md` that points here, when it is empty.
 - **Basis** says how far each finding was checked: *reproduced* (run), *read* (from the code or docs, not run), or *decided* (Michael's call, with the date).
 - Anything exploitable stays out of this file, since the repo is public. The security pass of 2026-11-09 is in the Nextcloud Engineering collective, on the page "Canopy Sites Security Review 2026-11-09", and what production records and doesn't is on "Logging and Detection 2026-11-10".
-- **F2 to F5 have tests** in `review-findings-repro.db.test.ts.txt`, beside this file: each passes while its defect is present. To fix one, copy its test into `apps/portal/src/lib/site-tools/`, turn its expectations around, and land it with the fix. The builder is stood in, as the suite does, so the builder's half of F2 and F3 (its refusal of a second publish, its 404 after a restart) is read, not run. Delete that file with the last of the four.
+- **F3 and F5 have tests** in `review-findings-repro.db.test.ts.txt`, beside this file: each passes while its defect is present. To fix one, copy its test into `apps/portal/src/lib/site-tools/`, turn its expectations around, and land it with the fix. The builder is stood in, as the suite does, so the builder's half of F3 (its 404 after a restart) is read, not run. Delete that file with the second of the two.
 
 **MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Client 1, the test site, Client 2, and soon the Client 3 site) claim their portal, edit, preview, and publish safely. Converting Client 2 is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox.
 
@@ -18,26 +18,12 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - **Fix:** report only on fields the edit changed, as `avoidWarnings` does, and show the operator when published content and the guide disagree.
 - **Basis:** reproduced against the contract's fixture, 2026-11-09 (an edit to `site/description` refused for `site/name`'s limit).
 
-### F2. Publish records its outcome without checking the state it read
-
-- **Where:** `publishChange` in `apps/portal/src/lib/site-tools/index.ts`. Every other write in the file is conditional on the draft's version.
-- **What:** two cases. Two Publish requests for one change (two tabs, or the operator acting while the owner publishes): the builder refuses the second because the branch moved, and its handler marks the change `FAILED` after the first marked it `PUBLISHED`, so a change that is live reads as failed. An edit saved while a publish is in flight joins the same change, which is then marked `PUBLISHED`: that edit is not live and is no longer in a draft.
-- **Fix:** make both status writes conditional on the version and `PREVIEWED`; keep ops that arrived during a publish as a new draft.
-- **Basis:** reproduced, both cases, 2026-11-09.
-
 ### F3. A builder restart strands the draft's build
 
 - **Where:** the builder's `records` and queue are in memory (`apps/builder/src/sites.ts`); `refreshChange` in the tool layer.
 - **What:** after a restart the builder answers 404 for a build it was running. `refreshChange` treats any builder error as no news, so the `Build` stays `QUEUED` or `RUNNING` and the draft shows as building until another edit starts a new build. The builder redeploys on every push that touches `apps/builder` or the contract.
 - **Fix:** a 404 for a build the portal started marks it `FAILED`, or starts it again.
 - **Basis:** the portal's half reproduced, 2026-11-09; the builder losing its records on a restart is read.
-
-### F4. One draft per site is held by code, not the database
-
-- **Where:** the create path of `writeDraftOnce`; `change_sets` has no partial unique index.
-- **What:** two first writes at once (two tabs, or the operator acting while the owner edits) each create a pending change. The older is orphaned as `DRAFT` with its edit. The test for writes that land together runs against a draft that already exists.
-- **Fix:** a partial unique index on `siteId` where the status is `DRAFT` or `PREVIEWED`, and a retry on conflict.
-- **Basis:** reproduced, 2026-11-09: two drafts, and the draft view showed one of the two edits.
 
 ### F5. Publish doesn't run the guardrails again
 

@@ -367,7 +367,8 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
        │             version, error?, publishedCommit?, publishedAt?); the pending
-       │             one is the site's draft (PRD D38)
+       │             one is the site's draft (PRD D38), one per site by a partial
+       │             unique index that only its migration states
        └─ Build (changeSetId?, status:BuildStatus, draftVersion?, baseCommit?,
        │         error?, log?, startedAt?, finishedAt?)
        └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/

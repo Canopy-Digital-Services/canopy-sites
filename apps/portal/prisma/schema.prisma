@@ -199,6 +199,9 @@ model ChangeSet {
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   builds       Build[]
 
+  // The database also holds a site to one DRAFT or PREVIEWED row: the partial
+  // unique index change_sets_one_pending_per_site, which this schema can't
+  // state, is in the migration one_pending_change_per_site.
   @@index([siteId, status])
   @@index([siteId, createdAt])
   @@map("change_sets")
