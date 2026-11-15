@@ -51,11 +51,11 @@ Lint must exit 0 (or only pre-existing warnings). Do not suppress or disable lin
 
 ### 3. Migration verification (schema changes only)
 
-After running `npx prisma migrate dev --name ...`:
+After running `npm run db:migrate -- --name ...`:
 
 - Confirm a new directory was created under `prisma/migrations/`.
 - Confirm the migration SQL matches your intent (read the generated `.sql` file).
-- Run `npx prisma generate` and confirm the Prisma client reflects the new schema.
+- Confirm the Prisma client reflects the new schema. The script regenerates it; a hand-written migration needs `npx prisma generate`.
 
 ### 4. Embed build (embed changes only)
 
