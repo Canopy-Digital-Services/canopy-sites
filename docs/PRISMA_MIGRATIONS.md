@@ -15,7 +15,7 @@ Coolify offers pre/post-deployment hooks, but neither is suitable for migrations
 | **Pre-deployment** | Old (existing) container | Old container has old migration files — new migrations are invisible |
 | **Post-deployment** | New container | If the command fails, the container **keeps running anyway** (no rollback) |
 
-The correct approach is a **container entrypoint script** that runs `prisma migrate deploy` before `node server.js`. If migrations fail, the container exits and the app is down until the migration is fixed: health checks are not enabled on the canopy-forms apps, so there is no routing gate to catch it. A failed **build**, by contrast, is safe; Coolify only swaps containers after a successful build, so the old container keeps serving.
+The correct approach is a **container entrypoint script** that runs `prisma migrate deploy` before `node server.js`. If migrations fail, the container exits and the app is down until the migration is fixed: health checks are not enabled on either portal app (both are named `canopy-forms` in Coolify; `health_check_enabled=false` and no Dockerfile `HEALTHCHECK`, checked 2026-11-15), so there is no routing gate to catch it. A failed **build**, by contrast, is safe; Coolify only swaps containers after a successful build, so the old container keeps serving.
 
 ---
 
@@ -180,58 +180,9 @@ Check if the migration SQL actually creates the column the Prisma Client expects
 
 ---
 
-## Manual migration workflow (enum renames, etc.)
+## Hand-written migrations
 
-`prisma migrate dev` asks for confirmation when a change would lose data, and `docker exec` gives it no TTY to ask on: it stops with `Prisma Migrate has detected that the environment is non-interactive`. A change that loses nothing runs through `docker exec` as usual (both verified 2026-11-14 on Prisma 7.3.0: adding a nullable column, then dropping a column that held values). It also sometimes generates destructive SQL when a safe alternative exists (e.g., dropping and recreating an enum instead of renaming a value).
-
-For these cases, create the migration manually:
-
-### Steps
-
-```bash
-# Host paths are from the repo root; `docker exec canopy-portal` runs in apps/portal.
-
-# 1. Edit apps/portal/prisma/schema.prisma with your change
-
-# 2. Create the migration directory (use YYYYMMDD000000 convention)
-mkdir -p apps/portal/prisma/migrations/20260224000000_rename_select_to_dropdown
-
-# 3. Write the SQL by hand
-cat > apps/portal/prisma/migrations/20260224000000_rename_select_to_dropdown/migration.sql << 'EOF'
-ALTER TYPE "FieldType" RENAME VALUE 'SELECT' TO 'DROPDOWN';
-EOF
-
-# 4. Apply the SQL to the dev database via the db container
-docker exec canopy-portal-db psql -U user -d canopy-forms \
-  -c "ALTER TYPE \"FieldType\" RENAME VALUE 'SELECT' TO 'DROPDOWN';"
-
-# 5. Mark the migration as applied in Prisma's tracking table
-docker exec canopy-portal npx prisma migrate resolve \
-  --applied 20260224000000_rename_select_to_dropdown
-
-# 6. Regenerate client + restart dev server
-docker exec canopy-portal npx prisma generate
-docker restart canopy-portal
-
-# 7. Verify no drift
-docker exec canopy-portal npx prisma migrate status
-```
-
-### When to use this instead of `prisma migrate dev`
-
-| Scenario | Why manual? |
-|----------|-------------|
-| **Enum value rename** (`ALTER TYPE ... RENAME VALUE`) | Prisma generates drop + recreate, which fails if values are in use |
-| **A change that loses data** (dropping a column or table that holds values) | `prisma migrate dev` needs a TTY to confirm it, and `docker exec` has none |
-| **Data-preserving changes** | Any case where you need precise control over the SQL |
-
-### Important notes
-
-- The migration directory name **must** match exactly when calling `prisma migrate resolve --applied`
-- `psql` runs on the **db container** (`canopy-portal-db`), not the app container — the app container doesn't have `psql`
-- The db user is `user` (per `docker-compose.dev.yml` `POSTGRES_USER`)
-- Always run `prisma migrate status` after to confirm no pending migrations and no drift
-- On deploy, `prisma migrate deploy` in `start.sh` will apply this migration automatically (it reads the SQL file, not `prisma migrate dev`)
+When `prisma migrate dev` cannot produce the migration (a change that loses data, an enum value rename, SQL that has to be exact), the migration is written by hand. The cases and the steps are in `docs/tools/prisma-7.md` ("Hand-Written Migration"). Nothing differs on deploy: `start.sh` applies the SQL file like any other migration.
 
 ---
 

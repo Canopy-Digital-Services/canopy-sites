@@ -278,7 +278,7 @@ With dependencies in place, a start or restart installs nothing and generates no
 ### After a change in dev
 
 - **Source code:** nothing. The bind mount and hot reload carry it.
-- **Prisma schema:** `docker exec canopy-portal npx prisma generate`, then `docker restart canopy-portal`. A restart alone keeps the old client, and so does an image rebuild. The full migration procedure is in [`prisma-7.md`](./prisma-7.md) ("Migration Workflow for This Project") and `docs/AGENT_CONTEXT.md` section 5.
+- **Prisma schema:** regenerate the client, then `docker restart canopy-portal`. `npm run db:migrate` regenerates it by itself; after a hand-written migration, or a schema change that arrived with a pull, run `docker exec canopy-portal npx prisma generate`. A restart alone keeps the old client, and so does an image rebuild. The full migration procedure is in [`prisma-7.md`](./prisma-7.md) ("Migration Workflow for This Project") and `docs/AGENT_CONTEXT.md` section 5.
 - **Dependencies** (`package-lock.json`): install into the volume from a one-off container with the dev server stopped, then generate the Prisma client, which `npm ci` deletes along with the rest of `node_modules`:
 
   ```bash

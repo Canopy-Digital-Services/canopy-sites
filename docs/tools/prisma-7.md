@@ -303,28 +303,42 @@ docker exec canopy-portal npm run db:migrate -- --name your_migration_name
 docker restart canopy-portal
 ```
 
-#### Manual SQL Migration (Alternative / Production)
+#### Hand-Written Migration
+
+Write the migration by hand when `migrate dev` cannot make it:
+
+| Case | Why |
+|------|-----|
+| A change that loses data (dropping a column or table that holds values) | `migrate dev` asks for confirmation and `docker exec` gives it no TTY to ask on, so it stops with `Prisma Migrate has detected that the environment is non-interactive`. A change that loses nothing runs through `docker exec` as usual (both verified 2026-11-14 on 7.3.0: adding a nullable column, then dropping a column that held values) |
+| An enum value rename | Prisma generates a drop and recreate, which fails while values are in use. The SQL wanted is `ALTER TYPE ... RENAME VALUE` |
+| The exact SQL matters | For example a change that has to keep or rewrite existing data |
 
 ```bash
 # Host paths below are from the repo root; `docker exec canopy-portal` runs in apps/portal.
 
-# 1. Create migration directory
-mkdir -p apps/portal/prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
+# 1. Edit apps/portal/prisma/schema.prisma
 
-# 2. Write migration SQL in migration.sql
+# 2. Create the migration directory. Its name must sort after every existing
+#    migration, and `migrate dev` names them in UTC: keep the -u.
+DIR=apps/portal/prisma/migrations/$(date -u +%Y%m%d%H%M%S)_your_migration_name
+mkdir -p "$DIR"
 
-# 3. Apply SQL directly to database
-docker exec -i canopy-portal-db psql -U user -d canopy-forms < apps/portal/prisma/migrations/MIGRATION_DIR/migration.sql
+# 3. Write the SQL in "$DIR/migration.sql"
 
-# 4. Mark as applied in Prisma's tracking table
-docker exec canopy-portal npx prisma migrate resolve --applied MIGRATION_DIR_NAME
+# 4. Apply the file to the dev database and record it, as production will
+docker exec canopy-portal npx prisma migrate deploy
 
-# 5. Regenerate Prisma client
+# 5. Regenerate the client and confirm nothing is pending
 docker exec canopy-portal npx prisma generate
+docker exec canopy-portal npx prisma migrate status
 
 # 6. Restart dev server to pick up regenerated client
 docker restart canopy-portal
 ```
+
+- **The name's place in the order matters on every database built from scratch**: the shadow database `migrate dev` replays history in, the `*_test` database, a new environment. Migrations apply in name order there. A hand-written migration named earlier than one it depends on applies cleanly to the dev database, and the next `migrate dev` then fails with `P3006` (verified 2026-11-15 on 7.3.0). Plain `date` on a host clock behind UTC (this machine's is Pacific) gives such a name whenever a migration was made in the last few hours.
+- If the SQL has already been run by hand, record it instead of applying it twice: `docker exec canopy-portal npx prisma migrate resolve --applied <directory name>`. `psql` is in the db container only (Accessing Database Directly, below).
+- Production applies the file through `prisma migrate deploy` in `scripts/start.sh` (`docs/PRISMA_MIGRATIONS.md`).
 
 #### Docker File Permissions Gotcha (WSL2)
 
