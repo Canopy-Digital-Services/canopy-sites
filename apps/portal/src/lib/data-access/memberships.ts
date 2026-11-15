@@ -87,6 +87,25 @@ export async function markWelcomeShown(session: SessionAccess, accountId: string
   });
 }
 
+/**
+ * How far the signed-in person has played their site's welcome video: the
+ * furthest point of a video `length` seconds long. It only moves forward,
+ * an account whose site has no video keeps no figure, and an operator
+ * acting as the client records nothing: the figure is the person's.
+ */
+export async function recordWelcomeWatched(session: SessionAccess, accountId: string, seconds: number, length: number): Promise<void> {
+  if (session.actingAs) return;
+  await prisma.membership.updateMany({
+    where: {
+      userId: session.user.id,
+      accountId,
+      account: { site: { welcomeVideoKey: { not: null } } },
+      OR: [{ welcomeWatchedSeconds: null }, { welcomeWatchedSeconds: { lt: seconds } }],
+    },
+    data: { welcomeWatchedSeconds: seconds, welcomeVideoSeconds: length },
+  });
+}
+
 /** The email of the account's first owner, or null when it has none. */
 export async function getAccountOwnerEmail(accountId: string): Promise<string | null> {
   const owner = await prisma.membership.findFirst({

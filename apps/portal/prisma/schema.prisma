@@ -115,14 +115,19 @@ model User {
 // as OWNER; getCurrentAccountId enforces that. Platform roles (GLOBAL_ADMIN)
 // stay on User.roleCode, separate from this per-account role.
 model Membership {
-  id             String         @id @default(cuid())
-  userId         String
-  accountId      String
-  role           MembershipRole
-  createdAt      DateTime       @default(now())
+  id                    String         @id @default(cuid())
+  userId                String
+  accountId             String
+  role                  MembershipRole
+  createdAt             DateTime       @default(now())
   // When the site's welcome video opened by itself for this person (ROADMAP
   // E39). Null means it hasn't, so their next signed-in page opens it.
-  welcomeShownAt DateTime?
+  welcomeShownAt        DateTime?
+  // The furthest point this person has played of it and its length, in whole
+  // seconds: "Watched 4:12 of 5:03" on the operator's people card. Null until
+  // they play it, and again when the site gets a different video.
+  welcomeWatchedSeconds Int?
+  welcomeVideoSeconds   Int?
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)

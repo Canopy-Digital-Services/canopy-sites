@@ -29,13 +29,15 @@ export type PersonRow = {
   claimedAt: string | null;
   link: string | null;
   lastSignIn: string | null;
+  /** How far they have played the welcome video, as "Watched 4:12 of 5:03"; null until they play it. */
+  watched: string | null;
 };
 
 /**
  * The people on the site's account (PRD D63), owner first: whether each has
- * claimed, their claim link, their last sign-in, renaming, and removing
- * anyone but the owner. Acting as the client (PRD D49) is the account's, so
- * it sits in the footer.
+ * claimed, their claim link, their last sign-in, how far they got in the
+ * welcome video, renaming, and removing anyone but the owner. Acting as the
+ * client (PRD D49) is the account's, so it sits in the footer.
  */
 export function PeopleCard({
   siteId,
@@ -96,6 +98,8 @@ export function PeopleCard({
                         : `Not claimed · ${p.link ? `Link ${p.link}` : "No link sent"}`}
                     </span>
                   </p>
+                  {/* Under the line above's text, past its dot. */}
+                  {p.watched ? <p className="pl-4 text-muted-foreground">{p.watched}</p> : null}
                   {p.claimed ? null : (
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button variant="outline" size="sm" disabled={isPending} onClick={() => send(p, "copy")}>

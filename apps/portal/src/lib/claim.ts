@@ -217,6 +217,8 @@ export type PersonAccess = {
   /** The newest claim link: when it was made, whether the portal emailed it, and by whom. */
   link: { createdAt: Date; emailedAt: Date | null; by: string | null } | null;
   lastLoginAt: Date | null;
+  /** How far they have played the site's welcome video (ROADMAP E39), in seconds of its length; null until they play it. */
+  watched: { seconds: number; of: number } | null;
 };
 
 /**
@@ -230,6 +232,8 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
     orderBy: { createdAt: "asc" },
     select: {
       role: true,
+      welcomeWatchedSeconds: true,
+      welcomeVideoSeconds: true,
       user: {
         select: {
           id: true,
@@ -246,7 +250,7 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
       },
     },
   });
-  const people = memberships.map(({ role, user }): PersonAccess => {
+  const people = memberships.map(({ role, user, welcomeWatchedSeconds, welcomeVideoSeconds }): PersonAccess => {
     const newest = user.passwordTokens[0];
     const used = user.passwordTokens
       .map((t) => t.usedAt)
@@ -261,6 +265,8 @@ export async function listPeopleAccess(accountId: string): Promise<PersonAccess[
       claimedAt: used ?? null,
       link: newest ? { createdAt: newest.createdAt, emailedAt: newest.emailedAt, by: newest.createdBy?.email ?? null } : null,
       lastLoginAt: user.lastLoginAt,
+      watched:
+        welcomeWatchedSeconds !== null && welcomeVideoSeconds !== null ? { seconds: welcomeWatchedSeconds, of: welcomeVideoSeconds } : null,
     };
   });
   return [...people.filter((p) => p.role === "OWNER"), ...people.filter((p) => p.role !== "OWNER")];

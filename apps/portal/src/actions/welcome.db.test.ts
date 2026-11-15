@@ -7,7 +7,8 @@ vi.mock("next/headers", () => import("../../test/next-request"));
 
 const { getSession } = await import("@/lib/session");
 const { welcomeVideoFor } = await import("@/lib/welcome-video");
-const { welcomeVideoShown } = await import("./welcome");
+const { listPeopleAccess } = await import("@/lib/claim");
+const { welcomeVideoShown, welcomeVideoWatched } = await import("./welcome");
 
 const KEY = "0123456789abcdef";
 
@@ -101,5 +102,74 @@ describe("the welcome video's one automatic showing (ROADMAP E39)", () => {
     await signInAs(withVideo.user.id);
     vi.stubEnv("MEDIA_DIR", "");
     expect(await welcome(withVideo.account.id)).toBeNull();
+  });
+});
+
+/** What the operator's people card is given for this person. */
+const watchedBy = async (accountId: string, userId: string) =>
+  (await listPeopleAccess(accountId)).find((person) => person.userId === userId)?.watched;
+
+describe("how far each person has watched the welcome video (ROADMAP E39)", () => {
+  it("keeps each person's furthest point, in whole seconds of the video's length", async () => {
+    const { account, user } = await siteWithVideo();
+    const member = await createMember(account.id);
+    await signInAs(user.id);
+    expect(await watchedBy(account.id, user.id)).toBeNull();
+
+    await welcomeVideoWatched(12.9, 114.45);
+    expect(await watchedBy(account.id, user.id)).toEqual({ seconds: 12, of: 114 });
+
+    // Playing an earlier part again takes nothing back.
+    await welcomeVideoWatched(5, 114.45);
+    expect(await watchedBy(account.id, user.id)).toEqual({ seconds: 12, of: 114 });
+
+    // To the end, which a player may report a hair past the length.
+    await welcomeVideoWatched(114.46, 114.45);
+    expect(await watchedBy(account.id, user.id)).toEqual({ seconds: 114, of: 114 });
+    expect(await watchedBy(account.id, member.id)).toBeNull();
+
+    resetRequest();
+    await signInAs(member.id);
+    await welcomeVideoWatched(30, 114.45);
+    expect(await watchedBy(account.id, member.id)).toEqual({ seconds: 30, of: 114 });
+    expect(await watchedBy(account.id, user.id)).toEqual({ seconds: 114, of: 114 });
+  });
+
+  it("records nothing for an operator acting as the account, or where the site has no video", async () => {
+    const { account, user } = await siteWithVideo();
+    const { account: own, user: operator } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
+    const { session } = await signInAs(operator.id);
+    const actAs = await prisma.actAs.create({ data: { operatorUserId: operator.id, accountId: account.id } });
+    await prisma.session.update({ where: { id: session.id }, data: { actAsId: actAs.id } });
+    await welcomeVideoWatched(60, 114);
+    expect(await watchedBy(account.id, user.id)).toBeNull();
+    expect(await watchedBy(own.id, operator.id)).toBeNull();
+
+    const none = await createAccount({ planCode: "SITES" });
+    await createSite(none.account.id);
+    resetRequest();
+    await signInAs(none.user.id);
+    await welcomeVideoWatched(60, 114);
+    expect(await watchedBy(none.account.id, none.user.id)).toBeNull();
+  });
+
+  it("drops a report that isn't two sensible numbers", async () => {
+    const { account, user } = await siteWithVideo();
+    await signInAs(user.id);
+    const reports: [unknown, unknown][] = [
+      [Number.NaN, 114],
+      [60, Number.NaN],
+      [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+      [-5, 114],
+      [0.9, 114],
+      [60, 9_000_000],
+      ["a minute", "two"],
+      [undefined, undefined],
+      [{ gt: 0 }, 114],
+    ];
+    for (const [seconds, length] of reports) {
+      await welcomeVideoWatched(seconds as number, length as number);
+      expect(await watchedBy(account.id, user.id)).toBeNull();
+    }
   });
 });

@@ -14,6 +14,7 @@ import { WelcomeVideoCard } from "./welcome-video-card";
 import { listPeopleAccess } from "@/lib/claim";
 import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
 import { welcomeVideoState } from "@/lib/welcome-video";
+import { clock } from "@/lib/welcome-video-limits";
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   await requireGlobalAdmin();
@@ -41,6 +42,7 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
         person.link.by ? ` by ${person.link.by}` : " at their request"
       }`,
     lastSignIn: person.lastLoginAt && when(person.lastLoginAt),
+    watched: person.watched && `Watched ${clock(person.watched.seconds)} of ${clock(person.watched.of)}`,
   }));
 
   return (

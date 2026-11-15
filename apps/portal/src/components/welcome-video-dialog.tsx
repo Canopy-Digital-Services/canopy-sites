@@ -1,7 +1,9 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { welcomeVideoWatched } from "@/actions/welcome";
 
 type WelcomeVideoDialogProps = {
   open: boolean;
@@ -27,11 +29,55 @@ export function WelcomeVideoDialog({ open, onOpenChange, video, captions }: Welc
         <DialogHeader className="px-6 py-4">
           <DialogTitle>Welcome video</DialogTitle>
         </DialogHeader>
-        {/* The time fragment has iOS draw the first frame where it would show an empty player. */}
-        <video className="aspect-video w-full bg-black" controls playsInline preload="metadata" src={`${video}#t=0.001`}>
-          <track kind="captions" src={captions} srcLang="en" label="English" default />
-        </video>
+        <Player video={video} captions={captions} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** While it plays, the server hears how far the person has got this often, in seconds of video. */
+const REPORT_EVERY = 10;
+
+/**
+ * The player, which also tells the server the furthest point the person has
+ * played (the operator's "Watched 4:12 of 5:03"): as it plays, when it
+ * pauses or ends, and when the dialog closes on it.
+ */
+function Player({ video, captions }: { video: string; captions: string }) {
+  // Nothing draws these, so they stay out of state.
+  const watched = useRef({ furthest: 0, reported: 0, length: 0 });
+
+  const report = useCallback(() => {
+    const w = watched.current;
+    if (w.length === 0 || Math.floor(w.furthest) <= Math.floor(w.reported)) return;
+    w.reported = w.furthest;
+    void welcomeVideoWatched(w.furthest, w.length);
+  }, []);
+
+  // Closing the dialog removes a playing video with no pause event.
+  useEffect(() => report, [report]);
+
+  return (
+    // The time fragment has iOS draw the first frame where it would show an empty player.
+    <video
+      className="aspect-video w-full bg-black"
+      controls
+      playsInline
+      preload="metadata"
+      src={`${video}#t=0.001`}
+      onTimeUpdate={(e) => {
+        const player = e.currentTarget;
+        const w = watched.current;
+        if (Number.isFinite(player.duration)) w.length = player.duration;
+        // Dragging the position along a paused video is not watching it.
+        if (player.paused || player.seeking || player.currentTime <= w.furthest) return;
+        w.furthest = player.currentTime;
+        if (w.furthest - w.reported >= REPORT_EVERY) report();
+      }}
+      onPause={report}
+      onEnded={report}
+    >
+      <track kind="captions" src={captions} srcLang="en" label="English" default />
+    </video>
   );
 }

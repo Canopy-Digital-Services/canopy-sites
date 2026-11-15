@@ -98,26 +98,42 @@ describe("uploading a site's welcome video (ROADMAP E39)", () => {
     expect(Buffer.from(await played.arrayBuffer()).equals(video)).toBe(true);
   });
 
-  it("replaces the site's video and deletes the files it had", async () => {
-    const { site } = await operatorAndSite();
+  it("replaces the site's video, deletes the files it had, and starts what each person watched over", async () => {
+    const { account, owner, site } = await operatorAndSite();
     await upload(site.id, CAPTIONS, mp4(1));
+    const shown = new Date("2026-11-14T12:00:00Z");
+    await prisma.membership.updateMany({
+      where: { accountId: account.id },
+      data: { welcomeShownAt: shown, welcomeWatchedSeconds: 100, welcomeVideoSeconds: 114 },
+    });
     const next = mp4(2);
     expect((await upload(site.id, "WEBVTT\n\nNew captions.\n", next)).status).toBe(200);
 
     const key = keyOf(next);
     expect(await keyNow(site.id)).toBe(key);
     expect(await files(site.id)).toEqual([`${key}.mp4`, `${key}.vtt`]);
+    // It was shown to them once, and a new one doesn't open by itself again.
+    expect(await prisma.membership.findFirstOrThrow({ where: { userId: owner.id } })).toMatchObject({
+      welcomeShownAt: shown,
+      welcomeWatchedSeconds: null,
+      welcomeVideoSeconds: null,
+    });
   });
 
-  it("takes new captions for the same video", async () => {
-    const { site } = await operatorAndSite();
+  it("takes new captions for the same video, and keeps what each person watched of it", async () => {
+    const { account, owner, site } = await operatorAndSite();
     const video = mp4(1);
     await upload(site.id, CAPTIONS, video);
+    await prisma.membership.updateMany({ where: { accountId: account.id }, data: { welcomeWatchedSeconds: 100, welcomeVideoSeconds: 114 } });
     expect((await upload(site.id, "WEBVTT\n\nCorrected.\n", video)).status).toBe(200);
 
     const key = keyOf(video);
     expect(await files(site.id)).toEqual([`${key}.mp4`, `${key}.vtt`]);
     expect(await readFile(path.join(mediaDir, "welcome", site.id, `${key}.vtt`), "utf8")).toBe("WEBVTT\n\nCorrected.\n");
+    expect(await prisma.membership.findFirstOrThrow({ where: { userId: owner.id } })).toMatchObject({
+      welcomeWatchedSeconds: 100,
+      welcomeVideoSeconds: 114,
+    });
   });
 
   it("refuses anyone but a Global Admin, and a page on another origin", async () => {
