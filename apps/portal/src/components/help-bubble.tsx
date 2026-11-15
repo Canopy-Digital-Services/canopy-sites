@@ -1,9 +1,9 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HelpCircle, BookOpen, Library, Mail, MessageSquare } from "lucide-react";
+import { HelpCircle, BookOpen, CirclePlay, Library, Mail, MessageSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getHelpHref } from "@/lib/docs-route-map";
 import { ContactDialog } from "@/components/contact-dialog";
+import { WelcomeVideoDialog } from "@/components/welcome-video-dialog";
 import type { ContactKind } from "@/actions/contact";
+import { welcomeVideoShown } from "@/actions/welcome";
+import type { WelcomeVideo } from "@/lib/welcome-video";
 
 const DOCS_INDEX = "/docs";
 
@@ -28,9 +31,11 @@ function extractIds(pathname: string) {
 type HelpBubbleProps = {
   /** Passed from the admin layout's session; prefills the support reply address. */
   accountEmail: string;
+  /** The site's welcome video (ROADMAP E39), when it has one: an item here, and open by itself the first time. */
+  welcome?: WelcomeVideo | null;
 };
 
-export function HelpBubble({ accountEmail }: HelpBubbleProps) {
+export function HelpBubble({ accountEmail, welcome }: HelpBubbleProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -40,7 +45,19 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
 
   const { formId, submissionId } = useMemo(() => extractIds(pathname), [pathname]);
 
-  if (!href) return null;
+  const opensItself = Boolean(welcome?.open);
+  const [welcomeOpen, setWelcomeOpen] = useState(opensItself);
+  useEffect(() => {
+    // Once per person: the server stops asking for it after this.
+    if (opensItself) void welcomeVideoShown();
+  }, [opensItself]);
+
+  // Its one automatic showing happens wherever the person lands, pages with no bubble included.
+  const welcomeDialog = welcome ? (
+    <WelcomeVideoDialog open={welcomeOpen} onOpenChange={setWelcomeOpen} video={welcome.video} captions={welcome.captions} />
+  ) : null;
+
+  if (!href) return welcomeDialog;
 
   // On routes with no specific doc page, `getHelpHref` falls back to the index —
   // which is where "Browse documentation" already goes. Drop the duplicate.
@@ -60,6 +77,12 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" className="w-56">
+            {welcome && (
+              <DropdownMenuItem onSelect={() => setWelcomeOpen(true)}>
+                <CirclePlay className="h-4 w-4" />
+                Welcome video
+              </DropdownMenuItem>
+            )}
             {showContextualHelp && (
               <DropdownMenuItem onSelect={() => router.push(href)}>
                 <BookOpen className="h-4 w-4" />
@@ -88,6 +111,7 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
         accountEmail={accountEmail}
         context={{ pathname, search, formId, submissionId }}
       />
+      {welcomeDialog}
     </>
   );
 }

@@ -14,7 +14,7 @@ import { endActAs, type SessionContext } from "@/lib/session";
 /**
  * Whether this session is the operator acting as a client, not the owner.
  * Anything only the owner may do, or that must happen only for the owner
- * (a password, deleting the account, later the welcome video), checks it.
+ * (a password, deleting the account), checks it.
  */
 export function isActing(session: Pick<SessionContext, "actingAs"> | null): boolean {
   return Boolean(session?.actingAs);
