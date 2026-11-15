@@ -16,7 +16,7 @@ npm run lint           # ESLint (must pass before committing)
 npm test               # Vitest, unit + database tests (must pass; run in the dev container)
 npm run embed:build    # Rebuild public/embed.js from embed/src/* (required after embed changes)
 npm run db:generate    # Regenerate Prisma client
-npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration)
+npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration), then prisma generate
 ```
 
 Tests cover decisions (sessions, membership, entitlements, guardrails); `docs/VERIFICATION_CHECKLIST.md` covers the rest of the quality gate.

@@ -179,7 +179,7 @@ Migrations apply via `prisma migrate deploy` in `scripts/start.sh` at container 
 Procedure:
 
 1. Edit `prisma/schema.prisma`.
-2. Run `npm run db:migrate -- --name descriptive_name`, then `npm run db:generate`: Prisma 7's `migrate dev` no longer regenerates the client.
+2. Run `npm run db:migrate -- --name descriptive_name`. Its `postdb:migrate` hook regenerates the client, which Prisma 7's `migrate dev` no longer does; `prisma migrate dev` called directly skips the hook.
 3. **Read the generated SQL** and confirm it does what you intended, not just that it exists.
 4. Commit schema and migration together.
 5. Tell the user to check the Coolify logs for `Applied migration: <name>` followed by `Migrations complete. Starting application...`.
