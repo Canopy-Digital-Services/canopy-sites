@@ -16,7 +16,7 @@ import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { prisma } from "@/lib/db";
 import type { SessionContext } from "@/lib/session";
-import { sessionCanUseAccount, welcomeNotYetShown } from "@/lib/data-access/memberships";
+import { forgetWelcomeVideo, sessionCanUseAccount, welcomeNotYetShown } from "@/lib/data-access/memberships";
 import {
   isMp4,
   isWebVtt,
@@ -176,14 +176,7 @@ export async function storeWelcomeVideo(
     await prisma.$transaction([
       prisma.site.update({ where: { id: site.id }, data: { welcomeVideoKey: key } }),
       // What each person watched was of the video this one replaces. The same video, with new captions, keeps it.
-      ...(key === site.welcomeVideoKey
-        ? []
-        : [
-            prisma.membership.updateMany({
-              where: { accountId: site.accountId },
-              data: { welcomeWatchedSeconds: null, welcomeVideoSeconds: null },
-            }),
-          ]),
+      ...(key === site.welcomeVideoKey ? [] : [forgetWelcomeVideo(site.accountId, false)]),
     ]);
     for (const name of await readdir(dir)) {
       if (!name.startsWith(`${key}.`)) await rm(path.join(dir, name), { force: true });
@@ -196,6 +189,23 @@ export async function storeWelcomeVideo(
     await rm(partial, { force: true });
     await reader.cancel().catch(() => undefined);
   }
+}
+
+/**
+ * Takes the site's welcome video away: its key, its files, and what each
+ * person on the account had of it, the showing included, so a video uploaded
+ * later opens once for each of them. False for a site that doesn't exist.
+ */
+export async function removeWelcomeVideo(siteId: string): Promise<boolean> {
+  const site = await prisma.site.findUnique({ where: { id: String(siteId) }, select: { id: true, accountId: true } });
+  if (!site) return false;
+  await prisma.$transaction([
+    prisma.site.update({ where: { id: site.id }, data: { welcomeVideoKey: null } }),
+    forgetWelcomeVideo(site.accountId, true),
+  ]);
+  const root = mediaDir();
+  if (root) await rm(path.join(root, "welcome", site.id), { recursive: true, force: true });
+  return true;
 }
 
 function utf8(bytes: Uint8Array): string | null {

@@ -106,6 +106,19 @@ export async function recordWelcomeWatched(session: SessionAccess, accountId: st
   });
 }
 
+/**
+ * For the transaction that changes or removes a site's welcome video: what
+ * each person on the account watched was of the video it had, so that goes.
+ * A removal also forgets that it was shown to them, so the next video opens
+ * once for each of them, as a first one does; a replacement doesn't.
+ */
+export function forgetWelcomeVideo(accountId: string, removed: boolean) {
+  return prisma.membership.updateMany({
+    where: { accountId },
+    data: { welcomeWatchedSeconds: null, welcomeVideoSeconds: null, ...(removed ? { welcomeShownAt: null } : {}) },
+  });
+}
+
 /** The email of the account's first owner, or null when it has none. */
 export async function getAccountOwnerEmail(accountId: string): Promise<string | null> {
   const owner = await prisma.membership.findFirst({
