@@ -1,7 +1,6 @@
 # React 19 Documentation
 
-**Last Updated:** January 2025  
-**Current Version:** 19.2.3  
+**Installed version:** `react` and `react-dom` in `apps/portal/package.json`, pinned exactly (19.2.3 as of 2026-11-14).  
 **Official Docs:** https://react.dev
 
 ## Overview
@@ -14,7 +13,7 @@ React 19 was released on December 5, 2024, representing the biggest upgrade sinc
 
 - **Async-first**: Built-in support for async workflows in forms and transitions
 - **Actions**: New pattern for handling data mutations with automatic state management
-- **React Compiler**: Automatic memoization (no manual `useMemo`/`useCallback` needed)
+- **React Compiler**: Opt-in automatic memoization, a build plugin that this repo does not enable (see React Compiler below)
 - **Improved Server Components**: Better streaming and asset loading
 - **Enhanced Suspense**: Pre-warming for suspended trees
 
@@ -262,21 +261,9 @@ function SubmitButton() {
 
 ### React Compiler
 
-Automatic memoization - no manual optimization needed:
+The compiler memoizes components at build time. It is a separate, opt-in build plugin: React 19 by itself memoizes nothing. Next.js enables it with `reactCompiler` in `next.config.ts`.
 
-```typescript
-// React 19: Automatically memoized
-function ExpensiveComponent({ data }: { data: Data[] }) {
-  const filtered = data.filter(item => item.active);  // Auto-memoized!
-  const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
-  
-  return <div>{/* ... */}</div>;
-}
-
-// No need for:
-// const filtered = useMemo(() => ..., [data]);
-// const sorted = useMemo(() => ..., [filtered]);
-```
+**This repo does not enable it** (`apps/portal/next.config.ts` has no `reactCompiler`, checked 2026-11-14). `useMemo` and `useCallback` still do their work here: keep the ones that exist, and add them where a value or callback has to stay stable.
 
 ### Form Improvements
 
@@ -516,20 +503,16 @@ function App() {
 
 ## Performance Improvements
 
-- **Automatic memoization**: React Compiler handles optimization
 - **Better hydration**: Improved error reporting and performance
 - **Faster updates**: Optimized rendering pipeline
 - **Improved Suspense**: Pre-warming for better perceived performance
 
 ## Project-Specific Notes
 
-This project (Canopy Forms) currently:
-- ✅ Using React 19.2.3
-- ✅ Using `useTransition` correctly for async operations
-- ⚠️ Not yet using new hooks (`useActionState`, `useOptimistic`, `useEffectEvent`)
-- ✅ Standard hooks (`useState`, `useEffect`, `useMemo`) working correctly
-- ✅ Forms could benefit from `useActionState` migration
-- ✅ Could use `useOptimistic` for better UX in form submissions
+In `apps/portal/src` as of 2026-11-14 (grep to recheck):
+- No component uses `useActionState`, `useOptimistic`, `useEffectEvent`, `useFormStatus`, or `use()`. Pending state comes from `useTransition`.
+- Admin and auth forms follow the inline validation pattern in `docs/AGENT_CONTEXT.md` section 2 ("Validation"), not `useActionState`. Extend that pattern rather than converting a form.
+- The React Compiler is off (see React Compiler above).
 
 ## Troubleshooting
 
@@ -576,51 +559,3 @@ This project (Canopy Forms) currently:
 - **Upgrade Guide**: https://react.dev/blog/2024/04/25/react-19-upgrade-guide
 - **React 19.2 Release**: https://react.dev/blog/2025/10/01/react-19-2
 - **Hooks Reference**: https://react.dev/reference/react
-
-## Quick Reference
-
-### New Hooks
-
-```typescript
-// Consume Promises
-const data = use(promise);
-
-// Form actions
-const [state, formAction, isPending] = useActionState(action, initialState);
-
-// Optimistic updates
-const [optimisticState, addOptimistic] = useOptimistic(state, updateFn);
-
-// Effect events
-const onEvent = useEffectEvent(callback);
-
-// Form status
-const { pending, data, method, action } = useFormStatus();
-```
-
-### Actions Pattern
-
-```typescript
-async function myAction(prevState: any, formData: FormData) {
-  // ... async work
-  return { success: true };
-}
-
-const [state, formAction, isPending] = useActionState(myAction, null);
-```
-
-### Migration Checklist
-
-- [ ] Update to React 18.3 first (check deprecations)
-- [ ] Update React to 19.x
-- [ ] Update TypeScript types
-- [ ] Enable new JSX transform
-- [ ] Update libraries (React Router, Styled Components, etc.)
-- [ ] Run codemod: `npx codemod@latest react/19/migration-recipe`
-- [ ] Convert forms to use `useActionState`
-- [ ] Add optimistic updates with `useOptimistic`
-- [ ] Refactor Effects to use `useEffectEvent` where beneficial
-
----
-
-**For AI Agents:** If you encounter code using manual `useMemo`/`useCallback` optimizations, React 19's compiler handles this automatically. Forms should use `useActionState` instead of manual state management. The `use()` hook replaces `useEffect` + Promise patterns. `useOptimistic` provides better UX than manual optimistic state management.

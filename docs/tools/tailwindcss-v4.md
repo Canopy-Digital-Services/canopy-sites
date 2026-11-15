@@ -1,7 +1,6 @@
 # Tailwind CSS v4 Documentation
 
-**Last Updated:** January 2025  
-**Current Version:** 4.1  
+**Installed version:** `tailwindcss` and `@tailwindcss/postcss` in `apps/portal/package.json`, resolved in the root `package-lock.json` (4.1.18 as of 2026-11-14).  
 **Official Docs:** https://tailwindcss.com/docs
 
 ## Overview
@@ -447,15 +446,9 @@ Safelist specific utilities:
 
 ## Project-Specific Notes
 
-This project (Canopy Forms) currently:
-- ✅ Using Tailwind CSS v4
-- ✅ Using `@import "tailwindcss"` correctly
-- ✅ Using `@theme inline` for theme configuration
-- ✅ Using `@tailwindcss/postcss` plugin
-- ✅ No `tailwind.config.js` (CSS-first approach)
-- ✅ Using `@custom-variant` for dark mode
-- ✅ Using `@layer base` for global styles
-- ✅ Typography system: Inter (body via `font-sans`, headings via `font-heading` alias), Geist Mono (code via `font-mono`)
+In `apps/portal` as of 2026-11-14:
+- The whole setup is `src/app/globals.css` (`@import "tailwindcss"`, `@theme inline`, `@custom-variant dark`, `@layer base`) plus `postcss.config.mjs` with the `@tailwindcss/postcss` plugin. There is no `tailwind.config.js`.
+- The design tokens and the three font families (`--font-sans`, `--font-heading`, `--font-mono`) are set in `globals.css`; the rules for using them are in `docs/UX_PATTERNS.md` and `docs/AGENT_CONTEXT.md` section 9.
 
 ## Troubleshooting
 
@@ -507,52 +500,3 @@ npm install -D @tailwindcss/postcss
 - **v4.0 Blog Post**: https://tailwindcss.com/blog/tailwindcss-v4
 - **v4.1 Blog Post**: https://tailwindcss.com/blog/tailwindcss-v4-1
 - **Theme Variables**: https://tailwindcss.com/docs/configuration
-
-## Quick Reference
-
-### Installation
-
-```bash
-# PostCSS
-npm install -D tailwindcss @tailwindcss/postcss
-
-# Vite
-npm install -D tailwindcss @tailwindcss/vite
-
-# CLI
-npm install -D @tailwindcss/cli
-```
-
-### Basic Setup
-
-```css
-/* globals.css */
-@import "tailwindcss";
-
-@theme {
-  --color-primary: #3b82f6;
-}
-```
-
-### PostCSS Config
-
-```javascript
-// postcss.config.mjs
-const config = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
-};
-
-export default config;
-```
-
-### Migration Command
-
-```bash
-npx @tailwindcss/upgrade
-```
-
----
-
-**For AI Agents:** If you encounter code using `@tailwind base/components/utilities` directives or `tailwind.config.js` files, these are Tailwind v3 patterns. In v4, use `@import "tailwindcss"` and configure via `@theme` in CSS. Content detection is automatic - no configuration needed. The PostCSS plugin is now `@tailwindcss/postcss` (separate package).
