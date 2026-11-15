@@ -5,68 +5,21 @@
 
 ## Overview
 
-Tailwind CSS v4.0 was released on January 22, 2025, as a ground-up rewrite optimized for performance and modern CSS features. Version 4.1 (released April 3, 2025) added text shadows, mask utilities, and additional features. This represents a fundamental shift from JavaScript-based configuration to CSS-first configuration, with significant performance improvements and new capabilities.
+Tailwind CSS v4.0 (January 22, 2025) is a rewrite that moved configuration from JavaScript into CSS. Version 4.1 (April 3, 2025) added text shadows, masks, and more variants.
 
-## Critical Changes from Tailwind CSS v3
+The class names and behaviors below were checked on 2026-11-15 by compiling them with the installed 4.1.18, and the v3 to v4 changes against the official upgrade guide.
 
-### Architecture Shift
+## Changes from Tailwind CSS v3
 
-- **CSS-first configuration**: No more `tailwind.config.js` - everything in CSS
-- **New high-performance engine**: 5× faster full builds, 100×+ faster incremental builds
-- **Modern CSS features**: Built on cascade layers, `@property`, and `color-mix()`
-- **Automatic content detection**: No configuration needed
-- **Zero configuration setup**: Single CSS import line
+### Browser Requirements
 
-### Minimum Requirements
+Safari 16.4+, Chrome 111+, Firefox 128+. v4 depends on `@property` and `color-mix()`.
 
-- **Browsers**: Safari 16.4+, Chrome 111+, Firefox 128+
-- **Node.js**: 20+ (for upgrade tool)
-- **Modern CSS support**: Uses features not available in older browsers
+### Configuration is CSS
 
-## Breaking Changes
-
-### 1. Package Structure Changes
+There is no `tailwind.config.js`, no `content` array (sources are detected automatically), and no `@tailwind` directives.
 
 **Old (v3):**
-```bash
-npm install -D tailwindcss postcss autoprefixer
-```
-
-**New (v4):**
-```bash
-# PostCSS setup
-npm install -D tailwindcss @tailwindcss/postcss
-
-# Or Vite setup
-npm install -D tailwindcss @tailwindcss/vite
-
-# Or CLI
-npm install -D @tailwindcss/cli
-```
-
-**Key Changes:**
-- PostCSS plugin: `@tailwindcss/postcss` (separate package)
-- CLI: `@tailwindcss/cli` (separate package)
-- Vite plugin: `@tailwindcss/vite` (first-party)
-
-### 2. Configuration: CSS-First Approach
-
-**Old (v3) - JavaScript Config:**
-```javascript
-// tailwind.config.js
-module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx}'],
-  theme: {
-    extend: {
-      colors: {
-        primary: '#3b82f6',
-      },
-    },
-  },
-  plugins: [],
-};
-```
-
 ```css
 /* globals.css */
 @tailwind base;
@@ -74,7 +27,7 @@ module.exports = {
 @tailwind utilities;
 ```
 
-**New (v4) - CSS Config:**
+**New (v4):**
 ```css
 /* globals.css */
 @import "tailwindcss";
@@ -84,224 +37,8 @@ module.exports = {
 }
 ```
 
-**Key Changes:**
-- `@tailwind` directives removed
-- `@import "tailwindcss"` replaces all directives
-- Configuration in `@theme` block
-- No `tailwind.config.js` needed
+The PostCSS plugin is its own package, `@tailwindcss/postcss`, and `autoprefixer` is no longer needed:
 
-### 3. Content Detection
-
-**Old (v3):**
-```javascript
-// tailwind.config.js
-content: ['./src/**/*.{js,ts,jsx,tsx}'],
-```
-
-**New (v4):**
-```css
-/* Automatic - no configuration needed */
-/* Tailwind automatically detects content */
-```
-
-Content detection is now **automatic** - no configuration required.
-
-### 4. Browser Requirements
-
-**Breaking:** Tailwind v4 requires modern browsers:
-- Safari 16.4+
-- Chrome 111+
-- Firefox 128+
-
-If you need older browser support, stick with Tailwind v3.4.
-
-## New Features
-
-### CSS-First Configuration with `@theme`
-
-Define design tokens as CSS variables:
-
-```css
-@import "tailwindcss";
-
-@theme {
-  /* Colors */
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  
-  /* Spacing */
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 1rem;
-  
-  /* Fonts */
-  --font-display: 'Inter', sans-serif;
-  
-  /* Border radius */
-  --radius-lg: 1rem;
-}
-```
-
-This automatically generates utilities like `bg-primary`, `text-primary`, `p-xs`, etc.
-
-### Inline Theme Configuration
-
-Use `@theme inline` to reference existing CSS variables:
-
-```css
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-}
-```
-
-### Custom Variants
-
-Create custom variants with `@custom-variant`:
-
-```css
-@custom-variant dark (&:is(.dark *));
-```
-
-### Container Queries (First-Class)
-
-No plugin needed - container queries are built-in:
-
-```html
-<div class="@container">
-  <div class="@md:text-lg">Responsive to container</div>
-</div>
-```
-
-### 3D Transform Utilities
-
-New 3D transform utilities:
-
-```html
-<div class="transform-gpu rotate-x-45 rotate-y-12">
-  3D transformed element
-</div>
-```
-
-### Expanded Gradient APIs
-
-Radial and conic gradients:
-
-```html
-<div class="bg-gradient-radial from-blue-500 to-purple-500">
-  Radial gradient
-</div>
-
-<div class="bg-gradient-conic from-blue-500 via-purple-500 to-pink-500">
-  Conic gradient
-</div>
-```
-
-### @starting-style Support
-
-Enter/exit transitions without JavaScript:
-
-```css
-@starting-style {
-  .fade-in {
-    opacity: 0;
-  }
-}
-
-.fade-in {
-  opacity: 1;
-  transition: opacity 0.3s;
-}
-```
-
-### Text Shadows (v4.1)
-
-Finally added after 6 years of requests:
-
-```html
-<p class="text-shadow-sm">Small shadow</p>
-<p class="text-shadow-md">Medium shadow</p>
-<p class="text-shadow-lg">Large shadow</p>
-<p class="text-shadow-md text-shadow-blue-500/50">Colored shadow</p>
-```
-
-Sizes: `2xs`, `xs`, `sm`, `md`, `lg`
-
-### Mask Utilities (v4.1)
-
-Mask elements with images and gradients:
-
-```html
-<div class="mask-image-gradient-to-r mask-size-cover">
-  Masked content
-</div>
-```
-
-### Input Device Targeting (v4.1)
-
-Target touch devices explicitly:
-
-```html
-<button class="pointer-coarse:px-6 pointer-coarse:py-3">
-  Larger on touch devices
-</button>
-```
-
-Variants: `pointer-*` and `any-pointer-*`
-
-### Drop Shadow Colors (v4.1)
-
-Colored drop shadows:
-
-```html
-<div class="drop-shadow-lg drop-shadow-blue-500">
-  Colored drop shadow
-</div>
-```
-
-## Migration Guide
-
-### Automated Migration
-
-Use the official upgrade tool:
-
-```bash
-npx @tailwindcss/upgrade
-```
-
-**Requirements:**
-- Node.js 20+
-- Run in a new branch
-- Review diff carefully
-
-The tool automatically:
-- Updates dependencies
-- Migrates configuration
-- Updates template files
-
-### Manual Migration Steps
-
-#### Step 1: Update Dependencies
-
-```bash
-npm uninstall tailwindcss postcss autoprefixer
-npm install -D tailwindcss @tailwindcss/postcss
-```
-
-#### Step 2: Update PostCSS Config
-
-**Old (v3):**
-```javascript
-// postcss.config.js
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-```
-
-**New (v4):**
 ```javascript
 // postcss.config.mjs
 const config = {
@@ -313,78 +50,77 @@ const config = {
 export default config;
 ```
 
-#### Step 3: Update CSS File
+### Renamed Utilities
 
-**Old (v3):**
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
+The old names still compile, with a different meaning: v3's `shadow-sm` written in v4 gives the larger shadow that v3 called `shadow`.
 
-**New (v4):**
+| v3 | v4 |
+|----|----|
+| `shadow-sm` | `shadow-xs` |
+| `shadow` | `shadow-sm` |
+| `drop-shadow-sm` | `drop-shadow-xs` |
+| `drop-shadow` | `drop-shadow-sm` |
+| `blur-sm` | `blur-xs` |
+| `blur` | `blur-sm` |
+| `backdrop-blur-sm` | `backdrop-blur-xs` |
+| `backdrop-blur` | `backdrop-blur-sm` |
+| `rounded-sm` | `rounded-xs` |
+| `rounded` | `rounded-sm` |
+| `outline-none` | `outline-hidden` |
+| `ring` | `ring-3` |
+
+- `outline-none` now sets `outline-style: none`. `outline-hidden` is the v3 behavior, which keeps an outline in forced-colors mode.
+- `ring` is 1px in `currentColor` (v3: 3px, blue). `ring-3` is the 3px ring.
+- Bare `rounded` is a fixed `0.25rem` that ignores the theme. The sized classes (`rounded-sm`, `rounded-md`, ...) read the `--radius-*` tokens. Which to use here is in `docs/UX_PATTERNS.md`.
+- `bg-opacity-*`, `text-opacity-*`, and the other opacity utilities are gone (`bg-opacity-50` generates nothing). Use the slash: `bg-black/50`.
+- Gradients are `bg-linear-to-r` (`bg-gradient-to-r` still compiles), `bg-linear-45`, `bg-radial`, and `bg-conic`. There is no `bg-gradient-radial` or `bg-gradient-conic`.
+
+### Changed Behavior
+
+- **Border color defaults to `currentColor`** (v3: gray-200). The portal's `@layer base` in `globals.css` applies `border-border` to every element, so a bare `border` gets the token.
+- **CSS variables in arbitrary values take parentheses**: `bg-(--brand)`. The v3 form `bg-[--brand]` still compiles, to `background-color: --brand`, which is invalid CSS and fails silently.
+- **The important modifier goes last**: `flex!`, `hover:bg-red-500!`. The leading `!flex` is deprecated.
+- **Stacked variants apply left to right**: v3's `first:*:pt-0` is `*:first:pt-0`.
+- **`hover:` applies only where the device can hover** (`@media (hover: hover)`), so it does nothing on touch.
+- **Custom utilities use `@utility`**, not `@layer utilities`, when they should work with variants:
+
+  ```css
+  @utility tab-4 {
+    tab-size: 4;
+  }
+  ```
+- **`theme()` gives way to the CSS variables**: `var(--color-red-500)`.
+- **Buttons have `cursor: default`**, and placeholders are the text color at 50% opacity.
+- **`space-x-*`, `space-y-*`, and `divide-*` select `:not(:last-child)`.** Prefer `gap` in a flex or grid layout.
+- **`transform-none` no longer resets `rotate-*`, `scale-*`, or `translate-*`**, which are individual properties now: use `scale-none`, and `transition-[opacity,scale]` rather than `transition-[opacity,transform]`.
+
+## Theme Configuration
+
+### `@theme`
+
+Theme variables define design tokens and generate their utilities:
+
 ```css
 @import "tailwindcss";
-```
 
-#### Step 4: Migrate Configuration
-
-**Old (v3) - tailwind.config.js:**
-```javascript
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        primary: '#3b82f6',
-      },
-    },
-  },
-};
-```
-
-**New (v4) - In CSS:**
-```css
 @theme {
-  --color-primary: #3b82f6;
+  --color-primary: #3b82f6;    /* bg-primary, text-primary, ... */
+  --spacing-xs: 0.5rem;        /* p-xs, m-xs, gap-xs, ... */
+  --font-display: 'Inter', sans-serif;  /* font-display */
+  --radius-lg: 1rem;           /* rounded-lg */
+  --breakpoint-3xl: 120rem;    /* 3xl: variant */
 }
 ```
 
-#### Step 5: Remove Config File
+### `@theme inline`
 
-Delete `tailwind.config.js` (or keep it empty if needed for tooling).
-
-## Common Patterns
-
-### Theme Configuration
-
-```css
-@import "tailwindcss";
-
-@theme {
-  /* Custom colors */
-  --color-brand: #3b82f6;
-  --color-brand-dark: #2563eb;
-  
-  /* Custom spacing */
-  --spacing-section: 4rem;
-  
-  /* Custom fonts */
-  --font-heading: var(--font-inter);
-  --font-body: 'Inter', sans-serif;
-  
-  /* Custom breakpoints */
-  --breakpoint-3xl: 1920px;
-}
-```
-
-### Inline Theme (Reference CSS Variables)
+Use `@theme inline` when a token points at another variable, which is how `globals.css` maps the semantic colors and fonts:
 
 ```css
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 ```
 
@@ -392,57 +128,28 @@ Delete `tailwind.config.js` (or keep it empty if needed for tooling).
 
 ```css
 @custom-variant dark (&:is(.dark *));
-@custom-variant hover-focus (&:hover:focus);
 ```
 
-### Layer Custom Styles
+### Sources
+
+Detection is automatic. To exclude a path or force classes into the build (4.1):
 
 ```css
-@import "tailwindcss";
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@layer components {
-  .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded;
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+@source not "./legacy";
+@source inline("bg-red-500 text-white");
 ```
 
-### Content Source Control (v4.1)
+`@source inline()` takes one string, with classes separated by spaces. Two quoted arguments generate nothing.
 
-Ignore specific paths:
+## New Utilities and Variants
 
-```css
-@source not "node_modules/**";
-```
-
-Safelist specific utilities:
-
-```css
-@source inline("bg-red-500", "text-white");
-```
-
-## Performance Improvements
-
-- **5× faster** full builds
-- **100×+ faster** incremental builds
-- **10-15% smaller** bundle sizes
-- **Faster dev refreshes** with automatic theme updates
+- **Container queries** are built in: `@container` on the parent, `@md:text-lg` on the child.
+- **3D transforms**: `rotate-x-45`, `rotate-y-12`, `transform-3d`.
+- **`starting:` variant** for enter transitions (`@starting-style`): `starting:opacity-0`.
+- **Text shadows** (4.1): `text-shadow-2xs`, `-xs`, `-sm`, `-md`, `-lg`, with a color as `text-shadow-blue-500/50`.
+- **Masks** (4.1): `mask-b-from-50%`, `mask-linear-45`, `mask-cover`. There is no `mask-image-gradient-*` or `mask-size-*`.
+- **Pointer variants** (4.1): `pointer-coarse:px-6`, `any-pointer-coarse:px-6`.
+- **Colored drop shadows** (4.1): `drop-shadow-lg drop-shadow-blue-500`.
 
 ## Project-Specific Notes
 
@@ -450,53 +157,10 @@ In `apps/portal` as of 2026-11-14:
 - The whole setup is `src/app/globals.css` (`@import "tailwindcss"`, `@theme inline`, `@custom-variant dark`, `@layer base`) plus `postcss.config.mjs` with the `@tailwindcss/postcss` plugin. There is no `tailwind.config.js`.
 - The design tokens and the three font families (`--font-sans`, `--font-heading`, `--font-mono`) are set in `globals.css`; the rules for using them are in `docs/UX_PATTERNS.md` and `docs/AGENT_CONTEXT.md` section 9.
 
-## Troubleshooting
-
-### "Cannot find module 'tailwindcss'"
-
-**Cause:** Using v3 package structure
-
-**Solution:** Install `@tailwindcss/postcss`:
-```bash
-npm install -D @tailwindcss/postcss
-```
-
-### Styles not applying
-
-**Cause:** Old `@tailwind` directives or missing import
-
-**Solution:** Replace with:
-```css
-@import "tailwindcss";
-```
-
-### Custom colors not working
-
-**Cause:** Using old config file instead of `@theme`
-
-**Solution:** Define in CSS:
-```css
-@theme {
-  --color-custom: #ff0000;
-}
-```
-
-### Content not detected
-
-**Cause:** v3 required explicit content paths
-
-**Solution:** v4 detects automatically - no config needed. If issues persist, use `@source` directive.
-
-### Browser compatibility issues
-
-**Cause:** v4 requires modern browsers
-
-**Solution:** Use Tailwind v3.4 if you need older browser support, or add polyfills.
-
 ## Resources
 
 - **Official Documentation**: https://tailwindcss.com/docs
 - **Upgrade Guide**: https://tailwindcss.com/docs/upgrade-guide
 - **v4.0 Blog Post**: https://tailwindcss.com/blog/tailwindcss-v4
 - **v4.1 Blog Post**: https://tailwindcss.com/blog/tailwindcss-v4-1
-- **Theme Variables**: https://tailwindcss.com/docs/configuration
+- **Theme Variables**: https://tailwindcss.com/docs/theme
