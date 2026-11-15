@@ -8,7 +8,7 @@ import { liveSite } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
-import { SiteHoldProvider, WhileHolding } from "@/components/sites/site-hold";
+import { BehindGlass, SiteHoldProvider } from "@/components/sites/site-hold";
 import { CanvasEditor, type CanvasPage } from "./canvas-editor";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +53,8 @@ export default async function EditorPage() {
     );
   }
 
-  // Who has the site as the page renders (PRD D64). Looking takes nothing; the page asks for the site once it's open.
+  // Who has the site as the page renders (PRD D64). Opening the page takes nothing: the site
+  // becomes this person's when they open a field.
   const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false };
   const content = view.content as { pages?: Page[]; announcements?: Announcement[] };
   const pages: CanvasPage[] = (content.pages ?? []).map((p) => ({
@@ -66,7 +67,7 @@ export default async function EditorPage() {
       <div className="space-y-6">
         {header}
         <SiteHoldProvider initial={editing}>
-          <WhileHolding previewHref={`/preview/${site.id}`}>
+          <BehindGlass previewHref={`/preview/${site.id}`}>
             <CanvasEditor
               siteId={site.id}
               live={live}
@@ -74,7 +75,7 @@ export default async function EditorPage() {
               limits={view.guide.limits}
               announcements={(content.announcements ?? []).map((a) => ({ id: a.id, startsOn: a.startsOn ?? "", endsOn: a.endsOn ?? "" }))}
             />
-          </WhileHolding>
+          </BehindGlass>
         </SiteHoldProvider>
       </div>
     </PageContent>

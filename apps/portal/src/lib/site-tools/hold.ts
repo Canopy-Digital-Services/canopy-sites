@@ -1,11 +1,14 @@
 /**
  * Who is editing a site (PRD D64, Epic 54). One person holds a site at a
- * time: the tool layer takes or keeps the hold for the caller on every write
- * and refuses anyone else's, and the editing pages keep it between writes.
- * A hold is a person's, whatever browser or tab asks, so someone's own
- * devices never refuse each other. Nothing else reads or writes `site_holds`.
+ * time. A hold starts with an edit: the tool layer takes it for the caller on
+ * every write and refuses anyone else's, and the Editor takes it when its
+ * person opens a field. Being on a page takes nothing. The editing pages keep
+ * a hold their person already has, between writes. A hold is a person's,
+ * whatever browser or tab asks, so someone's own devices never refuse each
+ * other. Nothing else reads or writes `site_holds`.
  *
- * A hold ends by running out. Nobody takes one from its holder.
+ * A hold ends when its holder publishes or discards, signs out, or lets it
+ * run out. Nobody takes one from its holder.
  */
 
 import { Prisma } from "@prisma/client";
@@ -60,6 +63,19 @@ export async function takeHold(siteId: string, userId: string, now = new Date())
     }
   }
   throw new Error(`Could not settle who holds site ${siteId}`);
+}
+
+/**
+ * Keeps a person's hold going, when they have one: what an editing page does
+ * between its person's edits. Never takes a hold, so a page that is only
+ * open holds nothing. Answers whether the site is theirs.
+ */
+export async function extendHold(siteId: string, userId: string, now = new Date()): Promise<boolean> {
+  const kept = await prisma.siteHold.updateMany({
+    where: { siteId, userId, expiresAt: { gt: now } },
+    data: { expiresAt: new Date(now.getTime() + HOLD_TTL_MS) },
+  });
+  return kept.count === 1;
 }
 
 /** Whoever is editing the site now, or null when nobody is. */

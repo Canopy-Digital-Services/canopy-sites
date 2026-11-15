@@ -82,7 +82,7 @@ export function CanvasEditor({
   limits: Record<string, number>;
   announcements: AnnouncementDates[];
 }) {
-  const { heldBy } = useSiteHold();
+  const { heldBy, begin } = useSiteHold();
   const wrapRef = useRef<HTMLDivElement>(null);
   // Two frames: the one on screen, and one a newer build of the same page loads into
   // behind it, so an update swaps in at the same place instead of reloading the page.
@@ -366,6 +366,8 @@ export function CanvasEditor({
 
   const select = useCallback(
     (address: string, index: number, value: string, rect: Rect) => {
+      // Opening a field is where an edit starts: the site is this person's from here (PRD D64).
+      begin();
       const info = fieldInfo(address);
       const inPlace = Boolean(info && IN_PLACE.has(info.kind));
       const limit = fieldLimit(address, limits);
@@ -374,7 +376,7 @@ export function CanvasEditor({
       setDates(announcement ? { startsOn: announcement.startsOn, endsOn: announcement.endsOn } : null);
       if (inPlace) post({ type: "edit", address, limit });
     },
-    [announcementOf, limits, post],
+    [announcementOf, begin, limits, post],
   );
 
   useEffect(() => {

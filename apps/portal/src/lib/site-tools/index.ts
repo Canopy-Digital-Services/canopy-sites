@@ -11,8 +11,9 @@
  * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
  * push. One person edits at a time (PRD D64): every write takes or keeps the
  * site's hold for its caller (hold.ts) and is refused while someone else has
- * it. That person's own writes are never refused: the last to a field wins,
- * and ones that arrive together are applied one after the other.
+ * it, and a publish or a discard that leaves no draft gives it up. That
+ * person's own writes are never refused: the last to a field wins, and ones
+ * that arrive together are applied one after the other.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -50,7 +51,8 @@ import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPrevi
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 import { personName } from "@/lib/person";
 import { changedFields, type FieldChange } from "./changes";
-import { currentHold, takeHold } from "./hold";
+import { editingNotice } from "@/lib/site-hold-policy";
+import { currentHold, extendHold, releaseHold, takeHold } from "./hold";
 
 export type { FieldChange } from "./changes";
 
@@ -145,7 +147,19 @@ async function ownedSite(accountId: string, siteId: string): Promise<ToolSite> {
  */
 async function requireHold(siteId: string, ctx: ToolContext): Promise<void> {
   const holder = ctx.userId ? await takeHold(siteId, ctx.userId) : await currentHold(siteId).then((h) => (h ? { held: false as const, by: h.by } : { held: true as const }));
-  if (!holder.held) throw new ToolError(`${holder.by} is editing the site.`, undefined, { heldBy: holder.by });
+  if (!holder.held) throw new ToolError(`${editingNotice(holder.by)}.`, undefined, { heldBy: holder.by });
+}
+
+/**
+ * The caller published or discarded, and the site has no draft left: they are
+ * done, so the site is free at once rather than when their hold runs out
+ * (PRD D64). With a draft still pending (an edit saved while the publish was
+ * in flight), they keep it.
+ */
+async function doneEditing(siteId: string, ctx: ToolContext): Promise<void> {
+  if (!ctx.userId) return;
+  if ((await prisma.changeSet.count({ where: { siteId, status: { in: [...PENDING] } } })) > 0) return;
+  await releaseHold(siteId, ctx.userId);
 }
 
 /** Takes or keeps the hold on the account's site for the caller: what Quick Edit does before it spends a model call. */
@@ -155,7 +169,7 @@ export async function holdSite(ctx: ToolContext): Promise<void> {
 
 /** What an editing page needs to know about who has the site (PRD D64). */
 export interface SiteEditing {
-  /** Who else is editing, as the account's people know them; null when nobody is, or the viewer is. */
+  /** Who else is making edits, as the account's people know them; null when nobody is, or the viewer is. */
   by: string | null;
   /** Where the draft and the published list stand: a page compares it to tell that the site moved while it wasn't holding it. */
   marker: string;
@@ -185,15 +199,28 @@ export async function getSiteEditing(accountId: string, userId: string): Promise
 }
 
 /**
- * An editing page keeping the site for its person between writes (PRD D64):
- * takes or keeps the hold, and answers with who else has it when that fails.
- * `fresh` is a hold taken just now instead of kept, which with a marker that
- * moved means someone else edited in between.
+ * An editing page asking who has the site (PRD D64). Asking keeps the
+ * person's hold going when they have one and never takes one: a page that is
+ * only open holds nothing. With `take`, the person has started an edit that
+ * hasn't reached the server yet (a field opened in the Editor), and the site
+ * becomes theirs unless someone else has it. `mine` says whether it is.
  */
-export async function keepSiteHold(ctx: ToolContext & { userId: string }): Promise<SiteEditing & { fresh: boolean }> {
+export async function keepSiteHold(ctx: ToolContext & { userId: string }, take = false): Promise<SiteEditing & { mine: boolean }> {
   const site = await siteFor(ctx.accountId);
-  const [hold, standing] = await Promise.all([takeHold(site.id, ctx.userId), siteStanding(site.id)]);
-  return hold.held ? { by: null, fresh: hold.fresh, ...standing } : { by: hold.by, fresh: false, ...standing };
+  let mine: boolean;
+  let by: string | null = null;
+  if (take) {
+    const hold = await takeHold(site.id, ctx.userId);
+    mine = hold.held;
+    if (!hold.held) by = hold.by;
+  } else {
+    mine = await extendHold(site.id, ctx.userId);
+    if (!mine) {
+      const holder = await currentHold(site.id);
+      by = holder && holder.userId !== ctx.userId ? holder.by : null;
+    }
+  }
+  return { by, mine, ...(await siteStanding(site.id)) };
 }
 
 const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
@@ -776,7 +803,10 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
       // The site moved because this same change went live from another tab:
       // it is published, and that Publish's answer is this one's too.
       const now = await prisma.changeSet.findUnique({ where: { id: changeSet.id }, select: { status: true, publishedCommit: true } });
-      if (now?.status === "PUBLISHED") return { commit: now.publishedCommit };
+      if (now?.status === "PUBLISHED") {
+        await doneEditing(changeSet.siteId, ctx);
+        return { commit: now.publishedCommit };
+      }
       // Only the change as it was read: a save that landed since is a draft to keep.
       await prisma.changeSet.updateMany({
         where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
@@ -786,6 +816,7 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
     throw err instanceof BuilderError ? new ToolError(err.message) : err;
   }
   await recordPublish(changeSet, sent, commit);
+  await doneEditing(changeSet.siteId, ctx);
   return { commit };
 }
 
@@ -869,6 +900,7 @@ export async function discardChange(ctx: ToolContext, changeSetId: string) {
   await requireHold(changeSet.siteId, ctx);
   if (!PENDING.includes(changeSet.status as (typeof PENDING)[number])) throw new ToolError("Only a pending change can be discarded.");
   await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "DISCARDED" } });
+  await doneEditing(changeSet.siteId, ctx);
 }
 
 /** The pending change and recent history for the Editor. */
