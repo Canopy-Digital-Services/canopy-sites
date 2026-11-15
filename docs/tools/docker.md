@@ -196,12 +196,13 @@ The portal builds with Next.js standalone output (`output: "standalone"` in `app
 
 ### Development Mode Configuration
 
-**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-10-15):
+**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-11-15):
 ```yaml
 working_dir: /app/apps/portal
 volumes:
   - .:/app                    # Mount the repo root for hot reload
   - node_modules:/app/node_modules   # Named volume preserves container-installed (hoisted) deps
+  - portal_media:/srv/media   # Welcome videos (MEDIA_DIR): client media, never in the repo
 ```
 
 **Consequences of this layout:**
