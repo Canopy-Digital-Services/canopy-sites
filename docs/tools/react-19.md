@@ -5,116 +5,51 @@
 
 ## Overview
 
-React 19 was released on December 5, 2024, representing the biggest upgrade since React 18. It completes React's shift toward an async-first architecture with new hooks, improved form handling, and automatic performance optimizations. React 19.2 (released October 1, 2025) adds additional features like the `<Activity />` component and `useEffectEvent` hook.
+React 19 (December 5, 2024) made async work part of the core API: Actions, hooks for form and optimistic state, and `ref` as an ordinary prop. React 19.2 (October 1, 2025) added `<Activity />` and `useEffectEvent`.
 
-## Critical Changes from React 18
+The API statements below were checked on 2026-11-15 against the installed `react` and `react-dom` 19.2.3 and the two release posts under Resources.
 
-### Architecture Shift
+## Changes from React 18
 
-- **Async-first**: Built-in support for async workflows in forms and transitions
-- **Actions**: New pattern for handling data mutations with automatic state management
-- **React Compiler**: Opt-in automatic memoization, a build plugin that this repo does not enable (see React Compiler below)
-- **Improved Server Components**: Better streaming and asset loading
-- **Enhanced Suspense**: Pre-warming for suspended trees
+### `ref` is a prop
 
-### Minimum Requirements
+A function component receives `ref` as a prop. New components do not need `forwardRef`, which will be deprecated. The `src/components/ui/` primitives are written this way (`input.tsx`); two still use `forwardRef` (`radio-group.tsx`, `password-input.tsx`, as of 2026-11-15) and work unchanged.
 
-- **Node.js**: 16+ (18+ recommended)
-- **TypeScript**: 4.7+ for proper type support
-- **New JSX Transform**: Required (most bundlers already have this)
-
-## Breaking Changes
-
-### 1. New JSX Transform Required
-
-The new JSX transform (introduced in 2020) is now **mandatory** in React 19.
-
-**What This Means:**
-- React 19 optimizations require the new transform
-- Most modern bundlers (Next.js, Vite, etc.) already have this enabled
-- You may see warnings if it's not enabled
-
-**How to Enable:**
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx"  // Not "react"
-  }
+```typescript
+function Input({ ref, ...props }: React.ComponentProps<"input">) {
+  return <input ref={ref} {...props} />;
 }
 ```
 
-### 2. Library Compatibility
+Two related changes: a `ref` callback may return a cleanup function, and `<Context>` renders as a provider in place of `<Context.Provider>`.
 
-React 19 restricts access to React internals. Some libraries may break:
+### `useFormState` became `useActionState`
 
-**Known Issues:**
-- **React Router**: Requires v6.8+
-- **Styled Components**: Requires v5.3.6+
-- **Redux Toolkit**: May need updates
-- **Emotion**: May need updates
-- **Formik**: Check compatibility
+`useFormState` from `react-dom` is deprecated. `useActionState` is imported from `react` and also returns `isPending`.
 
-**Solution:** Update libraries to React 19-compatible versions.
+### New JSX transform is required
 
-### 3. Ref as a Prop
-
-Refs can now be passed as regular props (not just via `ref`):
-
-```typescript
-// React 19: ref can be a prop name
-<MyComponent ref={myRef} />
-<MyComponent customRef={myRef} />  // Also works
-```
+`apps/portal/tsconfig.json` sets `"jsx": "react-jsx"`. Leave it.
 
 ## New Features
 
 ### Actions and Async Transitions
 
-**Actions** are async functions that automatically manage:
-- Pending states
-- Error handling
-- Optimistic updates
-- Form reset after submission
+An Action is an async function run in a transition. React manages for it:
+- Pending state, from the start of the request until the final state update commits
+- Optimistic updates (`useOptimistic`), reverted if the request fails
+- Errors, shown by the nearest Error Boundary
+- Forms: `<form action={fn}>` and `formAction` take functions
 
-**Before (React 18):**
-```typescript
-function Form() {
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState(null);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setIsPending(true);
-    setError(null);
-    
-    try {
-      await submitForm(new FormData(e.currentTarget));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* ... */}
-    </form>
-  );
-}
-```
-
-**After (React 19):**
 ```typescript
 import { useActionState } from 'react';
 
-async function submitAction(prevState: any, formData: FormData) {
+async function submitAction(prevState: State, formData: FormData): Promise<State> {
   try {
     await submitForm(formData);
     return { success: true };
-  } catch (error) {
-    return { error: error.message };
+  } catch {
+    return { error: 'Could not save.' };
   }
 }
 
@@ -130,61 +65,33 @@ function Form() {
 }
 ```
 
-### New Hooks
+`useActionState` returns the current state, the action to pass to the form, and `isPending`.
 
-#### `use()` Hook
+### Form Improvements
 
-Consume Promises directly in components:
+When a `<form action={fn}>` Action succeeds, React resets the form's uncontrolled fields. Controlled fields keep their state. Pending and error state are not shown by themselves: read them with `useActionState` or `useFormStatus`.
+
+### `use()`
+
+Reads a promise or a context during render.
 
 ```typescript
 import { use } from 'react';
 
 function UserProfile({ userPromise }: { userPromise: Promise<User> }) {
-  const user = use(userPromise);  // No useEffect needed!
-  
+  const user = use(userPromise);
   return <div>{user.name}</div>;
 }
 ```
 
-**Key Features:**
-- Can be called conditionally
-- Automatically suspends until Promise resolves
-- Works with Context values too
+- It can be called conditionally and after an early return, unlike a hook, but only during render.
+- It suspends until the promise resolves, so it needs a `<Suspense>` boundary above it.
+- It does not support a promise created during a Client Component's render ("A component was suspended by an uncached promise"). Pass the promise down from a Server Component, or from a library that caches it.
+- `use(SomeContext)` reads context.
 
-#### `useActionState` Hook
+### `useOptimistic`
 
-Manages async form actions with automatic state management:
-
-```typescript
-import { useActionState } from 'react';
-
-async function updateName(prevState: any, formData: FormData) {
-  const name = formData.get('name');
-  // ... update logic
-  return { success: true };
-}
-
-function NameForm() {
-  const [state, formAction, isPending] = useActionState(updateName, null);
-
-  return (
-    <form action={formAction}>
-      <input name="name" />
-      <button disabled={isPending}>Update</button>
-      {state?.error && <p>{state.error}</p>}
-    </form>
-  );
-}
-```
-
-**Returns:**
-- `state`: Current state from action
-- `formAction`: Action function to pass to form
-- `isPending`: Boolean indicating if action is in progress
-
-#### `useOptimistic` Hook
-
-Show optimistic UI updates while async actions complete:
+Shows a value immediately while an Action runs. Call the setter inside the Action or a transition.
 
 ```typescript
 import { useOptimistic } from 'react';
@@ -196,15 +103,14 @@ function MessageList({ messages }: { messages: Message[] }) {
   );
 
   async function sendMessage(formData: FormData) {
-    const message = { text: formData.get('text'), id: Date.now() };
-    addOptimistic(message);  // Show immediately
-    
-    await saveMessage(message);  // Then save
+    const message = { text: String(formData.get('text')), id: crypto.randomUUID() };
+    addOptimistic(message);
+    await saveMessage(message);
   }
 
   return (
     <>
-      {optimisticMessages.map(msg => <Message key={msg.id} msg={msg} />)}
+      {optimisticMessages.map(msg => <MessageRow key={msg.id} msg={msg} />)}
       <form action={sendMessage}>
         <input name="text" />
         <button>Send</button>
@@ -214,298 +120,69 @@ function MessageList({ messages }: { messages: Message[] }) {
 }
 ```
 
-#### `useEffectEvent` Hook (19.2)
+### `useFormStatus`
 
-Extract non-reactive logic from Effects:
+Reads the status of the parent `<form>`, as if the form were a context provider. Call it from a component rendered inside the form, not from the component that renders the `<form>` element.
 
 ```typescript
-import { useEffectEvent } from 'react';
+import { useFormStatus } from 'react-dom';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return <button type="submit" disabled={pending}>Submit</button>;
+}
+```
+
+It also returns `data`, `method`, and `action`.
+
+### `useEffectEvent` (19.2)
+
+Splits the event part out of an Effect, so it reads the latest props and state without re-running the Effect.
+
+```typescript
+import { useEffect, useEffectEvent } from 'react';
 
 function Chat({ roomId, theme }: { roomId: string; theme: string }) {
   const onMessage = useEffectEvent((message: string) => {
-    showNotification(message, theme);  // theme is always latest
+    showNotification(message, theme);  // theme is always the latest
   });
 
   useEffect(() => {
     const connection = connect(roomId);
     connection.on('message', onMessage);
     return () => connection.disconnect();
-  }, [roomId]);  // onMessage not needed in deps!
+  }, [roomId]);
 }
 ```
 
-**Benefits:**
-- Prevents unnecessary Effect re-runs
-- Always sees latest props/state values
-- Cleaner dependency arrays
+- Never list an Effect Event in a dependency array. `eslint-plugin-react-hooks` 6 and later knows not to ask for it (7.0.1 is installed, 2026-11-15).
+- Declare it in the same component or hook as its Effect.
+- It is not a way to silence the dependency lint: wrapping reactive logic that should re-run the Effect causes bugs.
 
-#### `useFormStatus` Hook
+### `<Activity />` (19.2)
 
-Track form submission status:
-
-```typescript
-import { useFormStatus } from 'react-dom';
-
-function SubmitButton() {
-  const { pending, data, method, action } = useFormStatus();
-  
-  return (
-    <button type="submit" disabled={pending}>
-      {pending ? 'Submitting...' : 'Submit'}
-    </button>
-  );
-}
-```
-
-**Note:** Must be used within a `<form>` element.
-
-### React Compiler
-
-The compiler memoizes components at build time. It is a separate, opt-in build plugin: React 19 by itself memoizes nothing. Next.js enables it with `reactCompiler` in `next.config.ts`.
-
-**This repo does not enable it** (`apps/portal/next.config.ts` has no `reactCompiler`, checked 2026-11-14). `useMemo` and `useCallback` still do their work here: keep the ones that exist, and add them where a value or callback has to stay stable.
-
-### Form Improvements
-
-Native `<form>` elements now support async workflows:
-
-```typescript
-async function submitAction(formData: FormData) {
-  'use server';  // Next.js Server Action
-  await saveData(formData);
-}
-
-function MyForm() {
-  return (
-    <form action={submitAction}>
-      {/* Automatically handles:
-          - Pending state
-          - Error handling
-          - Form reset after success
-      */}
-      <input name="email" />
-      <button type="submit">Submit</button>
-    </form>
-  );
-}
-```
-
-### View Transitions (19.2)
-
-Animate elements during updates:
-
-```typescript
-import { ViewTransition } from 'react';
-
-function Page() {
-  const [page, setPage] = useState(1);
-  
-  return (
-    <ViewTransition>
-      <div key={page}>
-        Page {page}
-      </div>
-      <button onClick={() => setPage(p => p + 1)}>Next</button>
-    </ViewTransition>
-  );
-}
-```
-
-### `<Activity />` Component (19.2)
-
-Keep parts of UI mounted but hidden:
+Keeps part of the UI mounted while hidden, with its state.
 
 ```typescript
 import { Activity } from 'react';
 
-function App() {
-  const [showDetails, setShowDetails] = useState(false);
-  
-  return (
-    <>
-      <button onClick={() => setShowDetails(!showDetails)}>
-        Toggle Details
-      </button>
-      <Activity mode={showDetails ? 'visible' : 'hidden'}>
-        <ExpensiveComponent />  // State preserved when hidden
-      </Activity>
-    </>
-  );
-}
+<Activity mode={showDetails ? 'visible' : 'hidden'}>
+  <Details />
+</Activity>
 ```
 
-**Modes:**
-- `visible`: Shows children, mounts effects, processes updates
-- `hidden`: Hides children, unmounts effects, defers updates
+- `visible`: shows the children, mounts effects, processes updates normally
+- `hidden`: hides the children, unmounts effects, and defers updates until React has nothing else to do
 
-## Migration Guide
+### View Transitions (canary only)
 
-### Step 1: Pre-upgrade to React 18.3
+`<ViewTransition>` is not in the stable package: `react` 19.2.3 exports no `ViewTransition`. Next's App Router runs on a React canary that does export it, and Next documents its use in `node_modules/next/dist/docs/01-app/02-guides/view-transitions.md`. Read that guide before reaching for it; nothing in this repo uses it.
 
-React 18.3 adds deprecation warnings for breaking changes:
+### React Compiler
 
-```bash
-npm install react@18.3 react-dom@18.3
-```
+The compiler memoizes components at build time. It is a separate, opt-in build plugin: React 19 by itself memoizes nothing. Next.js enables it with `reactCompiler: true` in `next.config.ts` plus the `babel-plugin-react-compiler` package.
 
-Fix any deprecation warnings before upgrading.
-
-### Step 2: Update Dependencies
-
-```bash
-npm install --save-exact react@^19.0.0 react-dom@^19.0.0
-npm install --save-exact @types/react@^19.0.0 @types/react-dom@^19.0.0
-```
-
-### Step 3: Update Libraries
-
-Check and update:
-- React Router → v6.8+
-- Styled Components → v5.3.6+
-- Other libraries as needed
-
-### Step 4: Enable New JSX Transform
-
-Ensure `tsconfig.json` has:
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx"
-  }
-}
-```
-
-### Step 5: Use Automated Codemod
-
-```bash
-npx codemod@latest react/19/migration-recipe
-```
-
-### Step 6: Update Forms to Actions
-
-Convert form handlers to use `useActionState`:
-
-**Before:**
-```typescript
-const [isPending, setIsPending] = useState(false);
-async function handleSubmit(e: FormEvent) {
-  setIsPending(true);
-  // ...
-}
-```
-
-**After:**
-```typescript
-const [state, formAction, isPending] = useActionState(submitAction, null);
-```
-
-## Common Patterns
-
-### Form with Action State
-
-```typescript
-import { useActionState } from 'react';
-
-async function createUser(prevState: any, formData: FormData) {
-  const name = formData.get('name');
-  try {
-    await saveUser({ name });
-    return { success: true, message: 'User created!' };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-function UserForm() {
-  const [state, formAction, isPending] = useActionState(createUser, null);
-
-  return (
-    <form action={formAction}>
-      <input name="name" required />
-      {state?.error && <p className="error">{state.error}</p>}
-      {state?.success && <p className="success">{state.message}</p>}
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Creating...' : 'Create User'}
-      </button>
-    </form>
-  );
-}
-```
-
-### Optimistic Updates
-
-```typescript
-import { useOptimistic } from 'react';
-
-function TodoList({ todos }: { todos: Todo[] }) {
-  const [optimisticTodos, addOptimistic] = useOptimistic(
-    todos,
-    (state, newTodo: Todo) => [...state, { ...newTodo, pending: true }]
-  );
-
-  async function addTodo(formData: FormData) {
-    const todo = { id: Date.now(), text: formData.get('text') };
-    addOptimistic(todo);
-    await saveTodo(todo);
-  }
-
-  return (
-    <>
-      {optimisticTodos.map(todo => (
-        <Todo key={todo.id} todo={todo} />
-      ))}
-      <form action={addTodo}>
-        <input name="text" />
-        <button>Add</button>
-      </form>
-    </>
-  );
-}
-```
-
-### Effect Event Pattern
-
-```typescript
-import { useEffectEvent } from 'react';
-
-function SearchResults({ query, filters }: Props) {
-  const onResults = useEffectEvent((results: Result[]) => {
-    // Always sees latest query and filters
-    logAnalytics(query, filters, results);
-  });
-
-  useEffect(() => {
-    search(query).then(onResults);
-  }, [query]);  // filters not needed in deps
-}
-```
-
-### Using Promises in Components
-
-```typescript
-import { use, Suspense } from 'react';
-
-function UserProfile({ userPromise }: { userPromise: Promise<User> }) {
-  const user = use(userPromise);
-  return <div>{user.name}</div>;
-}
-
-function App() {
-  const userPromise = fetchUser();
-  
-  return (
-    <Suspense fallback={<Loading />}>
-      <UserProfile userPromise={userPromise} />
-    </Suspense>
-  );
-}
-```
-
-## Performance Improvements
-
-- **Better hydration**: Improved error reporting and performance
-- **Faster updates**: Optimized rendering pipeline
-- **Improved Suspense**: Pre-warming for better perceived performance
+**This repo does not enable it** (`apps/portal/next.config.ts` has no `reactCompiler`, checked 2026-11-14). `useMemo` and `useCallback` still do their work here: keep the ones that exist, and add them where a value or callback has to stay stable.
 
 ## Project-Specific Notes
 
@@ -513,44 +190,6 @@ In `apps/portal/src` as of 2026-11-14 (grep to recheck):
 - No component uses `useActionState`, `useOptimistic`, `useEffectEvent`, `useFormStatus`, or `use()`. Pending state comes from `useTransition`.
 - Admin and auth forms follow the inline validation pattern in `docs/AGENT_CONTEXT.md` section 2 ("Validation"), not `useActionState`. Extend that pattern rather than converting a form.
 - The React Compiler is off (see React Compiler above).
-
-## Troubleshooting
-
-### "Cannot find module 'react/jsx-runtime'"
-
-**Cause:** New JSX transform not enabled
-
-**Solution:** Update `tsconfig.json`:
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx"
-  }
-}
-```
-
-### Library compatibility errors
-
-**Cause:** Library accessing React internals
-
-**Solution:** Update library to React 19-compatible version
-
-### "use() must be called inside a Suspense boundary"
-
-**Cause:** Using `use()` hook without Suspense
-
-**Solution:** Wrap component in `<Suspense>`:
-```typescript
-<Suspense fallback={<Loading />}>
-  <ComponentWithUse />
-</Suspense>
-```
-
-### Forms not resetting after submission
-
-**Cause:** Not using Actions pattern
-
-**Solution:** Use `useActionState` or ensure action returns success state
 
 ## Resources
 
