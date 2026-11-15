@@ -754,6 +754,43 @@ describe("one person edits at a time (PRD D64)", () => {
     await tools.saveDraft(jane, site.id, { ops: price("$95") });
   });
 
+  it("tells an editing page who has the site without taking it, and keeps it only when asked", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    // Rendering a page looks, and looking holds nothing.
+    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toEqual({ by: null, marker: "", hasDraft: false });
+    expect(await prisma.siteHold.count()).toBe(0);
+
+    // The page, once open, asks: Jane has the site, and Bob's page is told so.
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, fresh: true });
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, fresh: false });
+    expect(await tools.keepSiteHold({ ...bob, userId: bobId })).toMatchObject({ by: "Jane Doe", fresh: false });
+    expect(await tools.getSiteEditing(bob.accountId, bobId)).toMatchObject({ by: "Jane Doe" });
+    expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toMatchObject({ by: null });
+    expect(await hold.currentHold(site.id)).toMatchObject({ userId: jane.userId });
+  });
+
+  it("gives a page a marker that moves when the site does, so a returning page knows to load it again", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    const before = await tools.keepSiteHold(jane);
+    expect(before).toMatchObject({ marker: "", hasDraft: false });
+
+    // Jane goes quiet; Bob edits and publishes; Jane comes back.
+    await lapse(site.id);
+    const { changeSetId, buildId } = await tools.proposeChange(bob, { summary: "Haircut to $90", ops: PRICE });
+    const drafted = await tools.keepSiteHold({ ...bob, userId: bobId });
+    expect(drafted).toMatchObject({ by: null, hasDraft: true });
+    await tools.refreshChange(bob.accountId, changeSetId);
+    // The preview finishing is not the site moving.
+    expect((await tools.keepSiteHold({ ...bob, userId: bobId })).marker).toBe(drafted.marker);
+    await tools.publishChange(bob, changeSetId, buildId, author);
+    await lapse(site.id);
+
+    const back = await tools.keepSiteHold(jane);
+    expect(back).toMatchObject({ by: null, fresh: true, hasDraft: false });
+    expect(back.marker).not.toBe(before.marker);
+    expect(back.marker).not.toBe(drafted.marker);
+  });
+
   it("lets a caller that is no person wait like anyone, and never hold", async () => {
     const { site, jane } = await twoPeople();
     const nobody = { ...jane, userId: null };

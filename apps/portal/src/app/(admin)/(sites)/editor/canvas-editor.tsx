@@ -16,6 +16,7 @@ import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/
 import { browserEditStorage, clearUnsavedEdits, keepUnsavedEdits, unsavedEdits } from "@/lib/unsaved-edits";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
+import { useSiteHold } from "@/components/sites/site-hold";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
 export type CanvasPage = { path: string; title: string };
@@ -81,6 +82,7 @@ export function CanvasEditor({
   limits: Record<string, number>;
   announcements: AnnouncementDates[];
 }) {
+  const { heldBy } = useSiteHold();
   const wrapRef = useRef<HTMLDivElement>(null);
   // Two frames: the one on screen, and one a newer build of the same page loads into
   // behind it, so an update swaps in at the same place instead of reloading the page.
@@ -303,6 +305,8 @@ export function CanvasEditor({
           toast.error(last.issues?.[0]?.message ?? last.error);
           revert();
           setSaveState("error");
+          // Someone else has the site (PRD D64): the page says who, in place of the canvas.
+          if (last.heldBy) heldBy(last.heldBy);
           return;
         }
         if (!last) {
@@ -318,7 +322,7 @@ export function CanvasEditor({
         }
       });
     },
-    [reloadWhenBuilt, send, siteId],
+    [heldBy, reloadWhenBuilt, send, siteId],
   );
 
   // Edits a save couldn't send before this page was loaded: save them now.
@@ -671,6 +675,7 @@ function FieldPanel({
 
 /** Quick edit, opened from one field on the canvas (PRD D37). */
 function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChanged: (changeSetId: string) => void }) {
+  const { heldBy } = useSiteHold();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -696,6 +701,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
     setBusy(false);
     if ("error" in result) {
       setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.error }]);
+      if (result.heldBy) heldBy(result.heldBy);
       return;
     }
     setConversationId(result.conversationId);

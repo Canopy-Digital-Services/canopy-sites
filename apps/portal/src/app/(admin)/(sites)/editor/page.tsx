@@ -1,13 +1,14 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import type { Announcement, Page } from "@canopy/site-contract";
-import { getCurrentAccountId } from "@/lib/auth-utils";
+import { getCurrentAccountId, requireAuth } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
-import { getDraftView, ToolError } from "@/lib/site-tools";
+import { getDraftView, getSiteEditing, ToolError } from "@/lib/site-tools";
 import { liveSite } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
+import { SiteHoldProvider, WhileHolding } from "@/components/sites/site-hold";
 import { CanvasEditor, type CanvasPage } from "./canvas-editor";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export const dynamic = "force-dynamic";
  * address (the demo's /demo, a client's production hostname) to have one.
  */
 export default async function EditorPage() {
+  const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const site = await getAccountSite(accountId);
   const header = <PageHeader title="Editor" description="Change the marked text right on your site." />;
@@ -51,6 +53,8 @@ export default async function EditorPage() {
     );
   }
 
+  // Who has the site as the page renders (PRD D64). Looking takes nothing; the page asks for the site once it's open.
+  const editing = (await getSiteEditing(accountId, session.user.id)) ?? { by: null, marker: "", hasDraft: false };
   const content = view.content as { pages?: Page[]; announcements?: Announcement[] };
   const pages: CanvasPage[] = (content.pages ?? []).map((p) => ({
     path: p.path.replace(/\/$/, "") || "/",
@@ -61,13 +65,17 @@ export default async function EditorPage() {
     <PageContent width="wide">
       <div className="space-y-6">
         {header}
-        <CanvasEditor
-          siteId={site.id}
-          live={live}
-          pages={pages}
-          limits={view.guide.limits}
-          announcements={(content.announcements ?? []).map((a) => ({ id: a.id, startsOn: a.startsOn ?? "", endsOn: a.endsOn ?? "" }))}
-        />
+        <SiteHoldProvider initial={editing}>
+          <WhileHolding previewHref={`/preview/${site.id}`}>
+            <CanvasEditor
+              siteId={site.id}
+              live={live}
+              pages={pages}
+              limits={view.guide.limits}
+              announcements={(content.announcements ?? []).map((a) => ({ id: a.id, startsOn: a.startsOn ?? "", endsOn: a.endsOn ?? "" }))}
+            />
+          </WhileHolding>
+        </SiteHoldProvider>
       </div>
     </PageContent>
   );

@@ -11,6 +11,7 @@ import {
   discardChange,
   getEditorChanges,
   getPreviewState,
+  keepSiteHold,
   publishChange,
   refreshChange,
   saveDraft,
@@ -67,6 +68,20 @@ export async function sendQuickEdit(input: {
     const result = await runQuickEdit(ctx, { conversationId, message: String(input.message ?? ""), scope });
     if (result.changeSetId) revalidatePath("/quick-edit");
     return { success: true, ...result };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/**
+ * An editing page keeping the site for its person (PRD D64): called when the
+ * page opens and about every 25 seconds while they are active on it. Answers
+ * with who else is editing when the site isn't theirs to take.
+ */
+export async function keepHold(): Promise<Result<{ by: string | null; fresh: boolean; marker: string; hasDraft: boolean }>> {
+  try {
+    const ctx = await context();
+    return { success: true, ...(await keepSiteHold(ctx)) };
   } catch (err) {
     return failure(err);
   }
