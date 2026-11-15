@@ -46,6 +46,7 @@ import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
+import { personName } from "@/lib/person";
 import { changedFields, type FieldChange } from "./changes";
 
 export type { FieldChange } from "./changes";
@@ -811,7 +812,7 @@ export async function getEditorChanges(accountId: string) {
       where: { siteId: site.id, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
       take: 10,
-      select: { id: true, summary: true, publishedAt: true, createdBy: { select: { email: true } } },
+      select: { id: true, summary: true, publishedAt: true, createdBy: { select: { email: true, name: true } } },
     }),
   ]);
   return {
@@ -826,7 +827,7 @@ export async function getEditorChanges(accountId: string) {
           createdAt: pending.createdAt,
         }
       : null,
-    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.createdBy?.email ?? null })),
+    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.createdBy ? personName(c.createdBy) : null })),
   };
 }
 

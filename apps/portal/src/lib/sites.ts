@@ -6,6 +6,7 @@
 
 import { isCollectionName } from "@canopy/site-contract";
 import { isValidEmail } from "../../embed/src/validation";
+import { parsePersonName } from "./person";
 
 export const SITE_NAME_MAX_LENGTH = 100;
 export const SITE_SLUG_MAX_LENGTH = 40;
@@ -33,6 +34,8 @@ const GITHUB_REPO = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+
 /** What the operator types to link a live site (PRD D49). */
 export type LinkSiteInput = {
   email: string;
+  /** What the owner is called to the other people on the account (PRD D63). Optional. */
+  ownerName?: string;
   name: string;
   repoUrl: string;
   slug: string;
@@ -42,6 +45,7 @@ export type LinkSiteInput = {
 
 export type LinkSite = {
   email: string;
+  ownerName: string | null;
   name: string;
   /** `https://github.com/<owner>/<repo>`, without `.git` or a trailing slash. */
   repoUrl: string;
@@ -182,6 +186,7 @@ function firstDuplicate(values: string[]): string | undefined {
 /** Validates and normalizes the Link a site form. A linked site is live, so it has a production hostname. */
 export function parseLinkSite(input: LinkSiteInput): Parsed<LinkSite, LinkSiteInput> {
   const email = input.email.trim().toLowerCase();
+  const ownerName = parsePersonName(input.ownerName);
   const name = input.name.trim();
   const rawRepo = input.repoUrl.trim();
   const repoUrl = normalizeGitHubRepo(rawRepo);
@@ -191,6 +196,7 @@ export function parseLinkSite(input: LinkSiteInput): Parsed<LinkSite, LinkSiteIn
 
   const errors: FieldErrors<LinkSiteInput> = {
     email: !email ? "Email is required" : !isValidEmail(email) ? "Enter a valid email address" : undefined,
+    ownerName: ownerName.ok ? undefined : ownerName.error,
     name: nameError(name),
     repoUrl: !rawRepo
       ? "Repository is required"
@@ -204,10 +210,10 @@ export function parseLinkSite(input: LinkSiteInput): Parsed<LinkSite, LinkSiteIn
     umamiWebsiteId: umamiError(umamiWebsiteId),
   };
   const found = stripEmpty(errors);
-  if (Object.keys(found).length > 0 || !repoUrl) return { ok: false, errors: found };
+  if (Object.keys(found).length > 0 || !repoUrl || !ownerName.ok) return { ok: false, errors: found };
   return {
     ok: true,
-    value: { email, name, repoUrl, slug, productionHostnames: hostnames, umamiWebsiteId: umamiWebsiteId || null },
+    value: { email, ownerName: ownerName.name, name, repoUrl, slug, productionHostnames: hostnames, umamiWebsiteId: umamiWebsiteId || null },
   };
 }
 

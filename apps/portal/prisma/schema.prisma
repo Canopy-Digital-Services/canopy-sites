@@ -75,6 +75,9 @@ model Role {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  // What the other people on the account, and Canopy, see this person called
+  // (PRD D63); the email stands in without one. src/lib/person.ts.
+  name      String?
   // scrypt, or bcrypt from before Epic 28 (re-hashed on sign-in); src/lib/password.ts.
   // Null until the owner of an account the operator linked claims it (PRD D49):
   // no password exists to guess, and sign-in treats null as a wrong password.
