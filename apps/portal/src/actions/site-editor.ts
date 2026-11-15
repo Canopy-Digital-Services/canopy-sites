@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
 import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import type { ChangeSetSource } from "@prisma/client";
@@ -110,7 +111,10 @@ export async function refreshPendingChange(
 export async function publishPreview(input: { changeSetId: string; buildId: string }): Promise<Result<{ commit: string | null }>> {
   try {
     const ctx = await context();
-    const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), { name: ctx.email.split("@")[0], email: ctx.email });
+    // The commit is authored under the person's name when they have one (PRD D63).
+    const person = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } });
+    const author = { name: person?.name?.trim() || ctx.email.split("@")[0], email: ctx.email };
+    const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), author);
     return { success: true, ...result };
   } catch (err) {
     return failure(err);
