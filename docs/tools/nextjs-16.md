@@ -351,7 +351,7 @@ In `apps/portal` as of 2026-11-14:
   npm ci
   ```
 
-  Afterwards the lockfile has `node_modules/next` and no `apps/portal/node_modules/*` entry.
+  Afterwards the lockfile has `node_modules/next` and no `apps/portal/node_modules/*` entry. `src/lib/hoisted-dependencies.test.ts` fails until it does.
 - **Read each release's notes for security fixes, not only `npm audit`.** A security release can be out for days before its advisories reach the audit (16.4.5 on 2026-11-10).
 - **Run the browser smoke on the dev server and on a production build.** They differ: see the Radix slot below.
 
