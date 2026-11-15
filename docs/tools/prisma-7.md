@@ -5,17 +5,20 @@
 
 ## Overview
 
-Prisma 7 is a major rewrite of Prisma ORM, moving from a Rust-based architecture to pure TypeScript. This results in faster queries, 90% smaller bundle sizes, and simplified deployment. Version 7.3.0 introduces new query compiler optimization options.
+Prisma 7 replaced the Rust query engine with a TypeScript client that reaches the database through a driver adapter, and moved connection settings out of the schema into `prisma.config.ts`.
+
+The statements below were checked on 2026-11-15 against the official upgrade guide, the 7.3.0 release notes, and the installed CLI and packages.
 
 ## Critical Changes from Prisma 6
 
 ### Architecture Shift
 
-- **Rust-free**: Completely rewritten in TypeScript
-- **ESM-only**: Ships as ES modules (requires `"type": "module"` in package.json)
+- **Rust-free**: The client is TypeScript; there is no query engine binary
+- **ESM**: Prisma 7 ships as an ES module and its upgrade guide says to set `"type": "module"`. `apps/portal/package.json` has no such line and must not get one: the `prisma-client-js` generator this repo is on still emits CommonJS (`node_modules/.prisma/client/default.js`, read 2026-11-15)
 - **New generator**: `prisma-client` replaces deprecated `prisma-client-js`
 - **Configuration separation**: Database URLs now in `prisma.config.ts`, not schema file
-- **Adapter-based**: Database adapters required (e.g., `@prisma/adapter-pg`)
+- **Adapter-based**: A driver adapter is required for every database (`@prisma/adapter-pg` here)
+- **No `.env` loading**: The CLI reads only the process environment. `prisma.config.ts` takes `process.env.DATABASE_URL` as is, which only the container has
 
 ### Minimum Requirements
 
@@ -39,7 +42,7 @@ generator client {
 generator client {
   provider = "prisma-client"  // Required: prisma-client-js is deprecated
   output = "./generated/prisma"  // Required: no longer generates to node_modules
-  compilerBuild = "fast"  // Optional: "fast" (default) or "small"
+  compilerBuild = "fast"  // Optional, since 7.3.0: "fast" (default, built for speed) or "small" (built for size)
 }
 ```
 
@@ -64,87 +67,19 @@ datasource db {
 }
 ```
 
-### New: compilerBuild Option (v7.3.0)
-
-Introduced in 7.3.0, this allows optimization based on your needs:
-
-```prisma
-generator client {
-  provider = "prisma-client"
-  output = "./generated/prisma"
-  compilerBuild = "fast"  // or "small"
-}
-```
-
-- **`fast`** (default): Optimized for query speed, larger bundle size
-- **`small`**: Optimized for bundle size, slightly slower performance
-
-Use `small` for serverless deployments with size constraints. Use `fast` for applications prioritizing query performance.
-
 ## Configuration File: prisma.config.ts
 
 The database URL and the seed command live in `apps/portal/prisma.config.ts`, not in the schema or `package.json`. It calls `defineConfig` from `prisma/config` with `schema`, `migrations.seed`, and `datasource.url`. The only other datasource key Prisma 7.3.0 accepts is `shadowDatabaseUrl`: there is no `databaseUrl` or `directUrl`. What fails when the file is missing is in `docs/PRISMA_MIGRATIONS.md`.
 
 ## Database Adapters (Required)
 
-Prisma 7 requires explicit database adapters. Install the appropriate one:
+`new PrismaClient()` without an adapter no longer works. The portal uses `@prisma/adapter-pg` over a `pg` pool, created once in `apps/portal/src/lib/db.ts`: import `prisma` from there, and never construct a second client.
 
-```bash
-# PostgreSQL
-npm install @prisma/adapter-pg pg
-
-# SQLite
-npm install @prisma/adapter-better-sqlite3 better-sqlite3
-
-# MySQL/MariaDB
-npm install @prisma/adapter-mariadb mariadb
-```
-
-### Using Adapters with Connection Pools
-
-**Best Practice Pattern:**
-```typescript
-// src/lib/db.ts
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
-
-// Create connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // Optional: Configure pool settings
-  max: 10,  // Default pool size
-  connectionTimeoutMillis: 5000,
-  idleTimeoutMillis: 300000,
-});
-
-// Create adapter
-const adapter = new PrismaPg(pool);
-
-// Global PrismaClient instance (reuse across app)
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' 
-      ? ['query', 'error', 'warn'] 
-      : ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-```
-
-**Connection Pool Defaults (pg adapter):**
-- Pool size (`max`): 10 (was `num_cpus * 2 + 1` in v6)
-- Connection timeout: 0 (no timeout, was 5s in v6)
-- Idle timeout: 10s (was 300s in v6)
-- Connection lifetime: 0 (no timeout)
+**The pool is node-postgres's, with its defaults.** `db.ts` passes only the connection string, so (read from the installed `pg` 8.17.2, 2026-11-15):
+- Pool size (`max`): 10
+- Connection timeout: none, where Prisma 6 used 5 seconds (per the upgrade guide). A request waits for a connection for as long as it takes
+- Idle timeout: 10 seconds
+- Connection lifetime: unlimited
 
 ## Import Paths (Breaking Change)
 
@@ -165,100 +100,24 @@ import { PrismaClient } from '../generated/prisma';  // depending on file locati
 
 **Note:** This repo is on `prisma-client-js` (see Generator Block above), so its imports stay `@prisma/client`. A move to `prisma-client` means updating every one.
 
-## New Features in 7.3.0
+## Removed or Deprecated in Prisma 7
 
-### Raw Query Performance
+- **Client middleware (`prisma.$use`)**: removed. Client Extensions (`$extends`) replace it. The portal uses neither (as of 2026-11-15).
+- **Metrics**: removed.
+- **MongoDB**: not supported in Prisma 7.
+- **`prisma-client-js`**: deprecated, to be removed in a later release. This repo is still on it; moving to `prisma-client` is its own piece of work (see Generator Block above), not something to do in passing.
 
-Raw queries (`$executeRaw`, `$queryRaw`) now bypass the Query Compiler for improved performance:
+Since 7.3.0, `$queryRaw` and `$executeRaw` skip the query compiler and go straight to the driver adapter. No code change is involved.
 
-```typescript
-// Automatically optimized in v7.3.0
-await prisma.$executeRaw`SELECT * FROM users WHERE id = ${userId}`;
-```
+## CLI Changes in Prisma 7
 
-No code changes needed: the performance improvement is automatic.
-
-## Migration Checklist
-
-When upgrading from Prisma 6 to 7:
-
-1. ✅ Update packages: `npm install @prisma/client@7 prisma@7`
-2. ✅ Install database adapter: `npm install @prisma/adapter-pg pg`
-3. ✅ Update `package.json`: Add `"type": "module"` (if not already ESM)
-4. ✅ Update `tsconfig.json`: Ensure ESM-compatible settings
-5. ✅ Update schema generator: Change `prisma-client-js` → `prisma-client`
-6. ✅ Add `output` field to generator block
-7. ✅ Create/update `prisma.config.ts` with database URL
-8. ✅ Remove `url` from datasource block in schema
-9. ✅ Update PrismaClient instantiation to use adapter
-10. ✅ Update import paths if using new `output` location
-11. ✅ Run `prisma generate` to regenerate client
-12. ✅ Test all database operations
-
-## TypeScript Configuration
-
-Ensure your `tsconfig.json` supports ESM:
-
-```json
-{
-  "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ES2023"
-  }
-}
-```
-
-## Common Patterns
-
-### Global PrismaClient Instance
-
-Always create a single global instance and reuse it:
-
-```typescript
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter: new PrismaPg(pool),
-    log: ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-```
-
-### Connection Pool Sizing
-
-For multiple application instances:
-- Recommended pool size: `num_physical_cpus * 2 + 1`
-- Divide by number of instances if running multiple app servers
-- Example: 4 CPUs, 2 instances → `(4 * 2 + 1) / 2 = 4.5` → use `max: 5`
-
-## Limitations
-
-- **MongoDB**: Not supported in Prisma 7. Continue using Prisma 6 for MongoDB projects.
-- **prisma-client-js**: Deprecated and will be removed in future releases. Migrate to `prisma-client`.
-
-## Performance Improvements
-
-Prisma 7 provides:
-- **3x faster** queries for large result sets
-- **90% smaller** bundle sizes
-- **Reduced** system resource requirements
-- **Faster** production builds
-
-Note: There's a known regression in microbenchmark scenarios with many repeated tiny queries, but real-world performance is significantly improved.
-
-## CLI Flag Changes in Prisma 7
+- **`migrate dev` and `db push` no longer run `prisma generate`**, and their `--skip-generate` flag is gone. Here `npm run db:migrate` regenerates through its `postdb:migrate` hook (Migration Workflow below).
+- **Nothing seeds automatically** after `migrate dev` or `migrate reset`, and `--skip-seed` is gone. Run `npm run db:seed`.
+- **`migrate diff` lost its URL flags** (`--from-url`, `--to-url`, `--from-schema-datasource`, `--to-schema-datasource`, `--shadow-database-url`). The database side is now `--from-config-datasource` or `--to-config-datasource`, which reads `prisma.config.ts`.
 
 ### `migrate diff`: `--to-schema-datamodel` renamed to `--to-schema`
 
-The `--to-schema-datamodel` and `--from-schema-datamodel` flags were renamed:
+The `--to-schema-datamodel` and `--from-schema-datamodel` flags were renamed (the installed CLI's `migrate diff --help` lists only the new names):
 
 | Old (Prisma 6) | New (Prisma 7) |
 |-----------------|----------------|
