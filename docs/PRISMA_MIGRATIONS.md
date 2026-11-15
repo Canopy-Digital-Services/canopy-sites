@@ -155,12 +155,12 @@ Every migration in `prisma/migrations/` should appear with a non-null `finished_
 
 ### `npm warn exec The following package was not found and will be installed: prisma@X.Y.Z`
 
-The Prisma CLI was not found in the container and `npx` is downloading it. This means `node_modules/prisma` was not copied to the runner. Check the `COPY --from=builder /app/node_modules/prisma ./node_modules/prisma` line in the Dockerfile.
+The Prisma CLI was not found in the container and `npx` is downloading it. This means `node_modules/prisma` is not in the runner. The runner stage copies the whole root `node_modules` from the deps stage (`COPY --from=deps /app/node_modules ./node_modules` in `apps/portal/Dockerfile`); check that line.
 
 ### `P2022: The column does not exist`
 
 The app started but migrations did not run. Check:
-- Is `CMD ["./start.sh"]` in the Dockerfile (not `CMD ["node", "server.js"]`)?
+- Is `CMD ["./scripts/start.sh"]` in the Dockerfile (not `CMD ["node", "server.js"]`)?
 - Is `start.sh` calling `prisma migrate deploy` before `node server.js`?
 - Is there a migration file in `prisma/migrations/` for the missing column?
 
@@ -182,37 +182,39 @@ Check if the migration SQL actually creates the column the Prisma Client expects
 
 ## Manual migration workflow (enum renames, etc.)
 
-`prisma migrate dev` is interactive — it prompts for confirmation on destructive changes. This means it **cannot run** via `docker exec` (no TTY). It also sometimes generates destructive SQL when a safe alternative exists (e.g., dropping and recreating an enum instead of renaming a value).
+`prisma migrate dev` asks for confirmation when a change would lose data, and `docker exec` gives it no TTY to ask on: it stops with `Prisma Migrate has detected that the environment is non-interactive`. A change that loses nothing runs through `docker exec` as usual (both verified 2026-11-14 on Prisma 7.3.0: adding a nullable column, then dropping a column that held values). It also sometimes generates destructive SQL when a safe alternative exists (e.g., dropping and recreating an enum instead of renaming a value).
 
 For these cases, create the migration manually:
 
 ### Steps
 
 ```bash
-# 1. Edit prisma/schema.prisma with your change
+# Host paths are from the repo root; `docker exec canopy-portal` runs in apps/portal.
+
+# 1. Edit apps/portal/prisma/schema.prisma with your change
 
 # 2. Create the migration directory (use YYYYMMDD000000 convention)
-mkdir -p prisma/migrations/20260224000000_rename_select_to_dropdown
+mkdir -p apps/portal/prisma/migrations/20260224000000_rename_select_to_dropdown
 
 # 3. Write the SQL by hand
-cat > prisma/migrations/20260224000000_rename_select_to_dropdown/migration.sql << 'EOF'
+cat > apps/portal/prisma/migrations/20260224000000_rename_select_to_dropdown/migration.sql << 'EOF'
 ALTER TYPE "FieldType" RENAME VALUE 'SELECT' TO 'DROPDOWN';
 EOF
 
 # 4. Apply the SQL to the dev database via the db container
-docker.exe exec canopy-portal-db psql -U user -d canopy-forms \
+docker exec canopy-portal-db psql -U user -d canopy-forms \
   -c "ALTER TYPE \"FieldType\" RENAME VALUE 'SELECT' TO 'DROPDOWN';"
 
 # 5. Mark the migration as applied in Prisma's tracking table
-docker.exe exec canopy-portal npx prisma migrate resolve \
+docker exec canopy-portal npx prisma migrate resolve \
   --applied 20260224000000_rename_select_to_dropdown
 
 # 6. Regenerate client + restart dev server
-docker.exe exec canopy-portal npx prisma generate
-docker.exe restart canopy-portal
+docker exec canopy-portal npx prisma generate
+docker restart canopy-portal
 
 # 7. Verify no drift
-docker.exe exec canopy-portal npx prisma migrate status
+docker exec canopy-portal npx prisma migrate status
 ```
 
 ### When to use this instead of `prisma migrate dev`
@@ -220,7 +222,7 @@ docker.exe exec canopy-portal npx prisma migrate status
 | Scenario | Why manual? |
 |----------|-------------|
 | **Enum value rename** (`ALTER TYPE ... RENAME VALUE`) | Prisma generates drop + recreate, which fails if values are in use |
-| **Non-interactive environment** | `prisma migrate dev` requires a TTY for confirmation prompts |
+| **A change that loses data** (dropping a column or table that holds values) | `prisma migrate dev` needs a TTY to confirm it, and `docker exec` has none |
 | **Data-preserving changes** | Any case where you need precise control over the SQL |
 
 ### Important notes
