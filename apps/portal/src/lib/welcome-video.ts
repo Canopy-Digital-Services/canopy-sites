@@ -103,7 +103,9 @@ class UploadTooLarge extends Error {}
  * arrives and is never held in memory. Both must be what they claim, and
  * together no more than `maxBytes`. The pair is named by a hash of the MP4,
  * so a new video gets a new address; the site's earlier files, and what an
- * upload that died left behind, are then deleted.
+ * upload that died left behind, are then deleted. A different video also
+ * clears what each person had watched. It does not open by itself again for
+ * someone the earlier one was shown to.
  */
 export async function storeWelcomeVideo(
   siteId: string,
@@ -113,7 +115,10 @@ export async function storeWelcomeVideo(
 ): Promise<WelcomeUpload> {
   const root = mediaDir();
   if (!root) return { status: 409, error: "This portal has no media storage" };
-  const site = await prisma.site.findUnique({ where: { id: String(siteId) }, select: { id: true } });
+  const site = await prisma.site.findUnique({
+    where: { id: String(siteId) },
+    select: { id: true, accountId: true, welcomeVideoKey: true },
+  });
   if (!site) return { status: 404, error: "No such site" };
   if (!Number.isSafeInteger(captionsBytes) || captionsBytes < 1 || captionsBytes > WELCOME_CAPTIONS_MAX_BYTES) {
     return { status: 400, error: WELCOME_UPLOAD_ERRORS.captions };
@@ -168,7 +173,18 @@ export async function storeWelcomeVideo(
     const key = hash.digest("hex").slice(0, 16);
     await writeFile(path.join(dir, `${key}.vtt`), captions);
     await rename(partial, path.join(dir, `${key}.mp4`));
-    await prisma.site.update({ where: { id: site.id }, data: { welcomeVideoKey: key } });
+    await prisma.$transaction([
+      prisma.site.update({ where: { id: site.id }, data: { welcomeVideoKey: key } }),
+      // What each person watched was of the video this one replaces. The same video, with new captions, keeps it.
+      ...(key === site.welcomeVideoKey
+        ? []
+        : [
+            prisma.membership.updateMany({
+              where: { accountId: site.accountId },
+              data: { welcomeWatchedSeconds: null, welcomeVideoSeconds: null },
+            }),
+          ]),
+    ]);
     for (const name of await readdir(dir)) {
       if (!name.startsWith(`${key}.`)) await rm(path.join(dir, name), { force: true });
     }
