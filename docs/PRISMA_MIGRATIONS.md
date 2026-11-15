@@ -49,12 +49,12 @@ Key details:
 [`apps/portal/Dockerfile`](../apps/portal/Dockerfile) builds with the repo root as context (npm workspaces). Its runner stage copies, at minimum, what migrations need: the standalone output (which places `server.js` in `apps/portal/`), `apps/portal/prisma/`, `apps/portal/prisma.config.ts`, the **full** root `node_modules` from the deps stage (Prisma CLI and engines included), and `apps/portal/scripts/`. It then sets `WORKDIR /app/apps/portal` and runs `CMD ["./scripts/start.sh"]` as the `nextjs` user.
 
 What each piece does:
-- `prisma/` — contains `schema.prisma` and `migrations/` directory with SQL files
-- `prisma.config.ts` — tells Prisma where to find the database (`DATABASE_URL` env var)
-- `node_modules/.prisma` — generated query engine (for the app at runtime)
-- `node_modules/prisma` — CLI + bundled WASM schema engine (for `migrate deploy` at startup)
-- `node_modules/@prisma` — runtime packages the CLI depends on (`@prisma/engines`, `@prisma/config`, etc.)
-- `start.sh` — runs migrations, then starts the app
+- `prisma/`: contains `schema.prisma` and `migrations/` directory with SQL files
+- `prisma.config.ts`: tells Prisma where to find the database (`DATABASE_URL` env var)
+- `node_modules/.prisma`: the generated client (for the app at runtime)
+- `node_modules/prisma`: CLI + bundled WASM schema engine (for `migrate deploy` at startup)
+- `node_modules/@prisma`: runtime packages the CLI depends on (`@prisma/engines`, `@prisma/config`, etc.)
+- `start.sh`: runs migrations, then starts the app
 
 ### Prisma configuration (`prisma.config.ts`)
 

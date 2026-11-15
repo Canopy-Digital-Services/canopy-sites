@@ -112,7 +112,7 @@ Since 7.3.0, `$queryRaw` and `$executeRaw` skip the query compiler and go straig
 ## CLI Changes in Prisma 7
 
 - **`migrate dev` and `db push` no longer run `prisma generate`**, and their `--skip-generate` flag is gone. Here `npm run db:migrate` regenerates through its `postdb:migrate` hook (Migration Workflow below).
-- **Nothing seeds automatically** after `migrate dev` or `migrate reset`, and `--skip-seed` is gone. Run `npm run db:seed`.
+- **Nothing seeds automatically** after `migrate dev` or `migrate reset`, and `--skip-seed` is gone. Run `docker exec canopy-portal npm run db:seed`.
 - **`migrate diff` lost its URL flags** (`--from-url`, `--to-url`, `--from-schema-datasource`, `--to-schema-datasource`, `--shadow-database-url`). The database side is now `--from-config-datasource` or `--to-config-datasource`, which reads `prisma.config.ts`.
 
 ### `migrate diff`: `--to-schema-datamodel` renamed to `--to-schema`
@@ -196,15 +196,6 @@ docker restart canopy-portal
 - **The name's place in the order matters on every database built from scratch**: the shadow database `migrate dev` replays history in, the `*_test` database, a new environment. Migrations apply in name order there. A hand-written migration named earlier than one it depends on applies cleanly to the dev database, and the next `migrate dev` then fails with `P3006` (verified 2026-11-15 on 7.3.0). Plain `date` on a host clock behind UTC (this machine's is Pacific) gives such a name whenever a migration was made in the last few hours.
 - If the SQL has already been run by hand, record it instead of applying it twice: `docker exec canopy-portal npx prisma migrate resolve --applied <directory name>`. `psql` is in the db container only (Accessing Database Directly, below).
 - Production applies the file through `prisma migrate deploy` in `scripts/start.sh` (`docs/PRISMA_MIGRATIONS.md`).
-
-#### Database Commands Reference
-
-```bash
-# Seed the database (create admin user):
-docker exec canopy-portal npm run db:seed
-```
-
-**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker restart canopy-portal`.
 
 #### Accessing Database Directly
 

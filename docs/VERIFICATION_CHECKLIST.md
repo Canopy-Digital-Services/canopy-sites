@@ -55,7 +55,7 @@ After running `npm run db:migrate -- --name ...`:
 
 - Confirm a new directory was created under `prisma/migrations/`.
 - Confirm the migration SQL matches your intent (read the generated `.sql` file).
-- Confirm the Prisma client reflects the new schema. The script regenerates it; a hand-written migration needs `npx prisma generate`.
+- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`docs/tools/prisma-7.md`, "Migration Workflow for This Project").
 
 ### 4. Embed build (embed changes only)
 
