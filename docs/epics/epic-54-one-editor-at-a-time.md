@@ -1,6 +1,6 @@
 # Epic 54: One editor at a time
 
-**Status:** Approved (Michael, 2026-11-14). In progress: 4.1, 4.2, and the first section of 4.3 (Quick Edit and the Editor) built, unreleased, waiting on Michael's check. Next: the preview page and the Sites chrome, then 4.4 (section 6).
+**Status:** Approved (Michael, 2026-11-14). In progress: 4.1, 4.2, and the first section of 4.3 (Quick Edit and the Editor) built, unreleased; the first section was reworked after Michael's check on 2026-11-15 and waits on his second. Next: the preview page and the Sites chrome, then 4.4 (section 6).
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 53 (people on an account)
 **Successor:** the Client 3 site's claim links (ROADMAP "The MVP")
@@ -11,7 +11,7 @@
 
 ## 1. Goal
 
-Two people on one account never edit the site at once. Whoever is on Quick Edit, the Editor, or the preview page holds the site. Anyone else sees who is editing, can still look at the preview, and gets the site when the first person leaves or goes quiet. Nobody asks for control through the portal: they message each other.
+Two people on one account never edit the site at once. The site becomes a person's when they start an edit, and stays theirs while they are active on Quick Edit, the Editor, or the preview page. Being on a page holds nothing. Anyone else sees who is making edits, can still look at the preview, and can edit once the first person publishes, discards, leaves, or goes quiet. Nobody asks for control through the portal: they message each other.
 
 ## 2. Why the site, and not a field
 
@@ -23,7 +23,7 @@ A lock on each field was considered and rejected (PRD D64). The draft is the sit
 
 - **Two writers on one draft (4.1)**: REVIEW_FINDINGS F2 and F4.
 - **The hold (4.2)**: its row, and the tool layer's check.
-- **The pages (4.3)**: keeping the hold, who is editing, opening up.
+- **The pages (4.3)**: following the hold, who is making edits, opening up.
 - **The handoff (4.4)**: what a page does when the hold changes hands.
 - **Docs (4.5)**.
 
@@ -50,20 +50,22 @@ One person in two tabs can still write twice at once, and so can a hold changing
 ### 4.2 The hold
 
 - `SiteHold`: one row per site (`siteId` unique), `userId`, `takenAt`, `expiresAt`. Deleting the user or the site deletes it. `src/lib/site-tools/hold.ts` is the only code that reads or writes it.
-- **Taking and keeping.** A person takes a site's hold when it has none, when the one it has expired, or when it is already theirs; each take or keep moves `expiresAt` to `HOLD_TTL_MS` from now (90 seconds). One conditional write decides it, so two people asking at once get one hold.
+- **Taking.** A hold starts with an edit, never with a page being open (Michael, 2026-11-15: a person watching the welcome video in front of Quick Edit had locked the other out). A person takes a site's hold when it has none, when the one it has expired, or when it is already theirs; each take or keep moves `expiresAt` to `HOLD_TTL_MS` from now (90 seconds). One conditional write decides it, so two people asking at once get one hold.
+- **Keeping.** `extendHold` keeps a hold its person already has and never takes one: it is all an open page may do.
 - **By person.** The holder is a user, whatever browser or tab asks. An operator acting as a client holds as themselves.
-- **Every write checks it**: `saveDraft`, `proposeChange`, `publishChange`, `discardChange`, and Quick Edit before it spends a model call. The check takes or keeps the hold for the caller, so a person whose page isn't keeping it (an older page, a client with scripts blocked) still edits safely. A refusal is a `ToolError` with `heldBy`, reading "<name> is editing the site."
+- **Every write checks it**: `saveDraft`, `proposeChange`, `publishChange`, `discardChange`, and Quick Edit before it spends a model call. The check takes or keeps the hold for the caller, so a person whose page isn't keeping it (an older page, a client with scripts blocked) still edits safely. A refusal is a `ToolError` with `heldBy`, reading "<name> is currently making edits."
 - **Reads are open** to everyone on the account: the canvas, the draft view, the preview page.
-- **Release**: sign-out releases the user's holds. Otherwise a hold ends by expiring.
+- **Release**: a publish or a discard that leaves the site without a draft gives the hold up at once (`doneEditing`), since the person is done; with a draft still pending (an edit saved during the publish) they keep it. Sign-out releases the user's holds. Otherwise a hold ends by expiring.
 - A database test for each: a second person's save, proposal, publish, and discard are refused and change nothing; the same person from a second context is not refused; an expired hold passes to the next writer; removing a person frees their hold; sign-out releases.
 
 ### 4.3 The pages
 
 Built a section at a time, each proposed to Michael and checked by him on `localhost:3006` before the next (`sites.localhost:3006`, two browsers, two people).
 
-- **Keeping the hold.** Quick Edit, the Editor, and the preview page keep the hold while they are open: a call about every 25 seconds, so a tab the browser has throttled to one timer a minute still holds. A page stops keeping it after ten minutes without a key or a pointer on it, and starts again at the next one. A Quick Edit reply or a publish in flight counts as activity.
-- **Someone else is editing.** Quick Edit and the Editor show who, in place of the chat and the canvas, and open up by themselves once the hold is free. The preview page still shows the draft, with who is editing where Publish would be. The Sites chrome keeps Preview and holds back Discard.
-- Copy says who is editing and stops (`docs/UX_PATTERNS.md`, copy rules).
+- **Following the hold.** Quick Edit, the Editor, and the preview page ask who has the site when they open and about every 25 seconds, which keeps the hold of a person who has one (a tab the browser has throttled to one timer a minute still keeps it) and takes none. A page stops asking after ten minutes without a key or a pointer on it, and asks again at the next one.
+- **Where an edit starts.** Sending a Quick Edit message, saving, publishing, and discarding are writes, and the tool layer takes the hold for them. The Editor also takes it when a field is opened, before anything is typed, so two people never type into the canvas at once.
+- **Someone else is making edits.** One wording everywhere: "Jane Doe is currently making edits". Quick Edit shows it in place of the chat, which stays mounted underneath so a conversation is still there afterwards. The Editor shows it over the site, which stays on the canvas behind frosted glass and out of reach. Both open up by themselves once the hold is free. The preview page still shows the draft, with the same line where Publish would be. The Sites chrome keeps Preview and holds back Discard.
+- Copy says who is making edits and stops (`docs/UX_PATTERNS.md`, copy rules).
 
 ### 4.4 The handoff
 
@@ -82,9 +84,10 @@ Built a section at a time, each proposed to Michael and checked by him on `local
 ## 5. Acceptance
 
 - [ ] Two first saves at once leave one draft holding both edits; two Publish requests leave the change published once and recorded as published.
-- [ ] With two people signed in to one account, the second can't save, send a Quick Edit message, publish, or discard while the first is editing, and is told who is editing.
+- [ ] With two people signed in to one account and both only looking, neither is held back, on Quick Edit or the Editor.
+- [ ] Once the first opens a field or sends a Quick Edit message, the second can't save, send a Quick Edit message, publish, or discard, and is told who is making edits.
 - [ ] The second can open the preview page and see the draft.
-- [ ] A minute and a half after the first leaves the editing pages, or ten minutes after they go quiet, the second's page opens up and they can edit.
+- [ ] When the first publishes or discards, a minute and a half after they leave the editing pages, or ten minutes after they go quiet, the second's page opens up and they can edit.
 - [ ] One person's laptop and phone never refuse each other.
 - [ ] The second person finds the first's unpublished changes marked as theirs, and a publish names who published.
 - [ ] `npm run build`, `npm run lint`, and `npm test` pass.
@@ -94,3 +97,4 @@ Built a section at a time, each proposed to Michael and checked by him on `local
 - 2026-11-14: 4.1 built. The partial index is migration `one_pending_change_per_site`; `recordPublish` in `src/lib/site-tools/index.ts` is the publish's record. Tests in `site-tools.db.test.ts`: two first writes at once, Publish pressed twice, a refusal that arrives after an edit, and an edit saved during a publish.
 - 2026-11-14: 4.2 built. `SiteHold` is migration `site_holds`; `src/lib/site-tools/hold.ts` holds the rules, and `requireHold` in `index.ts` is the check each write starts with. `sendQuickEdit` and the other Editor actions answer a refusal with `heldBy`, which 4.3's pages read. Until 4.3, nothing keeps a hold between writes, so it lasts 90 seconds past a person's last save, message, publish, or discard: a second person's write inside that window is refused, and shows as the error each surface already shows. Tests: "one person edits at a time" in `site-tools.db.test.ts`, and sign-out in `auth.db.test.ts`.
 - 2026-11-14: 4.3, first section, built after Michael's yes to the sketch: keeping the hold, and who is editing on Quick Edit and the Editor. `SiteHoldProvider` and `WhileHolding` are in `src/components/sites/site-hold.tsx`; when a page asks is `src/lib/site-hold-policy.ts` (unit tested); the pages render from `getSiteEditing` and ask through the `keepHold` action over `keepSiteHold` (both in the tool layer, database tested). Quick Edit shows who is editing where the chat is, with Preview when there is a draft, and leaves out the "Change waiting for you" card, which is the editor's to preview and discard. The Editor shows the same in place of the canvas. Checked with two people in headless Chromium on `sites.localhost:3006`: the second saw who was editing on both pages, and their Editor opened 20 seconds after the first signed out. Two things from 4.4 came with it, because the page is unsafe without them: a page that takes the hold after the site moved mounts its editing surface again (the marker), and a refused write shows who is editing at once. Still 4.4's: a field left open keeps its text, unsent edits, and whose changes a draft holds. Not built yet: the preview page still offers Publish, and the Sites chrome Discard, to someone waiting; the tool layer refuses both.
+- 2026-11-15: Michael's check of the first section, and the rework. His findings: the Editor's notice was too bare (he wanted the site in the background behind frosted glass, with the message); the wording should be "is currently making edits"; and Quick Edit had been blocked for one person while the other only watched the welcome video in front of it, so being on a page must not hold the site. Reworked: a hold starts with an edit (`extendHold` for an open page, `keepSiteHold(ctx, take)` and the hook's `begin()` for a field opened on the canvas), a publish or discard that leaves no draft gives it up (`doneEditing`), the Editor's canvas stays mounted behind `BehindGlass`, Quick Edit's chat stays mounted under its notice, and `editingNotice` is the one wording. Opening a field as the start of an edit, and giving the hold up on publish and discard, are Claude's calls inside that finding, flagged to Michael. Checked with two people in headless Chromium on the local demo site: neither was held back on Quick Edit or the Editor while both only looked; 17 seconds after one opened a field the other's Editor was behind glass and out of reach, and their Quick Edit showed the notice.

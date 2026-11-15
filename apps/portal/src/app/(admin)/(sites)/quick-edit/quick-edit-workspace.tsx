@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
+import { announceDraft } from "@/components/sites/draft-status";
 import { SiteHeldNotice, useSiteHold } from "@/components/sites/site-hold";
 import { LocalTime } from "@/components/local-time";
 
@@ -36,17 +37,19 @@ export function QuickEditWorkspace({
   /** What the owner sent Canopy (PRD D34), newest first. */
   requests: SentRequest[];
 }) {
-  // While someone else is editing (PRD D64), who it is stands where the chat would be, and the
-  // draft, which is theirs to preview and discard, is offered only as a Preview beside their name.
+  // While someone else is making edits (PRD D64), who it is stands where the chat would be, and
+  // the draft, which is theirs to preview and discard, is offered only as a Preview beside their
+  // name. The chat stays mounted underneath, so a conversation is still there when the site is free.
   const hold = useSiteHold();
   const previewHref = `/preview/${siteId}`;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      {hold.by ? (
-        <SiteHeldNotice by={hold.by} previewHref={hold.hasDraft ? previewHref : undefined} />
-      ) : (
-        <QuickEdit key={hold.epoch} examples={examples} previewHref={previewHref} pendingId={pending?.id ?? null} />
-      )}
+      <div className="min-w-0">
+        {hold.by ? <SiteHeldNotice by={hold.by} previewHref={hold.hasDraft ? previewHref : undefined} /> : null}
+        <div hidden={hold.by !== null}>
+          <QuickEdit examples={examples} previewHref={previewHref} pendingId={pending?.id ?? null} />
+        </div>
+      </div>
       <div className="space-y-6">
         {pending && !hold.by ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
@@ -107,7 +110,11 @@ function QuickEdit({
           changeSetId: result.changeSetId ?? undefined,
         },
       ]);
-      if (result.changeSetId) router.refresh();
+      if (result.changeSetId) {
+        // The Sites chrome shows the draft, and the page knows this change as its own.
+        announceDraft("changed");
+        router.refresh();
+      }
     });
   }
 
@@ -279,6 +286,8 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
               if ("error" in result) {
                 toast.error(result.error);
                 if (result.heldBy) heldBy(result.heldBy);
+              } else {
+                announceDraft("published");
               }
               router.refresh();
             })

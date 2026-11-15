@@ -399,10 +399,10 @@ Goal: an organization's several people each sign in as themselves on the site's 
 Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
 
 - Groundwork: F2 and F4, so a draft and a publish hold up when two writes land together
-- The hold: one row per site, taken and kept by every write and by the editing pages, enforced in the tool layer with a database test per guard
-- The pages: who is editing in place of the chat and the canvas, the preview page viewable with Publish held back, Discard held back in the Sites chrome, each opening up when the hold frees. Built and checked with Michael a section at a time
+- The hold: one row per site, taken when a person starts an edit and never by opening a page, kept by the editing pages while that person is active, given up when they publish or discard, and enforced in the tool layer with a database test per guard
+- The pages: who is making edits in place of the Quick Edit chat and over the Editor's site behind frosted glass, the preview page viewable with Publish held back, Discard held back in the Sites chrome, each opening up when the hold frees. Built and checked with Michael a section at a time
 - The handoff: a page that takes the hold reloads the site first, a field left open keeps its text, edits a save couldn't send are dropped once the site has moved, and the draft and the published list say whose changes they are
-- Acceptance: with two people signed in, the second can't save, send a Quick Edit message, publish, or discard while the first is editing, and can ten minutes after the first goes quiet or a minute and a half after they leave; one person's laptop and phone never refuse each other
+- Acceptance: with two people signed in, neither is held back while both only look; once the first starts an edit the second can't save, send a Quick Edit message, publish, or discard, and can again when the first publishes or discards, ten minutes after they go quiet, or a minute and a half after they leave; one person's laptop and phone never refuse each other
 
 ### E48 · Deploys and checks
 

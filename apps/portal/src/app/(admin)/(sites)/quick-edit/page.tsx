@@ -44,7 +44,8 @@ export default async function QuickEditPage() {
   const [changes, requests, held] = await Promise.all([
     getEditorChanges(accountId),
     listOwnHelpRequests(accountId),
-    // Who has the site as the page renders (PRD D64). Looking takes nothing; the page asks for the site once it's open.
+    // Who has the site as the page renders (PRD D64). Opening the page takes nothing: the site
+    // becomes this person's when they send a message.
     getSiteEditing(accountId, session.user.id),
   ]);
   const editing = held ?? { by: null, marker: "", hasDraft: false };

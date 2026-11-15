@@ -74,14 +74,15 @@ export async function sendQuickEdit(input: {
 }
 
 /**
- * An editing page keeping the site for its person (PRD D64): called when the
- * page opens and about every 25 seconds while they are active on it. Answers
- * with who else is editing when the site isn't theirs to take.
+ * An editing page asking who has the site (PRD D64): when it opens, and about
+ * every 25 seconds while its person is active on it. Asking keeps the
+ * person's hold going when they have one, and takes one only with `take`,
+ * which the Editor sends when its person opens a field.
  */
-export async function keepHold(): Promise<Result<{ by: string | null; fresh: boolean; marker: string; hasDraft: boolean }>> {
+export async function keepHold(input?: { take?: boolean }): Promise<Result<{ by: string | null; mine: boolean; marker: string; hasDraft: boolean }>> {
   try {
     const ctx = await context();
-    return { success: true, ...(await keepSiteHold(ctx)) };
+    return { success: true, ...(await keepSiteHold(ctx, input?.take === true)) };
   } catch (err) {
     return failure(err);
   }

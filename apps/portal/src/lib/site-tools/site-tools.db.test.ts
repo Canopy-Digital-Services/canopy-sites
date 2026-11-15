@@ -654,7 +654,7 @@ describe("one person edits at a time (PRD D64)", () => {
 
     const refused = await tools.saveDraft(bob, site.id, { ops: price("$95") }).catch((e) => e);
     expect(refused).toBeInstanceOf(ToolError);
-    expect(refused).toMatchObject({ message: "Jane Doe is editing the site.", heldBy: "Jane Doe" });
+    expect(refused).toMatchObject({ message: "Jane Doe is currently making edits.", heldBy: "Jane Doe" });
     // Nothing of the refused save is in the draft, and it cost the account none of its saves.
     const view = await tools.getDraftView(bob.accountId, site.id);
     expect((view.content.services as Menu)[0].services[0].priceLabel).toBe("$90");
@@ -754,41 +754,95 @@ describe("one person edits at a time (PRD D64)", () => {
     await tools.saveDraft(jane, site.id, { ops: price("$95") });
   });
 
-  it("tells an editing page who has the site without taking it, and keeps it only when asked", async () => {
+  it("holds nothing for a page that is only open: looking, and asking who has the site, never take it", async () => {
     const { site, jane, bob, bobId } = await twoPeople();
-    // Rendering a page looks, and looking holds nothing.
+    // Rendering a page looks, and the open page asks; neither is an edit.
     expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toEqual({ by: null, marker: "", hasDraft: false });
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, mine: false });
+    expect(await tools.keepSiteHold({ ...bob, userId: bobId })).toMatchObject({ by: null, mine: false });
     expect(await prisma.siteHold.count()).toBe(0);
+    // So whoever edits first has the site, however long the other has had the page open.
+    await tools.saveDraft(bob, site.id, { ops: price("$90") });
+    expect(await hold.currentHold(site.id)).toMatchObject({ userId: bobId });
+  });
 
-    // The page, once open, asks: Jane has the site, and Bob's page is told so.
-    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, fresh: true });
-    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, fresh: false });
-    expect(await tools.keepSiteHold({ ...bob, userId: bobId })).toMatchObject({ by: "Jane Doe", fresh: false });
+  it("gives the site to a person who opens a field, before any save, and tells the other's page who has it", async () => {
+    const { site, jane, bob, bobId } = await twoPeople();
+    expect(await tools.keepSiteHold(jane, true)).toMatchObject({ by: null, mine: true });
+    expect(await hold.currentHold(site.id)).toMatchObject({ userId: jane.userId });
+    // Bob's page asking, and Bob opening a field himself, both learn it is Jane's and take nothing.
+    expect(await tools.keepSiteHold({ ...bob, userId: bobId })).toMatchObject({ by: "Jane Doe", mine: false });
+    expect(await tools.keepSiteHold({ ...bob, userId: bobId }, true)).toMatchObject({ by: "Jane Doe", mine: false });
     expect(await tools.getSiteEditing(bob.accountId, bobId)).toMatchObject({ by: "Jane Doe" });
     expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toMatchObject({ by: null });
     expect(await hold.currentHold(site.id)).toMatchObject({ userId: jane.userId });
   });
 
-  it("gives a page a marker that moves when the site does, so a returning page knows to load it again", async () => {
+  it("keeps a hold going for its holder's page, and never brings back one that has run out", async () => {
+    const { site, jane } = await twoPeople();
+    await tools.saveDraft(jane, site.id, { ops: price("$90") });
+    const before = (await prisma.siteHold.findUniqueOrThrow({ where: { siteId: site.id } })).expiresAt;
+    await new Promise((r) => setTimeout(r, 20));
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, mine: true });
+    expect((await prisma.siteHold.findUniqueOrThrow({ where: { siteId: site.id } })).expiresAt.getTime()).toBeGreaterThan(before.getTime());
+
+    // Jane goes quiet and her hold runs out. Her page asking again doesn't take the site back: her next edit does.
+    await lapse(site.id);
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ by: null, mine: false });
+    expect(await hold.currentHold(site.id)).toBeNull();
+    await tools.saveDraft(jane, site.id, { ops: price("$95") });
+    expect(await tools.keepSiteHold(jane)).toMatchObject({ mine: true });
+  });
+
+  it("frees the site when its holder publishes or discards, and not while a draft is still theirs to finish", async () => {
+    const { site, jane, bob } = await twoPeople();
+    const { changeSetId, buildId } = await tools.proposeChange(jane, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(jane.accountId, changeSetId);
+    // Between edits, with a draft: still hers.
+    await expect(tools.saveDraft(bob, site.id, { ops: price("$95") })).rejects.toMatchObject({ heldBy: "Jane Doe" });
+
+    await tools.publishChange(jane, changeSetId, buildId, author);
+    expect(await hold.currentHold(site.id)).toBeNull();
+
+    // Bob edits at once, then discards: free again.
+    const saved = await tools.saveDraft(bob, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+    expect(await hold.currentHold(site.id)).toMatchObject({ userId: bob.userId });
+    await tools.discardChange(bob, saved.changeSetId!);
+    expect(await hold.currentHold(site.id)).toBeNull();
+  });
+
+  it("leaves the site with a person whose publish left an edit behind as a draft", async () => {
+    const { site, jane } = await twoPeople();
+    const { changeSetId, buildId } = await tools.proposeChange(jane, { summary: "Haircut to $90", ops: PRICE });
+    await tools.refreshChange(jane.accountId, changeSetId);
+    builder.duringPublish = async () => {
+      await tools.saveDraft({ ...jane, source: "EDITOR" }, site.id, { ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+      builder.commit = "b".repeat(40);
+      (builder.content.services as Menu)[0].services[0].priceLabel = "$90";
+    };
+    await tools.publishChange(jane, changeSetId, buildId, author);
+    expect(await hold.currentHold(site.id)).toMatchObject({ userId: jane.userId });
+  });
+
+  it("gives a page a marker that moves when the site does, so a page that wasn't there knows to load it again", async () => {
     const { site, jane, bob, bobId } = await twoPeople();
     const before = await tools.keepSiteHold(jane);
     expect(before).toMatchObject({ marker: "", hasDraft: false });
 
-    // Jane goes quiet; Bob edits and publishes; Jane comes back.
-    await lapse(site.id);
+    // Bob edits and publishes while Jane's page isn't asking.
     const { changeSetId, buildId } = await tools.proposeChange(bob, { summary: "Haircut to $90", ops: PRICE });
     const drafted = await tools.keepSiteHold({ ...bob, userId: bobId });
-    expect(drafted).toMatchObject({ by: null, hasDraft: true });
+    expect(drafted).toMatchObject({ by: null, mine: true, hasDraft: true });
     await tools.refreshChange(bob.accountId, changeSetId);
     // The preview finishing is not the site moving.
     expect((await tools.keepSiteHold({ ...bob, userId: bobId })).marker).toBe(drafted.marker);
     await tools.publishChange(bob, changeSetId, buildId, author);
-    await lapse(site.id);
 
     const back = await tools.keepSiteHold(jane);
-    expect(back).toMatchObject({ by: null, fresh: true, hasDraft: false });
+    expect(back).toMatchObject({ by: null, mine: false, hasDraft: false });
     expect(back.marker).not.toBe(before.marker);
     expect(back.marker).not.toBe(drafted.marker);
+    expect(await hold.currentHold(site.id)).toBeNull();
   });
 
   it("lets a caller that is no person wait like anyone, and never hold", async () => {
