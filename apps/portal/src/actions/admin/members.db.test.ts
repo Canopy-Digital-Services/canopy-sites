@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { createAccount, resetDatabase } from "../../../test/db";
+import { createSession } from "@/lib/session";
+import { createAccount, createMember, createSite, resetDatabase } from "../../../test/db";
 import { resetRequest, signInAs } from "../../../test/next-request";
 
 vi.mock("next/headers", () => import("../../../test/next-request"));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.spyOn(console, "log").mockImplementation(() => {});
 
-const { addAccountMember } = await import("./members");
+const { addAccountMember, removeAccountMember, setPersonName } = await import("./members");
 const { getCurrentAccountId } = await import("@/lib/auth-utils");
 const { deleteSelfAccount } = await import("../accounts");
 
@@ -19,6 +20,7 @@ beforeEach(async () => {
 async function signInAsAdmin() {
   const { user } = await createAccount({ roleCode: "GLOBAL_ADMIN" });
   await signInAs(user.id);
+  return user;
 }
 
 describe("addAccountMember", () => {
@@ -74,5 +76,81 @@ describe("addAccountMember", () => {
     await signInAs(member.id);
     await expect(deleteSelfAccount()).rejects.toThrow(/Only the account owner/);
     expect(await prisma.account.count({ where: { id: account.id } })).toBe(1);
+  });
+});
+
+describe("setPersonName (PRD D63)", () => {
+  it("names a person on the account, one line, and a blank name goes back to none", async () => {
+    const { account, user: owner } = await createAccount({ planCode: "SITES" });
+    await signInAsAdmin();
+    expect(await setPersonName(account.id, owner.id, "  Jane \n  Doe ")).toEqual({ success: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).name).toBe("Jane Doe");
+    expect(await setPersonName(account.id, owner.id, "x".repeat(81))).toEqual({ error: expect.stringContaining("80 characters") });
+    expect(await setPersonName(account.id, owner.id, "  ")).toEqual({ success: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).name).toBeNull();
+  });
+
+  it("refuses a person named from another account, and anyone who is not a Global Admin", async () => {
+    const { account, user: owner } = await createAccount({ planCode: "SITES" });
+    const { user: stranger } = await createAccount();
+    await signInAsAdmin();
+    expect(await setPersonName(account.id, stranger.id, "Mallory")).toEqual({ error: "That person isn't on this account." });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: stranger.id } })).name).toBeNull();
+
+    resetRequest();
+    await signInAs(owner.id);
+    await expect(setPersonName(account.id, owner.id, "Jane")).rejects.toThrow();
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).name).toBeNull();
+  });
+});
+
+describe("removeAccountMember (PRD D63)", () => {
+  it("takes a member off the account, deletes their login, and ends their sessions", async () => {
+    const { account, user: owner } = await createAccount({ planCode: "SITES" });
+    const site = await createSite(account.id);
+    const member = await createMember(account.id);
+    await createSession(member.id, true);
+    const change = await prisma.changeSet.create({
+      data: { siteId: site.id, source: "EDITOR", createdByUserId: member.id, summary: "Their edit", ops: [], baseCommit: "a".repeat(40), status: "PUBLISHED" },
+    });
+    await signInAsAdmin();
+
+    expect(await removeAccountMember(account.id, member.id)).toEqual({ success: true });
+
+    expect(await prisma.user.count({ where: { id: member.id } })).toBe(0);
+    expect(await prisma.session.count({ where: { userId: member.id } })).toBe(0);
+    expect(await prisma.membership.findMany({ where: { accountId: account.id }, select: { userId: true } })).toEqual([{ userId: owner.id }]);
+    // What they published keeps its record, without their name.
+    expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: change.id } })).toMatchObject({ createdByUserId: null, status: "PUBLISHED" });
+  });
+
+  it("never removes the owner, the operator themselves, or another operator", async () => {
+    const { account, user: owner } = await createAccount({ planCode: "SITES" });
+    const admin = await signInAsAdmin();
+    expect(await removeAccountMember(account.id, owner.id)).toEqual({ error: "The owner can't be removed." });
+
+    const self = await prisma.membership.create({ data: { userId: admin.id, accountId: account.id, role: "MEMBER" } });
+    expect(await removeAccountMember(account.id, admin.id)).toEqual({ error: "You can't remove yourself." });
+    await prisma.membership.delete({ where: { id: self.id } });
+
+    const colleague = await createMember(account.id, "MEMBER", { roleCode: "GLOBAL_ADMIN" });
+    expect(await removeAccountMember(account.id, colleague.id)).toEqual({ error: expect.stringContaining("Canopy operator") });
+    expect(await prisma.user.count({ where: { id: { in: [owner.id, admin.id, colleague.id] } } })).toBe(3);
+  });
+
+  it("refuses a person named from another account, and anyone who is not a Global Admin", async () => {
+    const { account, user: owner } = await createAccount({ planCode: "SITES" });
+    const member = await createMember(account.id);
+    const { account: other } = await createAccount({ planCode: "SITES" });
+    const theirs = await createMember(other.id);
+    await signInAsAdmin();
+    // The account and the person have to belong together: neither id alone decides.
+    expect(await removeAccountMember(account.id, theirs.id)).toEqual({ error: "That person isn't on this account." });
+    expect(await removeAccountMember(other.id, member.id)).toEqual({ error: "That person isn't on this account." });
+
+    resetRequest();
+    await signInAs(owner.id);
+    await expect(removeAccountMember(account.id, member.id)).rejects.toThrow();
+    expect(await prisma.user.count({ where: { id: { in: [member.id, theirs.id] } } })).toBe(2);
   });
 });

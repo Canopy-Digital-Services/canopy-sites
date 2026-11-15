@@ -1,6 +1,6 @@
 # Epic 53: People on an account
 
-**Status:** Approved (Michael, 2026-11-14). In progress.
+**Status:** Approved (Michael, 2026-11-14). In progress: 4.1 and 4.2 built, unreleased, waiting on Michael's check of the People card (section 6).
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 38 (link and claim), whose claim link every person uses
 **Successor:** Epic 54 (one editor at a time), which needs a second person to exist
@@ -58,7 +58,7 @@ The site page's Owner card becomes People: one row per person on the site's acco
 - Act as client stays on the card.
 - Every action is Global Admin only, refuses an id from another account, and has a database test.
 
-Operator → Accounts keeps Add member for accounts with no site, with the name field.
+Operator → Accounts keeps the same Add person dialog, for accounts with no site.
 
 ### 4.3 Docs
 
@@ -73,3 +73,7 @@ Operator → Accounts keeps Add member for accounts with no site, with the name 
 - [ ] Removing a person signs them out at their next request, and their email no longer signs in.
 - [ ] The owner can't be removed, and an action naming a person from another account is refused.
 - [ ] `npm run build`, `npm run lint`, and `npm test` pass.
+
+## 6. Progress
+
+- 2026-11-14: 4.1 and 4.2 built on `dev`. `User.name` is migration `user_name`. The People card is `src/app/operator/sites/[siteId]/people-card.tsx`, with `add-person-button.tsx` shared by the Accounts page; the actions are in `src/actions/admin/members.ts` and `claims.ts`, tested in `members.db.test.ts` and `claim.db.test.ts`. Left: Michael's check of the card, and the Onboarding Runbook's section 6 once this is released (it describes production).
