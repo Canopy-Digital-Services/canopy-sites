@@ -4,61 +4,23 @@
 
 ## Overview
 
-Docker Compose v2 is the modern, recommended approach for managing multi-container Docker applications. The CLI plugin (`docker compose`) replaced the legacy standalone tool (`docker-compose`) and is now the standard. Compose v1 support ended in July 2023, and Compose v2 became generally available in April 2022.
+Compose is the `docker compose` subcommand, a plugin of the Docker CLI that Docker Desktop provides. The standalone `docker-compose` (Compose v1) stopped receiving updates in July 2023.
 
-## Critical: Command Syntax Change
+### Write `docker compose` (space), not `docker-compose` (hyphen)
 
-### ⚠️ Use `docker compose` (space), NOT `docker-compose` (hyphen)
-
-**Legacy (Deprecated):**
-```bash
-docker-compose up
-docker-compose build
-docker-compose down
-```
-
-**Current:**
 ```bash
 docker compose up
 docker compose build
 docker compose down
 ```
 
-The CLI plugin (`docker compose`) is integrated into the Docker CLI as a subcommand, providing better integration with Docker contexts, improved performance, and consistent command-line options.
-
-## Docker Compose v2 Features
-
-### Key Improvements
-
-- **Integrated CLI**: Part of Docker CLI, not a separate binary
-- **Better Performance**: Faster command execution
-- **Context Support**: Works with Docker contexts and remote hosts
-- **Consistent Flags**: Uses standard Docker CLI flags (`--context`, `DOCKER_HOST`, etc.)
-- **Version Field**: The `version` field in a compose file is now **obsolete** (ignored by v2)
-
-### Installation
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install docker-compose-plugin
-```
-
-**Linux (RPM-based):**
-```bash
-sudo yum install docker-compose-plugin
-```
-
-**Verify Installation:**
-```bash
-docker compose version
-```
-
-**Note:** Docker Desktop includes the Compose plugin automatically. The standalone `docker-compose` binary is deprecated and only maintained for backward compatibility.
+On this machine `docker-compose` still runs, as Docker Desktop's alias for the same plugin (both report v5.6.1, 2026-11-15). Scripts and docs here use the space form, which is the one that exists wherever the plugin does.
 
 ## Common Commands
 
 These show the syntax. In this repo each one also takes `-f docker-compose.dev.yml` (see Development Workflow below).
+
+**Never add `-v` to `down`.** It removes the named volumes, which here are the dev database (`pgdata`), the container's `node_modules`, the builder's sites, and the welcome videos.
 
 ### Basic Operations
 
@@ -133,7 +95,7 @@ What to run after a schema change, a dependency change, or a `Dockerfile.dev` ch
 
 ### Version Field (Obsolete)
 
-**Important:** Docker Compose v2 **ignores** the `version` field. It's obsolete and causes warnings:
+**Important:** Compose **ignores** the `version` field. It's obsolete and causes warnings:
 
 ```yaml
 version: "3.8"  # ❌ Causes warning: "the attribute 'version' is obsolete"
@@ -148,7 +110,7 @@ services:
     # ...
 ```
 
-The `version` field was used in Compose v1 to determine schema compatibility. Compose v2 automatically uses the latest schema and ignores this field, showing a warning each time you run a command.
+The `version` field was used in Compose v1 to determine schema compatibility. The plugin always uses the latest schema and ignores this field, showing a warning each time you run a command.
 
 ### Service Naming
 
@@ -215,32 +177,12 @@ The portal builds with Next.js standalone output (`output: "standalone"` in `app
 
 ### Key Dockerfile Patterns
 
-**Layer Caching Optimization:**
-```dockerfile
-# Copy package files first (changes less frequently)
-COPY package*.json ./
-RUN npm ci
+`apps/portal/Dockerfile` is the reference for each:
 
-# Copy source code last (changes frequently)
-COPY . .
-```
-
-**Build Arguments:**
-```dockerfile
-# NEXT_PUBLIC_* vars must be set at build time
-ARG NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-```
-
-**Security:**
-```dockerfile
-# Run as non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-USER nextjs
-```
-
-**Standalone Output Copying:** the runner stage of `apps/portal/Dockerfile` is the reference. Its paths sit under `apps/portal/` because the standalone output mirrors the workspace layout; what each copied piece is for is in `docs/PRISMA_MIGRATIONS.md` ("Dockerfile (runner stage)").
+- **Layer caching:** the deps stage copies only the lockfile and every workspace's `package.json` before `npm ci`, so the install layer is rebuilt only when a manifest changes. A new workspace needs its manifest added there (and in `Dockerfile.dev`).
+- **Build arguments:** `NEXT_PUBLIC_APP_URL` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` are `ARG`s, because Next bakes them in at build time.
+- **Non-root:** the runner stage runs as `nextjs` (UID 1001).
+- **Standalone output copying:** the runner stage's paths sit under `apps/portal/` because the standalone output mirrors the workspace layout; what each copied piece is for is in `docs/PRISMA_MIGRATIONS.md` ("Dockerfile (runner stage)").
 
 ## Project-Specific Configuration
 
@@ -303,13 +245,9 @@ The variables are listed in `docs/AGENT_CONTEXT.md` section 7, and where the dev
 
 ### Common Issues
 
-**Issue: `docker-compose: command not found`**
-
-**Solution:** Use `docker compose` (space) instead of `docker-compose` (hyphen). The CLI plugin is the modern approach.
-
 **Issue: Warning about `version` field being obsolete**
 
-**Solution:** Remove the `version` field from the compose file to eliminate this warning. It's not needed in Compose v2:
+**Solution:** Remove the `version` field from the compose file to eliminate this warning. It is not needed:
 
 ```yaml
 # Remove this line:
@@ -367,19 +305,12 @@ docker compose -f docker-compose.dev.yml config
 docker compose -f docker-compose.dev.yml ps
 ```
 
-**Issue: Build fails with Prisma errors**
+**Issue: An environment variable change has no effect**
 
-**Solution:** Ensure Prisma Client is generated during build:
-```dockerfile
-RUN npx prisma generate
-```
-
-**Issue: Environment variables not working**
-
-**Solution:** 
-- Build-time variables (`NEXT_PUBLIC_*`) must be in `build.args`
-- Runtime variables go in `environment` section
-- Use `${VARIABLE:-default}` for optional variables
+**Solution:**
+- A container's environment is fixed when it is created. After changing the compose file or `.env`, recreate it with `docker compose -f docker-compose.dev.yml up -d portal`: `restart` keeps the old values.
+- A value in the compose file's `environment:` block wins over the same key in `.env` (`docs/AGENT_CONTEXT.md` section 4).
+- In the production image, `NEXT_PUBLIC_*` values are build args and need a new build.
 
 **Issue: Can't connect to database**
 
@@ -406,43 +337,6 @@ docker network inspect canopy-sites_canopy-sites-network
 # Validate compose file
 docker compose -f docker-compose.dev.yml config
 ```
-
-## Migration from docker-compose (Legacy)
-
-If you're using the legacy `docker-compose` command:
-
-1. **Install the plugin:**
-   ```bash
-   sudo apt-get install docker-compose-plugin  # Ubuntu/Debian
-   ```
-
-2. **Update scripts:** Replace `docker-compose` with `docker compose` in all scripts and documentation
-
-3. **Test commands:** Verify all commands work with the new syntax
-
-4. **Remove legacy binary** (optional):
-   ```bash
-   sudo rm /usr/local/bin/docker-compose
-   ```
-
-## Best Practices
-
-### Production
-
-- Always use `--no-cache` for production builds to ensure clean state
-- Set all required environment variables explicitly
-- Use Docker secrets for sensitive data (passwords, API keys)
-- Run containers as non-root users (already configured in Dockerfile)
-- Use health checks for services
-- Set appropriate restart policies (`unless-stopped`)
-
-### Security
-
-- Never commit `.env` files with secrets
-- Use Docker secrets or environment variable injection
-- Keep base images updated (`node:20-alpine`)
-- Scan images for vulnerabilities: `docker scout cves <image>` (`docker scan` no longer exists: "unknown command" on Docker 29.9.2, 2026-11-14)
-- Use minimal base images (Alpine Linux)
 
 ## Related Documentation
 
