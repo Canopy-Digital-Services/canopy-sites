@@ -198,6 +198,12 @@ export async function getSiteEditing(accountId: string, userId: string): Promise
   return { by, ...standing };
 }
 
+/** Where the account's site stands now: what an editing page adopts after its own write, so only someone else's reads as a move. */
+export async function getSiteMarker(accountId: string): Promise<string> {
+  const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
+  return site ? (await siteStanding(site.id)).marker : "";
+}
+
 /** Who else is making edits on the site, as the account's people know them, or null. Takes nothing. */
 export async function otherEditor(siteId: string, userId: string): Promise<string | null> {
   const holder = await currentHold(siteId);
