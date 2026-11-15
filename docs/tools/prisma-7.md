@@ -157,8 +157,7 @@ All migration commands run **inside the Docker container** (DATABASE_URL is only
 #    `npx prisma migrate dev` called directly skips the hook.
 docker exec canopy-portal npm run db:migrate -- --name your_migration_name
 
-# NOTE: If the dev server has a stale Prisma client after schema changes,
-# restart the container:
+# 3. Restart the dev server: it loads a client only when it starts
 docker restart canopy-portal
 ```
 
@@ -187,11 +186,10 @@ mkdir -p "$DIR"
 # 4. Apply the file to the dev database and record it, as production will
 docker exec canopy-portal npx prisma migrate deploy
 
-# 5. Regenerate the client and confirm nothing is pending
-docker exec canopy-portal npx prisma generate
+# 5. Confirm nothing is pending
 docker exec canopy-portal npx prisma migrate status
 
-# 6. Restart dev server to pick up regenerated client
+# 6. Restart the dev server: its start regenerates the client and loads it
 docker restart canopy-portal
 ```
 

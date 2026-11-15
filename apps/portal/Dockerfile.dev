@@ -34,14 +34,17 @@ EXPOSE 3000
 # and leaving it unset allows next build to set "production" when running build
 # verification inside the dev container.
 
-# Create entrypoint script that ensures dependencies are installed
+# Entrypoint. Dependencies are installed only when the node_modules volume has
+# no next. The Prisma client is generated on every start, so it follows
+# prisma/schema.prisma and a restart is all a schema change needs; a schema
+# that does not generate still lets the server start.
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'if [ ! -d "/app/node_modules" ] || [ ! -f "/app/node_modules/.bin/next" ]; then' >> /entrypoint.sh && \
+    echo 'if [ ! -f /app/node_modules/.bin/next ]; then' >> /entrypoint.sh && \
     echo '  echo "Installing dependencies..."' >> /entrypoint.sh && \
     echo '  (cd /app && npm ci)' >> /entrypoint.sh && \
-    echo '  npx prisma generate' >> /entrypoint.sh && \
     echo '  npm run embed:build' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
+    echo 'npm run db:generate' >> /entrypoint.sh && \
     echo 'exec npm run dev' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 

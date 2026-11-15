@@ -74,7 +74,7 @@ docker compose -f docker-compose.dev.yml up -d
 # View real-time logs
 docker compose -f docker-compose.dev.yml logs -f portal
 
-# Restart the dev server (it keeps the old Prisma client after `prisma generate` until restarted)
+# Restart the dev server (a start regenerates the Prisma client, and only a start loads it)
 docker compose -f docker-compose.dev.yml restart portal
 
 # Check service status
@@ -212,24 +212,25 @@ volumes:
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:
 1. Checks whether `/app/node_modules/.bin/next` exists
-2. Only if it is missing, runs `npm ci`, `prisma generate`, and `embed:build`
-3. Starts the Next.js dev server
+2. Only if it is missing, runs `npm ci` and `embed:build`
+3. Runs `prisma generate`, on every start
+4. Starts the Next.js dev server
 
-With dependencies in place, a start or restart installs nothing and generates nothing.
+With dependencies in place, a start or restart installs nothing.
 
 ### After a change in dev
 
 - **Source code:** nothing. The bind mount and hot reload carry it.
-- **Prisma schema:** regenerate the client, then `docker restart canopy-portal`. `npm run db:migrate` regenerates it by itself; after a hand-written migration, or a schema change that arrived with a pull, run `docker exec canopy-portal npx prisma generate`. A restart alone keeps the old client, and so does an image rebuild. The full migration procedure is in [`prisma-7.md`](./prisma-7.md) ("Migration Workflow for This Project") and `docs/AGENT_CONTEXT.md` section 5.
-- **Dependencies** (`package-lock.json`): install into the volume from a one-off container with the dev server stopped, then generate the Prisma client, which `npm ci` deletes along with the rest of `node_modules`:
+- **Prisma schema:** `docker restart canopy-portal`. The start regenerates the client from the schema on disk, and the dev server loads a client only when it starts, so the restart is needed after `npm run db:migrate` too. An image rebuild changes nothing. The full migration procedure is in [`prisma-7.md`](./prisma-7.md) ("Migration Workflow for This Project") and `docs/AGENT_CONTEXT.md` section 5.
+- **Dependencies** (`package-lock.json`): install into the volume from a one-off container with the dev server stopped. `npm ci` deletes the Prisma client along with the rest of `node_modules`, and the start generates it again:
 
   ```bash
   docker compose -f docker-compose.dev.yml stop portal
-  docker compose -f docker-compose.dev.yml run --rm --no-deps portal sh -c 'cd /app && npm ci && cd apps/portal && npx prisma generate'
+  docker compose -f docker-compose.dev.yml run --rm --no-deps portal sh -c 'cd /app && npm ci'
   docker compose -f docker-compose.dev.yml start portal
   ```
 
-  Checked 2026-11-14 in two parts: a `run` one-off mounts the same volume, and the install and generate ran against a copy of that volume. An `npm ci` under a running `next dev` killed the container mid-install and left the tree broken (seen 2026-11-09). Rebuilding the image installs nothing the container sees.
+  Checked 2026-11-15 on a copy of that volume: the install ran in a one-off and removed the client, and `npm run db:generate`, the entrypoint's own step, made it again. An `npm ci` under a running `next dev` killed the container mid-install and left the tree broken (seen 2026-11-09). Rebuilding the image installs nothing the container sees.
 - **`apps/portal/Dockerfile.dev`** (the base image or the entrypoint): rebuild the image, the one change that needs it:
 
   ```bash
@@ -276,7 +277,7 @@ environment:
 
 **Solution:** Never run `npx prisma generate` inside a production container. A schema change reaches production as a new image, which Coolify builds on push.
 
-The dev container is the opposite case: it runs as root and keeps its client in the `node_modules` volume, so there you do run `prisma generate` after a schema change ("After a change in dev" above).
+The dev container is the opposite case: it runs as root and keeps its client in the `node_modules` volume, where every start generates it ("After a change in dev" above).
 
 **Issue: Dev container shows "next: not found" or missing node_modules**
 
