@@ -775,6 +775,9 @@ describe("one person edits at a time (PRD D64)", () => {
     expect(await tools.keepSiteHold({ ...bob, userId: bobId }, true)).toMatchObject({ by: "Jane Doe", mine: false });
     expect(await tools.getSiteEditing(bob.accountId, bobId)).toMatchObject({ by: "Jane Doe" });
     expect(await tools.getSiteEditing(jane.accountId, jane.userId)).toMatchObject({ by: null });
+    // The Sites chrome and the preview bar ask only for the name: someone else's, never the viewer's own.
+    expect(await tools.otherEditor(site.id, bobId)).toBe("Jane Doe");
+    expect(await tools.otherEditor(site.id, jane.userId)).toBeNull();
     expect(await hold.currentHold(site.id)).toMatchObject({ userId: jane.userId });
   });
 

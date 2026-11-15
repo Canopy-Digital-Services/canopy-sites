@@ -194,8 +194,14 @@ async function siteStanding(siteId: string): Promise<Pick<SiteEditing, "marker" 
 export async function getSiteEditing(accountId: string, userId: string): Promise<SiteEditing | null> {
   const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
   if (!site) return null;
-  const [holder, standing] = await Promise.all([currentHold(site.id), siteStanding(site.id)]);
-  return { by: holder && holder.userId !== userId ? holder.by : null, ...standing };
+  const [by, standing] = await Promise.all([otherEditor(site.id, userId), siteStanding(site.id)]);
+  return { by, ...standing };
+}
+
+/** Who else is making edits on the site, as the account's people know them, or null. Takes nothing. */
+export async function otherEditor(siteId: string, userId: string): Promise<string | null> {
+  const holder = await currentHold(siteId);
+  return holder && holder.userId !== userId ? holder.by : null;
 }
 
 /**
