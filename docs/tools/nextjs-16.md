@@ -132,7 +132,7 @@ The App Router runs on a React canary. It has the 19.2 features (`useEffectEvent
 
 ### Separate Output Directories
 
-`next dev` writes to `.next/dev` and `next build` to `.next`, and a lockfile stops a second `next dev` or `next build` in the same project. The rule against building on the host still holds, because the container writes `apps/portal/.next` as root ([`docker.md`](./docker.md)).
+`next dev` writes to `.next/dev` and `next build` to `.next`, and a lockfile stops a second `next dev` or `next build` in the same project. The rule against building on the host still holds, for the reasons in [`docker.md`](./docker.md) (Development Mode Configuration).
 
 ### Parallel Routes Need `default.js`
 
