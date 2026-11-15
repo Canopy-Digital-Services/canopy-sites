@@ -36,18 +36,21 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 1. **the test site' claim** (Epic 42), with the owner as the owner: the claim's test before a client's.
 2. **E47, tool layer fixes** (F1, F3, F5; F2 and F4 were fixed with E54).
 3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the Client 3 site's claim links go out.
-4. **E48, deploys and checks** (F25, F27, F28, F29).
-5. **E49, alerting and records** (F26, F31).
-6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-9. **Client 1's claim** (Epic 40, 4.7): the first client owner.
-10. **E46, Client 2 onto Sites**, then its claim.
-11. **The Client 3 site onto Sites**, through the Sites Onboarding Runbook, its form going to an outside CRM (PRD D53).
+4. **E39, the welcome video**: before the Client 3 site's claim links go out, tried first on the test site.
+5. **E48, deploys and checks** (F25, F27, F28, F29).
+6. **E49, alerting and records** (F26, F31).
+7. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+8. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+9. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+10. **Client 1's claim** (Epic 40, 4.7): the first client owner.
+11. **E46, Client 2 onto Sites**, then its claim.
+12. **The Client 3 site onto Sites**, through the Sites Onboarding Runbook, its form going to an outside CRM (PRD D53).
 
 **Pivot, 2026-11-12 (Michael):** the MVP now has to carry the Client 3 site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The Client 3 item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
 
 **Several people, 2026-11-14 (Michael):** the Client 3 organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out.
+
+**Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the Client 3 site's claim links, so each person there opens their portal on a walkthrough of it. the test site gets the first one.
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
@@ -274,12 +277,12 @@ From `docs/epics/epic-38-link-and-claim.md`. The operator links a live site by i
 
 ### E39 · Welcome video
 
-Goal: each client's portal opens on a walkthrough Michael recorded for them, because each portal shows different things depending on what the site has. Builds on what E38 left ready (its section 4.6). Decided by Michael, 2026-11-05: the portal hosts the video (no third-party player); it's recorded in any tool that exports MP4 (Snagit, Loom, Google Vids); captions are required; how much was watched is good to have, not essential.
+Goal: each client's portal opens on a walkthrough Michael recorded for them, because each portal shows different things depending on what the site has. Builds on what E38 left ready (its section 4.6). Decided by Michael, 2026-11-05: the portal hosts the video (no third-party player); it's recorded in any tool that exports MP4 (Snagit, Loom, Google Vids); captions are required; how much was watched is good to have, not essential. Revised 2026-11-14 for several people on an account (PRD D63): the video is the site's, and each person on the account is shown it once and has a watched figure of their own.
 
 - Storage: a Coolify persistent volume on the prod and dev portal apps at `/app/media`, created in the Dockerfile owned by `nextjs` (uid 1001; the portal had no volume as of 2026-11-05), named by `MEDIA_DIR` (unset means no videos). Files `welcome/<siteId>/<key>.mp4` and `<key>.vtt`, the key a hash of the MP4; a replacement writes a new key and deletes the old pair. Not in the nightly backups, which cover databases; a lost video is re-uploaded from Michael's original
 - Upload on the operator site page: the MP4 and a WebVTT captions file, both required. A route handler behind `requireGlobalAdmin` streams to disk and refuses over 100 MB (Cloudflare's per-request limit on Free and Pro); it checks the MP4's `ftyp` box and the VTT's `WEBVTT` header. Captions come from the recording tool, or Claude Code transcribes the MP4 with Whisper on Michael's workstation and he reads the VTT; a bigger video is re-encoded with `ffmpeg` first
-- Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for members of the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying, opened once on the owner's first session after claiming, never while the operator acts as the client. The furthest point reached and the video's length on the owner's Membership; the operator's owner card shows "Watched 4:12 of 5:03". The help bubble reopens it
-- Acceptance: on the owner's phone the video opens once, silent until played, with captions, and seeks; the operator page shows how far they got; signed out or as another account, its files 404
+- Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for the people on the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying. It opens by itself once per person, on the first signed-in page they load while their Membership has no shown time: their first session after claiming, or their next one when the video arrived after they claimed. It never opens by itself while the operator acts as the client, who opens it from the help bubble. The furthest point reached and the video's length on the person's Membership; their row on the operator's people card shows "Watched 4:12 of 5:03". The help bubble reopens it
+- Acceptance: on a person's phone the video opens once, silent until played, with captions, and seeks; a second person on the account gets it once too; the operator page shows how far each got; signed out or as another account, its files 404
 
 ## Phase 4 — Production on nginx
 

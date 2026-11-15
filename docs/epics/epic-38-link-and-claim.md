@@ -144,10 +144,10 @@ Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing im
 
 The welcome video is its own epic (ROADMAP E39, Michael 2026-11-05). This one adds nothing of it, no column, volume, or route, and leaves these for it to build on:
 
-- **The owner's own sessions are told apart from the operator's.** A session acting as the client carries its `ActAs` (4.5), and one helper answers "is this the owner?", so E39 opens the video, and records how much was watched, for the owner only.
-- **The claim's session is the owner's first** (4.4): it lands on home with no state of its own to clear, and E39 keys "first session after claiming" off the owner's membership.
+- **The owner's own sessions are told apart from the operator's.** A session acting as the client carries its `ActAs` (4.5), and one helper answers "is this the operator acting?", so E39 opens the video by itself, and records how much was watched, only for the people on the account (each of them, since PRD D63).
+- **The claim's session is the owner's first** (4.4): it lands on home with no state of its own to clear, and E39 keys "shown once" off each person's membership.
 - **Access to an account's content goes through `memberships.ts`**, act-as included (4.5), which E39's files route uses as `/canvas` and `/preview` do.
-- **The owner card is a list of rows** (4.7), so E39 adds its row without reworking it.
+- **The owner card is a list of rows** (4.7; the people card since Epic 53, a row per person), so E39 adds each person's watched figure without reworking it.
 - **The client's tabs come from one function** (4.8) that the operator page reads too, so the video Michael records walks the nav the client sees.
 
 ### 4.7 Operator status
