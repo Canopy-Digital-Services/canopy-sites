@@ -12,6 +12,7 @@ import {
   getEditorChanges,
   getPreviewState,
   keepSiteHold,
+  otherEditor,
   publishChange,
   refreshChange,
   saveDraft,
@@ -197,21 +198,35 @@ export async function saveCanvasEdits(input: {
   }
 }
 
-/** The site's draft for the Sites chrome: whether there is one, and its build, with the site's id for Preview. */
+/**
+ * The site's draft for the Sites chrome: whether there is one, and its build, with the site's id
+ * for Preview, and who else is making edits (PRD D64), whose draft it then is to discard.
+ */
 export async function getDraftState(): Promise<
-  Result<{ siteId: string | null; pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null }>
+  Result<{
+    siteId: string | null;
+    heldBy: string | null;
+    pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null;
+  }>
 > {
   try {
     const ctx = await context();
     const siteId = (await getAccountSite(ctx.accountId))?.id ?? null;
+    const heldBy = siteId ? await otherEditor(siteId, ctx.userId) : null;
     const { pending } = await getEditorChanges(ctx.accountId);
     if (pending && pending.status === "DRAFT" && (pending.buildStatus === "QUEUED" || pending.buildStatus === "RUNNING")) {
       const refreshed = await refreshChange(ctx.accountId, pending.id);
-      return { success: true, siteId, pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error } };
+      return {
+        success: true,
+        siteId,
+        heldBy,
+        pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error },
+      };
     }
     return {
       success: true,
       siteId,
+      heldBy,
       pending: pending ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error } : null,
     };
   } catch (err) {

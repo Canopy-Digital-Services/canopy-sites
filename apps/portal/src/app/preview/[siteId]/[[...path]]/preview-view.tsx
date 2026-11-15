@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getSitePreviewState, publishPreview } from "@/actions/site-editor";
 import { announceDraft } from "@/components/sites/draft-status";
+import { useSiteHold } from "@/components/sites/site-hold";
+import { editingNotice } from "@/lib/site-hold-policy";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
 type Pending = {
@@ -48,6 +50,7 @@ export function PreviewView({
   /** The acting-as-client banner (PRD D49), above the site; null for the owner. */
   banner?: React.ReactNode;
 }) {
+  const hold = useSiteHold();
   const frames = useRef<Array<HTMLIFrameElement | null>>([null, null]);
   const [slots, setSlots] = useState<Array<Slot | null>>([null, null]);
   const [active, setActive] = useState(0);
@@ -202,6 +205,7 @@ export function PreviewView({
       const result = await publishPreview({ changeSetId: pending.id, buildId: shownBuild });
       if ("error" in result) {
         toast.error(result.error);
+        if (result.heldBy) hold.heldBy(result.heldBy);
         check();
         return;
       }
@@ -270,9 +274,14 @@ export function PreviewView({
         </span>
         {failed && pending?.error ? <span className="max-w-md truncate font-normal opacity-90">{pending.error}</span> : null}
         {!published && pending ? (
-          <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
-            Publish
-          </Button>
+          // While someone else is making edits (PRD D64) the draft is theirs to publish: the bar says who.
+          hold.by ? (
+            <span className="font-normal opacity-90">{editingNotice(hold.by)}</span>
+          ) : (
+            <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
+              Publish
+            </Button>
+          )
         ) : null}
         {published ? (
           cantClose ? (

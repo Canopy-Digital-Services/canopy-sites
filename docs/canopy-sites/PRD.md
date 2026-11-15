@@ -297,7 +297,7 @@ Nav: **Quick Edit · Editor · Forms · Stats** (+ Account) (D28). Branding patt
 | Screen | Content |
 |---|---|
 | Quick Edit (home) | The chat; the draft with Preview and Discard; recently published, with Restore |
-| Preview | The draft's changed page in a new tab, the site itself filling the window, its navigation moving between pages; the preview bar along the bottom carries Publish (D47) |
+| Preview | The draft's changed page in a new tab, the site itself filling the window, its navigation moving between pages; the preview bar along the bottom carries Publish (D47), or who is making edits while that is someone else (D64) |
 | Editor | The site on a canvas with a breakpoint switcher and an address bar; marked fields edit in place or open the quick edit popover (D35, D37, D43) |
 | Tool tabs | Gallery, Calendar, and later tools, siblings to Forms (D39). After the MVP, Gallery first (D54) |
 | Stats | Umami: visitors, pageviews, top pages, referrers, date range. Read via Umami API with the site's `umamiWebsiteId` |

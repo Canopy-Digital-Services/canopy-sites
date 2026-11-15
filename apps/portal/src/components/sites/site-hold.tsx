@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { keepHold } from "@/actions/site-editor";
 import { ASK_EVERY_MS, editingNotice, isActivityMessage, shouldAsk, wasIdle } from "@/lib/site-hold-policy";
-import { DRAFT_CHANGED, DRAFT_PUBLISHED } from "./draft-status";
+import { DRAFT_CHANGED, DRAFT_PUBLISHED, HOLD_CHANGED } from "./draft-status";
 
 type Hold = {
   /** Who else is making edits; null while nobody is, or this person is. */
@@ -42,10 +42,13 @@ export const useSiteHold = () => useContext(HoldContext);
  */
 export function SiteHoldProvider({
   initial,
+  reload = true,
   children,
 }: {
   /** Who has the site as the page rendered (`getSiteEditing`). */
   initial: { by: string | null; marker: string; hasDraft: boolean };
+  /** False for a page that follows the draft itself, as the preview page does: it is never refreshed from here. */
+  reload?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -96,7 +99,7 @@ export function SiteHoldProvider({
         if (own && startedAt >= p.ownAt) p.ownAt = 0;
         // The site was someone else's until now, or moved without this page: show it as it
         // is, never as this page last saw it.
-        if (p.by !== null || (result.marker !== p.marker && !own)) {
+        if (reload && (p.by !== null || (result.marker !== p.marker && !own))) {
           router.refresh();
           setEpoch((e) => e + 1);
         }
@@ -110,7 +113,15 @@ export function SiteHoldProvider({
     } finally {
       p.asking = false;
     }
-  }, [router]);
+  }, [reload, router]);
+
+  // The Sites chrome holds back Discard while the site is someone else's: tell it when that changes.
+  const announced = useRef(initial.by);
+  useEffect(() => {
+    if (announced.current === by) return;
+    announced.current = by;
+    window.dispatchEvent(new Event(HOLD_CHANGED));
+  }, [by]);
 
   useEffect(() => {
     const p = page.current;
