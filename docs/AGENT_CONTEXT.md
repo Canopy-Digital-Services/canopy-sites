@@ -98,6 +98,7 @@ Dates compare as `YYYY-MM-DD` strings, never through `new Date` (a date-only str
 - **`/demo`** (`src/app/demo/[[...path]]/route.ts`) serves the demo site's published build (PRD D23) from the builder. It is client-editable content on the portal's origin, so every response carries `Content-Security-Policy: sandbox ...` (an opaque origin that can't use the portal session) plus CORS for its fonts and module scripts. Never drop the sandbox or add `allow-same-origin`. A fingerprinted `_astro/` asset only the draft's build has is served from it, because the canvas's requests carry no session. Its request path, like `/canvas`'s, reaches the builder only through `fetchSiteFile` (`src/lib/builder-client.ts`), as the route's params: Next has decoded each segment once, `isSiteFilePath` refuses one that isn't a name (`.`, `..`, a separator, a NUL, or any of those still percent-encoded) before anything is fetched, and nothing decodes them again. A new route that hands a request path to the builder does the same, and never builds a builder URL from a path itself.
 - **`/canvas/[siteId]/...`** (`src/app/canvas/[siteId]/[[...path]]/route.ts`) is a page of any site as the Editor's canvas and the preview page show it (PRD D47), for members of the site's account only (`previewableSite`; 404 for anyone else). With a draft, the newest build of the draft; with none, the live page. It injects a `<base>` at the page's live address (`src/lib/site-live.ts`: `/demo` for the demo, `https://` plus the first production hostname for a client site, never the request's host), so the page's styles, fonts, and scripts load from where the site is live, plus a flag on `<html>` and the bridge (`src/lib/canvas-bridge.ts`): `data-canopy-editor` and edit mode, or with `?view=preview` `data-canopy-preview` and view mode (no marks). Every response carries the same sandbox CSP as `/demo`. The portal fetches the HTML with the session and shows it in a sandboxed srcdoc frame; `X-Canopy-Build` names the draft build shown. The bridge only reports, navigates, and edits text in place; every write is a server action through the tool layer.
 - **`/preview/[siteId]/...`** (`src/app/preview/[siteId]/[[...path]]/`) is the preview page (PRD D47): the site filling a tab of its own, outside `(admin)` so with no Sites chrome, and the preview bar holding the only Publish. Publish sends the build the page showed (`publishPreview`), and the tool layer refuses any other (`publishChange`). Signed-in members only, behind `requireHomeHost`. Every preview link (the Sites chrome, Quick Edit, later MCP) is this page.
+- **`/welcome/[siteId]/[file]`** (`src/app/welcome/[siteId]/[file]/route.ts`) is a site's welcome video and its captions (ROADMAP E39), for the people on the site's account and an operator acting as it; 404 for anyone else and for any name but the site's current key. Cloudflare caches `.mp4` by its extension, so the file goes out `Cache-Control: private` and every 404 `no-store`. Never make either cacheable: the edge would hand the video to whoever asks next, or a signed-out 404 to the person who may see it. The files live under `MEDIA_DIR`, named by `Site.welcomeVideoKey` (`src/lib/welcome-video.ts`), and the path is built from the site's own id and a name matched against a fixed pattern, never from the request. They are client media: never in the repo or the image. The video opens by itself once per person (`Membership.welcomeShownAt`, read and written only in `memberships.ts`), never for an operator acting as them, and the help bubble reopens it.
 - **403 codes**: `published === false` returns `code: "FORM_INACTIVE"`. A HOSTED form returns `code: "FORM_HOSTED_ONLY"` from the embed GET always, and from a POST unless the request comes from the portal's own origin (`isAppOrigin` in `src/lib/validation.ts`: Origin, else Referer, equal to `NEXT_PUBLIC_APP_URL`'s origin). The hosted page submits through the embed route like any embed, so a POST gate without that exception refuses every hosted form. The embed script pattern-matches these codes to render dedicated states, so changing a code breaks the embed.
 - **A client component's props are sent to the browser whole**, declared in its type or not. A public page never passes a database row to one: `/f/[formId]` reads the form through `getPublishedForm`, which selects only columns a visitor may hold, and passes `HostedFormPage` its fields by name. A column added to that select, or a new public page, gets the same treatment and a test on what the page passes (`src/app/f/[formId]/page.db.test.ts`).
 - A filled honeypot **does not reject**. It stores the submission with `isSpam: true`, which is why `maxSubmissions` counts non-spam rows only and spam skips the notification email.
@@ -277,6 +278,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `UMAMI_URL` / `UMAMI_API_KEY` | Stats (Epic 35): Umami's address (`https://analytics.canopyds.com`) and the key of its `canopy-portal` user, view-only in the Umami team holding the client websites, so it reads them and changes nothing. A site's own `umamiWebsiteId` is the only id `src/lib/stats/umami.ts` asks about. Unset, or Umami unreachable, means a site with an Umami id shows "Stats can't load right now" and the log has `stats_unavailable`. |
 | `ANTHROPIC_API_KEY` | Quick edit (PRD D7, a Claude Platform key). Unset means quick edit says it isn't set up. |
 | `QUICK_EDIT_MODEL` | Optional, default `claude-opus-5-5`. Costs per model are estimated in `src/lib/quick-edit/index.ts`. |
+| `MEDIA_DIR` | Optional. The directory that holds welcome videos (ROADMAP E39). Unset means no site has one. Locally `/srv/media`, the `portal_media` volume in `docker-compose.dev.yml`. Not set on the dev or prod apps as of 2026-11-14: their volume comes with the rest of E39. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
@@ -348,7 +350,9 @@ Role (code PK, displayName, description?, isPublic, sortOrder)
 
 Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
          status:AccountStatus, billingRef?, timeZone)
-  └─ Membership (userId→User, role:MembershipRole), @@unique([userId, accountId])
+  └─ Membership (userId→User, role:MembershipRole, welcomeShownAt? (when the
+  │              welcome video opened by itself for them, ROADMAP E39)),
+  │              @@unique([userId, accountId])
   └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
   │        as the account (PRD D49); deleting the operator keeps the row
   └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
@@ -361,9 +365,10 @@ Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
   └─ Notification (formId, type:NotificationType, count, updatedAt)
   └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
            contractVersion?, umamiWebsiteId?, lockedFields[],
-           fixedLists[], maxBuildsRetained, isDemo), one per account,
-           onDelete Restrict; lockedFields and fixedLists are address patterns
-           (site/contact/phone, classes), PRD D50
+           fixedLists[], maxBuildsRetained, isDemo, welcomeVideoKey?), one per
+           account, onDelete Restrict; lockedFields and fixedLists are address
+           patterns (site/contact/phone, classes), PRD D50; welcomeVideoKey
+           names the welcome video's files under MEDIA_DIR (ROADMAP E39)
        └─ ChangeSet (source:ChangeSetSource, createdByUserId?, conversationId?,
        │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
        │             version, error?, publishedCommit?, publishedAt?); the pending

@@ -1,7 +1,8 @@
 /**
  * Membership is how a user reaches an account. v1 gives every user exactly
- * one membership, as OWNER; the many-membership path is the throw below, not
- * a feature. Resolve accounts for a user only through this module.
+ * one membership, as the account's OWNER or a MEMBER the operator added (PRD
+ * D63); the many-membership path is the throw below, not a feature. Resolve
+ * accounts for a user only through this module.
  */
 
 import { prisma } from "@/lib/db";
@@ -60,6 +61,30 @@ export async function sessionCanUseAccount(session: SessionAccess, accountId: st
     select: { id: true },
   });
   return membership !== null;
+}
+
+/**
+ * Whether the site's welcome video (ROADMAP E39) has yet to open by itself
+ * for the session's own user: they are one of the account's people and their
+ * membership has no shown time. Never true for a Global Admin acting as the
+ * account (PRD D49), who is not one of its people.
+ */
+export async function welcomeNotYetShown(session: SessionAccess, accountId: string): Promise<boolean> {
+  if (session.actingAs) return false;
+  const membership = await prisma.membership.findUnique({
+    where: { userId_accountId: { userId: session.user.id, accountId } },
+    select: { welcomeShownAt: true },
+  });
+  return membership !== null && membership.welcomeShownAt === null;
+}
+
+/** Records that the welcome video opened for the session's own user. The first time stays; acting records nothing. */
+export async function markWelcomeShown(session: SessionAccess, accountId: string): Promise<void> {
+  if (session.actingAs) return;
+  await prisma.membership.updateMany({
+    where: { userId: session.user.id, accountId, welcomeShownAt: null },
+    data: { welcomeShownAt: new Date() },
+  });
 }
 
 /** The email of the account's first owner, or null when it has none. */
