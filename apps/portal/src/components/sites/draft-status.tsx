@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { discardPendingChange, getDraftState } from "@/actions/site-editor";
+import { theirChanges } from "@/lib/site-hold-policy";
 
-type Pending = { id: string; summary: string; status: string; buildStatus: string | null; error: string | null };
+type Pending = { id: string; summary: string; status: string; buildStatus: string | null; error: string | null; by: string | null };
 
 /** Fired by anything that changes the site's draft, so the chrome catches up at once. */
 export const DRAFT_CHANGED = "canopy:draft";
@@ -99,7 +100,8 @@ export function DraftStatus() {
 
   const failed = pending.status === "DRAFT" && pending.buildStatus === "FAILED";
   const ready = pending.status === "PREVIEWED";
-  const label = ready ? "Unpublished changes" : failed ? "Preview failed" : "Preparing preview";
+  // A draft someone else last changed is named as theirs (PRD D64): it may hold work they haven't finished.
+  const label = ready ? (pending.by ? theirChanges(pending.by) : "Unpublished changes") : failed ? "Preview failed" : "Preparing preview";
   const dot = ready ? "bg-amber-500" : failed ? "bg-destructive" : "bg-muted-foreground";
 
   function discard() {

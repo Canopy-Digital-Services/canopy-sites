@@ -218,28 +218,31 @@ export async function getDraftState(): Promise<
   Result<{
     siteId: string | null;
     heldBy: string | null;
-    pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null;
+    /** `by` is who last changed the draft, when that isn't the viewer. */
+    pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null; by: string | null } | null;
   }>
 > {
   try {
     const ctx = await context();
     const siteId = (await getAccountSite(ctx.accountId))?.id ?? null;
     const heldBy = siteId ? await otherEditor(siteId, ctx.userId) : null;
-    const { pending } = await getEditorChanges(ctx.accountId);
+    const { pending } = await getEditorChanges(ctx.accountId, ctx.userId);
     if (pending && pending.status === "DRAFT" && (pending.buildStatus === "QUEUED" || pending.buildStatus === "RUNNING")) {
       const refreshed = await refreshChange(ctx.accountId, pending.id);
       return {
         success: true,
         siteId,
         heldBy,
-        pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error },
+        pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error, by: pending.by },
       };
     }
     return {
       success: true,
       siteId,
       heldBy,
-      pending: pending ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error } : null,
+      pending: pending
+        ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error, by: pending.by }
+        : null,
     };
   } catch (err) {
     return failure(err);

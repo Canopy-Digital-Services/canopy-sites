@@ -12,9 +12,11 @@ import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/act
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft } from "@/components/sites/draft-status";
 import { SiteHeldNotice, useSiteHold } from "@/components/sites/site-hold";
+import { theirChanges } from "@/lib/site-hold-policy";
 import { LocalTime } from "@/components/local-time";
 
-type Pending = { id: string; summary: string; status: string; error: string | null };
+/** `by` is who last changed the draft, when that isn't the person looking (PRD D64). */
+type Pending = { id: string; summary: string; status: string; error: string | null; by: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest; changeSetId?: string };
@@ -264,7 +266,7 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading">Change waiting for you</CardTitle>
+        <CardTitle className="font-heading">{pending.by ? theirChanges(pending.by) : "Change waiting for you"}</CardTitle>
         <CardDescription>{pending.summary}</CardDescription>
       </CardHeader>
       <CardContent>
