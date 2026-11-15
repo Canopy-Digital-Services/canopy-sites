@@ -197,29 +197,6 @@ docker restart canopy-portal
 - If the SQL has already been run by hand, record it instead of applying it twice: `docker exec canopy-portal npx prisma migrate resolve --applied <directory name>`. `psql` is in the db container only (Accessing Database Directly, below).
 - Production applies the file through `prisma migrate deploy` in `scripts/start.sh` (`docs/PRISMA_MIGRATIONS.md`).
 
-#### Docker File Permissions Gotcha (WSL2)
-
-Files created by `prisma migrate dev` inside the container are owned by the container's user (root). From the WSL2 host, you **cannot delete** these files directly: `rm` will fail with permission denied.
-
-To remove container-created files:
-```bash
-# ✅ Works: delete from inside the container
-docker exec canopy-portal rm -rf prisma/migrations/20260220_test_migration
-
-# ❌ Fails: host user doesn't own the files
-rm -rf apps/portal/prisma/migrations/20260220_test_migration
-```
-
-This applies to any files created by `docker exec` commands, not just migrations. A common case is `apps/portal/.next/`: if a production build was previously run inside the container, it is root-owned and `rm -rf apps/portal/.next` from the WSL2 host will fail with "Permission denied". Always run builds inside the container:
-
-```bash
-# ✅ Run the build inside the container (clears its own .next output before writing)
-docker exec -e NODE_ENV=production canopy-portal npm run build
-
-# ❌ Running on the host fails if .next/ was container-built
-npm run build
-```
-
 #### Database Commands Reference
 
 ```bash

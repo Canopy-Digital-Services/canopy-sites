@@ -207,7 +207,8 @@ volumes:
 **Consequences of this layout:**
 - The named `node_modules` volume keeps container-installed dependencies from being overwritten by the host mount
 - **The container's dependencies and its generated Prisma client (`node_modules/.prisma`) live in that volume, not in the image.** Docker fills a named volume from the image only when the volume is new; after that, rebuilding the image changes nothing in it (verified 2026-11-14: the image built 2026-10-16 holds `next` 16.1.6 and its own Prisma client, while the container runs 16.4.5 from the volume)
-- There is **no `.next` volume**: the container writes `apps/portal/.next` onto the bind mount **as root**. Never run `next build` on the host while the container shares this directory: the host build hits EACCES on the root-owned files, and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-portal rm -rf .next && docker restart canopy-portal`
+- There is **no `.next` volume**: the container writes `apps/portal/.next` onto the bind mount. Build in the container, never on the host: a host `node_modules` is not what the app runs on (`next` 16.1.6 there against 16.4.5 in the volume, 2026-11-15), and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-portal rm -rf .next && docker restart canopy-portal`
+- **The container runs as the image's `node` user (uid 1000), not root** (`USER node` in `Dockerfile.dev`). That is the host user's uid, so what the container writes on the bind mount (`.next`, a migration, `dist`) is yours to edit and delete from the host, and the named volumes belong to `node` too. A command that needs root takes `--user root` (`docker exec --user root canopy-portal ...`); what it writes is root-owned, and the same form with `chown -R node:node <path>` gives it back
 
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:
@@ -277,7 +278,7 @@ environment:
 
 **Solution:** Never run `npx prisma generate` inside a production container. A schema change reaches production as a new image, which Coolify builds on push.
 
-The dev container is the opposite case: it runs as root and keeps its client in the `node_modules` volume, where every start generates it ("After a change in dev" above).
+The dev container is the opposite case: its user owns the `node_modules` volume, and the client is generated there on every start ("After a change in dev" above).
 
 **Issue: Dev container shows "next: not found" or missing node_modules**
 

@@ -6,18 +6,25 @@ FROM node:20-alpine
 
 # Install dependencies
 RUN apk add --no-cache libc6-compat
+
+# Run as the image's `node` user, uid 1000, the same as the developer's on the
+# host: what the container writes on the bind mount (.next, migrations, build
+# output) is then the developer's, not root's. It owns /app and /srv/media in
+# the image because a new named volume takes its owner from the image.
+RUN mkdir -p /app /srv/media && chown node:node /app /srv/media
+USER node
 WORKDIR /app
 
 # Workspace manifests (node_modules is preserved by a named volume in docker-compose)
-COPY package.json package-lock.json ./
-COPY apps/portal/package.json ./apps/portal/
-COPY apps/builder/package.json ./apps/builder/
-COPY packages/site-contract/package.json ./packages/site-contract/
+COPY --chown=node:node package.json package-lock.json ./
+COPY --chown=node:node apps/portal/package.json ./apps/portal/
+COPY --chown=node:node apps/builder/package.json ./apps/builder/
+COPY --chown=node:node packages/site-contract/package.json ./packages/site-contract/
 
 RUN npm ci
 
 # Copy source code (will be overridden by volume mount in dev mode)
-COPY . .
+COPY --chown=node:node . .
 
 WORKDIR /app/apps/portal
 
@@ -38,15 +45,15 @@ EXPOSE 3000
 # no next. The Prisma client is generated on every start, so it follows
 # prisma/schema.prisma and a restart is all a schema change needs; a schema
 # that does not generate still lets the server start.
-RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'if [ ! -f /app/node_modules/.bin/next ]; then' >> /entrypoint.sh && \
-    echo '  echo "Installing dependencies..."' >> /entrypoint.sh && \
-    echo '  (cd /app && npm ci)' >> /entrypoint.sh && \
-    echo '  npm run embed:build' >> /entrypoint.sh && \
-    echo 'fi' >> /entrypoint.sh && \
-    echo 'npm run db:generate' >> /entrypoint.sh && \
-    echo 'exec npm run dev' >> /entrypoint.sh && \
-    chmod +x /entrypoint.sh
+COPY --chmod=755 <<'EOF' /entrypoint.sh
+#!/bin/sh
+if [ ! -f /app/node_modules/.bin/next ]; then
+  echo "Installing dependencies..."
+  (cd /app && npm ci)
+  npm run embed:build
+fi
+npm run db:generate
+exec npm run dev
+EOF
 
-# Run entrypoint script
 CMD ["/entrypoint.sh"]
