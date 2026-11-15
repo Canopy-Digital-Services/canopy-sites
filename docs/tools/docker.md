@@ -214,11 +214,13 @@ volumes:
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:
 1. Checks whether `/app/node_modules/.bin/next` exists
-2. Only if it is missing, runs `npm ci` and `embed:build`
+2. Only if it is missing, runs `npm ci`, then `apps/portal/scripts/check-optional-packages.mjs`, then `embed:build`
 3. Runs `prisma generate`, on every start
 4. Starts the Next.js dev server
 
 With dependencies in place, a start or restart installs nothing.
+
+**An install that fails, or that npm finishes without an optional package, stops the container before the dev server starts, and the next start installs again.** npm exits 0 without a platform's binary when its download fails (`docs/AGENT_CONTEXT.md` section 8), and that install has `.bin/next`, so the entrypoint removes it before it exits 1. Compose restarts the container (`restart: unless-stopped`), so the install repeats until it is whole; the log names the missing package under `npm ci left out`. Checked 2026-11-15 on a copy of the volume with one package's download broken for the first install: the container exited, the restart installed again, and the server came up.
 
 ### After a change in dev
 
@@ -228,11 +230,13 @@ With dependencies in place, a start or restart installs nothing.
 
   ```bash
   docker compose -f docker-compose.dev.yml stop portal
-  docker compose -f docker-compose.dev.yml run --rm --no-deps portal sh -c 'cd /app && npm ci'
+  docker compose -f docker-compose.dev.yml run --rm --no-deps portal sh -c 'cd /app && npm ci && node apps/portal/scripts/check-optional-packages.mjs'
   docker compose -f docker-compose.dev.yml start portal
   ```
 
-  Checked 2026-11-15 on a copy of that volume: the install ran in a one-off and removed the client, and `npm run db:generate`, the entrypoint's own step, made it again. An `npm ci` under a running `next dev` killed the container mid-install and left the tree broken (seen 2026-11-09). Rebuilding the image installs nothing the container sees.
+  **If the install command fails with `npm ci left out ... optional packages`, run it again before the start.** That volume has `next`, so the start installs nothing ("Dockerfile.dev Entrypoint Pattern" above).
+
+  Checked 2026-11-15 on a copy of that volume: the install ran in a one-off and removed the client, and `npm run db:generate`, the entrypoint's own step, made it again. With one package's download broken the command exited 1 and named the package, and run again with the download working it exited 0. An `npm ci` under a running `next dev` killed the container mid-install and left the tree broken (seen 2026-11-09). Rebuilding the image installs nothing the container sees.
 - **`apps/portal/Dockerfile.dev`** (the base image or the entrypoint): rebuild the image, the one change that needs it:
 
   ```bash
@@ -293,6 +297,12 @@ docker compose -f docker-compose.dev.yml logs -f portal
 ```
 
 Rebuilding the image does not repair the volume ("Development Mode Configuration" above).
+
+**Issue: Dev container keeps restarting with `Attempted to load @next/swc-linux-x64-musl, but it was not installed`**
+
+**Root Cause:** The `node_modules` volume has `next` but lost a platform package in an install that was not checked. The entrypoint installs nothing into that volume, and `next dev` exits on every start (seen 2026-11-15 on a copy of the volume).
+
+**Solution:** Install again with the Dependencies recipe under "After a change in dev".
 
 **Issue: Container exits immediately after start**
 
