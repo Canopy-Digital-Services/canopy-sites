@@ -284,6 +284,8 @@ Goal: each client's portal opens on a walkthrough Michael recorded for them, bec
 - Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for the people on the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying. It opens by itself once per person, on the first signed-in page they load while their Membership has no shown time: their first session after claiming, or their next one when the video arrived after they claimed. It never opens by itself while the operator acts as the client, who opens it from the help bubble. The furthest point reached and the video's length on the person's Membership; their row on the operator's people card shows "Watched 4:12 of 5:03". The help bubble reopens it
 - Acceptance: on a person's phone the video opens once, silent until played, with captions, and seeks; a second person on the account gets it once too; the operator page shows how far each got; signed out or as another account, its files 404
 
+Built as of 2026-11-14, unreleased: playback, the one automatic showing, and the help bubble's item, tried on the local portal with the test site' video. Left: the upload, the watched figure, and the volume on the dev and prod apps. Delete this paragraph when E39 ships.
+
 ## Phase 4 — Production on nginx
 
 ### E36 · Production on nginx, publish by swap

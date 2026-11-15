@@ -77,9 +77,11 @@ That's expected. A password change signs you out everywhere except the browser y
 
 ## Still stuck
 
-The **?** button in the bottom-right corner of any page has four options:
+The **?** button in the bottom-right corner of any page has these options:
 
 - **Help with this page** opens the documentation for whatever screen you're on.
 - **Browse documentation** opens the full guide index.
 - **Contact support** sends us a message. Replies go to your account email address.
 - **Give feedback** is for feature requests and anything that felt rough to use.
+
+On Canopy Sites, the same button has **Welcome video**, which replays the walkthrough recorded for your site.
