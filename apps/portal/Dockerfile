@@ -14,14 +14,14 @@ COPY package.json package-lock.json ./
 COPY apps/portal/package.json ./apps/portal/
 COPY apps/builder/package.json ./apps/builder/
 COPY packages/site-contract/package.json ./packages/site-contract/
+COPY apps/portal/scripts/check-optional-packages.mjs ./apps/portal/scripts/
 
-# npm can skip an optional package and still exit 0, and Next's compiler is
-# one. Without it `next build` fails in the next stage, on an install layer
-# Docker has cached as good, so every retry fails the same way. Loading it in
-# this RUN fails the layer instead, and a retry installs again. The package is
-# named for the platform: the CPU is the build machine's, musl is Alpine's.
-RUN npm ci \
-  && node -e "require('@next/swc-linux-' + process.arch + '-musl')"
+# npm exits 0 after an optional package fails to install, and every binary
+# built for the platform is one (Next's compiler, Tailwind's, esbuild, sharp).
+# Alone, that install is a layer Docker caches as good, and every retry builds
+# on it and fails the same way. The check runs in this RUN so the layer fails
+# instead, and a retry installs again.
+RUN npm ci && node apps/portal/scripts/check-optional-packages.mjs
 
 # Rebuild the source code only when needed
 FROM base AS builder

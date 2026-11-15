@@ -20,11 +20,12 @@ COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node apps/portal/package.json ./apps/portal/
 COPY --chown=node:node apps/builder/package.json ./apps/builder/
 COPY --chown=node:node packages/site-contract/package.json ./packages/site-contract/
+COPY --chown=node:node apps/portal/scripts/check-optional-packages.mjs ./apps/portal/scripts/
 
-# Fails the layer when npm skipped Next's compiler (see apps/portal/Dockerfile),
-# so a new node_modules volume is never filled from an install without it
-RUN npm ci \
-  && node -e "require('@next/swc-linux-' + process.arch + '-musl')"
+# Fails the layer when npm left out an optional package (see
+# apps/portal/Dockerfile), so a new node_modules volume is never filled from
+# an install without one
+RUN npm ci && node apps/portal/scripts/check-optional-packages.mjs
 
 # Copy source code (will be overridden by volume mount in dev mode)
 COPY --chown=node:node . .
