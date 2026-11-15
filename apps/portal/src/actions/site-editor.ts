@@ -27,7 +27,13 @@ import { dismissHelpRequest, sendHelpRequest, type HelpRequestView } from "@/lib
  * Refusals come back as { error } so their text survives a production build.
  */
 
-type Result<T> = ({ success: true } & T) | { error: string; issues?: Array<{ address?: string; message: string }> };
+type Refusal = {
+  error: string;
+  issues?: Array<{ address?: string; message: string }>;
+  /** Set when the refusal is that someone else is editing the site (PRD D64): who. */
+  heldBy?: string;
+};
+type Result<T> = ({ success: true } & T) | Refusal;
 
 async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolContext & { userId: string; email: string; actAsId: string | null }> {
   const session = await requireAuth();
@@ -37,8 +43,10 @@ async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolCont
   return { accountId, userId: session.user.id, email: session.user.email, source, actAsId: session.actingAs?.id ?? null };
 }
 
-function failure(err: unknown): { error: string; issues?: Array<{ address?: string; message: string }> } {
-  if (err instanceof ToolError) return { error: err.message, issues: err.issues?.map((i) => ({ address: i.address, message: i.message })) };
+function failure(err: unknown): Refusal {
+  if (err instanceof ToolError) {
+    return { error: err.message, issues: err.issues?.map((i) => ({ address: i.address, message: i.message })), ...(err.heldBy ? { heldBy: err.heldBy } : {}) };
+  }
   if (err instanceof QuickEditError) return { error: err.message };
   console.error(JSON.stringify({ event: "site_editor_error", message: (err as Error).message }));
   return { error: "Something went wrong. Try again in a moment." };
@@ -134,7 +142,7 @@ export async function getSitePreviewState(siteId: string): Promise<Result<Awaite
 export async function discardPendingChange(changeSetId: string): Promise<Result<object>> {
   try {
     const ctx = await context();
-    await discardChange(ctx.accountId, String(changeSetId));
+    await discardChange(ctx, String(changeSetId));
     revalidatePath("/quick-edit");
     return { success: true };
   } catch (err) {

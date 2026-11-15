@@ -1,6 +1,6 @@
 # Epic 54: One editor at a time
 
-**Status:** Approved (Michael, 2026-11-14). In progress: 4.1 built, unreleased (section 6).
+**Status:** Approved (Michael, 2026-11-14). In progress: 4.1 and 4.2 built, unreleased; 4.3 is next, a section at a time with Michael (section 6).
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 53 (people on an account)
 **Successor:** the Client 3 site's claim links (ROADMAP "The MVP")
@@ -92,3 +92,4 @@ Built a section at a time, each proposed to Michael and checked by him on `local
 ## 6. Progress
 
 - 2026-11-14: 4.1 built. The partial index is migration `one_pending_change_per_site`; `recordPublish` in `src/lib/site-tools/index.ts` is the publish's record. Tests in `site-tools.db.test.ts`: two first writes at once, Publish pressed twice, a refusal that arrives after an edit, and an edit saved during a publish.
+- 2026-11-14: 4.2 built. `SiteHold` is migration `site_holds`; `src/lib/site-tools/hold.ts` holds the rules, and `requireHold` in `index.ts` is the check each write starts with. `sendQuickEdit` and the other Editor actions answer a refusal with `heldBy`, which 4.3's pages read. Until 4.3, nothing keeps a hold between writes, so it lasts 90 seconds past a person's last save, message, publish, or discard: a second person's write inside that window is refused, and shows as the error each surface already shows. Tests: "one person edits at a time" in `site-tools.db.test.ts`, and sign-out in `auth.db.test.ts`.
