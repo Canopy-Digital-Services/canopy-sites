@@ -21,7 +21,7 @@ Phase 4  Production on nginx          [webber]             E36                  
 Phase 5  Toro Z migration             [toroz]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36; Hair & Harvest is E46)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
-Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
+Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51 → E52            (after the MVP: Gallery, Events, Booking)
 ```
 
@@ -35,16 +35,19 @@ Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friend
 
 1. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
 2. **E47, tool layer fixes** (F1 to F5).
-3. **E48, deploys and checks** (F25, F27, F28, F29).
-4. **E49, alerting and records** (F26, F31).
-5. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-6. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-7. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-8. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
-9. **E46, Hair & Harvest onto Sites**, then its claim.
-10. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the VETS site's claim links go out.
+4. **E48, deploys and checks** (F25, F27, F28, F29).
+5. **E49, alerting and records** (F26, F31).
+6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+10. **E46, Hair & Harvest onto Sites**, then its claim.
+11. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
 
-**Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). Item 10's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
+**Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The VETS item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
+
+**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out.
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
@@ -377,6 +380,25 @@ Goal: a draft and a publish hold up when two things happen at once, and a guide 
 - F1 to F5, each landing with the test that fails without it. F2 to F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
 
+### E53 · People on an account
+
+Goal: an organization's several people each sign in as themselves on the site's one account (PRD D63). Epic doc: `docs/epics/epic-53-people-on-an-account.md`.
+
+- A name per person, typed by the operator at Link a site and when adding a person, shown wherever the portal names someone to other people
+- The operator's site page lists the account's people in place of its one owner: add a person, a claim link for anyone who hasn't claimed (copied or emailed), remove a person
+- No owner-side screen: an owner inviting their own people is after v1
+- Acceptance: a second person is added to a site's account, claims, edits, and publishes as themselves; a removed person is signed out and can't sign in
+
+### E54 · One editor at a time
+
+Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
+
+- Groundwork: F2 and F4, so a draft and a publish hold up when two writes land together
+- The hold: one row per site, taken and kept by every write and by the editing pages, enforced in the tool layer with a database test per guard
+- The pages: who is editing in place of the chat and the canvas, the preview page viewable with Publish held back, Discard held back in the Sites chrome, each opening up when the hold frees. Built and checked with Michael a section at a time
+- The handoff: a page that takes the hold reloads the site first, a field left open keeps its text, edits a save couldn't send are dropped once the site has moved, and the draft and the published list say whose changes they are
+- Acceptance: with two people signed in, the second can't save, send a Quick Edit message, publish, or discard while the first is editing, and can ten minutes after the first goes quiet or a minute and a half after they leave; one person's laptop and phone never refuse each other
+
 ### E48 · Deploys and checks
 
 Goal: a release that fails to start leaves the one before it serving, and a change is checked by something other than the session that wrote it.
@@ -433,7 +455,7 @@ PRD D55. Open for the epic doc: where a bookable service's length lives (the con
 - An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
-- Invite flow and member roles UI (Membership exists from E28)
+- An owner inviting their own people, member roles such as who may publish, and asking another person for control of the site (PRD D63, D64)
 - Creating a site's repo, DNS, Umami website, or hostname link from the portal (the operator links a live site, E38)
 - Stripe or FreshBooks sync
 - SEO/report tier tooling
