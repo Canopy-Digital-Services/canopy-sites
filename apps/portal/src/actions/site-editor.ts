@@ -11,6 +11,7 @@ import {
   discardChange,
   getEditorChanges,
   getPreviewState,
+  getSiteMarker,
   keepSiteHold,
   otherEditor,
   publishChange,
@@ -175,7 +176,17 @@ export async function discardPendingChange(changeSetId: string): Promise<Result<
 export async function saveCanvasEdits(input: {
   siteId: string;
   edits: Array<{ address: string; value: string | null }>;
-}): Promise<Result<{ changeSetId: string | null; version: number; buildError: string | null; changes: FieldChange[]; warnings: AvoidWarning[] }>> {
+}): Promise<
+  Result<{
+    changeSetId: string | null;
+    version: number;
+    buildError: string | null;
+    changes: FieldChange[];
+    warnings: AvoidWarning[];
+    /** Where the site stands after this save (PRD D64): the page adopts it as its own doing. */
+    marker: string;
+  }>
+> {
   try {
     const ctx = await context("EDITOR");
     const edits = Array.isArray(input.edits) ? input.edits.slice(0, 20) : [];
@@ -192,6 +203,7 @@ export async function saveCanvasEdits(input: {
       buildError: result.buildError,
       changes: result.changes,
       warnings: result.warnings,
+      marker: await getSiteMarker(ctx.accountId),
     };
   } catch (err) {
     return failure(err);

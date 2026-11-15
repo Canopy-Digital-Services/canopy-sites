@@ -24,9 +24,24 @@ type Hold = {
    * has it. A write needs no call: the tool layer takes the site for it.
    */
   begin: () => void;
+  /** Where the site stood at this page's last word of it (the tool layer's marker). */
+  marker: () => string;
+  /** This page's own write moved the site to here. */
+  wrote: (marker: string) => void;
 };
 
-const HoldContext = createContext<Hold>({ by: null, hasDraft: false, epoch: 0, heldBy: () => {}, begin: () => {} });
+/** Fired just before an editing surface mounts again because the site moved under it, so it can say what it was holding. */
+export const SITE_MOVED = "canopy:site-moved";
+
+const HoldContext = createContext<Hold>({
+  by: null,
+  hasDraft: false,
+  epoch: 0,
+  heldBy: () => {},
+  begin: () => {},
+  marker: () => "",
+  wrote: () => {},
+});
 
 /** Who has the site, on an editing page. Outside one, nobody else does. */
 export const useSiteHold = () => useContext(HoldContext);
@@ -89,6 +104,8 @@ export function SiteHoldProvider({
         if (result.by !== null) {
           p.by = result.by;
           p.mine = false;
+          // Whatever they change from here is theirs, not this browser's.
+          p.ownAt = 0;
           setBy(result.by);
           continue;
         }
@@ -97,9 +114,11 @@ export function SiteHoldProvider({
         // their own until an answer asked for after it comes back.
         const own = p.ownAt > 0;
         if (own && startedAt >= p.ownAt) p.ownAt = 0;
-        // The site was someone else's until now, or moved without this page: show it as it
-        // is, never as this page last saw it.
-        if (reload && (p.by !== null || (result.marker !== p.marker && !own))) {
+        // The site moved without this page (someone else edited, here or while it wasn't
+        // looking): show it as it is, never as this page last saw it. A person who had the
+        // site and changed nothing leaves this page as it was, an open field included.
+        if (reload && result.marker !== p.marker && !own) {
+          window.dispatchEvent(new Event(SITE_MOVED));
           router.refresh();
           setEpoch((e) => e + 1);
         }
@@ -179,7 +198,15 @@ export function SiteHoldProvider({
     void ask();
   }, [ask]);
 
-  const value = useMemo(() => ({ by, hasDraft, epoch, heldBy, begin }), [by, hasDraft, epoch, heldBy, begin]);
+  const marker = useCallback(() => page.current.marker, []);
+  const wrote = useCallback((to: string) => {
+    page.current.marker = to;
+  }, []);
+
+  const value = useMemo(
+    () => ({ by, hasDraft, epoch, heldBy, begin, marker, wrote }),
+    [by, hasDraft, epoch, heldBy, begin, marker, wrote],
+  );
   return <HoldContext.Provider value={value}>{children}</HoldContext.Provider>;
 }
 
