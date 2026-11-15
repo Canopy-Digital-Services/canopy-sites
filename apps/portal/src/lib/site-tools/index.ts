@@ -153,6 +153,49 @@ export async function holdSite(ctx: ToolContext): Promise<void> {
   await requireHold((await siteFor(ctx.accountId)).id, ctx);
 }
 
+/** What an editing page needs to know about who has the site (PRD D64). */
+export interface SiteEditing {
+  /** Who else is editing, as the account's people know them; null when nobody is, or the viewer is. */
+  by: string | null;
+  /** Where the draft and the published list stand: a page compares it to tell that the site moved while it wasn't holding it. */
+  marker: string;
+  hasDraft: boolean;
+}
+
+async function siteStanding(siteId: string): Promise<Pick<SiteEditing, "marker" | "hasDraft">> {
+  const [last, pending] = await Promise.all([
+    prisma.changeSet.findFirst({ where: { siteId }, orderBy: { updatedAt: "desc" }, select: { id: true, version: true, status: true } }),
+    prisma.changeSet.count({ where: { siteId, status: { in: [...PENDING] } } }),
+  ]);
+  // A preview finishing (DRAFT to PREVIEWED) changes nothing a page shows as content.
+  const state = last && PENDING.includes(last.status as (typeof PENDING)[number]) ? "PENDING" : last?.status;
+  return { marker: last ? `${last.id}:${last.version}:${state}` : "", hasDraft: pending > 0 };
+}
+
+/**
+ * Who has the account's site, for an editing page as it renders. Takes
+ * nothing: looking at a page never holds a site, so a prefetch or a reload
+ * can't lock anyone out. Null for an account without a site.
+ */
+export async function getSiteEditing(accountId: string, userId: string): Promise<SiteEditing | null> {
+  const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
+  if (!site) return null;
+  const [holder, standing] = await Promise.all([currentHold(site.id), siteStanding(site.id)]);
+  return { by: holder && holder.userId !== userId ? holder.by : null, ...standing };
+}
+
+/**
+ * An editing page keeping the site for its person between writes (PRD D64):
+ * takes or keeps the hold, and answers with who else has it when that fails.
+ * `fresh` is a hold taken just now instead of kept, which with a marker that
+ * moved means someone else edited in between.
+ */
+export async function keepSiteHold(ctx: ToolContext & { userId: string }): Promise<SiteEditing & { fresh: boolean }> {
+  const site = await siteFor(ctx.accountId);
+  const [hold, standing] = await Promise.all([takeHold(site.id, ctx.userId), siteStanding(site.id)]);
+  return hold.held ? { by: null, fresh: hold.fresh, ...standing } : { by: hold.by, fresh: false, ...standing };
+}
+
 const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
   slug: site.slug,
   repoUrl: site.repoUrl ?? "",

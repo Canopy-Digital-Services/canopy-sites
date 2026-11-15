@@ -2,10 +2,10 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
-import { getCurrentAccountId } from "@/lib/auth-utils";
+import { getCurrentAccountId, requireAuth } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
-import { getContentView, getEditorChanges, ToolError } from "@/lib/site-tools";
+import { getContentView, getEditorChanges, getSiteEditing, ToolError } from "@/lib/site-tools";
 import { listOwnHelpRequests } from "@/lib/site-tools/help-requests";
 import { exampleRequests } from "@/lib/quick-edit/examples";
 import { liveSite, liveUrl as liveAddress } from "@/lib/site-live";
@@ -13,12 +13,14 @@ import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
 import { EmptyState } from "@/components/patterns/empty-state";
 import { Button } from "@/components/ui/button";
+import { SiteHoldProvider } from "@/components/sites/site-hold";
 import { QuickEditWorkspace } from "./quick-edit-workspace";
 import { PagesCard, PagesCardSkeleton, type EditorPage } from "./pages-card";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuickEditPage() {
+  const session = await requireAuth();
   const accountId = await getCurrentAccountId();
   const site = await getAccountSite(accountId);
 
@@ -39,7 +41,13 @@ export default async function QuickEditPage() {
   // Where the site is live: /demo for the demo, a client site's production hostname (PRD D47).
   const live = liveSite(site);
   const liveUrl = live ? liveAddress(live, "/").replace(/\/$/, "") : null;
-  const [changes, requests] = await Promise.all([getEditorChanges(accountId), listOwnHelpRequests(accountId)]);
+  const [changes, requests, held] = await Promise.all([
+    getEditorChanges(accountId),
+    listOwnHelpRequests(accountId),
+    // Who has the site as the page renders (PRD D64). Looking takes nothing; the page asks for the site once it's open.
+    getSiteEditing(accountId, session.user.id),
+  ]);
+  const editing = held ?? { by: null, marker: "", hasDraft: false };
   // Not awaited: reading content fetches from GitHub, so the page renders
   // at once and the pages list and the examples stream in.
   const view: Promise<ContentView | Error> = getContentView(accountId).catch((err: unknown) =>
@@ -89,38 +97,40 @@ export default async function QuickEditPage() {
             unoptimized
             className="absolute right-full top-0 mr-6 hidden h-auto w-44 min-[1720px]:block"
           />
-          <QuickEditWorkspace
-            siteId={site.id}
-            examples={examples}
-            pagesCard={
-              <Suspense fallback={<PagesCardSkeleton />}>
-                <PagesCard pages={pages} liveUrl={liveUrl} />
-              </Suspense>
-            }
-            pending={
-              changes.pending
-                ? {
-                    id: changes.pending.id,
-                    summary: changes.pending.summary,
-                    status: changes.pending.status,
-                    error: changes.pending.error,
-                  }
-                : null
-            }
-            recent={changes.recent.map((c) => ({
-              id: c.id,
-              summary: c.summary,
-              publishedAt: c.publishedAt?.toISOString() ?? null,
-              by: c.by,
-            }))}
-            requests={requests.map((r) => ({
-              id: r.id,
-              summary: r.summary,
-              status: r.status as "OPEN" | "DONE" | "DECLINED",
-              sentAt: r.sentAt?.toISOString() ?? null,
-              note: r.note,
-            }))}
-          />
+          <SiteHoldProvider initial={editing}>
+            <QuickEditWorkspace
+              siteId={site.id}
+              examples={examples}
+              pagesCard={
+                <Suspense fallback={<PagesCardSkeleton />}>
+                  <PagesCard pages={pages} liveUrl={liveUrl} />
+                </Suspense>
+              }
+              pending={
+                changes.pending
+                  ? {
+                      id: changes.pending.id,
+                      summary: changes.pending.summary,
+                      status: changes.pending.status,
+                      error: changes.pending.error,
+                    }
+                  : null
+              }
+              recent={changes.recent.map((c) => ({
+                id: c.id,
+                summary: c.summary,
+                publishedAt: c.publishedAt?.toISOString() ?? null,
+                by: c.by,
+              }))}
+              requests={requests.map((r) => ({
+                id: r.id,
+                summary: r.summary,
+                status: r.status as "OPEN" | "DONE" | "DECLINED",
+                sentAt: r.sentAt?.toISOString() ?? null,
+                note: r.note,
+              }))}
+            />
+          </SiteHoldProvider>
         </div>
       </div>
     </PageContent>

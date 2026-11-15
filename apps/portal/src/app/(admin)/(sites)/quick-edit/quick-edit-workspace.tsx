@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
+import { SiteHeldNotice, useSiteHold } from "@/components/sites/site-hold";
 import { LocalTime } from "@/components/local-time";
 
 type Pending = { id: string; summary: string; status: string; error: string | null };
@@ -35,11 +36,19 @@ export function QuickEditWorkspace({
   /** What the owner sent Canopy (PRD D34), newest first. */
   requests: SentRequest[];
 }) {
+  // While someone else is editing (PRD D64), who it is stands where the chat would be, and the
+  // draft, which is theirs to preview and discard, is offered only as a Preview beside their name.
+  const hold = useSiteHold();
+  const previewHref = `/preview/${siteId}`;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <QuickEdit examples={examples} previewHref={`/preview/${siteId}`} pendingId={pending?.id ?? null} />
+      {hold.by ? (
+        <SiteHeldNotice by={hold.by} previewHref={hold.hasDraft ? previewHref : undefined} />
+      ) : (
+        <QuickEdit key={hold.epoch} examples={examples} previewHref={previewHref} pendingId={pending?.id ?? null} />
+      )}
       <div className="space-y-6">
-        {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
+        {pending && !hold.by ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
         {pagesCard}
         <RecentChanges recent={recent} />
@@ -59,6 +68,7 @@ function QuickEdit({
   pendingId: string | null;
 }) {
   const router = useRouter();
+  const { heldBy } = useSiteHold();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -83,6 +93,7 @@ function QuickEdit({
       const result = await sendQuickEdit({ conversationId, message });
       if ("error" in result) {
         setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.error }]);
+        if (result.heldBy) heldBy(result.heldBy);
         return;
       }
       setConversationId(result.conversationId);
@@ -226,6 +237,7 @@ function StatusLine({ status, error }: { status: string; error: string | null })
 /** The draft, with Preview (a new tab, where Publish lives, PRD D47) and Discard. */
 function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }) {
   const router = useRouter();
+  const { heldBy } = useSiteHold();
   const [state, setState] = useState({ status: pending.status, error: pending.error });
   const [isPending, startTransition] = useTransition();
 
@@ -264,7 +276,10 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
           onClick={() =>
             startTransition(async () => {
               const result = await discardPendingChange(pending.id);
-              if ("error" in result) toast.error(result.error);
+              if ("error" in result) {
+                toast.error(result.error);
+                if (result.heldBy) heldBy(result.heldBy);
+              }
               router.refresh();
             })
           }
