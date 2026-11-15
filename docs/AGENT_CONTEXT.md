@@ -190,6 +190,7 @@ Rules:
 - **Never** modify or delete a migration under `prisma/migrations/`. Deployed databases have already applied them. The one historical exception, the `0_baseline` squash at v4.6.0, is done and not a precedent.
 - Multiple related schema changes in one session get one migration per logical change, each independently safe to apply.
 - If `prisma migrate dev` fails on the shadow DB, fall back to `prisma migrate deploy`, or write the SQL by hand and mark it with `prisma migrate resolve --applied <name>`.
+- **Dropping a column takes two production releases.** Prisma names every column the schema declares, whatever the code reads: in every query without a `select` (an `include` and the row an `update` returns count), and in every `create`, which inserts a field's `@default` by name. A container whose schema still declares a dropped column fails all of those with `P2022`, and a rollback to that release does too. The first release stops using the field and marks it `@ignore`, with a `///` note giving the date it retired: that leaves the table alone, so it has no migration, and the build fails on any code still using the field. The drop (the field's removal with its migration) goes in a later release, once `main`'s schema carries the `@ignore`. A global `omit` on the client is no substitute, since creates still insert the column (all of this tested 2026-11-14 on Prisma 7.3.0, against a copy of the schema with `sites."timeZone"` dropped). No insert names an ignored column, so a required one needs a database default before it is ignored.
 
 ### Embed changes
 
@@ -333,7 +334,7 @@ After completing an epic or cutting a release, in order:
 3. `docs/epics/epic-N-name.md`: completion report.
 4. `docs/epics/README.md`: table row with version, date, link.
 5. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
-6. `prisma/schema.prisma`: a column documented as "Dropped by a migration in the next production release" is retired and no longer read. Before the release PR, remove it with its migration (section 5), so a running container never loses a column its code still selects.
+6. `prisma/schema.prisma`: a field marked `@ignore` is a retired column. Before the release PR, remove each one that `main`'s schema already marks `@ignore` (`git show origin/main:apps/portal/prisma/schema.prisma`), with its migration. One that this release is the first to ignore waits for the next (section 5, dropping a column).
 
 If a future change adds another file holding version-specific information, add it to this list at the same time.
 
