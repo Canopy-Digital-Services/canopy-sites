@@ -302,6 +302,8 @@ node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXT_PUBLIC_APP_URL:
 
 **Works locally but fails on forms-dev or forms.canopyds.com: suspect infrastructure first, and fix it in Coolify config rather than in code.** Usual causes: wrong `Host` header from the proxy, `NEXTAUTH_URL` not matching the public URL, `NEXT_PUBLIC_APP_URL` missing or wrong at build time, or env vars visible in the Coolify UI but not reaching the Node process.
 
+**A deploy that fails in `next build` with `@next/swc-linux-x64-musl ... was not installed`, then `__dirname is not defined in ES module scope`,** was built on an `npm ci` layer that skipped that optional package. npm does not fail on a skipped optional package, so the layer is cached as good, and a plain redeploy reuses it and fails the same way. Redeploy without the cache: `POST /api/v1/deploy?uuid=<app uuid>&force=true` (the Coolify runbook named in `CLAUDE.md`). The old container serves throughout. Seen 2026-11-15 on the dev app, on the first build after `apps/portal/package.json` changed: its `added N packages` line was one short of a clean install's, and why the package was skipped was not established.
+
 Migration failures and `P2022` in production: the migration did not run. Confirm the file exists under `prisma/migrations/` and that `start.sh` runs before `node server.js`. Troubleshooting details in `docs/PRISMA_MIGRATIONS.md`.
 
 Embed change not appearing: browser cache, or `npm run embed:build` was never run and `public/embed.js` is stale. Embed 403s: check `form.allowedOrigins`, or test from localhost.
