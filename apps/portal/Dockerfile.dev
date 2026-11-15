@@ -47,14 +47,22 @@ EXPOSE 3000
 # verification inside the dev container.
 
 # Entrypoint. Dependencies are installed only when the node_modules volume has
-# no next. The Prisma client is generated on every start, so it follows
-# prisma/schema.prisma and a restart is all a schema change needs; a schema
-# that does not generate still lets the server start.
+# no next. An install that failed, or that npm finished without an optional
+# package, stops the container, and next's bin comes back out so the next
+# start installs again: that install leaves the bin in place, and compose
+# restarts a stopped container, which would otherwise skip the install and
+# serve from that volume. The Prisma client is generated on every start, so it
+# follows prisma/schema.prisma and a restart is all a schema change needs; a
+# schema that does not generate still lets the server start.
 COPY --chmod=755 <<'EOF' /entrypoint.sh
 #!/bin/sh
 if [ ! -f /app/node_modules/.bin/next ]; then
   echo "Installing dependencies..."
-  (cd /app && npm ci)
+  if ! (cd /app && npm ci && node apps/portal/scripts/check-optional-packages.mjs); then
+    rm -f /app/node_modules/.bin/next
+    echo "The install did not complete. The next start runs it again."
+    exit 1
+  fi
   npm run embed:build
 fi
 npm run db:generate

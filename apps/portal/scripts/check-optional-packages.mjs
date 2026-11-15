@@ -1,5 +1,7 @@
 // Fails when `npm ci` left out an optional package this machine should have.
-// The Dockerfiles run it in the same RUN as `npm ci`.
+// Every `npm ci` in a container is followed by it: the Dockerfiles' RUN, the
+// entrypoint in Dockerfile.dev, and the dependency recipe in
+// docs/tools/docker.md.
 //
 // npm skips an optional package that fails to install, whatever the reason (a
 // download that failed as much as a wrong platform), and exits 0. Every binary
@@ -7,6 +9,8 @@
 // lightningcss, esbuild, sharp. An install without one is a layer Docker
 // caches as good, so whatever fails for the lack of it fails again on every
 // retry. A layer whose RUN failed is not cached, and the retry installs again.
+// The dev stack's node_modules volume keeps such an install the same way:
+// nothing installs into a volume that has next.
 
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -68,7 +72,7 @@ if (missing.length > 0) {
   );
   for (const location of missing) console.error(`  ${location}`);
   console.error(
-    "npm exits 0 when an optional package fails to install. Run the build again: this step is not cached, so it installs again.",
+    "npm exits 0 when an optional package fails to install. Install again. In an image build this step is not cached, so building again does.",
   );
   process.exit(1);
 }
