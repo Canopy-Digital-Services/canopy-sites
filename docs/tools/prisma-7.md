@@ -1,12 +1,11 @@
-# Prisma 7.3 Documentation
+# Prisma 7
 
-**Last Updated:** January 2025  
-**Current Version:** 7.3.0  
+**Installed version:** `prisma`, `@prisma/client`, and `@prisma/adapter-pg` in `apps/portal/package.json`, resolved in the root `package-lock.json` (7.3.0 as of 2026-11-14).  
 **Official Docs:** https://www.prisma.io/docs
 
 ## Overview
 
-Prisma 7 is a major rewrite of Prisma ORM, moving from a Rust-based architecture to pure TypeScript. This results in faster queries, 90% smaller bundle sizes, and simplified deployment. Version 7.3.0 (released January 21, 2025) introduces new query compiler optimization options.
+Prisma 7 is a major rewrite of Prisma ORM, moving from a Rust-based architecture to pure TypeScript. This results in faster queries, 90% smaller bundle sizes, and simplified deployment. Version 7.3.0 introduces new query compiler optimization options.
 
 ## Critical Changes from Prisma 6
 
@@ -43,6 +42,8 @@ generator client {
   compilerBuild = "fast"  // Optional: "fast" (default) or "small"
 }
 ```
+
+**This repo has not switched generators.** `apps/portal/prisma/schema.prisma` keeps `provider = "prisma-client-js"` with no `output`, which Prisma 7.3.0 still accepts: the client generates into `node_modules/.prisma/client` and every import is from `@prisma/client` (verified 2026-11-14). Do not paste the block above into the schema: switching generators moves the client and breaks those imports.
 
 ### Datasource Block (Breaking Change)
 
@@ -82,24 +83,7 @@ Use `small` for serverless deployments with size constraints. Use `fast` for app
 
 ## Configuration File: prisma.config.ts
 
-Prisma 7 introduces a separate configuration file for database connections:
-
-```typescript
-// prisma/prisma.config.ts
-import { defineConfig } from "prisma";
-
-export default defineConfig({
-  datasource: {
-    databaseUrl: process.env.DATABASE_URL,
-    // Optional: directUrl, shadowDatabaseUrl
-  },
-});
-```
-
-**Key Points:**
-- Created automatically when running `prisma init`
-- Database URLs are configured here, not in schema
-- Supports environment variables and direct configuration
+The database URL and the seed command live in `apps/portal/prisma.config.ts`, not in the schema or `package.json`. It calls `defineConfig` from `prisma/config` with `schema`, `migrations.seed`, and `datasource.url`. The only other datasource key Prisma 7.3.0 accepts is `shadowDatabaseUrl`: there is no `databaseUrl` or `directUrl`. What fails when the file is missing is in `docs/PRISMA_MIGRATIONS.md`.
 
 ## Database Adapters (Required)
 
@@ -179,7 +163,7 @@ import { PrismaClient } from './generated/prisma';
 import { PrismaClient } from '../generated/prisma';  // depending on file location
 ```
 
-**Note:** The project may still use `@prisma/client` if using `prisma-client-js` (deprecated), but migration to `prisma-client` requires updating imports.
+**Note:** This repo is on `prisma-client-js` (see Generator Block above), so its imports stay `@prisma/client`. A move to `prisma-client` means updating every one.
 
 ## New Features in 7.3.0
 
@@ -192,7 +176,7 @@ Raw queries (`$executeRaw`, `$queryRaw`) now bypass the Query Compiler for impro
 await prisma.$executeRaw`SELECT * FROM users WHERE id = ${userId}`;
 ```
 
-No code changes needed—performance improvement is automatic.
+No code changes needed: the performance improvement is automatic.
 
 ## Migration Checklist
 
@@ -281,7 +265,7 @@ The `--to-schema-datamodel` and `--from-schema-datamodel` flags were renamed:
 | `--to-schema-datamodel` | `--to-schema` |
 | `--from-schema-datamodel` | `--from-schema` |
 
-Example — generating baseline SQL from current schema:
+Example, generating baseline SQL from the current schema:
 ```bash
 # Old (Prisma 6):
 npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script
@@ -294,16 +278,8 @@ npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script
 
 ## Project-Specific Notes
 
-This project (Canopy Forms) currently:
-- ✅ Uses Prisma 7.3.0
-- ✅ Has `prisma.config.ts` with datasource URL and seed config
-- ✅ Uses `@prisma/adapter-pg` with connection pool
-- ⚠️ Still uses `prisma-client-js` in schema (deprecated but functional)
-- ✅ Implements global PrismaClient pattern correctly
-- ⚠️ DATABASE_URL is only defined in Docker container environment
-- ✅ Migrations squashed into single `0_baseline` — shadow database works
-- ✅ `prisma migrate dev` works inside the container
-- ⚠️ A query without `select` names every column the schema declares, and a `create` inserts every `@default`. Retiring or dropping a column follows `docs/AGENT_CONTEXT.md` section 5 ("Dropping a column takes two production releases").
+- The client is created once in `apps/portal/src/lib/db.ts`: a `pg` pool, the `@prisma/adapter-pg` adapter, and one `PrismaClient` kept on `globalThis` outside production.
+- A query without `select` names every column the schema declares, and a `create` inserts every `@default`. Retiring or dropping a column follows `docs/AGENT_CONTEXT.md` section 5 ("Dropping a column takes two production releases").
 
 ### Migration Workflow for This Project
 
@@ -313,7 +289,7 @@ All migration commands run **inside the Docker container** (DATABASE_URL is only
 
 ```bash
 # 1. Edit schema
-#    prisma/schema.prisma
+#    apps/portal/prisma/schema.prisma
 
 # 2. Create migration inside the container
 docker exec canopy-portal npx prisma migrate dev --name your_migration_name
@@ -331,42 +307,44 @@ docker restart canopy-portal
 #### Manual SQL Migration (Alternative / Production)
 
 ```bash
+# Host paths below are from the repo root; `docker exec canopy-portal` runs in apps/portal.
+
 # 1. Create migration directory
-mkdir -p prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
+mkdir -p apps/portal/prisma/migrations/$(date +%Y%m%d%H%M%S)_your_migration_name
 
 # 2. Write migration SQL in migration.sql
 
 # 3. Apply SQL directly to database
-docker.exe exec -i canopy-portal-db psql -U user -d canopy-forms < prisma/migrations/MIGRATION_DIR/migration.sql
+docker exec -i canopy-portal-db psql -U user -d canopy-forms < apps/portal/prisma/migrations/MIGRATION_DIR/migration.sql
 
 # 4. Mark as applied in Prisma's tracking table
-docker.exe exec canopy-portal npx prisma migrate resolve --applied MIGRATION_DIR_NAME
+docker exec canopy-portal npx prisma migrate resolve --applied MIGRATION_DIR_NAME
 
 # 5. Regenerate Prisma client
-docker.exe exec canopy-portal npx prisma generate
+docker exec canopy-portal npx prisma generate
 
 # 6. Restart dev server to pick up regenerated client
-docker.exe restart canopy-portal
+docker restart canopy-portal
 ```
 
 #### Docker File Permissions Gotcha (WSL2)
 
-Files created by `prisma migrate dev` inside the container are owned by the container's user (root). From the WSL2 host, you **cannot delete** these files directly — `rm` will fail with permission denied.
+Files created by `prisma migrate dev` inside the container are owned by the container's user (root). From the WSL2 host, you **cannot delete** these files directly: `rm` will fail with permission denied.
 
 To remove container-created files:
 ```bash
-# ✅ Works — delete from inside the container
-docker.exe exec canopy-portal rm -rf prisma/migrations/20260220_test_migration
+# ✅ Works: delete from inside the container
+docker exec canopy-portal rm -rf prisma/migrations/20260220_test_migration
 
-# ❌ Fails — host user doesn't own the files
-rm -rf prisma/migrations/20260220_test_migration
+# ❌ Fails: host user doesn't own the files
+rm -rf apps/portal/prisma/migrations/20260220_test_migration
 ```
 
-This applies to any files created by `docker exec` commands, not just migrations. A common case is `.next/` — if a production build was previously run inside the container, `.next/` is root-owned and `rm -rf .next` from the WSL2 host will fail with "Permission denied". Always run builds inside the container:
+This applies to any files created by `docker exec` commands, not just migrations. A common case is `apps/portal/.next/`: if a production build was previously run inside the container, it is root-owned and `rm -rf apps/portal/.next` from the WSL2 host will fail with "Permission denied". Always run builds inside the container:
 
 ```bash
 # ✅ Run the build inside the container (clears its own .next output before writing)
-docker.exe exec -e NODE_ENV=production canopy-portal npm run build
+docker exec -e NODE_ENV=production canopy-portal npm run build
 
 # ❌ Running on the host fails if .next/ was container-built
 npm run build
@@ -375,30 +353,24 @@ npm run build
 #### Database Commands Reference
 
 ```bash
-# After schema changes, rebuild container (regenerates Prisma client):
-docker.exe compose build && docker.exe compose up -d
-
-# Apply schema changes without creating migration files (dev only):
-docker.exe exec canopy-portal npm run db:push
-
 # Seed the database (create admin user):
-docker.exe exec canopy-portal npm run db:seed
+docker exec canopy-portal npm run db:seed
 ```
 
-**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker.exe restart canopy-portal`.
+**Important:** After running `prisma generate` inside a running container, the dev server's hot-reload does NOT pick up the regenerated Prisma client. You must restart the container: `docker restart canopy-portal`.
 
 #### Accessing Database Directly
 
 ```bash
 # Connect to PostgreSQL shell
-docker.exe exec -it canopy-portal-db psql -U user -d canopy-forms
+docker exec -it canopy-portal-db psql -U user -d canopy-forms
 
 # Execute SQL file
-docker.exe exec -i canopy-portal-db psql -U user -d canopy-forms < file.sql
+docker exec -i canopy-portal-db psql -U user -d canopy-forms < file.sql
 
 # View logs
-docker.exe logs canopy-portal -f
-docker.exe logs canopy-portal-db -f
+docker logs canopy-portal -f
+docker logs canopy-portal-db -f
 ```
 
 ## Resources
@@ -408,53 +380,3 @@ docker.exe logs canopy-portal-db -f
 - **Config Reference**: https://www.prisma.io/docs/orm/reference/prisma-config-reference
 - **Connection Management**: https://www.prisma.io/docs/guides/performance-and-optimization/connection-management
 - **Changelog**: https://www.prisma.io/changelog
-
-## Quick Reference
-
-### Commands (This Project — Docker + WSL2)
-
-```bash
-# Create migration from schema changes
-docker.exe exec canopy-portal npx prisma migrate dev --name migration_name
-
-# Regenerate Prisma client (after manual schema edits)
-docker.exe exec canopy-portal npx prisma generate
-
-# Push schema without migration file (dev only, quick iteration)
-docker.exe exec canopy-portal npm run db:push
-
-# Seed database
-docker.exe exec canopy-portal npm run db:seed
-
-# Restart dev server (required after prisma generate)
-docker.exe restart canopy-portal
-
-# Rebuild container from scratch
-docker.exe compose -f docker-compose.dev.yml build && docker.exe compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker.exe logs canopy-portal -f
-```
-
-### Schema Template
-
-```prisma
-generator client {
-  provider = "prisma-client"
-  output = "./generated/prisma"
-  compilerBuild = "fast"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-model Example {
-  id   String @id @default(cuid())
-  name String
-}
-```
-
----
-
-**For AI Agents:** This project uses `prisma-client-js` (deprecated but functional) and imports from `@prisma/client`. The adapter pattern with connection pools is the correct Prisma 7 approach and is already in place. All `docker compose` / `docker exec` commands must use the `docker.exe` prefix (WSL2 environment). After `prisma generate`, restart the container — hot-reload does not pick up regenerated client code.
