@@ -142,12 +142,9 @@ const nextConfig = {
 };
 ```
 
-### 4. Removed `unstable_` Prefixes
+### 4. `unstable_` Prefixes
 
-APIs that were previously `unstable_*` are now stable and the prefix is removed:
-- `unstable_cache` → `cache`
-- `unstable_noStore` → `noStore`
-- etc.
+`cacheLife` and `cacheTag` lost the prefix (`unstable_cacheLife` and `unstable_cacheTag` remain as aliases). `unstable_cache` and `unstable_noStore` keep theirs: `next/cache` exports no `cache` or `noStore` (read from `next/cache.d.ts` in 16.4.5, 2026-11-14).
 
 ## New Features
 
@@ -184,13 +181,13 @@ export default async function ProductsPage() {
 ```typescript
 import { cacheLife, cacheTag } from 'next/cache';
 
-'use cache';
-
 export async function getProduct(id: string) {
+  'use cache'; // a directive: first statement of the function, or of the file
   const product = await fetchProduct(id);
   
-  // Set cache duration
-  cacheLife(3600); // 1 hour
+  // Set cache duration: a profile name ('seconds', 'minutes', 'hours', 'days',
+  // 'weeks', 'max') or { stale, revalidate, expire }, never a bare number
+  cacheLife('hours');
   
   // Tag for invalidation
   cacheTag(`product-${id}`);
@@ -257,7 +254,7 @@ This automatically:
 - Updates `next.config.js`
 - Migrates `middleware.ts` → `proxy.ts`
 - Updates async params/searchParams
-- Removes `unstable_` prefixes
+- Removes the `unstable_` prefix from the APIs that lost it (section 4 above)
 - Updates configuration properties
 
 ### Manual Migration Steps
@@ -284,7 +281,7 @@ This automatically:
 
 7. **Update Config:**
    - Change `experimental.middlewarePrefetch` → `experimental.proxyPrefetch`
-   - Remove `unstable_` prefixes from APIs
+   - Drop the `unstable_` prefix from `cacheLife` and `cacheTag` only (section 4 above)
 
 8. **Remove Turbopack Flags:**
    - Remove `--turbopack` or `--turbo` from package.json scripts
@@ -329,25 +326,7 @@ export async function GET(
 
 ### Server Layout Guard (Auth Pattern)
 
-```typescript
-// app/(admin)/layout.tsx
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await auth();
-  
-  if (!session) {
-    redirect('/login');
-  }
-  
-  return <>{children}</>;
-}
-```
+The reference implementation is `src/app/(admin)/layout.tsx`: the layout awaits `requireAuth()` from `@/lib/auth-utils`, which redirects a signed-out request to `/login`, then `requireHomeHost`. This repo has no `auth()` helper and no `@/lib/auth` module (no auth library, `docs/AGENT_CONTEXT.md` section 1).
 
 ## Performance Improvements
 
@@ -358,12 +337,9 @@ export default async function AdminLayout({
 
 ## Project-Specific Notes
 
-This project (Canopy Forms) currently:
-- ✅ Already using async `params` correctly (awaiting them)
-- ⚠️ `searchParams` may need to be awaited (verify each usage)
-- ✅ Using App Router correctly
-- ✅ Has `next.config.ts` with standalone output for Docker
-- ✅ No custom webpack config (Turbopack works automatically)
+In `apps/portal` as of 2026-11-14:
+- Server pages await `params` and `searchParams`; client pages read the query string with `useSearchParams`.
+- `next.config.ts` sets `output: "standalone"` for the Docker image and has no webpack config, so Turbopack builds it.
 
 ### Upgrading `next` in this repo
 
@@ -420,49 +396,3 @@ export default async function Page({ params }) {
 - **Cache Components**: https://nextjs.org/docs/app/api-reference/directives/use-cache
 - **Turbopack**: https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
 - **Changelog**: https://nextjs.org/blog
-
-## Quick Reference
-
-### Commands
-
-```bash
-# Development (Turbopack, default)
-npm run dev
-
-# Development (Webpack, opt-out)
-next dev --webpack
-
-# Production build (Turbopack, default)
-npm run build
-
-# Production build (Webpack, opt-out)
-next build --webpack
-
-# Upgrade codemod
-npx @next/codemod@canary upgrade latest
-
-# Middleware to proxy migration
-npx @next/codemod@latest middleware-to-proxy .
-```
-
-### Type Definitions
-
-```typescript
-// Page props
-type PageProps = {
-  params: Promise<{ [key: string]: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-};
-
-// Route handler
-type RouteHandler = (
-  request: Request,
-  context: { params: Promise<{ [key: string]: string }> }
-) => Promise<Response>;
-
-// Proxy: (request: NextRequest) => NextResponse | Response | void, sync or async
-```
-
----
-
-**For AI Agents:** If you encounter code using synchronous `params`/`searchParams`, `middleware.ts`, or `unstable_` prefixed APIs, these are outdated patterns from Next.js 15. Update to async patterns and use `proxy.ts` instead of `middleware.ts`. Turbopack is now default—no configuration needed unless opting out.
