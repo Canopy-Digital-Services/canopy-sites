@@ -101,7 +101,9 @@ model User {
   actingAs              ActAs[]
   sessions              Session[]
   sessionHandoffs       SessionHandoff[]
-  changeSets            ChangeSet[]
+  changeSets            ChangeSet[]      @relation("ChangeSetCreator")
+  changeSetsEdited      ChangeSet[]      @relation("ChangeSetEditor")
+  changeSetsPublished   ChangeSet[]      @relation("ChangeSetPublisher")
   conversations         Conversation[]
   siteHolds             SiteHold[]
   helpRequestsSent      HelpRequest[]    @relation("HelpRequestSender")
@@ -216,6 +218,10 @@ model ChangeSet {
   siteId          String
   source          ChangeSetSource
   createdByUserId String?
+  // A draft passes from one person to the next (PRD D64), so who last
+  // changed it and who published it are not whoever started it.
+  updatedByUserId   String?
+  publishedByUserId String?
   conversationId  String?
   summary         String
   ops             Json
@@ -229,7 +235,9 @@ model ChangeSet {
   updatedAt       DateTime        @updatedAt
 
   site         Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  createdBy    User?         @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("ChangeSetCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy    User?         @relation("ChangeSetEditor", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  publishedBy  User?         @relation("ChangeSetPublisher", fields: [publishedByUserId], references: [id], onDelete: SetNull)
   conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   builds       Build[]
 

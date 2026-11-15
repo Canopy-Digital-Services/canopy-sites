@@ -41,3 +41,8 @@ export function isActivityMessage(data: unknown): boolean {
 export function editingNotice(by: string): string {
   return `${by} is currently making edits`;
 }
+
+/** What a draft is called to someone who didn't make its last change. */
+export function theirChanges(by: string): string {
+  return `${by}'s unpublished changes`;
+}

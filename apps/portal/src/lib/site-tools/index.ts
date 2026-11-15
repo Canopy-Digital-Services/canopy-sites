@@ -292,7 +292,7 @@ async function pendingChange(siteId: string) {
   return prisma.changeSet.findFirst({
     where: { siteId, status: { in: [...PENDING] } },
     orderBy: { createdAt: "desc" },
-    include: { builds: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { builds: { orderBy: { createdAt: "desc" }, take: 1 }, updatedBy: { select: { id: true, name: true, email: true } } },
   });
 }
 type Pending = NonNullable<Awaited<ReturnType<typeof pendingChange>>>;
@@ -585,14 +585,33 @@ async function writeDraftOnce(site: ToolSite, ctx: ToolContext, read: SiteRead, 
       if (pending) {
         const saved = await tx.changeSet.updateMany({
           where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
-          data: { ops, version, summary, status: "DRAFT", error: null, ...(conversationId && !pending.conversationId ? { conversationId } : {}) },
+          data: {
+            ops,
+            version,
+            summary,
+            status: "DRAFT",
+            error: null,
+            // The draft is whoever last changed it's to finish (PRD D64).
+            ...(ctx.userId ? { updatedByUserId: ctx.userId } : {}),
+            ...(conversationId && !pending.conversationId ? { conversationId } : {}),
+          },
         });
         if (saved.count === 0) throw new WriteRace();
         await supersedeBuilds(tx, pending.id);
         changeSetId = pending.id;
       } else {
         const created = await tx.changeSet.create({
-          data: { siteId: site.id, source: ctx.source, createdByUserId: ctx.userId, conversationId, summary, ops, baseCommit: read.commit, version },
+          data: {
+            siteId: site.id,
+            source: ctx.source,
+            createdByUserId: ctx.userId,
+            updatedByUserId: ctx.userId,
+            conversationId,
+            summary,
+            ops,
+            baseCommit: read.commit,
+            version,
+          },
         });
         changeSetId = created.id;
       }
@@ -827,7 +846,7 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
     }
     throw err instanceof BuilderError ? new ToolError(err.message) : err;
   }
-  await recordPublish(changeSet, sent, commit);
+  await recordPublish(changeSet, sent, commit, ctx.userId);
   await doneEditing(changeSet.siteId, ctx);
   return { commit };
 }
@@ -846,8 +865,9 @@ async function recordPublish(
   changeSet: Awaited<ReturnType<typeof ownedChange>>,
   sent: ChangeOp[],
   commit: string | null,
+  publisherId: string | null,
 ): Promise<void> {
-  const published = { status: "PUBLISHED" as const, error: null, publishedCommit: commit, publishedAt: new Date() };
+  const published = { status: "PUBLISHED" as const, error: null, publishedCommit: commit, publishedAt: new Date(), publishedByUserId: publisherId };
   // The usual case: nothing was saved since the publish was sent.
   const untouched = await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version }, data: published });
   if (untouched.count === 1) return;
@@ -871,7 +891,9 @@ async function recordPublish(
           data: {
             siteId: row.siteId,
             source: row.source,
-            createdByUserId: row.createdByUserId,
+            // Whoever saved during the publish made it; the row carries them as its last editor.
+            createdByUserId: row.updatedByUserId ?? row.createdByUserId,
+            updatedByUserId: row.updatedByUserId ?? row.createdByUserId,
             conversationId: row.conversationId,
             summary: leftoverSummary(left),
             ops: left as unknown as Prisma.InputJsonValue,
@@ -915,8 +937,12 @@ export async function discardChange(ctx: ToolContext, changeSetId: string) {
   await doneEditing(changeSet.siteId, ctx);
 }
 
-/** The pending change and recent history for the Editor. */
-export async function getEditorChanges(accountId: string) {
+/**
+ * The pending change and recent history for the Editor. `by` on the draft is
+ * who last changed it when that isn't the viewer (PRD D64), and on a
+ * published change who published it.
+ */
+export async function getEditorChanges(accountId: string, viewerId?: string) {
   const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
   if (!site) return { pending: null, recent: [] };
   const [pending, recent] = await Promise.all([
@@ -925,7 +951,7 @@ export async function getEditorChanges(accountId: string) {
       where: { siteId: site.id, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
       take: 10,
-      select: { id: true, summary: true, publishedAt: true, createdBy: { select: { email: true, name: true } } },
+      select: { id: true, summary: true, publishedAt: true, publishedBy: { select: { email: true, name: true } } },
     }),
   ]);
   return {
@@ -938,9 +964,10 @@ export async function getEditorChanges(accountId: string) {
           error: pending.error,
           buildStatus: pending.builds[0]?.status ?? null,
           createdAt: pending.createdAt,
+          by: pending.updatedBy && pending.updatedBy.id !== viewerId ? personName(pending.updatedBy) : null,
         }
       : null,
-    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.createdBy ? personName(c.createdBy) : null })),
+    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.publishedBy ? personName(c.publishedBy) : null })),
   };
 }
 

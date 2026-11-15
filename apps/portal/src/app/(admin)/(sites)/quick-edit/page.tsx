@@ -42,7 +42,7 @@ export default async function QuickEditPage() {
   const live = liveSite(site);
   const liveUrl = live ? liveAddress(live, "/").replace(/\/$/, "") : null;
   const [changes, requests, held] = await Promise.all([
-    getEditorChanges(accountId),
+    getEditorChanges(accountId, session.user.id),
     listOwnHelpRequests(accountId),
     // Who has the site as the page renders (PRD D64). Opening the page takes nothing: the site
     // becomes this person's when they send a message.
@@ -114,6 +114,7 @@ export default async function QuickEditPage() {
                       summary: changes.pending.summary,
                       status: changes.pending.status,
                       error: changes.pending.error,
+                      by: changes.pending.by,
                     }
                   : null
               }
