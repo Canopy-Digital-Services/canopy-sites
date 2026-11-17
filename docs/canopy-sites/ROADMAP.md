@@ -22,7 +22,7 @@ Phase 5  Client 1 migration             [client1]              T1, E42          
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
-Phase 9  The suite                    [this repo]          E50 → E51, E55, E56, E52   (after the MVP: Gallery, Events, E55 past its first step, Services; Booking when a client needs it)
+Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (after the MVP: Gallery, Events, E55 past its first step, Services, then button and menu text; Booking when a client needs it)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -473,7 +473,16 @@ Goal: an owner manages their service list in a tab, and on the canvas where they
 - Found converting Client 2 (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
 - Contract 0.8.0 (a template says where a list is, the id rule exported), the Services tab, and each site's lists named to the canvas
 - The canvas's action layer (Michael, 2026-11-17): a click that could mean more than one thing shows its actions as icons. On a service it opens the tab's own forms; on marked text inside a link it gives a pencil and a follow icon
-- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list. Button and menu text as an owner's edit, which the layer is built to carry and PRD D50 keeps Canopy's today, is open in the epic doc (its section 7)
+- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list. Button and menu text as an owner's edit, which the layer is built to carry, is E57
+
+### E57 · Button and menu text on the canvas
+
+Goal: an owner changes the words on a button or a menu item where they see it, and can still follow it: a click on anything that links gives a pencil and a follow icon, and the owner picks (Michael, 2026-11-17). An epic of its own, straight after E56, which builds that layer for text that is already marked (its 4.5).
+
+- The lane: a button's label and a menu item's label become the owner's on every site, while where each goes stays Canopy's. Revises PRD D50, which keeps buttons and navigation labels Canopy's, and the runbook's rule that neither is marked
+- The contract: a page's button is one field today, Canopy's whole, so its label and its link are flagged apart; and a menu item that goes to a place on a page (Client 2's Gallery, About, and Connect) gets a field, which the contract lacks
+- Each site: its buttons' and menu items' labels move from the templates into content and are marked, and its guide gets a limit for each, measured at 360 and 1440 px, since a menu label that wraps breaks a header
+- Open for the epic doc: whether eyebrows follow; an analytics event named by a button's label, which must keep its name when the label changes; a label that names where it goes ("Book on Square")
 
 ---
 
