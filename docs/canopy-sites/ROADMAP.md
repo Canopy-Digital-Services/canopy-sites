@@ -22,7 +22,7 @@ Phase 5  Client 1 migration             [client1]              T1, E42          
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
-Phase 9  The suite                    [this repo]          E50 → E51, E55, E52        (after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
+Phase 9  The suite                    [this repo]          E50 → E51, E55, E56, E52   (after the MVP: Gallery, Events, E55 past its first step, Services; Booking when a client needs it)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -55,7 +55,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
-After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
+After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is drafted for after the MVP as the first tab built, which is Michael's to confirm (its epic doc, section 7). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -465,6 +465,14 @@ Goal: a new client asks the owner for an appointment from her site, with photos 
 - Open for the epic doc: which cancellation window her policy states (Square's says two days and her policies page 24 hours, both read 2026-11-17; the owner's to settle); which account holds the form before her site is linked (`linkSite`'s `attach` links a site to the email's existing Sites account, so a form built there ahead of E46 stays hers); the tab's label (its id stays `forms`, which welcome videos are named by); whether photos upload with the submission or ahead of it; and how long photos are kept.
 - For Michael to decide before the form is her only way to be booked: it lives only on Webber (F12), and its notification mail shares the ceiling in F32.
 - Acceptance: on a phone, a visitor sends a request with three photos and the policy agreed to; the owner gets the email, opens the request in her portal, sees the photos and the policy's text as agreed, and texts the client from it; a later edit to the policy doesn't change what that submission shows; someone outside her account can't fetch a photo by its address; deleting the submission deletes its files.
+
+### E56 · Services
+
+Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Drafted and not yet approved: when it is built, and PRD D66, are its section 7.
+
+- Found converting Client 2 (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
+- Contract 0.8.0 (lists the canvas can open, the id rule exported), the Services tab, the canvas opening the tab's own forms, and each site's lists marked
+- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list
 
 ---
 
