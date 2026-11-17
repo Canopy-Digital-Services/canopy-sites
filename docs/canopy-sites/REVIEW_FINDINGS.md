@@ -7,7 +7,7 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - Anything exploitable stays out of this file, since the repo is public. The security pass of 2026-11-09 is in the Nextcloud Engineering collective, on the page "Canopy Sites Security Review 2026-11-09", and what production records and doesn't is on "Logging and Detection 2026-11-10".
 - **F3 and F5 have tests** in `review-findings-repro.db.test.ts.txt`, beside this file: each passes while its defect is present. To fix one, copy its test into `apps/portal/src/lib/site-tools/`, turn its expectations around, and land it with the fix. The builder is stood in, as the suite does, so the builder's half of F3 (its 404 after a restart) is read, not run. Delete that file with the second of the two.
 
-**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Toro Z, Fur-Ever Friends, Hair & Harvest, and soon the VETS site) claim their portal, edit, preview, and publish safely. Converting Hair & Harvest is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox.
+**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Toro Z, Fur-Ever Friends, Hair & Harvest, and soon the VETS site) claim their portal, edit, preview, and publish safely. Converting Hair & Harvest is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox. Hair & Harvest's request form, from the field types Forms has today, joined the MVP on 2026-11-17 (PRD D65); no other Forms work on those sites did.
 
 ## Before launch: defects
 
