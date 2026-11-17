@@ -27,7 +27,7 @@ Phase 9  The suite                    [this repo]          E50 → E51, E55, E56
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
 
-Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harvest` repo was never converted (Astro 5, no contract, checked 2026-11-09). Converting it is in the MVP (PRD D51) as E46. canopyds.com (Epic 37) is the precedent every site follows onto Sites.
+Hair & Harvest's own repo is on the contract and live from it since 2026-11-17 (Epic 46, 4.1 to 4.5); it isn't linked yet, so on Sites it is still only the demo's copy (PRD D23). Linking and the claim are E46's rest, in the MVP (PRD D51). canopyds.com (Epic 37) is the precedent every site follows onto Sites.
 
 ### The MVP (decided 2026-11-09)
 

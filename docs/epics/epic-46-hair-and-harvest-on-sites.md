@@ -1,6 +1,6 @@
 # Epic 46: Hair & Harvest on Sites
 
-**Status:** In progress (2026-11-17). 4.1 to 4.4 are built on `hair-and-harvest` branch `canopy-sites` (`95b1c00`), not pushed. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. Next is 4.5, on his go-ahead.
+**Status:** In progress. 4.1 to 4.5 done: hairandharvest.com has served `hair-and-harvest` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. Next is 4.6, linking, on his go-ahead.
 **Phase:** 1's Hair & Harvest migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
 **Predecessor:** Epic 42 (Fur-Ever Friends on Sites), the pattern; Epic 40 (Toro Z on Sites), the worked example
 **Successor:** Sierra's claim; E55's first step (her request form in place of Square's booking); Epic 56 (Services), which gives her menu a tab
@@ -133,10 +133,10 @@ Section 10, each in the commit that changes the behavior.
 
 ## 5. Acceptance
 
-- [ ] A push to `main` deploys the site through the Dockerfile on Webber, and Fox builds the same commit.
-- [ ] The three pages match the live site at 360 and 1440 px, with every page's visible text equal apart from the five featured strings (section 6) and whatever section 7's answers change.
-- [ ] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
-- [ ] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as Sierra wrote them.
+- [x] A push to `main` deploys the site through the Dockerfile on Webber, and Fox builds the same commit.
+- [x] The three pages match the live site at 360 and 1440 px, with every page's visible text equal apart from the five featured strings (section 6) and whatever section 7's answers change.
+- [x] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
+- [x] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as Sierra wrote them.
 - [ ] Umami records a visit and a booking tap from hairandharvest.com, and nothing from the canvas.
 - [ ] The site guide lists every piece of text that art is drawn against, each locked on the site's row and unmarked on the canvas.
 - [ ] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
@@ -193,7 +193,13 @@ For Michael. Items 2 and 4 change what 4.2 builds; item 1 changes this doc and t
   - **4.3.** `SITE_GUIDE.md`: 34 limits measured at both widths, 15 counts, and `avoid` of `emoji`, `all-caps`, and `exclamations`, none of which Sierra's copy uses. A build with every limited field at its limit (1,008 of them) and every list at its count overflows nothing with the whole menu open, and one with no reviews and nothing featured drops those two sections. Today's content passes its own guide. Read from the rendered pages, the name is the only text art is drawn against.
   - **4.4.** Services and policies equal the live site to the pixel at both widths, text included. The home page differs in the featured block alone: the five strings, and 20 px less height on a phone, where a shorter price lets a description wrap less. Photos keep their file names and were re-encoded by a newer sharp, a difference below what the pixel comparison counts. A violation in a content file fails the build with its message. The builder's build (a clean clone, `npm ci --ignore-scripts && npm run build`, no environment) and the Docker image name the same 83 `_astro` files. Pages, `_astro` files, fonts, and the logo send `Access-Control-Allow-Origin: *`; `/services` and `/services/` both answer. `npm run check` is clean, where `main` had 35 errors.
   - **Found by loading each page as the canvas does** (a sandboxed srcdoc frame, a `<base>` at the site, each flag): the intro script read `sessionStorage`, which throws in an opaque origin, so under the preview flag it stopped and left its overlay over the page. Guarded, as the demo's is. Both flags then load styled, with fonts from the site and no console errors; the editor flag shows no intro and all 13 menu panels open.
-  - **Owed to the Sites Onboarding Runbook at 4.5**: section 2, step 1 gains Astro 7's two defaults that change a page (`compressHTML`, the CSS target), and step 9 a load in a sandboxed frame with each flag, since storage throws there. The demo's header has the same blur and no CSS target; not checked.
+  - The demo's header has the same blur and no CSS target; not checked.
+- 2026-11-17 (later): 4.5 done, with Michael's go-ahead after he clicked through the branch's image locally.
+  - **Coolify, both boxes** (app `r8kgko4og008ss0w0oc84okc`, through the API): the `dockerfile` build pack, `is_static` off, port 80, Coolify's health check on `/` (Fox's copy had none), and `NIXPACKS_NODE_VERSION` and `PUBLIC_UMAMI_DOMAINS` deleted. None of it deployed by itself.
+  - **The switch.** `main` was fast-forwarded to `95b1c00` from the branch, pushed at 23:12 UTC. GitHub's webhook queued Webber's deploy within a second, the first deployment of this app on Webber's record, so a publish (a push) is proven to deploy. It built from the Dockerfile, passed its health check, and swapped with a rolling update at 23:13. Fox's copy was deployed through the API at once rather than waiting for its 04:30 UTC redeploy, and finished at 23:14, healthy. Both boxes serve the same pages and assets, checked through each box's own Traefik.
+  - **Live checks.** The three pages equal the local image of `95b1c00` to the pixel at 360 and 1440 px, with the same text, head tags, links, and events; all 150 marked fields check against the content. All 83 of the builder-style build's `_astro` files answer 200 on hairandharvest.com, sent with `Access-Control-Allow-Origin: *`. One real page view, from a headless browser presenting as desktop Chrome and clicking nothing, reached Umami as a pageview on `hairandharvest.com` at 23:18; no booking tap was made, so that half of acceptance's Umami item waits for a real one.
+  - **Found:** Toro Z's copy on Fox has no health check while Webber's has one, against the runbook's section 3; Fur-Ever Friends has none on either box. Not changed here.
+  - The Sites Onboarding Runbook (section 2, steps 1 and 9) and the Coolify page's open item on webhooks were corrected the same day.
 
 ## 10. Docs this makes stale
 
