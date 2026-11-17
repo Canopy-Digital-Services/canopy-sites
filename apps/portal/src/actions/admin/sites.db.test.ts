@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";
 import { DEFAULT_LOCKED_FIELDS, type LinkSiteInput, type SiteSettingsInput } from "@/lib/sites";
 import { createAccount, createSite as insertSite, resetDatabase } from "../../../test/db";
@@ -173,6 +173,72 @@ describe("updateSite", () => {
 
     expect(result).toHaveProperty("fieldErrors.productionHostnames");
     expect(await prisma.site.findUnique({ where: { id: siteB.id } })).toMatchObject({ productionHostnames: [] });
+  });
+});
+
+describe("the Umami website a site reads (Epic 35, 4.7)", () => {
+  const READABLE = client1.umamiWebsiteId;
+  const OUTSIDE_TEAM = "9b2f6c1e-5a4d-4c3b-8e2f-0a1b2c3d4e5f";
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv("UMAMI_URL", "https://analytics.example.com");
+    vi.stubEnv("UMAMI_API_KEY", "umami_test_key");
+    fetchMock.mockReset();
+    // Umami 3.4: a website outside the key's team answers 401, like one that doesn't exist.
+    fetchMock.mockImplementation(async (input) => {
+      const path = new URL(String(input)).pathname;
+      if (path.includes(OUTSIDE_TEAM)) return Response.json({ error: { status: 401 } }, { status: 401 });
+      return Response.json(path.endsWith("/daterange") ? { startDate: null, endDate: null } : { name: "Client 1", domain: "client1.example" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("Link a site refuses a website the portal's key can't read, and creates nothing", async () => {
+    await signInAsAdmin();
+
+    const result = await linkSite({ ...client1, umamiWebsiteId: OUTSIDE_TEAM });
+
+    expect(result).toHaveProperty("fieldErrors.umamiWebsiteId", expect.stringMatching(/Canopy Sites team/));
+    expect(await prisma.site.count()).toBe(0);
+    expect(await prisma.user.count({ where: { email: "owner@example.com" } })).toBe(0);
+  });
+
+  it("Link a site takes a readable website, and one Umami gave no answer about", async () => {
+    await signInAsAdmin();
+    expect(await linkSite(client1)).toMatchObject({ success: true });
+
+    fetchMock.mockImplementation(async () => Promise.reject(new TypeError("fetch failed")));
+    const other = { ...client1, email: "other@example.com", repoUrl: "https://github.com/example-org/other", slug: "other", productionHostnames: ["other.example"] };
+    expect(await linkSite(other)).toMatchObject({ success: true });
+  });
+
+  it("the settings refuse a new website the key can't read, and keep the one the site had", async () => {
+    await signInAsAdmin();
+    const { account } = await createAccount({ planCode: "SITES" });
+    const site = await insertSite(account.id);
+    await prisma.site.update({ where: { id: site.id }, data: { umamiWebsiteId: READABLE } });
+
+    const result = await updateSite(site.id, { ...settings, umamiWebsiteId: OUTSIDE_TEAM });
+
+    expect(result).toHaveProperty("fieldErrors.umamiWebsiteId");
+    expect(await prisma.site.findUnique({ where: { id: site.id } })).toMatchObject({ name: site.name, umamiWebsiteId: READABLE });
+  });
+
+  it("the settings save the rest while the site's own website is unreadable, asking Umami nothing", async () => {
+    await signInAsAdmin();
+    const { account } = await createAccount({ planCode: "SITES" });
+    const site = await insertSite(account.id);
+    await prisma.site.update({ where: { id: site.id }, data: { umamiWebsiteId: OUTSIDE_TEAM } });
+
+    expect(await updateSite(site.id, { ...settings, umamiWebsiteId: OUTSIDE_TEAM })).toMatchObject({ success: true });
+    expect(await prisma.site.findUnique({ where: { id: site.id } })).toMatchObject({ name: "Renamed", umamiWebsiteId: OUTSIDE_TEAM });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
