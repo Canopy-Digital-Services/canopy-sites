@@ -50,7 +50,7 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 
 ### F9. Client 2 is not on Sites
 
-Decided, Michael, 2026-11-09: converting it is in the MVP. Its repo is Astro 5 with no `src/content`, no contract, no site guide, and no Dockerfile (local `client2`, last commit 2026-04-29), so it can't be linked or claimed. It needs the conversion Client 1 got (Epic 40) through the Sites Onboarding Runbook, and an epic of its own. It is ROADMAP E46 (PRD D51).
+Decided, Michael, 2026-11-09: converting it is in the MVP, as ROADMAP E46 (PRD D51), whose epic doc is `docs/epics/epic-46-client2-on-sites.md`. The repo is converted and live from its content files since 2026-11-17 (the epic's 4.1 to 4.5); linking, acceptance, the eval, and the claim are left.
 
 ### F23. Lock the text that art is drawn against
 
