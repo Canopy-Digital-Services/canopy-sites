@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
 import { requireAuth, getCurrentAccountId } from "@/lib/auth-utils";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import type { ChangeSetSource } from "@prisma/client";
@@ -10,6 +11,9 @@ import {
   discardChange,
   getEditorChanges,
   getPreviewState,
+  getSiteMarker,
+  keepSiteHold,
+  otherEditor,
   publishChange,
   refreshChange,
   saveDraft,
@@ -26,7 +30,15 @@ import { dismissHelpRequest, sendHelpRequest, type HelpRequestView } from "@/lib
  * Refusals come back as { error } so their text survives a production build.
  */
 
-type Result<T> = ({ success: true } & T) | { error: string; issues?: Array<{ address?: string; message: string }> };
+type Refusal = {
+  error: string;
+  issues?: Array<{ address?: string; message: string }>;
+  /** Set when the refusal is that someone else is editing the site (PRD D64): who. */
+  heldBy?: string;
+  /** Set when the refusal is that the draft is someone else's to publish or discard first (PRD D64): whose. */
+  draftBy?: string;
+};
+type Result<T> = ({ success: true } & T) | Refusal;
 
 async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolContext & { userId: string; email: string; actAsId: string | null }> {
   const session = await requireAuth();
@@ -36,8 +48,15 @@ async function context(source: ChangeSetSource = "QUICK_EDIT"): Promise<ToolCont
   return { accountId, userId: session.user.id, email: session.user.email, source, actAsId: session.actingAs?.id ?? null };
 }
 
-function failure(err: unknown): { error: string; issues?: Array<{ address?: string; message: string }> } {
-  if (err instanceof ToolError) return { error: err.message, issues: err.issues?.map((i) => ({ address: i.address, message: i.message })) };
+function failure(err: unknown): Refusal {
+  if (err instanceof ToolError) {
+    return {
+      error: err.message,
+      issues: err.issues?.map((i) => ({ address: i.address, message: i.message })),
+      ...(err.heldBy ? { heldBy: err.heldBy } : {}),
+      ...(err.draftBy ? { draftBy: err.draftBy } : {}),
+    };
+  }
   if (err instanceof QuickEditError) return { error: err.message };
   console.error(JSON.stringify({ event: "site_editor_error", message: (err as Error).message }));
   return { error: "Something went wrong. Try again in a moment." };
@@ -58,6 +77,23 @@ export async function sendQuickEdit(input: {
     const result = await runQuickEdit(ctx, { conversationId, message: String(input.message ?? ""), scope });
     if (result.changeSetId) revalidatePath("/quick-edit");
     return { success: true, ...result };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/**
+ * An editing page asking who has the site (PRD D64): when it opens, and about
+ * every 25 seconds while its person is active on it. Asking keeps the
+ * person's hold going when they have one, and takes one only with `take`,
+ * which the Editor sends when its person opens a field.
+ */
+export async function keepHold(input?: {
+  take?: boolean;
+}): Promise<Result<{ by: string | null; mine: boolean; marker: string; hasDraft: boolean; draftBy: string | null; draftSummary: string | null }>> {
+  try {
+    const ctx = await context();
+    return { success: true, ...(await keepSiteHold(ctx, input?.take === true)) };
   } catch (err) {
     return failure(err);
   }
@@ -110,7 +146,10 @@ export async function refreshPendingChange(
 export async function publishPreview(input: { changeSetId: string; buildId: string }): Promise<Result<{ commit: string | null }>> {
   try {
     const ctx = await context();
-    const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), { name: ctx.email.split("@")[0], email: ctx.email });
+    // The commit is authored under the person's name when they have one (PRD D63).
+    const person = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } });
+    const author = { name: person?.name?.trim() || ctx.email.split("@")[0], email: ctx.email };
+    const result = await publishChange(ctx, String(input.changeSetId), String(input.buildId), author);
     return { success: true, ...result };
   } catch (err) {
     return failure(err);
@@ -130,7 +169,7 @@ export async function getSitePreviewState(siteId: string): Promise<Result<Awaite
 export async function discardPendingChange(changeSetId: string): Promise<Result<object>> {
   try {
     const ctx = await context();
-    await discardChange(ctx.accountId, String(changeSetId));
+    await discardChange(ctx, String(changeSetId));
     revalidatePath("/quick-edit");
     return { success: true };
   } catch (err) {
@@ -146,7 +185,17 @@ export async function discardPendingChange(changeSetId: string): Promise<Result<
 export async function saveCanvasEdits(input: {
   siteId: string;
   edits: Array<{ address: string; value: string | null }>;
-}): Promise<Result<{ changeSetId: string | null; version: number; buildError: string | null; changes: FieldChange[]; warnings: AvoidWarning[] }>> {
+}): Promise<
+  Result<{
+    changeSetId: string | null;
+    version: number;
+    buildError: string | null;
+    changes: FieldChange[];
+    warnings: AvoidWarning[];
+    /** Where the site stands after this save (PRD D64): the page adopts it as its own doing. */
+    marker: string;
+  }>
+> {
   try {
     const ctx = await context("EDITOR");
     const edits = Array.isArray(input.edits) ? input.edits.slice(0, 20) : [];
@@ -163,28 +212,46 @@ export async function saveCanvasEdits(input: {
       buildError: result.buildError,
       changes: result.changes,
       warnings: result.warnings,
+      marker: await getSiteMarker(ctx.accountId),
     };
   } catch (err) {
     return failure(err);
   }
 }
 
-/** The site's draft for the Sites chrome: whether there is one, and its build, with the site's id for Preview. */
+/**
+ * The site's draft for the Sites chrome: whether there is one, and its build, with the site's id
+ * for Preview, and who else is making edits (PRD D64), whose draft it then is to discard.
+ */
 export async function getDraftState(): Promise<
-  Result<{ siteId: string | null; pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null } | null }>
+  Result<{
+    siteId: string | null;
+    heldBy: string | null;
+    /** `by` is who last changed the draft, when that isn't the viewer. */
+    pending: { id: string; summary: string; status: string; buildStatus: string | null; error: string | null; by: string | null } | null;
+  }>
 > {
   try {
     const ctx = await context();
     const siteId = (await getAccountSite(ctx.accountId))?.id ?? null;
-    const { pending } = await getEditorChanges(ctx.accountId);
+    const heldBy = siteId ? await otherEditor(siteId, ctx.userId) : null;
+    const { pending } = await getEditorChanges(ctx.accountId, ctx.userId);
     if (pending && pending.status === "DRAFT" && (pending.buildStatus === "QUEUED" || pending.buildStatus === "RUNNING")) {
       const refreshed = await refreshChange(ctx.accountId, pending.id);
-      return { success: true, siteId, pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error } };
+      return {
+        success: true,
+        siteId,
+        heldBy,
+        pending: { id: pending.id, summary: pending.summary, status: refreshed.status, buildStatus: refreshed.buildStatus, error: refreshed.error, by: pending.by },
+      };
     }
     return {
       success: true,
       siteId,
-      pending: pending ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error } : null,
+      heldBy,
+      pending: pending
+        ? { id: pending.id, summary: pending.summary, status: pending.status, buildStatus: pending.buildStatus, error: pending.error, by: pending.by }
+        : null,
     };
   } catch (err) {
     return failure(err);

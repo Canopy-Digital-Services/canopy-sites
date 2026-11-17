@@ -13,7 +13,7 @@ import { DeleteAccountButton } from "./delete-account-button";
 import { ChangePlanButton } from "./change-plan-button";
 import { ChangeRoleButton } from "./change-role-button";
 import { BillingButton } from "./billing-button";
-import { AddMemberButton } from "./add-member-button";
+import { AddPersonButton } from "../add-person-button";
 import { ACCOUNT_STATUS_LABELS } from "@/lib/billing";
 
 const STATUS_BADGE = { ACTIVE: "success", PAST_DUE: "amber", CANCELLED: "neutral" } as const;
@@ -154,7 +154,7 @@ export default async function AccountsPage() {
             currentStatus={account.status}
             currentBillingRef={account.billingRef}
           />
-          <AddMemberButton accountId={account.id} email={account.email} />
+          <AddPersonButton accountId={account.id} account={account.email} variant="ghost" size="sm" />
           <DeleteAccountButton
             accountId={account.id}
             email={account.email}

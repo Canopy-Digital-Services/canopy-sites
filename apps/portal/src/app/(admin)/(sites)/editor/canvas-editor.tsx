@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { refreshPendingChange, saveCanvasEdits, sendQuickEdit } from "@/actions/site-editor";
-import { browserEditStorage, clearUnsavedEdits, keepUnsavedEdits, unsavedEdits } from "@/lib/unsaved-edits";
+import { browserEditStorage, clearUnsavedEdits, keepUnsavedEdits, outdatedEdits, unsavedEdits } from "@/lib/unsaved-edits";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
 import { announceDraft, DRAFT_PUBLISHED } from "@/components/sites/draft-status";
+import { SITE_MOVED, useSiteHold } from "@/components/sites/site-hold";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
 export type CanvasPage = { path: string; title: string };
@@ -81,6 +82,7 @@ export function CanvasEditor({
   limits: Record<string, number>;
   announcements: AnnouncementDates[];
 }) {
+  const { refused, begin, marker, wrote } = useSiteHold();
   const wrapRef = useRef<HTMLDivElement>(null);
   // Two frames: the one on screen, and one a newer build of the same page loads into
   // behind it, so an update swaps in at the same place instead of reloading the page.
@@ -271,7 +273,9 @@ export function CanvasEditor({
         const storage = browserEditStorage();
         const now = Date.now();
         const addresses = new Set(edits.map((e) => e.address));
-        const waiting = unsavedEdits(storage, siteId, now).filter((e) => !addresses.has(e.address));
+        // Where the site stood when these were typed: edits kept in the browser are only sent while it still stands there.
+        const stood = marker();
+        const waiting = unsavedEdits(storage, siteId, now, stood).filter((e) => !addresses.has(e.address));
         const left = { edits: [...waiting, ...edits] };
         if (!left.edits.length) {
           setSaveState("idle");
@@ -284,7 +288,7 @@ export function CanvasEditor({
           // Never reached the server's code. Keep the text on screen and the edits
           // in the browser; a reload gets a page the server will answer.
           clearUnsavedEdits(storage, siteId);
-          const kept = keepUnsavedEdits(storage, siteId, left.edits, now);
+          const kept = keepUnsavedEdits(storage, siteId, left.edits, now, stood);
           setSaveState("unsent");
           toast.error(
             kept
@@ -303,6 +307,8 @@ export function CanvasEditor({
           toast.error(last.issues?.[0]?.message ?? last.error);
           revert();
           setSaveState("error");
+          // The site, or its draft, is someone else's (PRD D64): the page says whose, over the canvas.
+          refused(last);
           return;
         }
         if (!last) {
@@ -310,6 +316,8 @@ export function CanvasEditor({
           return;
         }
         setSaveState("saved");
+        // The site moved, and this page moved it.
+        wrote(last.marker);
         if (last.buildError) toast.error(last.buildError);
         if (afterReload) {
           const n = waiting.length;
@@ -318,7 +326,7 @@ export function CanvasEditor({
         }
       });
     },
-    [reloadWhenBuilt, send, siteId],
+    [refused, marker, reloadWhenBuilt, send, siteId, wrote],
   );
 
   // Edits a save couldn't send before this page was loaded: save them now.
@@ -326,8 +334,39 @@ export function CanvasEditor({
   useEffect(() => {
     if (resumed.current) return;
     resumed.current = true;
-    if (unsavedEdits(browserEditStorage(), siteId, Date.now()).length) save([], () => {}, true);
-  }, [save, siteId]);
+    const storage = browserEditStorage();
+    // Someone has edited the site since these were typed (PRD D64): sending them would put old text over newer work.
+    const outdated = outdatedEdits(storage, siteId, Date.now(), marker());
+    if (outdated) {
+      clearUnsavedEdits(storage, siteId);
+      toast.error(
+        outdated === 1
+          ? "A change from before the page reloaded wasn't saved: the site has changed since."
+          : `${outdated} changes from before the page reloaded weren't saved: the site has changed since.`,
+        { duration: Infinity },
+      );
+      return;
+    }
+    if (unsavedEdits(storage, siteId, Date.now(), marker()).length) save([], () => {}, true);
+  }, [marker, save, siteId]);
+
+  // The site moved under this page with a field open (PRD D64): the canvas is about to load
+  // again, so what the field held is handed back instead of dropped.
+  useEffect(() => {
+    const onMoved = () => {
+      const s = selectedRef.current;
+      if (!s || s.mode !== "edit") return;
+      const text = oneLine(s.value);
+      if (!text || text === oneLine(s.original)) return;
+      toast(`${s.info?.label ?? "Your change"} wasn't saved`, {
+        description: text,
+        duration: Infinity,
+        action: { label: "Copy", onClick: () => void navigator.clipboard.writeText(text).catch(() => {}) },
+      });
+    };
+    window.addEventListener(SITE_MOVED, onMoved);
+    return () => window.removeEventListener(SITE_MOVED, onMoved);
+  }, []);
 
   const announcementOf = useCallback(
     (address: string) => {
@@ -362,6 +401,8 @@ export function CanvasEditor({
 
   const select = useCallback(
     (address: string, index: number, value: string, rect: Rect) => {
+      // Opening a field is where an edit starts: the site is this person's from here (PRD D64).
+      begin();
       const info = fieldInfo(address);
       const inPlace = Boolean(info && IN_PLACE.has(info.kind));
       const limit = fieldLimit(address, limits);
@@ -370,7 +411,7 @@ export function CanvasEditor({
       setDates(announcement ? { startsOn: announcement.startsOn, endsOn: announcement.endsOn } : null);
       if (inPlace) post({ type: "edit", address, limit });
     },
-    [announcementOf, limits, post],
+    [announcementOf, begin, limits, post],
   );
 
   useEffect(() => {
@@ -671,6 +712,7 @@ function FieldPanel({
 
 /** Quick edit, opened from one field on the canvas (PRD D37). */
 function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChanged: (changeSetId: string) => void }) {
+  const { refused } = useSiteHold();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -696,6 +738,7 @@ function ScopedQuickEdit({ selected, onChanged }: { selected: Selected; onChange
     setBusy(false);
     if ("error" in result) {
       setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.error }]);
+      refused(result);
       return;
     }
     setConversationId(result.conversationId);

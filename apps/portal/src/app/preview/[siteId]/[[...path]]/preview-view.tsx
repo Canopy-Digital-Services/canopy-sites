@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getSitePreviewState, publishPreview } from "@/actions/site-editor";
 import { announceDraft } from "@/components/sites/draft-status";
+import { useSiteHold } from "@/components/sites/site-hold";
+import { editingNotice, theirChanges } from "@/lib/site-hold-policy";
 import { sitePath, type LiveSite } from "@/lib/site-live";
 
 type Pending = {
@@ -48,6 +50,7 @@ export function PreviewView({
   /** The acting-as-client banner (PRD D49), above the site; null for the owner. */
   banner?: React.ReactNode;
 }) {
+  const hold = useSiteHold();
   const frames = useRef<Array<HTMLIFrameElement | null>>([null, null]);
   const [slots, setSlots] = useState<Array<Slot | null>>([null, null]);
   const [active, setActive] = useState(0);
@@ -202,6 +205,7 @@ export function PreviewView({
       const result = await publishPreview({ changeSetId: pending.id, buildId: shownBuild });
       if ("error" in result) {
         toast.error(result.error);
+        hold.refused(result);
         check();
         return;
       }
@@ -228,7 +232,8 @@ export function PreviewView({
   else if (pending === undefined) message = "Loading";
   else if (pending === null) message = "No unpublished changes";
   else if (failed) message = "This preview couldn't be built";
-  else if (ready) message = "Previewing unpublished changes";
+  // Someone else's draft says whose: publishing it is this person's call on their work (PRD D64).
+  else if (ready) message = hold.draftBy ? `Previewing ${theirChanges(hold.draftBy)}` : "Previewing unpublished changes";
   else message = "Updating preview";
 
   return (
@@ -270,9 +275,14 @@ export function PreviewView({
         </span>
         {failed && pending?.error ? <span className="max-w-md truncate font-normal opacity-90">{pending.error}</span> : null}
         {!published && pending ? (
-          <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
-            Publish
-          </Button>
+          // While someone else is making edits (PRD D64) the draft is theirs to publish: the bar says who.
+          hold.by ? (
+            <span className="font-normal opacity-90">{editingNotice(hold.by)}</span>
+          ) : (
+            <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
+              Publish
+            </Button>
+          )
         ) : null}
         {published ? (
           cantClose ? (

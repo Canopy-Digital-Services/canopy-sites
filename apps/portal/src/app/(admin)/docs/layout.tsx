@@ -1,19 +1,20 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
-import { getAllDocs } from "@/lib/docs";
+import { docsNavFor, getAllDocs } from "@/lib/docs";
+import { getCurrentEntitlements } from "@/lib/auth-utils";
 import { DocsSidebar, DocsSidebarMobile } from "@/components/docs/docs-sidebar";
-import { docsNav } from "../../../../content/docs/meta";
 
 export default async function DocsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const docs = await getAllDocs();
+  const { sitesEnabled } = await getCurrentEntitlements();
+  const docs = await getAllDocs(sitesEnabled);
   const bySlug = new Map(docs.map((d) => [d.slug, d]));
 
-  const groups = docsNav.map((g) => ({
+  const groups = docsNavFor(sitesEnabled).map((g) => ({
     group: g.group,
-    items: (g.slugs as unknown as string[])
+    items: g.slugs
       .map((slug) => {
         const doc = bySlug.get(slug);
         return doc ? { slug: doc.slug, title: doc.title } : null;

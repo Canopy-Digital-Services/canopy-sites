@@ -5,6 +5,30 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.21.0] - 2026-11-17
+
+### Added
+
+- Sites: **several people on one account** (Epic 53). The operator's site page lists everyone on the site's account, owner first, with where each stands on claiming. The operator adds a person by name and email and gets their claim link, copies or emails a link for anyone who hasn't claimed, renames, and removes anyone but the owner, which deletes their login and signs them out. Link a site takes the owner's name. A person's name is what the portal calls them to anyone else; their email stands in until one is typed
+- Sites: **one person edits a site at a time** (Epic 54). The site becomes a person's when they open a field in the Editor, send a Quick Edit message, publish, or discard; having a page open holds nothing. Everyone else sees who is making edits, in place of the Quick Edit chat and over the site behind frosted glass in the Editor. They can still open the preview, and can't change, publish, or discard. The hold ends at publish or discard, a minute and a half after its holder leaves the editing pages, or after ten quiet minutes, and the others' pages open up by themselves
+- Sites: **a draft belongs to the person who made it** until it is published or discarded. Nobody else adds to it: they see whose it is and what it changes, and publish it from the preview or discard it, which asks first and names its author, before editing themselves. One person's unfinished changes no longer go out inside another's publish
+- Sites: a page loads the site again when someone else changed it meanwhile. A field left open then has its text handed back with a Copy button. Edits a save couldn't send are dropped, with a message, once the site has changed since they were typed; they used to be sent for up to twelve hours
+- Sites: Recently published names who published each change, and a published commit is authored under the person's name
+- Help: **Editing with other people**, in a Your website group that only Canopy Sites accounts see. A group of help pages can now be marked for Canopy Sites
+- Sites: **a welcome video for each tab** (Epic 39), recorded per client. It opens once per person on their first visit to the tab and replays from the help button; the operator uploads it with its captions, removes it, and sees how far each person watched. It stays off on an app until that app has media storage (`MEDIA_DIR`), which neither deployed app has yet
+
+### Changed
+
+- The database holds a site to one draft
+- The retired `Site.timeZone` column is out of the Prisma client (`@ignore`), so no query names it. The column is dropped in the release after this one
+- Development: the dev container runs as `node` and regenerates the Prisma client on every start, and `db:migrate` regenerates it too. The unused root `docker-compose.yml`, the `db:push` script, and the old Cursor rules are gone. The tool docs (`docs/tools/*.md`) were checked against the versions the repo runs
+
+### Fixed
+
+- Sites: pressing Publish twice no longer leaves a change that went live marked as failed, and an edit saved while a publish is in flight stays a draft instead of being marked published without going live
+- Sites: two first saves at the same moment no longer make two drafts, one of them orphaned
+- Deploys: an image build fails when `npm ci` skipped a platform package (Next's compiler, Tailwind's, esbuild, sharp), instead of caching an install without it and failing every redeploy after
+
 ## [5.20.0] - 2026-11-14
 
 ### Added

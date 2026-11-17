@@ -117,6 +117,7 @@ export async function createLinkedSite(
         const user = await tx.user.create({
           data: {
             email: site.email,
+            name: site.ownerName,
             password: null,
             // The operator's browser isn't the client's, so the zone is Canopy's own until the owner changes it.
             memberships: { create: { role: "OWNER", account: { create: { planCode: "SITES", timeZone: CANOPY_TIME_ZONE } } } },

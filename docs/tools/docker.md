@@ -1,64 +1,26 @@
 # Docker & Docker Compose Documentation
 
-**Last Updated:** August 2026  
-**Current Version:** Docker Compose v2 (CLI Plugin)  
 **Official Docs:** https://docs.docker.com/compose/
 
 ## Overview
 
-Docker Compose v2 is the modern, recommended approach for managing multi-container Docker applications. The CLI plugin (`docker compose`) replaced the legacy standalone tool (`docker-compose`) and is now the standard. Compose v1 support ended in July 2023, and Compose v2 became generally available in April 2022.
+Compose is the `docker compose` subcommand, a plugin of the Docker CLI that Docker Desktop provides. The standalone `docker-compose` (Compose v1) stopped receiving updates in July 2023.
 
-## Critical: Command Syntax Change
+### Write `docker compose` (space), not `docker-compose` (hyphen)
 
-### ⚠️ Use `docker compose` (space), NOT `docker-compose` (hyphen)
-
-**Legacy (Deprecated):**
-```bash
-docker-compose up
-docker-compose build
-docker-compose down
-```
-
-**Current (2025):**
 ```bash
 docker compose up
 docker compose build
 docker compose down
 ```
 
-The CLI plugin (`docker compose`) is integrated into the Docker CLI as a subcommand, providing better integration with Docker contexts, improved performance, and consistent command-line options.
-
-## Docker Compose v2 Features
-
-### Key Improvements
-
-- **Integrated CLI**: Part of Docker CLI, not a separate binary
-- **Better Performance**: Faster command execution
-- **Context Support**: Works with Docker contexts and remote hosts
-- **Consistent Flags**: Uses standard Docker CLI flags (`--context`, `DOCKER_HOST`, etc.)
-- **Version Field**: The `version` field in `docker-compose.yml` is now **obsolete** (ignored by v2)
-
-### Installation
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install docker-compose-plugin
-```
-
-**Linux (RPM-based):**
-```bash
-sudo yum install docker-compose-plugin
-```
-
-**Verify Installation:**
-```bash
-docker compose version
-```
-
-**Note:** Docker Desktop includes the Compose plugin automatically. The standalone `docker-compose` binary is deprecated and only maintained for backward compatibility.
+On this machine `docker-compose` still runs, as Docker Desktop's alias for the same plugin (both report v5.6.1, 2026-11-15). Scripts and docs here use the space form, which is the one that exists wherever the plugin does.
 
 ## Common Commands
+
+These show the syntax. In this repo each one also takes `-f docker-compose.dev.yml` (see Development Workflow below).
+
+**Never add `-v` to `down`.** It removes the named volumes, which here are the dev database (`pgdata`), the container's `node_modules`, the builder's sites, and the welcome videos.
 
 ### Basic Operations
 
@@ -100,9 +62,7 @@ docker compose up -d --build portal
 
 ### Development Workflow (with Hot Reload)
 
-**⚠️ CRITICAL: This project uses `docker-compose.dev.yml` for development with hot reload enabled.**
-
-**Development Mode (Recommended for Active Development):**
+**Every compose command in this repo takes `-f docker-compose.dev.yml`.** It is the only compose file, and without `-f` Compose stops with `no configuration file provided: not found`.
 
 ```bash
 # Start development environment (with hot reload)
@@ -114,7 +74,7 @@ docker compose -f docker-compose.dev.yml up -d
 # View real-time logs
 docker compose -f docker-compose.dev.yml logs -f portal
 
-# Restart if needed (e.g., after schema changes)
+# Restart the dev server (a start regenerates the Prisma client, and only a start loads it)
 docker compose -f docker-compose.dev.yml restart portal
 
 # Check service status
@@ -125,26 +85,17 @@ docker compose -f docker-compose.dev.yml ps
 - Uses `Dockerfile.dev` which runs `npm run dev` (Next.js dev server)
 - Volume mounts source code: `.:/app` (a named volume preserves `node_modules`; `.next` is NOT excluded and rides the bind mount)
 - Hot reload enabled - code changes appear immediately in browser
-- No rebuilds needed for code changes (saves ~2 minutes per change)
+- No rebuilds needed for code changes
 
-**⚠️ DO NOT use `docker compose build` during development** - this switches to production mode and disables hot reload.
+What to run after a schema change, a dependency change, or a `Dockerfile.dev` change is under "After a change in dev" below.
 
-**Production Mode (for deployment testing only):**
+**To test the production image**, build `apps/portal/Dockerfile` directly with the repo root as context; the command is in that file's header.
 
-```bash
-# Only use for testing production builds
-docker compose build portal
-docker compose up -d portal
-
-# Requires full rebuild (~2 minutes) for every code change
-# No hot reload - changes require container rebuild
-```
-
-## docker-compose.yml Syntax
+## Compose File Syntax
 
 ### Version Field (Obsolete)
 
-**Important:** Docker Compose v2 **ignores** the `version` field. It's obsolete and causes warnings:
+**Important:** Compose **ignores** the `version` field. It's obsolete and causes warnings:
 
 ```yaml
 version: "3.8"  # ❌ Causes warning: "the attribute 'version' is obsolete"
@@ -159,7 +110,7 @@ services:
     # ...
 ```
 
-The `version` field was used in Compose v1 to determine schema compatibility. Compose v2 automatically uses the latest schema and ignores this field, showing a warning each time you run a command.
+The `version` field was used in Compose v1 to determine schema compatibility. The plugin always uses the latest schema and ignores this field, showing a warning each time you run a command.
 
 ### Service Naming
 
@@ -213,58 +164,25 @@ services:
 
 ### Multi-Stage Builds
 
-The Canopy Forms project uses a multi-stage Dockerfile to minimize final image size:
+The portal's production image (`apps/portal/Dockerfile`) is a multi-stage build:
 
 1. **Base Stage**: Minimal Node.js Alpine image
 2. **Deps Stage**: Install dependencies only
 3. **Builder Stage**: Build application and generate Prisma client
-4. **Runner Stage**: Production image with only runtime files
+4. **Runner Stage**: Production image
 
 ### Next.js Standalone Mode
 
-The project uses Next.js standalone output mode (`output: "standalone"` in `next.config.ts`):
-
-- **Dramatically reduces image size** by including only essential files
-- **No full `node_modules`** in production image
-- **Faster container startup** times
-- **Better security** (fewer dependencies)
+The portal builds with Next.js standalone output (`output: "standalone"` in `apps/portal/next.config.ts`), and the container starts the `server.js` that build produces. The image still carries the full root `node_modules`: the entrypoint runs the Prisma CLI to apply migrations before the app starts (`docs/PRISMA_MIGRATIONS.md`).
 
 ### Key Dockerfile Patterns
 
-**Layer Caching Optimization:**
-```dockerfile
-# Copy package files first (changes less frequently)
-COPY package*.json ./
-RUN npm ci
+`apps/portal/Dockerfile` is the reference for each:
 
-# Copy source code last (changes frequently)
-COPY . .
-```
-
-**Build Arguments:**
-```dockerfile
-# NEXT_PUBLIC_* vars must be set at build time
-ARG NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-```
-
-**Security:**
-```dockerfile
-# Run as non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-USER nextjs
-```
-
-**Standalone Output Copying:**
-```dockerfile
-# Copy standalone build output
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Copy Prisma client (required at runtime)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-```
+- **Layer caching:** the deps stage copies only the lockfile, every workspace's `package.json`, and the script that checks the install (`apps/portal/scripts/check-optional-packages.mjs`, `docs/AGENT_CONTEXT.md` section 8) before `npm ci`, so the install layer is rebuilt only when one of those changes. A new workspace needs its manifest added there (and in `Dockerfile.dev`).
+- **Build arguments:** `NEXT_PUBLIC_APP_URL` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` are `ARG`s, because Next bakes them in at build time.
+- **Non-root:** the runner stage runs as `nextjs` (UID 1001).
+- **Standalone output copying:** the runner stage's paths sit under `apps/portal/` because the standalone output mirrors the workspace layout; what each copied piece is for is in `docs/PRISMA_MIGRATIONS.md` ("Dockerfile (runner stage)").
 
 ## Project-Specific Configuration
 
@@ -274,134 +192,69 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 - `apps/portal/Dockerfile`: Production build (standalone Next.js output, `server.js` under `apps/portal/`)
 - `apps/portal/Dockerfile.dev`: Development mode (runs `npm run dev` with hot reload)
 
-**Compose Files** (repo root, project name `canopy-sites`):
-- `/docker-compose.yml`: Production mode (requires rebuilds for changes)
-- `/docker-compose.dev.yml`: **Development mode (use this for active development)**
-
-**Services:**
-- `portal` (container `canopy-portal`): Next.js application (port 3000, mapped to 127.0.0.1:3006)
-- `postgres` (container `canopy-portal-db`): PostgreSQL database (port 5432)
-
-**Networks:**
-- `canopy-sites-network`: Internal bridge network
-- `proxy`: External network (for reverse proxy integration)
-
-**Volumes:**
-- `pgdata`: Persistent database storage
+**Compose:** `/docker-compose.dev.yml` (project name `canopy-sites`) is the dev stack. Its services, containers, and ports are described in `docs/AGENT_CONTEXT.md` section 4. Deployed environments use no compose file: Coolify builds the Dockerfiles (section 6 there).
 
 ### Development Mode Configuration
 
-**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-10-15):
+**Dev Mode Volume Mounts** (`docker-compose.dev.yml`, verified against the actual file 2026-11-15):
 ```yaml
 working_dir: /app/apps/portal
 volumes:
   - .:/app                    # Mount the repo root for hot reload
   - node_modules:/app/node_modules   # Named volume preserves container-installed (hoisted) deps
+  - portal_media:/srv/media   # Welcome videos (MEDIA_DIR): client media, never in the repo
 ```
 
 **Consequences of this layout:**
 - The named `node_modules` volume keeps container-installed dependencies from being overwritten by the host mount
-- There is **no `.next` volume**: the container writes `apps/portal/.next` onto the bind mount **as root**. Never run `next build` on the host while the container shares this directory: the host build hits EACCES on the root-owned files, and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-portal rm -rf .next && docker restart canopy-portal`
+- **The container's dependencies and its generated Prisma client (`node_modules/.prisma`) live in that volume, not in the image.** Docker fills a named volume from the image only when the volume is new; after that, rebuilding the image changes nothing in it (verified 2026-11-14: the image built 2026-10-16 holds `next` 16.1.6 and its own Prisma client, while the container runs 16.4.5 from the volume)
+- There is **no `.next` volume**: the container writes `apps/portal/.next` onto the bind mount. Build in the container, never on the host: a host `node_modules` is not what the app runs on (`next` 16.1.6 there against 16.4.5 in the volume, 2026-11-15), and mixing host and container builds corrupts the Turbopack cache (blank pages). Fix: `docker exec canopy-portal rm -rf .next && docker restart canopy-portal`
+- **The container runs as the image's `node` user (uid 1000), not root** (`USER node` in `Dockerfile.dev`). That is the host user's uid, so what the container writes on the bind mount (`.next`, a migration, `dist`) is yours to edit and delete from the host, and the named volumes belong to `node` too. A command that needs root takes `--user root` (`docker exec --user root canopy-portal ...`); what it writes is root-owned, and the same form with `chown -R node:node <path>` gives it back
 
 **Dockerfile.dev Entrypoint Pattern:**
 The dev Dockerfile uses an entrypoint script that:
-1. Checks if `node_modules` exists and `next` binary is available
-2. If missing, runs `npm ci`, `prisma generate`, and `embed:build`
-3. Starts the Next.js dev server
+1. Checks whether `/app/node_modules/.bin/next` exists
+2. Only if it is missing, runs `npm ci`, then `apps/portal/scripts/check-optional-packages.mjs`, then `embed:build`
+3. Runs `prisma generate`, on every start
+4. Starts the Next.js dev server
 
-This handles cases where volume mounts might interfere with dependencies.
+With dependencies in place, a start or restart installs nothing.
+
+**An install that fails, or that npm finishes without an optional package, stops the container before the dev server starts, and the next start installs again.** npm exits 0 without a platform's binary when its download fails (`docs/AGENT_CONTEXT.md` section 8), and that install has `.bin/next`, so the entrypoint removes it before it exits 1. Compose restarts the container (`restart: unless-stopped`), so the install repeats until it is whole; the log names the missing package under `npm ci left out`. Checked 2026-11-15 on a copy of the volume with one package's download broken for the first install: the container exited, the restart installed again, and the server came up.
+
+### After a change in dev
+
+- **Source code:** nothing. The bind mount and hot reload carry it.
+- **Prisma schema:** `docker restart canopy-portal`. The start regenerates the client from the schema on disk, and the dev server loads a client only when it starts, so the restart is needed after `npm run db:migrate` too. An image rebuild changes nothing. The full migration procedure is in [`prisma-7.md`](./prisma-7.md) ("Migration Workflow for This Project") and `docs/AGENT_CONTEXT.md` section 5.
+- **Dependencies** (`package-lock.json`): install into the volume from a one-off container with the dev server stopped. `npm ci` deletes the Prisma client along with the rest of `node_modules`, and the start generates it again:
+
+  ```bash
+  docker compose -f docker-compose.dev.yml stop portal
+  docker compose -f docker-compose.dev.yml run --rm --no-deps portal sh -c 'cd /app && npm ci && node apps/portal/scripts/check-optional-packages.mjs'
+  docker compose -f docker-compose.dev.yml start portal
+  ```
+
+  **If the install command fails with `npm ci left out ... optional packages`, run it again before the start.** That volume has `next`, so the start installs nothing ("Dockerfile.dev Entrypoint Pattern" above).
+
+  Checked 2026-11-15 on a copy of that volume: the install ran in a one-off and removed the client, and `npm run db:generate`, the entrypoint's own step, made it again. With one package's download broken the command exited 1 and named the package, and run again with the download working it exited 0. An `npm ci` under a running `next dev` killed the container mid-install and left the tree broken (seen 2026-11-09). Rebuilding the image installs nothing the container sees.
+- **`apps/portal/Dockerfile.dev`** (the base image or the entrypoint): rebuild the image, the one change that needs it:
+
+  ```bash
+  docker compose -f docker-compose.dev.yml build portal
+  docker compose -f docker-compose.dev.yml up -d portal
+  ```
 
 ### Environment Variables
 
-Required environment variables (set in `docker-compose.yml` or `.env`):
-
-**Database:**
-- `DATABASE_URL`: PostgreSQL connection string
-
-**App URL:**
-- `NEXTAUTH_URL`: Public Forms URL (emailed links; `https://` makes the session cookie `Secure`). Full list in `docs/AGENT_CONTEXT.md` section 7
-
-**SMTP (Email):**
-- `SMTP_HOST`: SMTP server hostname
-- `SMTP_PORT`: SMTP port (default: 587)
-- `SMTP_USER`: SMTP username
-- `SMTP_PASS`: SMTP password
-- `SMTP_FROM`: From email address
-
-**Admin:**
-- `ADMIN_EMAIL`: Operator account email
-- `ADMIN_PASSWORD`: Initial admin password (change after first login)
-
-**Build Args:**
-- `NEXT_PUBLIC_APP_URL`: Public URL (must be set at build time)
-
-### Build Process
-
-**Production Build** (`Dockerfile`):
-1. **Install dependencies** (`npm ci`)
-2. **Build embed script** (`npm run embed:build`)
-3. **Generate Prisma Client** (`npx prisma generate`)
-4. **Build Next.js app** (`npm run build`)
-5. **Copy standalone output** to runner stage
-
-**Development Build** (`Dockerfile.dev`):
-1. **Install dependencies** (`npm ci`)
-2. **Generate Prisma Client** (`npx prisma generate`)
-3. **Build embed script** (`npm run embed:build`)
-4. **Create entrypoint script** (ensures deps exist after volume mount)
-5. **Run Next.js dev server** (`npm run dev`)
-
-### Deployment Workflow
-
-**Development Mode (with hot reload) - ⚠️ USE THIS FOR ACTIVE DEVELOPMENT:**
-```bash
-# 1. Start dev environment
-docker compose -f docker-compose.dev.yml up -d
-
-# 2. Make code changes - they appear automatically!
-# No rebuild needed for code changes
-
-# 3. If you changed Prisma schema, apply migration SQL:
-cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-portal-db psql -U user -d canopy-forms
-
-# 4. Restart container (if needed):
-docker compose -f docker-compose.dev.yml restart portal
-
-# 5. View logs
-docker compose -f docker-compose.dev.yml logs -f portal
-```
-
-**Production Mode (for deployment testing only):**
-```bash
-# 1. Make code changes
-# 2. If you changed Prisma schema, apply migration SQL to database first:
-cat prisma/migrations/TIMESTAMP_name/migration.sql | docker exec -i canopy-portal-db psql -U user -d canopy-forms
-
-# 3. Rebuild the image (runs prisma generate automatically)
-docker compose build portal
-
-# 4. Restart the service
-docker compose up -d portal
-
-# 5. Verify logs
-docker compose logs -f portal
-```
-
-**Important:** 
-- **For development**: Always use `docker compose -f docker-compose.dev.yml` to keep hot reload enabled
-- **For production builds**: The Dockerfile automatically runs `npx prisma generate` during build (line 24). Never run it manually inside a running container—the container runs as a non-root user and doesn't have write permissions.
+The variables are listed in `docs/AGENT_CONTEXT.md` section 7, and where the dev stack reads each from is in its section 4. `NEXT_PUBLIC_APP_URL` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` are build args (`ARG` in `apps/portal/Dockerfile`): setting them on a running container changes nothing.
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Issue: `docker-compose: command not found`**
-
-**Solution:** Use `docker compose` (space) instead of `docker-compose` (hyphen). The CLI plugin is the modern approach.
-
 **Issue: Warning about `version` field being obsolete**
 
-**Solution:** Remove the `version` field from `docker-compose.yml` to eliminate this warning. It's not needed in Compose v2:
+**Solution:** Remove the `version` field from the compose file to eliminate this warning. It is not needed:
 
 ```yaml
 # Remove this line:
@@ -414,7 +267,7 @@ services:
 
 **Issue: Warnings about environment variables not being set**
 
-**Solution:** Add default values to optional environment variables in `docker-compose.yml`:
+**Solution:** Add default values to optional environment variables in the compose file:
 
 ```yaml
 environment:
@@ -424,74 +277,53 @@ environment:
   SMTP_FROM: "${SMTP_FROM:-}"
 ```
 
-**Issue: Permission denied when running `docker exec canopy-portal npx prisma generate`**
+**Issue: Permission denied when running `npx prisma generate` in a production container**
 
-**Root Cause:** The production container runs as non-root user (`nextjs` UID 1001) and doesn't have write permissions to `node_modules/.prisma`. The Prisma client is generated during the Docker build process (Dockerfile line 24), not at runtime.
+**Root Cause:** The production image generates the Prisma client at build time (`RUN npx prisma generate` in the builder stage of `apps/portal/Dockerfile`) and runs as the non-root user `nextjs` (UID 1001), which cannot write to `node_modules`.
 
-**Solution:** Never run `npx prisma generate` inside a running production container. After schema changes:
+**Solution:** Never run `npx prisma generate` inside a production container. A schema change reaches production as a new image, which Coolify builds on push.
 
-**For Development Mode:**
-```bash
-# ✅ Correct: Restart dev container (entrypoint script handles Prisma generation)
-docker compose -f docker-compose.dev.yml restart portal
-```
-
-**For Production Mode:**
-```bash
-# ✅ Correct: Rebuild container (runs prisma generate during build)
-docker compose build && docker compose up -d
-```
-
-**Why this is correct:**
-- Production Dockerfile runs `RUN npx prisma generate` at build time (line 24)
-- Dev Dockerfile entrypoint script runs `npx prisma generate` if needed on startup
-- The builder stage has full permissions, runner stage is read-only
-- This matches the immutable infrastructure pattern (containers should not modify themselves)
+The dev container is the opposite case: its user owns the `node_modules` volume, and the client is generated there on every start ("After a change in dev" above).
 
 **Issue: Dev container shows "next: not found" or missing node_modules**
 
-**Root Cause:** Volume mount `.:/app` overwrites container's `node_modules` directory.
+**Root Cause:** The `node_modules` volume has no `next` binary, for example after an install that stopped partway.
 
-**Solution:** The `Dockerfile.dev` includes an entrypoint script that automatically installs dependencies if they're missing. If issues persist:
+**Solution:** The entrypoint installs dependencies when `/app/node_modules/.bin/next` is missing, so restart the container and watch the log for `Installing dependencies...`:
 
 ```bash
-# Rebuild dev container to ensure entrypoint script is current
-docker compose -f docker-compose.dev.yml build portal
-docker compose -f docker-compose.dev.yml up -d portal
-
-# Check logs to see if dependencies are being installed
+docker compose -f docker-compose.dev.yml restart portal
 docker compose -f docker-compose.dev.yml logs -f portal
 ```
 
-The anonymous volume `/app/node_modules` in `docker-compose.dev.yml` should preserve dependencies, but the entrypoint script provides a fallback.
+Rebuilding the image does not repair the volume ("Development Mode Configuration" above).
+
+**Issue: Dev container keeps restarting with `Attempted to load @next/swc-linux-x64-musl, but it was not installed`**
+
+**Root Cause:** The `node_modules` volume has `next` but lost a platform package in an install that was not checked. The entrypoint installs nothing into that volume, and `next dev` exits on every start (seen 2026-11-15 on a copy of the volume).
+
+**Solution:** Install again with the Dependencies recipe under "After a change in dev".
 
 **Issue: Container exits immediately after start**
 
 **Solution:**
 ```bash
 # Check logs for errors
-docker compose logs portal
+docker compose -f docker-compose.dev.yml logs portal
 
 # Verify environment variables are set
-docker compose config
+docker compose -f docker-compose.dev.yml config
 
 # Check if port is already in use
-docker compose ps
+docker compose -f docker-compose.dev.yml ps
 ```
 
-**Issue: Build fails with Prisma errors**
+**Issue: An environment variable change has no effect**
 
-**Solution:** Ensure Prisma Client is generated during build:
-```dockerfile
-RUN npx prisma generate
-```
-
-**Issue: Environment variables not working**
-
-**Solution:** 
-- Build-time variables (`NEXT_PUBLIC_*`) must be in `build.args`
-- Runtime variables go in `environment` section
-- Use `${VARIABLE:-default}` for optional variables
+**Solution:**
+- A container's environment is fixed when it is created. After changing the compose file or `.env`, recreate it with `docker compose -f docker-compose.dev.yml up -d portal`: `restart` keeps the old values.
+- A value in the compose file's `environment:` block wins over the same key in `.env` (`docs/AGENT_CONTEXT.md` section 4).
+- In the production image, `NEXT_PUBLIC_*` values are build args and need a new build.
 
 **Issue: Can't connect to database**
 
@@ -502,7 +334,6 @@ RUN npx prisma generate
 
 ### Debugging Commands
 
-**For Development Mode:**
 ```bash
 # Inspect running container
 docker compose -f docker-compose.dev.yml exec portal sh
@@ -520,85 +351,9 @@ docker network inspect canopy-sites_canopy-sites-network
 docker compose -f docker-compose.dev.yml config
 ```
 
-**For Production Mode:**
-```bash
-# Inspect running container
-docker compose exec portal sh
-
-# Check environment variables
-docker compose exec portal env
-
-# Validate compose file
-docker compose config
-```
-
-## Migration from docker-compose (Legacy)
-
-If you're using the legacy `docker-compose` command:
-
-1. **Install the plugin:**
-   ```bash
-   sudo apt-get install docker-compose-plugin  # Ubuntu/Debian
-   ```
-
-2. **Update scripts:** Replace `docker-compose` with `docker compose` in all scripts and documentation
-
-3. **Test commands:** Verify all commands work with the new syntax
-
-4. **Remove legacy binary** (optional):
-   ```bash
-   sudo rm /usr/local/bin/docker-compose
-   ```
-
-## Best Practices
-
-### Development
-
-**⚠️ Use Development Mode for Active Development:**
-- **Always use**: `docker compose -f docker-compose.dev.yml up -d` (enables hot reload)
-- **Never use**: `docker compose build` during development (switches to production mode)
-- Use `docker compose -f docker-compose.dev.yml logs -f` to monitor logs
-- Code changes appear automatically - no rebuilds needed
-- Rebuild dev container only if `Dockerfile.dev` or `package.json` changes: `docker compose -f docker-compose.dev.yml build`
-- Use `.env` file for local development (not committed to git)
-- Remove `version` field from compose files to prevent warnings
-- Add defaults to all optional environment variables: `${VAR:-default}`
-
-**When to Rebuild Dev Container:**
-- `Dockerfile.dev` changes
-- `package.json` dependencies change
-- Need to regenerate Prisma client manually
-- Container won't start (dependency issues)
-
-**When NOT to Rebuild:**
-- Source code changes (hot reload handles this)
-- Component changes (Fast Refresh handles this)
-- Config file changes (hot reload handles this)
-
-### Production
-
-- Always use `--no-cache` for production builds to ensure clean state
-- Set all required environment variables explicitly
-- Use Docker secrets for sensitive data (passwords, API keys)
-- Run containers as non-root users (already configured in Dockerfile)
-- Use health checks for services
-- Set appropriate restart policies (`unless-stopped`)
-
-### Security
-
-- Never commit `.env` files with secrets
-- Use Docker secrets or environment variable injection
-- Keep base images updated (`node:20-alpine`)
-- Scan images for vulnerabilities: `docker scan <image>`
-- Use minimal base images (Alpine Linux)
-
 ## Related Documentation
 
 - [Docker Compose Official Docs](https://docs.docker.com/compose/)
 - [Dockerfile Best Practices](https://docs.docker.com/build/building/best-practices/)
 - [Next.js Docker Deployment](https://nextjs.org/docs/deployment#docker-image)
-- [Prisma with Docker](../prisma-7.md)
-
----
-
-**Remember:** Always use `docker compose` (space) not `docker-compose` (hyphen). The legacy standalone tool is deprecated.
+- [Prisma with Docker](./prisma-7.md)

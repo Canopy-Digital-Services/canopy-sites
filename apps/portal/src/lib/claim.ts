@@ -19,7 +19,7 @@ import { getAccountTimeZone } from "@/lib/data-access/accounts";
 import { getSoleMembership } from "@/lib/data-access/memberships";
 import { appUrlFor, productNameFor, senderFor } from "@/lib/product";
 import { UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
-import type { PasswordTokenPurpose } from "@prisma/client";
+import type { MembershipRole, PasswordTokenPurpose } from "@prisma/client";
 
 const HOUR = 60 * 60 * 1000;
 export const RESET_TTL_MS = HOUR;
@@ -107,10 +107,11 @@ function escapeHtml(s: string): string {
 }
 
 /**
- * A new claim link for an owner who hasn't claimed: the account's home host
- * (appUrlFor) plus /claim, never the request's host. Emails it when asked,
- * from the account's sender, and records when it went. Throws ClaimError for
- * an owner who has already set a password.
+ * A new claim link for a person who hasn't claimed, the owner or anyone added
+ * to the account since (PRD D63): the account's home host (appUrlFor) plus
+ * /claim, never the request's host. Emails it when asked, from the account's
+ * sender, and records when it went. Throws ClaimError for a person who has
+ * already set a password.
  */
 export async function createClaimLink(
   userId: string,
@@ -205,44 +206,68 @@ export async function consumeClaim(token: string, password: string, now = new Da
   });
 }
 
-export type OwnerAccess = {
+export type PersonAccess = {
   userId: string;
+  name: string | null;
   email: string;
+  role: MembershipRole;
   claimed: boolean;
-  /** When the owner claimed, from the claim link they used; null when they haven't, or got in before claims existed. */
+  /** When they claimed, from the claim link they used; null when they haven't, or got in before claims existed. */
   claimedAt: Date | null;
   /** The newest claim link: when it was made, whether the portal emailed it, and by whom. */
   link: { createdAt: Date; emailedAt: Date | null; by: string | null } | null;
   lastLoginAt: Date | null;
+  /** How far they have played each of the site's welcome videos (ROADMAP E39), in seconds of its length; a tab's is listed once they play it. */
+  watched: { tab: string; seconds: number; of: number }[];
 };
 
-/** The account's owner and where they stand on claiming, for the operator's site page. */
-export async function getOwnerAccess(accountId: string): Promise<OwnerAccess | null> {
-  const owner = await prisma.membership.findFirst({
-    where: { accountId, role: "OWNER" },
+/**
+ * Everyone on the account and where each stands on claiming, for the
+ * operator's site page (PRD D63): the owner first, then in the order they
+ * were added.
+ */
+export async function listPeopleAccess(accountId: string): Promise<PersonAccess[]> {
+  const memberships = await prisma.membership.findMany({
+    where: { accountId },
     orderBy: { createdAt: "asc" },
-    select: { user: { select: { id: true, email: true, password: true, lastLoginAt: true } } },
+    select: {
+      role: true,
+      welcomeViews: { select: { watchedSeconds: true, videoSeconds: true, video: { select: { tab: true } } } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          lastLoginAt: true,
+          passwordTokens: {
+            where: { purpose: "CLAIM" },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true, emailedAt: true, usedAt: true, createdBy: { select: { email: true } } },
+          },
+        },
+      },
+    },
   });
-  if (!owner) return null;
-  const { user } = owner;
-  const [newest, used] = await Promise.all([
-    prisma.passwordToken.findFirst({
-      where: { userId: user.id, purpose: "CLAIM" },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true, emailedAt: true, createdBy: { select: { email: true } } },
-    }),
-    prisma.passwordToken.findFirst({
-      where: { userId: user.id, purpose: "CLAIM", usedAt: { not: null } },
-      orderBy: { usedAt: "desc" },
-      select: { usedAt: true },
-    }),
-  ]);
-  return {
-    userId: user.id,
-    email: user.email,
-    claimed: user.password !== null,
-    claimedAt: used?.usedAt ?? null,
-    link: newest ? { createdAt: newest.createdAt, emailedAt: newest.emailedAt, by: newest.createdBy?.email ?? null } : null,
-    lastLoginAt: user.lastLoginAt,
-  };
+  const people = memberships.map(({ role, user, welcomeViews }): PersonAccess => {
+    const newest = user.passwordTokens[0];
+    const used = user.passwordTokens
+      .map((t) => t.usedAt)
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => b.getTime() - a.getTime())[0];
+    return {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role,
+      claimed: user.password !== null,
+      claimedAt: used ?? null,
+      link: newest ? { createdAt: newest.createdAt, emailedAt: newest.emailedAt, by: newest.createdBy?.email ?? null } : null,
+      lastLoginAt: user.lastLoginAt,
+      watched: welcomeViews.flatMap(({ watchedSeconds, videoSeconds, video }) =>
+        watchedSeconds !== null && videoSeconds !== null ? [{ tab: video.tab, seconds: watchedSeconds, of: videoSeconds }] : [],
+      ),
+    };
+  });
+  return [...people.filter((p) => p.role === "OWNER"), ...people.filter((p) => p.role !== "OWNER")];
 }

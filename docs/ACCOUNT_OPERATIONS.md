@@ -21,7 +21,7 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 
 ## Account Model
 
-The Account is the tenant boundary: forms, submissions, and fields belong to it. Users reach an account through a **Membership** (`OWNER` or `MEMBER`, Epic 28). v1 gives every user exactly one membership, as `OWNER`; `getSoleMembership` in `src/lib/data-access/memberships.ts` throws for more than one, and `getCurrentAccountId()` resolves through it.
+The Account is the tenant boundary: forms, submissions, and fields belong to it. Users reach an account through a **Membership** (`OWNER` or `MEMBER`, Epic 28). A user has exactly one: `getSoleMembership` in `src/lib/data-access/memberships.ts` throws for more than one, and `getCurrentAccountId()` resolves through it. An account has one `OWNER`, from signup or Link a site, and any number of `MEMBER`s, each added by the operator (People on an account, below). A member does everything the owner does except delete the account.
 
 ```
 Account (id, createdAt, planCode, ...)
@@ -65,12 +65,22 @@ Flow:
 
 A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES` in Pacific time (the operator's browser isn't the client's), its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
 
+### People on an account (PRD D63)
+
+**Code:** `src/actions/admin/members.ts`, Global Admin only; `listPeopleAccess()` in `src/lib/claim.ts`
+
+An organization's other people get logins of their own on the site's account. The operator adds each from the site's People card (Operator → Sites → the site), or from Add person on Operator → Accounts for an account with no site: a name and an email no user has yet (`addAccountMember`), which makes a user with no password and a `MEMBER` membership and returns a claim link to pass on. Nothing is emailed from there. The card lists everyone on the account, owner first, with where each stands on claiming, and renames a person (`setPersonName`).
+
+`removeAccountMember` takes anyone but the owner off the account: the membership goes, and the user with it when it was their only one, so their sessions end by cascade. What they published and sent keeps its row with the user column null. It refuses the owner, the operator themselves, and another Global Admin, and every one of these actions refuses a person who isn't on the account it names.
+
+A person's name (`User.name`, optional) is what the portal calls them to anyone else; `personName` in `src/lib/person.ts` falls back to the email. The operator types it at Link a site, at Add person, or by renaming.
+
 ### Claim (PRD D49)
 
 **Route:** `/claim?token=...` on the account's home host
 **Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` in `src/actions/admin/claims.ts`
 
-An owner with no password gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the site's Owner card to text it, or has the portal email it (`emailedAt`); Forgot password for an unclaimed owner emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
+A person with no password, the owner of a linked site or anyone added to its account since, gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the person's row on the site's People card to text it, or has the portal email it (`emailedAt`); Forgot password for someone who hasn't claimed emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
 
 Opening the page reads the token and consumes nothing, so a messaging app's link preview can't use it up. Setting the password consumes it with one conditional update (a claim token, unused, unexpired) and sets the password only where it is still null, in one transaction; then a "keep me signed in" session starts and `lastLoginAt` is set. An expired link offers to email a new one to the same address (`resendClaimLink`, under the reset throttle); a used one points to sign-in.
 
@@ -136,7 +146,7 @@ Deleting rows is how sessions end, immediately and everywhere:
 
 | Event | Sessions ended |
 |-------|----------------|
-| Sign-out | This browser's (and its acting as a client) |
+| Sign-out | This browser's (and its acting as a client). The user's holds on sites they were editing are released too (PRD D64) |
 | Password change | Every other session; this browser stays signed in |
 | Password reset | All of the user's |
 | User or account deletion | All, by cascade |
@@ -247,7 +257,7 @@ Non-admins are silently redirected to their home (`/forms` or `/editor`).
 
 ### Acting as a client (PRD D49)
 
-A Global Admin opens a Sites client's account from the site's Owner card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
+A Global Admin opens a Sites client's account from the site's People card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
 
 A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section (the time zone stays, and is how the operator sets a client's), switching on a form's notifications fills in the owner's email as the first recipient (never the operator's), and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author, a help request's sender (with its `actAsId`, and no email goes out for it, sent or closed). The `ActAs` row is the record for the rest.
 

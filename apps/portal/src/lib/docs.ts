@@ -59,8 +59,19 @@ export function extractHeadings(markdown: string): DocHeading[] {
   return headings;
 }
 
-function orderedSlugs(): string[] {
-  return docsNav.flatMap((g) => g.slugs as unknown as string[]);
+export type DocsNavGroup = { group: string; slugs: readonly string[] };
+
+/**
+ * The help pages an account is shown: every group, less the ones about a
+ * Canopy Sites website for an account without one. The sidebar, the index
+ * tiles, previous and next, and whether a page opens at all go by this.
+ */
+export function docsNavFor(sitesEnabled: boolean): DocsNavGroup[] {
+  return docsNav.filter((g) => sitesEnabled || !("sites" in g && g.sites));
+}
+
+function orderedSlugs(sitesEnabled: boolean): string[] {
+  return docsNavFor(sitesEnabled).flatMap((g) => [...g.slugs]);
 }
 
 function groupForSlug(slug: string): string {
@@ -103,8 +114,9 @@ async function readDoc(slug: string): Promise<Doc | null> {
   };
 }
 
-export async function getAllDocs(): Promise<Doc[]> {
-  const slugs = orderedSlugs();
+/** The help pages this account is shown, in the manifest's order. */
+export async function getAllDocs(sitesEnabled: boolean): Promise<Doc[]> {
+  const slugs = orderedSlugs(sitesEnabled);
   const docs = await Promise.all(slugs.map((s) => readDoc(s)));
   return docs.filter((d): d is Doc => d !== null);
 }

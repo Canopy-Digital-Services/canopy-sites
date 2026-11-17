@@ -21,7 +21,7 @@ Phase 4  Production on nginx          [webber]             E36                  
 Phase 5  Toro Z migration             [toroz]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36; Hair & Harvest is E46)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
-Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
+Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51 → E52            (after the MVP: Gallery, Events, Booking)
 ```
 
@@ -34,17 +34,23 @@ Hair & Harvest is on Sites only as the demo's copy (PRD D23): the `hair-and-harv
 Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friends, Hair & Harvest, and the VETS site claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
 
 1. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
-2. **E47, tool layer fixes** (F1 to F5).
-3. **E48, deploys and checks** (F25, F27, F28, F29).
-4. **E49, alerting and records** (F26, F31).
-5. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-6. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-7. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-8. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
-9. **E46, Hair & Harvest onto Sites**, then its claim.
-10. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+2. **E47, tool layer fixes** (F1, F3, F5; F2 and F4 were fixed with E54).
+3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the VETS site's claim links go out.
+4. **E39, the welcome video**: before the VETS site's claim links go out, tried first on Fur-Ever Friends.
+5. **E48, deploys and checks** (F25, F27, F28, F29).
+6. **E49, alerting and records** (F26, F31).
+7. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+8. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+9. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+10. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+11. **E46, Hair & Harvest onto Sites**, then its claim.
+12. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
 
-**Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). Item 10's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
+**Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The VETS item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
+
+**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out.
+
+**Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the VETS site's claim links, so each person there opens their portal on a walkthrough of it. Fur-Ever Friends gets the first one. Since 2026-11-15 it is one video for each tab, which keeps each short.
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
@@ -271,12 +277,14 @@ From `docs/epics/epic-38-link-and-claim.md`. The operator links a live site by i
 
 ### E39 · Welcome video
 
-Goal: each client's portal opens on a walkthrough Michael recorded for them, because each portal shows different things depending on what the site has. Builds on what E38 left ready (its section 4.6). Decided by Michael, 2026-11-05: the portal hosts the video (no third-party player); it's recorded in any tool that exports MP4 (Snagit, Loom, Google Vids); captions are required; how much was watched is good to have, not essential.
+Goal: each tab of a client's portal opens on a walkthrough Michael recorded for them, because each portal shows different things depending on what the site has. Builds on what E38 left ready (its section 4.6). Decided by Michael, 2026-11-05: the portal hosts the video (no third-party player); it's recorded in any tool that exports MP4 (Snagit, Loom, Google Vids); captions are required; how much was watched is good to have, not essential. Revised 2026-11-14 for several people on an account (PRD D63): each person on the account is shown a video once and has a watched figure of their own. Revised 2026-11-15 (Michael): one video for each tab, not one for the site, so each stays short and opens where it applies. Clients have different tabs (the VETS site has no form), and a tab with no video opens nothing.
 
-- Storage: a Coolify persistent volume on the prod and dev portal apps at `/app/media`, created in the Dockerfile owned by `nextjs` (uid 1001; the portal had no volume as of 2026-11-05), named by `MEDIA_DIR` (unset means no videos). Files `welcome/<siteId>/<key>.mp4` and `<key>.vtt`, the key a hash of the MP4; a replacement writes a new key and deletes the old pair. Not in the nightly backups, which cover databases; a lost video is re-uploaded from Michael's original
-- Upload on the operator site page: the MP4 and a WebVTT captions file, both required. A route handler behind `requireGlobalAdmin` streams to disk and refuses over 100 MB (Cloudflare's per-request limit on Free and Pro); it checks the MP4's `ftyp` box and the VTT's `WEBVTT` header. Captions come from the recording tool, or Claude Code transcribes the MP4 with Whisper on Michael's workstation and he reads the VTT; a bigger video is re-encoded with `ffmpeg` first
-- Playback: `/welcome/<siteId>/<key>.(mp4|vtt)` for members of the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying, opened once on the owner's first session after claiming, never while the operator acts as the client. The furthest point reached and the video's length on the owner's Membership; the operator's owner card shows "Watched 4:12 of 5:03". The help bubble reopens it
-- Acceptance: on the owner's phone the video opens once, silent until played, with captions, and seeks; the operator page shows how far they got; signed out or as another account, its files 404
+- Storage: a Coolify persistent volume on the prod and dev portal apps at `/app/media`, created in the Dockerfile owned by `nextjs` (uid 1001; the portal had no volume as of 2026-11-05), named by `MEDIA_DIR` (unset means no videos). A video is a `WelcomeVideo` row (site, tab, key) and two files, `welcome/<siteId>/<tab>-<key>.mp4` and `.vtt`, the tab one of the ids in `src/lib/sites-tabs.ts` and the key a hash of the MP4; a replacement writes a new key and deletes the tab's old pair. Not in the nightly backups, which cover databases; a lost video is re-uploaded from Michael's original
+- Upload on the operator site page: a Welcome videos card with a row for each tab, and for a tab the MP4 and a WebVTT captions file, both required. The card lists every tab until the tabs follow what the account has (Epic 38, 4.8), and then the account's. A route handler that only a Global Admin's own portal page may post to streams the MP4 to disk and refuses a request over 100 MB (Cloudflare's per-request limit on Free and Pro); it checks the MP4's `ftyp` box and the VTT's `WEBVTT` header, as the page does before it sends. Remove, on the tab's row, deletes the pair and each person's viewing of it, so the next one uploaded for the tab opens once for each of them. Captions come from the recording tool, or Claude Code transcribes the MP4 with Whisper on Michael's workstation and he reads the VTT; a bigger video is re-encoded with `ffmpeg` first
+- Playback: `/welcome/<siteId>/<tab>-<key>.(mp4|vtt)` for the people on the site's account and an acting operator only (through `memberships.ts`), with byte ranges so it seeks, `Cache-Control: private`. A native `<video controls>` in a dialog with captions on, never autoplaying. A tab's video opens by itself once per person, the first time they are on one of that tab's pages while they have no `WelcomeView` row for it: Quick Edit's in their first session after claiming, since that is where they land, and any tab's on their next visit there when its video arrived after they claimed. It never opens by itself while the operator acts as the client, who opens it from the help bubble. The furthest point played (dragging along a paused video doesn't count) and the video's length are on the person's `WelcomeView`; their row on the operator's people card shows "Watched Quick Edit 4:12 of 5:03 · Editor 0:40 of 2:10". A different video for a tab starts its figures over, and does not open by itself again for someone already shown that tab's. On a tab's pages the help bubble reopens its video
+- Acceptance: on a person's phone each tab's video opens once, on their first visit to the tab, silent until played, with captions, and seeks; a second person on the account gets each once too; a tab with no video opens nothing; the operator page shows how far each person got in each; signed out or as another account, the files 404
+
+Built as of 2026-11-15 and in 5.21.0 (2026-11-17), where it is off for want of the volume: a video for each tab, with playback, its one automatic showing per person, the help bubble's item, the operator's upload and Remove, and the watched figures, tried on the local portal with Fur-Ever Friends' video as Quick Edit's and as the Editor's. Left: the volume on the dev and prod apps, without which neither has videos. Delete this paragraph when E39 ships.
 
 ## Phase 4 — Production on nginx
 
@@ -372,10 +380,30 @@ The MVP's own work (PRD D51), from the 2026-11-09 review. Each finding's detail 
 
 ### E47 · Tool layer fixes
 
-Goal: a draft and a publish hold up when two things happen at once, and a guide rule the site already breaks doesn't stop an owner's edit.
+Goal: a guide rule the site already breaks doesn't stop an owner's edit, a builder restart doesn't strand a draft's build, and a publish runs the guardrails again. Two writes landing together (F2, F4) were fixed with E54, which needed them first.
 
-- F1 to F5, each landing with the test that fails without it. F2 to F5 have tests beside the catalog that pass while the defect is present
+- F1, F3, and F5, each landing with the test that fails without it. F3 and F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
+
+### E53 · People on an account
+
+Goal: an organization's several people each sign in as themselves on the site's one account (PRD D63). Epic doc: `docs/epics/epic-53-people-on-an-account.md`.
+
+- A name per person, typed by the operator at Link a site and when adding a person, shown wherever the portal names someone to other people
+- The operator's site page lists the account's people in place of its one owner: add a person, a claim link for anyone who hasn't claimed (copied or emailed), remove a person
+- No owner-side screen: an owner inviting their own people is after v1
+- Acceptance: a second person is added to a site's account, claims, edits, and publishes as themselves; a removed person is signed out and can't sign in
+
+### E54 · One editor at a time
+
+Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
+
+- Groundwork: F2 and F4, so a draft and a publish hold up when two writes land together
+- The hold: one row per site, taken when a person starts an edit and never by opening a page, kept by the editing pages while that person is active, given up when they publish or discard, and enforced in the tool layer with a database test per guard
+- The pages: who is making edits in place of the Quick Edit chat and over the Editor's site behind frosted glass, the preview page viewable with Publish held back, Discard held back in the Sites chrome, each opening up when the hold frees. Built and checked with Michael a section at a time
+- The draft is its author's: once they have stopped, nobody else adds to it, and anyone publishes or discards it, told whose it is and what it changes, before editing themselves
+- The handoff: a page loads the site again when it moved without it, a field left open keeps its text or has it handed back, edits a save couldn't send are dropped once the site has moved, and the published list names who published
+- Acceptance: with two people signed in, neither is held back while both only look; once the first starts an edit the second can't save, send a Quick Edit message, publish, or discard, and can again when the first publishes or discards, ten minutes after they go quiet, or a minute and a half after they leave; a draft one person left can't be added to by another, who can publish or discard it and then edit; one person's laptop and phone never refuse each other
 
 ### E48 · Deploys and checks
 
@@ -433,7 +461,7 @@ PRD D55. Open for the epic doc: where a bookable service's length lives (the con
 - An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
-- Invite flow and member roles UI (Membership exists from E28)
+- An owner inviting their own people, member roles such as who may publish, and asking another person for control of the site (PRD D63, D64)
 - Creating a site's repo, DNS, Umami website, or hostname link from the portal (the operator links a live site, E38)
 - Stripe or FreshBooks sync
 - SEO/report tier tooling
