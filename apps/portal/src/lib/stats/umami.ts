@@ -16,7 +16,22 @@ const TOP_PAGES = 10;
 const REFERRER_DOMAINS = 50;
 const WEBSITE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export class UmamiError extends Error {}
+/**
+ * Why Umami couldn't be read: not set up here, the key may not read the
+ * website (a 401 for one outside the team, or one that doesn't exist), no
+ * answer in time or a server error, an answer of the wrong shape, or a site
+ * row whose id isn't a website id at all.
+ */
+export type UmamiFailure = "unconfigured" | "refused" | "unreachable" | "malformed" | "invalid";
+
+export class UmamiError extends Error {
+  constructor(
+    message: string,
+    readonly kind: UmamiFailure,
+  ) {
+    super(message);
+  }
+}
 
 /** One value in a Umami series or ranking: a day or a name, and its count. */
 type Point = { x: string; y: number };
@@ -33,7 +48,7 @@ export type UmamiResponses = {
 async function get(path: string, params: Record<string, string | number>): Promise<unknown> {
   const base = process.env.UMAMI_URL;
   const key = process.env.UMAMI_API_KEY;
-  if (!base || !key) throw new UmamiError("Umami isn't configured in this environment.");
+  if (!base || !key) throw new UmamiError("Umami isn't configured in this environment.", "unconfigured");
   const url = new URL(path, base);
   for (const [name, value] of Object.entries(params)) url.searchParams.set(name, String(value));
   let res: Response;
@@ -44,13 +59,16 @@ async function get(path: string, params: Record<string, string | number>): Promi
       cache: "no-store",
     });
   } catch (err) {
-    throw new UmamiError(`Umami didn't respond to ${url.pathname} (${(err as Error).name}).`);
+    throw new UmamiError(`Umami didn't respond to ${url.pathname} (${(err as Error).name}).`, "unreachable");
   }
-  if (!res.ok) throw new UmamiError(`Umami returned ${res.status} for ${url.pathname}.`);
+  if (!res.ok) {
+    const refused = res.status === 401 || res.status === 403 || res.status === 404;
+    throw new UmamiError(`Umami returned ${res.status} for ${url.pathname}.`, refused ? "refused" : "unreachable");
+  }
   try {
     return await res.json();
   } catch {
-    throw new UmamiError(`Umami's answer for ${url.pathname} isn't JSON.`);
+    throw new UmamiError(`Umami's answer for ${url.pathname} isn't JSON.`, "malformed");
   }
 }
 
@@ -60,16 +78,46 @@ const count = (value: unknown) => {
 };
 
 function points(value: unknown, what: string): Point[] {
-  if (!Array.isArray(value)) throw new UmamiError(`Umami's ${what} isn't a list.`);
+  if (!Array.isArray(value)) throw new UmamiError(`Umami's ${what} isn't a list.`, "malformed");
   return value
     .filter((p): p is { x: string; y: unknown } => typeof p?.x === "string")
     .map((p) => ({ x: p.x, y: count(p.y) }));
 }
 
+/** The API path of a website, refusing an id that isn't a UUID before it reaches a URL. */
+function websitePath(websiteId: string): string {
+  if (!WEBSITE_ID.test(websiteId)) throw new UmamiError("The site's Umami website id isn't a UUID.", "invalid");
+  return `/api/websites/${websiteId}`;
+}
+
+/** What the operator's check reads: the website as Umami names it, and its first and last recorded event. */
+export type UmamiWebsite = { name: string; domain: string | null; firstEvent: Date | null; lastEvent: Date | null };
+
+const dateOrNull = (value: unknown) => {
+  const d = typeof value === "string" ? new Date(value) : null;
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+};
+
+/** The website and when it recorded its first and last event (null when it has recorded nothing). */
+export async function fetchUmamiWebsite(websiteId: string): Promise<UmamiWebsite> {
+  const at = websitePath(websiteId);
+  const [website, range] = await Promise.all([get(at, {}), get(`${at}/daterange`, {})]);
+  if (typeof website !== "object" || website === null || typeof (website as { name?: unknown }).name !== "string") {
+    throw new UmamiError("Umami's website isn't an object with a name.", "malformed");
+  }
+  const w = website as { name: string; domain?: unknown };
+  const r = (range ?? {}) as { startDate?: unknown; endDate?: unknown };
+  return {
+    name: w.name,
+    domain: typeof w.domain === "string" && w.domain ? w.domain : null,
+    firstEvent: dateOrNull(r.startDate),
+    lastEvent: dateOrNull(r.endDate),
+  };
+}
+
 /** Everything the Stats page shows, for `startAt` to `endAt`, with days in `timeZone`. */
 export async function fetchUmami(websiteId: string, startAt: Date, endAt: Date, timeZone: string): Promise<UmamiResponses> {
-  if (!WEBSITE_ID.test(websiteId)) throw new UmamiError("The site's Umami website id isn't a UUID.");
-  const at = `/api/websites/${websiteId}`;
+  const at = websitePath(websiteId);
   const range = { startAt: startAt.getTime(), endAt: endAt.getTime() };
   const [totals, series, paths, referrers, channels] = await Promise.all([
     get(`${at}/stats`, range),
@@ -78,7 +126,7 @@ export async function fetchUmami(websiteId: string, startAt: Date, endAt: Date, 
     get(`${at}/metrics`, { ...range, type: "referrer", limit: REFERRER_DOMAINS }),
     get(`${at}/metrics`, { ...range, type: "channel" }),
   ]);
-  if (typeof totals !== "object" || totals === null) throw new UmamiError("Umami's totals aren't an object.");
+  if (typeof totals !== "object" || totals === null) throw new UmamiError("Umami's totals aren't an object.", "malformed");
   const t = totals as Record<string, unknown>;
   const s = (series ?? {}) as Record<string, unknown>;
   return {

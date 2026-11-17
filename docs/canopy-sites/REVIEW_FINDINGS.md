@@ -7,7 +7,7 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - Anything exploitable stays out of this file, since the repo is public. The security pass of 2026-11-09 is in the Nextcloud Engineering collective, on the page "Canopy Sites Security Review 2026-11-09", and what production records and doesn't is on "Logging and Detection 2026-11-10".
 - **F3 and F5 have tests** in `review-findings-repro.db.test.ts.txt`, beside this file: each passes while its defect is present. To fix one, copy its test into `apps/portal/src/lib/site-tools/`, turn its expectations around, and land it with the fix. The builder is stood in, as the suite does, so the builder's half of F3 (its 404 after a restart) is read, not run. Delete that file with the second of the two.
 
-**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Toro Z, Fur-Ever Friends, Hair & Harvest, and soon the VETS site) claim their portal, edit, preview, and publish safely. Converting Hair & Harvest is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox.
+**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Toro Z, Fur-Ever Friends, Hair & Harvest, and soon the VETS site) claim their portal, edit, preview, and publish safely. Converting Hair & Harvest is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox. Hair & Harvest's request form, from the field types Forms has today, joined the MVP on 2026-11-17 (PRD D65); no other Forms work on those sites did.
 
 ## Before launch: defects
 
@@ -126,7 +126,7 @@ Decided, Michael, 2026-11-09: Fox stays as the failover origin for client sites,
 
 ### F12. The portal runs on one box, as one process
 
-Forms today and Booking later live only on Webber. Rate limits (`src/lib/rate-limit.ts`) and the builder's queue are in memory, so neither can run as two copies. Database failover to Fox is not MVP (Michael, 2026-11-09); it is to be designed before Booking carries a client's revenue. The docs disagree on where it stands: AGENT_CONTEXT section 6 says Fox is not standing by for Forms, while the Backups and Restores runbook (Nextcloud) describes a dump pushed to Fox every minute and a handoff between the boxes. Hardware is not the limit: on 2026-11-10 Webber ran 27 containers at a load under 1 on 8 CPUs, with 3.3 of 14 GB of memory and 33 of 232 GB of disk in use, and the builder's volume held about 450 MB a site.
+Forms today and Booking later live only on Webber. Rate limits (`src/lib/rate-limit.ts`) and the builder's queue are in memory, so neither can run as two copies. Database failover to Fox is not MVP (Michael, 2026-11-09); it is to be designed before Booking carries a client's revenue. A form is to carry Hair & Harvest's requests for appointments ahead of any Booking (ROADMAP E55, 2026-11-17), so the question arrives with that form. The docs disagree on where it stands: AGENT_CONTEXT section 6 says Fox is not standing by for Forms, while the Backups and Restores runbook (Nextcloud) describes a dump pushed to Fox every minute and a handoff between the boxes. Hardware is not the limit: on 2026-11-10 Webber ran 27 containers at a load under 1 on 8 CPUs, with 3.3 of 14 GB of memory and 33 of 232 GB of disk in use, and the builder's volume held about 450 MB a site.
 
 ### F30. The Sites pipeline has no environment before production
 

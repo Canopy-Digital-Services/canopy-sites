@@ -22,7 +22,7 @@ Phase 5  Toro Z migration             [toroz]              T1, E42              
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
-Phase 9  The suite                    [this repo]          E50 → E51 → E52            (after the MVP: Gallery, Events, Booking)
+Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (after the MVP: Gallery, Events, E55 past its first step, Services, then button and menu text; Booking when a client needs it)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -35,26 +35,27 @@ Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friend
 
 1. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
 2. **E47, tool layer fixes** (F1, F3, F5; F2 and F4 were fixed with E54).
-3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the VETS site's claim links go out.
-4. **E39, the welcome video**: before the VETS site's claim links go out, tried first on Fur-Ever Friends.
-5. **E48, deploys and checks** (F25, F27, F28, F29).
-6. **E49, alerting and records** (F26, F31).
-7. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-8. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-9. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-10. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
-11. **E46, Hair & Harvest onto Sites**, then its claim.
-12. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+3. **E39, the welcome video**: before the VETS site's claim links go out, tried first on Fur-Ever Friends.
+4. **E48, deploys and checks** (F25, F27, F28, F29).
+5. **E49, alerting and records** (F26, F31).
+6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+10. **E46, Hair & Harvest onto Sites**, then its claim.
+11. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
 
 **Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The VETS item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
 
-**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out.
+**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out. Both shipped in 5.21.0 (2026-11-17) and left the list.
 
 **Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the VETS site's claim links, so each person there opens their portal on a walkthrough of it. Fur-Ever Friends gets the first one. Since 2026-11-15 it is one video for each tab, which keeps each short.
 
+**Hair & Harvest leaves Square, 2026-11-17 (Michael):** Sierra is moving off Square and takes payment by Venmo, so her site's booking becomes a request form (PRD D65, E55). Her site has four links to Square's booking page and three lines saying a card on file is required (`hair-and-harvest`, checked 2026-11-17); the links stop working the day her Square account closes, a date not yet asked of her. E55's first step, the form from today's field types, is in the MVP (Michael, 2026-11-17). It has no place in the numbered order, because its date is hers: it is worked as soon as she gives that date and settles her policy's wording (E55). The rest of E55 comes after the MVP. This paragraph goes when the form is live on her site.
+
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
-After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), E43 to E45, then E52 (Booking). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
+After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is drafted for after the MVP as the first tab built, which is Michael's to confirm (its epic doc, section 7). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -150,7 +151,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### E46 · Hair & Harvest on Sites (`hair-and-harvest`)
 
-In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Toro Z was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Toro Z's plumbing, as Fur-Ever Friends did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). The epic doc carries the requirements.
+In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Toro Z was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Toro Z's plumbing, as Fur-Ever Friends did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). Its links to Square's booking page and its card-on-file lines are E55's, whichever of the two epics reaches the repo first. The epic doc, `docs/epics/epic-46-hair-and-harvest-on-sites.md`, carries the requirements.
 
 ### H1 · H&H → Astro 7 (`hair-and-harvest`)
 
@@ -385,7 +386,7 @@ Goal: a guide rule the site already breaks doesn't stop an owner's edit, a build
 - F1, F3, and F5, each landing with the test that fails without it. F3 and F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
 
-### E53 · People on an account
+### E53 · People on an account (shipped v5.21.0)
 
 Goal: an organization's several people each sign in as themselves on the site's one account (PRD D63). Epic doc: `docs/epics/epic-53-people-on-an-account.md`.
 
@@ -394,7 +395,7 @@ Goal: an organization's several people each sign in as themselves on the site's 
 - No owner-side screen: an owner inviting their own people is after v1
 - Acceptance: a second person is added to a site's account, claims, edits, and publishes as themselves; a removed person is signed out and can't sign in
 
-### E54 · One editor at a time
+### E54 · One editor at a time (shipped v5.21.0)
 
 Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
 
@@ -429,7 +430,7 @@ Goal: Michael is told when the portal or the builder is down, and what happened 
 
 ## Phase 9: The suite
 
-After the MVP (PRD D52, D54, D55).
+After the MVP (PRD D52, D54, D55), except E55's first step, which is in it ("The MVP", above).
 
 ### E50 · Media pipeline and the Gallery tab
 
@@ -450,7 +451,38 @@ Goal: an owner adds an event with its date, time, and place, and it leaves the s
 
 ### E52 · Booking
 
-PRD D55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+PRD D55. Waits for a client who needs it (Michael, 2026-11-17); Hair & Harvest's requests for appointments are E55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+
+### E55 · Requests (Hair & Harvest's appointment form)
+
+Goal: a new client asks Sierra for an appointment from her site, with photos of their hair and her policy agreed to, and she reads the request on her phone and books the time herself (PRD D65). As of 2026-11-17 Forms has no field that takes a file; an Approval's text is plain, with no link and nothing kept of what was agreed to; and a Sites account's Forms tab is the Forms product's list of forms, with no view of submissions across forms, no count on the tab, and no way to call, text, or email from a submission.
+
+- **Step 1, the form from today's field types**, with nothing built in this repo: name, phone, email, hair goals, the services wanted (Choose several), hair history, the days and times that suit, and an Approval of the salon's policies, with the answers in the notification email. In `hair-and-harvest`, the four links to Square's booking page point at the form and the three card-on-file lines go; once the site is converted (E46) the link is `site.contact.bookingUrl`. Hair & Harvest's Report Profile (Nextcloud, Monthly Reports) names a tap through to Square as the report's conversion, and is rewritten with this step. In the MVP, due the day her Square account closes ("The MVP", above).
+- **Photos**, a field type: a visitor attaches photos, up to a count the owner sets, downscaled in the browser, then checked by content and re-encoded on the server with location data stripped. They are stored on the portal's media volume (E39's, which dev and prod lack as of 2026-11-17), shown only to the account's signed-in people, and deleted with their submission, form, or account. The notification email counts them and links to the submission, and never attaches them. The volume joins the backups: a welcome video is re-uploaded from Michael's original, and a visitor's photo has none. The upload route is public, so it carries the submit route's origin check and rate limit, a size cap, and a cap for each form.
+- **An Approval with a document**: the owner pastes the document's text into the field, the form shows a link beside the statement that opens it, as Square's "See full policy" does (Michael's screenshots, 2026-11-17), and the submission keeps the text as it stood when the box was ticked. No typed name and no drawn signature. With no card on file, that record is what Sierra has when a client disputes a cancellation fee.
+- **A Sites account's Forms tab opens on what came in**: submissions across the account's forms, newest first, new ones marked, a count on the tab, a search by name, and archived ones still to be found, since a request is the only record of a client (PRD D65). A submission shows its photos, and its phone and email answers call, text, and write to the person. The forms and their builder are one click away, and a Forms account keeps today's page. Laid out for a phone first, and built a section at a time with Michael.
+- Not in this epic: confirming a request with a time ("Not scheduled", below), a contacts model (PRD D52), and any text message Canopy sends.
+- Open for the epic doc: which cancellation window her policy states (Square's says two days and her policies page 24 hours, both read 2026-11-17; Sierra's to settle); which account holds the form before her site is linked (`linkSite`'s `attach` links a site to the email's existing Sites account, so a form built there ahead of E46 stays hers); the tab's label (its id stays `forms`, which welcome videos are named by); whether photos upload with the submission or ahead of it; and how long photos are kept.
+- For Michael to decide before the form is her only way to be booked: it lives only on Webber (F12), and its notification mail shares the ceiling in F32.
+- Acceptance: on a phone, a visitor sends a request with three photos and the policy agreed to; Sierra gets the email, opens the request in her portal, sees the photos and the policy's text as agreed, and texts the client from it; a later edit to the policy doesn't change what that submission shows; someone outside her account can't fetch a photo by its address; deleting the submission deletes its files.
+
+### E56 · Services
+
+Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Drafted and not yet approved: when it is built, and PRD D66, are its section 7.
+
+- Found converting Hair & Harvest (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
+- Contract 0.8.0 (a template says where a list is, the id rule exported), the Services tab, and each site's lists named to the canvas
+- The canvas's action layer (Michael, 2026-11-17): a click that could mean more than one thing shows its actions as icons. On a service it opens the tab's own forms; on marked text inside a link it gives a pencil and a follow icon
+- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list. Button and menu text as an owner's edit, which the layer is built to carry, is E57
+
+### E57 · Button and menu text on the canvas
+
+Goal: an owner changes the words on a button or a menu item where they see it, and can still follow it: a click on anything that links gives a pencil and a follow icon, and the owner picks (Michael, 2026-11-17). An epic of its own, straight after E56, which builds that layer for text that is already marked (its 4.5).
+
+- The lane: a button's label and a menu item's label become the owner's on every site, while where each goes stays Canopy's. Revises PRD D50, which keeps buttons and navigation labels Canopy's, and the runbook's rule that neither is marked
+- The contract: a page's button is one field today, Canopy's whole, so its label and its link are flagged apart; and a menu item that goes to a place on a page (Hair & Harvest's Gallery, About, and Connect) gets a field, which the contract lacks
+- Each site: its buttons' and menu items' labels move from the templates into content and are marked, and its guide gets a limit for each, measured at 360 and 1440 px, since a menu label that wraps breaks a header
+- Open for the epic doc: whether eyebrows follow; an analytics event named by a button's label, which must keep its name when the label changes; a label that names where it goes ("Book on Square")
 
 ---
 
@@ -458,6 +490,7 @@ PRD D55. Open for the epic doc: where a bookable service's length lives (the con
 
 - Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
 - Members (a light CRM) and newsletters as runtime components (PRD D52)
+- Confirming a request with a time, after E55: the client gets an email with a calendar invite, then a reminder by email at the cancellation cutoff. Proposed 2026-11-17, not decided
 - An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
