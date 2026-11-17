@@ -30,7 +30,7 @@ An owner opens Stats and sees how many people visited their site, which pages th
 | Contact taps (Call, Email, Directions) | The center of the monthly report, the search and reporting tier's deliverable; Stats stays the basic stats the base price includes (Michael, 2026-11-14) |
 | Page names in place of paths, change from the previous period, phone and desktop | Follow-ups once owners use the page |
 | The Stats tab only for sites with an Umami id | Epic 38, 4.8 (the tabs) |
-| Backups for Umami's database | Infrastructure, on the Umami page's own condition: before its numbers are client-visible. Tracked there |
+| Backups for Umami's database | Infrastructure, done 2026-11-17: Coolify's nightly tier with a copy on R2 (Nextcloud, Backups and Restores) |
 | A cache | Owner traffic is a handful of page loads a day |
 
 ## 3. Order
