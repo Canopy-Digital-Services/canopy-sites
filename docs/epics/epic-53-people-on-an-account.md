@@ -1,6 +1,6 @@
 # Epic 53: People on an account
 
-**Status:** Approved (Michael, 2026-11-14). Built and unreleased: 4.1 and 4.2 are on `dev`, and Michael added a person through the People card on 2026-11-15 while checking Epic 54 and raised nothing about it. Left: the Onboarding Runbook's section 6 at release (4.3), and ticking section 5 once it is live.
+**Status:** Complete in 5.21.0 (2026-11-17). Acceptance in section 5, checked on the local portal and by test; the production check is the progress log's last entry. The Onboarding Runbook's part (4.3) is written with the release.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 38 (link and claim), whose claim link every person uses
 **Successor:** Epic 54 (one editor at a time), which needs a second person to exist
@@ -67,12 +67,12 @@ Operator → Accounts keeps the same Add person dialog, for accounts with no sit
 
 ## 5. Acceptance
 
-- [ ] On a site's operator page, a second person is added with a name, appears in People as not yet claimed, and their claim link sets a password.
-- [ ] Signed in, that person sees the site's Quick Edit, Editor, Stats, and Forms, and a publish is recorded under their name.
-- [ ] A claim link can be copied or emailed again for anyone who hasn't claimed, and never for someone who has.
-- [ ] Removing a person signs them out at their next request, and their email no longer signs in.
-- [ ] The owner can't be removed, and an action naming a person from another account is refused.
-- [ ] `npm run build`, `npm run lint`, and `npm test` pass.
+- [x] On a site's operator page, a second person is added with a name, appears in People as not yet claimed, and their claim link sets a password (the card in headless Chromium on the local portal, and Michael adding one himself on 2026-11-15; the claim in `claim.db.test.ts`)
+- [x] Signed in, that person sees the site's Quick Edit, Editor, Stats, and Forms, and a publish is recorded under their name (the two-person runs on the local demo site; the publisher in `site-tools.db.test.ts`)
+- [x] A claim link can be copied or emailed again for anyone who hasn't claimed, and never for someone who has (`claim.db.test.ts`; Copy claim link in the browser)
+- [x] Removing a person signs them out at their next request, and their email no longer signs in (`members.db.test.ts`: the login and its sessions are deleted)
+- [x] The owner can't be removed, and an action naming a person from another account is refused (`members.db.test.ts`, `claim.db.test.ts`)
+- [x] `npm run build`, `npm run lint`, and `npm test` pass
 
 ## 6. Progress
 
