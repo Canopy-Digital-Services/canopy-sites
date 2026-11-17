@@ -3,7 +3,7 @@
 **Status:** Draft (2026-11-17). Waiting on Michael's approval of sections 2, 3, and 7.
 **Phase:** 9, The suite (`docs/canopy-sites/ROADMAP.md`, E56)
 **Predecessor:** Epic 46 (Hair & Harvest on Sites), whose templates put the home page's featured services and the menu on one list; Epic 33 (the visual editor) and Epic 54 (one editor at a time), which the tab stands on
-**Successor:** E50 (Gallery) and E51 (Events), which reuse the tab's list and form
+**Successor:** E57 (button and menu text on the canvas), which the action layer is built to carry; E50 (Gallery) and E51 (Events), which reuse the tab's list and form
 
 > **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/UX_PATTERNS.md` section 1, `docs/canopy-sites/PRD.md` (D8, D9, D35 to D40, D48, D50, D54, D64, sections 4.4 to 4.6), `docs/epics/epic-33-visual-editor.md` (4.5, 4.6), `docs/epics/epic-38-link-and-claim.md` (4.8, the tabs), `docs/epics/epic-54-one-editor-at-a-time.md`, and `packages/site-contract/README.md`. In `apps/portal`: `src/app/(admin)/(sites)/editor/canvas-editor.tsx`, `src/lib/canvas-bridge.ts`, `src/lib/site-tools/index.ts` (`saveDraft`), `src/actions/site-editor.ts`, `src/components/sites/site-hold.tsx`.
 
@@ -36,7 +36,7 @@ This epic gives the list a tab, and gives the canvas an action layer: a click th
 | A second name or price for a service where it is featured | One name and one price, wherever it shows: that is what makes it one list. An owner who wants a featured row to read differently renames the service |
 | Prices as amounts | A price stays display text ("$170", "From $150", "Consultation required"), as the contract has it. Amounts come when Booking or payments need them |
 | Adding, removing, or reordering categories and the sections and groups inside them | Templates place some by id (Fur-Ever Friends' three cards). Renaming one is a text edit, here and on the canvas; the rest stays Quick Edit's where the list isn't fixed, and Canopy's where it is |
-| Editing the text of buttons and menu items | The layer is built to carry it: a pencil and a follow icon on anything that links. Opening those fields to owners changes the lane on every site (PRD D50 keeps buttons and navigation labels Canopy's, and no site marks them). Section 7, item 3 |
+| Editing the text of buttons and menu items | ROADMAP E57, an epic of its own straight after this one (Michael, 2026-11-17). The layer built here carries it: a pencil and a follow icon on anything that links. Opening those fields to owners changes the lane and every site's guide (PRD D50 keeps buttons and navigation labels Canopy's, and no site marks them), where this epic changes neither |
 | Products sold online (a cart, checkout, stock) | A runtime component (PRD D52), and a feature of its own. A price list of things a business sells fits this list as it is |
 | A form's choices taken from the list | E55's first step types the services into a Choose several field. Reading them from the list is a later step, noted here because it is the next place a second copy appears |
 | How long a service takes, for Booking | E52's open question. The contract's `duration` is display text |
@@ -137,6 +137,7 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 - **Lightweight.**
 - **What an owner changes on the canvas is written to the list**, and the canvas must be able to make the change where the owner sees it.
 - **The action layer.** A click on anything that links gives two icons, a pencil and a follow icon, so the owner chooses; following on a click is what makes editing feel like using the site, and that stays for links that aren't editable. He had it in mind for the text of buttons and menu items. The same layer carries "edit service" and "add a service line".
+- **Button and menu text is an epic of its own**, straight after this one (ROADMAP E57).
 
 ### Agent calls inside scope
 
@@ -155,15 +156,14 @@ For Michael.
 
 1. **When.** Recommended: after the MVP, and the first tab built, ahead of Gallery and Events, since it needs nothing they wait on and they reuse its list and form. Until then Sierra changes a price on the canvas and asks Quick Edit to add a service or change a favorite. The alternative is to build it before her claim, which puts it ahead of the VETS site in "The MVP".
 2. **Which fields the form offers.** The tab can't see a site's templates, so it can't tell that Hair & Harvest renders no duration. Recommended: name and price always, and description and duration only where the site's guide gives the field a limit, since the guide carries a limit for every field the templates mark. The alternative is the contract's whole service on every site, which offers Sierra a field that shows nowhere.
-3. **Button and menu text.** The layer's pencil is ready for them, and they are Canopy's today: the contract flags a page's buttons and navigation labels (PRD D50), no site marks them, and Toro Z, Fur-Ever Friends, and Hair & Harvest keep most of them in their templates. Opening them means: the label becomes the owner's while the link stays Canopy's; a menu item that goes to a place on a page, such as Hair & Harvest's Gallery and About, gets a field, which the contract lacks; each site's guide gets a limit for every button and menu item, measured at both widths, since a menu label that wraps breaks a header; and each site's templates move those labels into content and mark them. Recommended: an epic of its own, straight after this one, because it changes the lane and every site's guide, where this epic changes neither. The alternative is to fold it in here.
-4. **PRD D66**, to land with approval, with D54's "Gallery first" and section 6's Tool tabs row following item 1's answer, D43's line on a marked link reworded for the layer, and D50 following item 3's. Proposed: "**A site's services are one list with a tab of its own.** Every place a service shows (the menu, a page's featured services, later a form's choices and Booking) renders the list's entry, with one name and one price, never wording of its own for that place. The tab is where an owner adds, removes, and reorders services and picks the featured ones; the canvas opens the tab's own forms from the list they change, so nothing about a service can be changed in one place and not the other. It is a Sites feature like Gallery and Events (D54), and the first of them built."
+3. **PRD D66**, to land with approval, with D54's "Gallery first" and section 6's Tool tabs row following item 1's answer, and D43's line on a marked link reworded for the layer. D50 is E57's to revise. Proposed: "**A site's services are one list with a tab of its own.** Every place a service shows (the menu, a page's featured services, later a form's choices and Booking) renders the list's entry, with one name and one price, never wording of its own for that place. The tab is where an owner adds, removes, and reorders services and picks the featured ones; the canvas opens the tab's own forms from the list they change, so nothing about a service can be changed in one place and not the other. It is a Sites feature like Gallery and Events (D54), and the first of them built."
 
 ## 8. Completion report
 
 ## 9. Progress log
 
 - 2026-11-17: Drafted after Epic 46's read of Hair & Harvest found its home page's four featured services typed apart from the menu. Checked in the code that day: the contract holds the list and featured ids, with a check that a featured id is on the menu; `saveDraft` takes structural ops by address; the canvas edits `text`, `paragraph`, and `price` in place and sends every other kind to the Quick Edit popover; the nav lists four tabs for every Sites account; no portal code names services.
-- 2026-11-17 (later): Michael's action layer (section 6) replaces the draft's plan to mark a list and click the space around its rows. 4.1 gains `list()`, and 4.5 is rewritten around the layer, with its link half for text already marked. Button and menu text is section 7's item 3.
+- 2026-11-17 (later): Michael's action layer (section 6) replaces the draft's plan to mark a list and click the space around its rows. 4.1 gains `list()`, and 4.5 is rewritten around the layer, with its link half for text already marked. Button and menu text was section 7's item 3 until Michael made it an epic of its own (ROADMAP E57).
 
 ## 10. Docs this makes stale
 
@@ -171,7 +171,7 @@ Each lands with the change that causes it, never in a later pass.
 
 **This repo**
 
-- `docs/canopy-sites/PRD.md`: D66 (section 7, item 4); D54's order; D37's list of what goes through the popover; D43's line on a marked link or button; section 6's nav and Tool tabs row.
+- `docs/canopy-sites/PRD.md`: D66 (section 7, item 3); D54's order; D37's list of what goes through the popover; D43's line on a marked link or button; section 6's nav and Tool tabs row.
 - `docs/canopy-sites/ROADMAP.md`: E56's brief and the Sequencing line; E33's brief where it lists the canvas's own editors; E55's first step, if its form's choices later read the list.
 - `docs/AGENT_CONTEXT.md`: section 2's nav and Sites-only routes; the tool layer row in section 3, for a tab as a writer.
 - `docs/UX_PATTERNS.md`: the tab's list and form, as the pattern Gallery and Events follow; the canvas's action layer.
