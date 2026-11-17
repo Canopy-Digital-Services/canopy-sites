@@ -151,7 +151,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### E46 · Client 2 on Sites (`client2`)
 
-In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Client 1 was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). Its links to Square's booking page and its card-on-file lines are E55's, whichever of the two epics reaches the repo first. The epic doc carries the requirements.
+In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Client 1 was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). Its links to Square's booking page and its card-on-file lines are E55's, whichever of the two epics reaches the repo first. The epic doc, `docs/epics/epic-46-client2-on-sites.md`, carries the requirements.
 
 ### H1 · Client 2 → Astro 7 (`client2`)
 

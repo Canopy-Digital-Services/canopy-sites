@@ -9,6 +9,7 @@ Each epic's Status line says what has been released and what is left. Move an ep
 - [Epic 38: Link and claim](epic-38-link-and-claim.md)
 - [Epic 40: Client 1 on Sites](epic-40-client1-on-sites.md)
 - [Epic 42: the test site on Sites](epic-42-test-site-on-sites.md)
+- [Epic 46: Client 2 on Sites](epic-46-client2-on-sites.md)
 
 ## Completed Epics
 

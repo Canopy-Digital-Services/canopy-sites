@@ -1,0 +1,205 @@
+# Epic 46: Client 2 on Sites
+
+**Status:** Draft (2026-11-17). Waiting on Michael's approval of sections 2, 3, and 7 before anything is built.
+**Phase:** 1's Client 2 migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
+**Predecessor:** Epic 42 (the test site on Sites), the pattern; Epic 40 (Client 1 on Sites), the worked example
+**Successor:** the owner's claim, and E55's first step (her request form in place of Square's booking)
+
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/epics/epic-42-test-site-on-sites.md` and `docs/epics/epic-40-client1-on-sites.md` (4.5 to 4.8 and the progress logs), `docs/canopy-sites/PRD.md` (D29 to D50, D51, D56, D65, section 4.4), `docs/canopy-sites/ROADMAP.md` ("The MVP", E46, H1 to H3, E55), and `packages/site-contract/README.md`. In `client2`: `CLAUDE.md`. In `client1` and `test-site`, the references for the repo side: `src/lib/content.ts`, `src/lib/design.ts`, `src/lib/portal.ts`, `Dockerfile`, `nginx.conf`, `SITE_GUIDE.md`. In `canopy-demo-site` (read `origin/main`): `src/lib/content.ts` and the templates, which already render this site from content files on an early contract. In Nextcloud (Canopy Sites collective): **Sites Onboarding Runbook**, **Site Build Checklist**, **Quick Edit Eval Runbook**.
+
+---
+
+## 1. Goal
+
+the owner changes a price, her hours, a policy, or a line about herself from her phone, previews it, and publishes it to client2.example, from an account she claimed with a link.
+
+Client 2 is the site the demo was copied from (PRD D23), and the third client site to go onto Sites, after Client 1 and the test site: three pages, a nested service menu, a gallery, no form. Its repo is where the others started (Astro 5, nixpacks, its copy typed into the templates, checked 2026-11-17).
+
+The site goes onto Sites as it reads today. the owner's copy moves word for word, by script, and every page's visible text is compared before and after. Changing it is hers once the site is there.
+
+## 2. Scope
+
+### In
+
+- **Builds that match (4.1)**: ROADMAP H1. Astro 7, Node 24, a Dockerfile and `nginx.conf` like Client 1's.
+- **The repo on the contract (4.2)**: ROADMAP H2 and the runbook's section 2. The contract at the version `main` runs, content in `src/content`, marks, portal flags, CORS, and Umami recording what it records today.
+- **The site guide (4.3)**, with limits measured from the rendered pages and every piece of text that art is drawn against listed (PRD D56).
+- **Proof (4.4)**: the runbook's section 2 step 9, and every page compared against client2.example at 360 and 1440 px.
+- **The switch (4.5)**: the branch onto `main` with both boxes' Coolify copies moved to the Dockerfile. Michael's go-ahead first.
+- **Link, acceptance, eval, claim (4.6)**: the runbook's sections 4 to 6, with a Client 2 set added to the Quick Edit Eval Runbook. Michael's go-ahead at each of linking and the claim link.
+- **Docs (4.7)**: section 10.
+
+### Out
+
+| Not here | Why / where |
+|---|---|
+| `tokens.json` (ROADMAP H3) | Neither Client 1 nor the test site has one, and the contract has no `tokens` collection. Not built; section 7, item 1 |
+| The Square booking links and the card-on-file lines | E55's first step (PRD D65). Here the four links become one value, `site.contact.bookingUrl`, still Square's address, and the three card-on-file lines move as the owner wrote them |
+| Copy and price changes, including where the home page and the menu disagree | the owner's once the site is on Sites, or Canopy's through the Editor. Section 7, item 2 is the one place the conversion itself has to choose |
+| Announcements | Nothing rebuilds the site nightly before E36, and Client 1 and the test site settled the same way. The demo's banner component is not brought over |
+| New photos, and adding, removing, or reordering gallery photos | E50. The six photos stay, in today's order |
+| The site kit (E41) | The site copies Client 1's plumbing, as the test site did, and moves onto the kit with the others |
+| Her Report Profile (Nextcloud, Monthly Reports) | Rewritten with E55's first step. Every analytics event keeps its name here, so the report reads as before |
+| The welcome video | E39 |
+
+## 3. Order
+
+- **This session**: this doc; then, once sections 2, 3, and 7 are approved, a `canopy-sites` branch in `client2` holding 4.1, then 4.2 with 4.3 alongside it (its limits are measured from 4.2's pages), then 4.4. Small commits, nothing pushed. It stops there, before anything reaches the live site.
+- 4.1's commits come first on the branch and build by themselves, so the switch could go in two steps (Astro 7 and the Dockerfile, then the content). One step is the plan, as the test site went.
+- **4.5, with Michael's go-ahead**: the branch is pushed, both boxes' Coolify copies move to the Dockerfile, and `main` is fast-forwarded. That push is the first webhook deploy on record for this app on Webber (4.1), so it is watched, and it proves that a publish, which is a push, deploys.
+- **4.6, with Michael's go-ahead**: the repo joins the Canopy Sites App (his browser), then Link a site, acceptance acting as the owner, the eval, and the claim link.
+- **E55's first step** has no place in this order, because its date is the owner's (ROADMAP, "The MVP"). If it comes before 4.5 it edits the templates on `main` and this branch takes it in. After 4.5 it is one content value and three lines.
+
+About three sessions: this one; the switch with linking and acceptance; the eval with the claim.
+
+## 4. Requirements
+
+### 4.1 Builds that match (`client2`, ROADMAP H1)
+
+As of 2026-11-17 the repo is on Astro `^5.17.1`, and Coolify app `r8kgko4og008ss0w0oc84okc` builds it with nixpacks on both boxes from `Canopy-Digital-Services/client2` through the org's `canopyds-github` App, serving `/dist` from `nginx:alpine`. It carries two build variables, `NIXPACKS_NODE_VERSION` and `PUBLIC_UMAMI_DOMAINS`. Webber's copy has a health check and Fox's has none. Webber's Coolify holds no deployment record for the app: the last commit to `main` is from 2026-04-29, before Webber's rebuild on 2026-07-16, so a webhook deploy of this app has never been seen there.
+
+1. Astro 7 on Client 1's line, with Tailwind and the sitemap integration brought up beside it, `@astrojs/check` and TypeScript for `npm run check`, and Node 24.
+2. A Dockerfile like Client 1's (`node:24-slim`, `npm ci --ignore-scripts`, `nginx:alpine`) and a `.dockerignore`.
+3. `nginx.conf` like Client 1's, with `Access-Control-Allow-Origin: *` on every file. Addresses answer as they do today: `/services` and `/services/` both serve the page (section 6).
+4. Tailwind reads `src/` only (`@import "tailwindcss" source("..");`), so the builder's CSS and the image's are one file under one name.
+5. No content or design change: the three pages match the live site.
+
+### 4.2 The repo on the contract (`client2`, ROADMAP H2)
+
+The runbook's section 2, the test site' 4.2 as the pattern. The templates and `content.ts` start from `canopy-demo-site` (`origin/main`, `6bcf837`), which renders this site from content files on contract 0.2. The content does not come from the demo, whose copy has been edited since (its haircut costs $90): a script writes it from this repo's templates and `services.json` as they read today.
+
+1. **The contract** at 0.7.0 from its release tarball, the version `packages/site-contract/package.json` holds on `main` (checked 2026-11-17).
+2. **Content in `src/content/*.json`**, read through one `content.ts` that runs `validateContent`, with what is Canopy's in `design.ts`:
+   - `site.json`: the name, a description (today's structured-data description), the address as the site states it (city, state, country; no street), the Square address as `bookingUrl`, the hours as structured days and times, and two socials (Instagram with its handle, and the Google Maps listing). No phone or email: the site shows neither.
+   - `services.json`: the menu's seven categories as they are, with an id on every section, group, and service. Starting prices and durations are left out: no page renders either, and three of the starting prices are empty, which the contract refuses.
+   - `reviews.json`: the three reviews, word for word.
+   - `gallery.json`: the six photos, already under `src/assets`, with today's alt text.
+   - `pages.json`: the three pages, each with today's SEO title and description. Home: the hero's line, each section's heading, the About section's quote and three paragraphs, and the contact line. Services: the page heading and intro, the pricing note's heading and four lines, and the booking heading. Policies: the page heading and intro, the five policies as a heading and paragraphs each, and the booking heading. The three card-on-file lines are among these, as written.
+   - **One source per fact**: the four booking buttons render from `bookingUrl`; the hours render into the contact section and the structured data; the address into the contact section and the structured data; the Instagram link into the header, the phone menu, the contact section, and the structured data.
+   - **What stays in the templates, Canopy's**: the logo, the wordmark, and the name in the hero; navigation; eyebrows; buttons and their labels; the labels on the contact facts; "By booking, you agree to our salon policies." (a sentence with a link inside it, the runbook's rule); the footer; the hero and portrait photos with their alt text; the quotation marks and attribution dash around a review; and the structured data's fixed parts (the business's name as search shows it, and the owner as its stylist).
+3. **Marks** on the hero's line, every section and page heading, the About quote and paragraphs, the contact line, each review and its author, the hours, the page intros, the pricing note's lines, each policy's heading and paragraphs, and on the menu each category's name and description, each section's and group's name, and each service's name and price. Not on the name (4.3), the address (locked), eyebrows, buttons, labels, navigation, the footer, or SEO.
+4. **Portal flags.** Under `data-canopy-editor`: no logo intro, and every category and nested section of the menu open, since a closed one hides marked text. The site has no form, so no placeholder.
+5. **CORS**: 4.1's `nginx.conf`, the fonts included.
+6. **Umami** records what it records today: the same script and website id (`00000000-0000-4000-8000-000000000002`), every `data-umami-event` name and location, and the two accordion events. `data-domains` keeps today's value, `client2.example,www.client2.example`, as a constant in `design.ts` where today it is Coolify's `PUBLIC_UMAMI_DOMAINS` build variable: the builder builds with no environment, and a build without the allowlist would record the canvas as visits.
+7. **The repo's docs** in the same commits: `CLAUDE.md` rewritten for where content and design now live, pointing at `SITE_GUIDE.md`, with how the site deploys; `README.md` (the Astro starter's text) replaced by a few lines; `src/data/` deleted.
+
+### 4.3 The site guide (`client2/SITE_GUIDE.md`)
+
+Front matter, measured the way Client 1's and the test site' were:
+
+- `limits` for every marked field, at 360 and 1440 px, with every field at its limit at once overflowing nothing.
+- `counts` for the reviews, the featured services, and the menu's lists, checked rendered at that count.
+- `avoid` from the owner's copy as it is. Never `em-dash`.
+- `refuse`: none known. Michael names any.
+
+Prose, only what changes what Quick Edit does:
+
+- What the business is: the owner's one-person salon in El Dorado Hills, California.
+- What the site doesn't carry: a phone number, an email, or a street address. Clients reach the owner through Instagram and the booking button.
+- Exact names, from the content as it reads.
+- Where facts repeat: a featured service and its menu entry; the card on file, in three places; the 24 hours in the cancellation policy; what the owner specializes in, in the hero's line and the About paragraphs.
+- What Canopy handles: navigation, buttons, the booking link, page titles and search text, the location, photos and the gallery, the design, and every piece of text that art is drawn against. Read from the templates, that is one: **the business's name**, whose ampersand is the logo mark in the hero and in the header's wordmark, and where the intro animation lands. 4.3 checks the rendered pages for any other and lists each one.
+
+### 4.4 Proof
+
+- The runbook's step 9: a violation in a content file fails the build; the builder's build (`npm ci --ignore-scripts && npm run build` from a clean checkout with no environment) and the Docker image of one commit list the same `_astro/` files; each marked element's text equals its content value exactly, and none falls on a field Canopy owns.
+- The three pages against client2.example in headless Chromium at 360 and 1440 px: the visible text of every page equal, closed menu panels included; titles, descriptions, canonicals, share tags, and structured data equal; the pixels equal apart from differences listed in the progress log with their cause.
+- `npm run check` clean.
+- The image sends `Access-Control-Allow-Origin: *` on pages, `_astro` files, and fonts.
+- Loaded the way the canvas loads a page (a sandboxed frame, a `<base>` at the site, each flag): styled, no script errors, no intro and the whole menu open under the editor flag.
+
+### 4.5 The switch
+
+Michael's go-ahead first: it changes the Coolify app on both boxes and deploys the live site.
+
+1. Push the branch.
+2. On both boxes' copies of the app: the `dockerfile` build pack, port 80, the same health check on both, and `NIXPACKS_NODE_VERSION` and `PUBLIC_UMAMI_DOMAINS` gone.
+3. Fast-forward `main`. The webhook's deploy is watched to the end; Fox builds the same commit that night.
+4. The live pages equal a local build of that commit, the live `_astro` names equal the builder's build, and a real visit lands in Umami: the tag being in the HTML is not the check.
+
+### 4.6 Link, acceptance, eval, claim
+
+- The repo on the Canopy Sites App's installation (runbook section 4, step 1), Michael's browser step.
+- Link a site: the owner's email and name (section 7, item 4), "Client 2", repo `client2`, `client2.example` and `www.client2.example`, the Umami id in 4.2.
+- On the site page, locks beside the contact fields: `site/name` (art is drawn against it, PRD D56), `site/description` (SEO), and `site/contact/bookingUrl` until E55's form replaces Square's address. Fixed lists: `gallery`, whose grid places five photos on a desktop and six on a phone by position, and whatever 4.3 finds the templates place entry by entry.
+- Acting as the owner: the runbook's section 5. The publish round trip uses one small edit on a quiet page and puts it back.
+- The eval: the shared set and a Client 2 set, written from the guide and added to the runbook. Its cases are drafted with 4.3.
+- The claim link, with Michael's go-ahead.
+
+### 4.7 Docs
+
+Section 10, each in the commit that changes the behavior.
+
+## 5. Acceptance
+
+- [ ] A push to `main` deploys the site through the Dockerfile on Webber, and Fox builds the same commit.
+- [ ] The three pages match the live site at 360 and 1440 px, with every page's visible text equal, apart from what section 7's answers change.
+- [ ] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
+- [ ] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as the owner wrote them.
+- [ ] Umami records a visit and a booking tap from client2.example, and nothing from the canvas.
+- [ ] The site guide lists every piece of text that art is drawn against, each locked on the site's row and unmarked on the canvas.
+- [ ] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
+- [ ] The eval passes, shared set and the Client 2 set.
+- [ ] the owner claims the account and publishes an edit that shows on client2.example.
+
+## 6. Decisions
+
+### Michael (2026-11-17, the handoff)
+
+- **The site goes on as it reads today.** the owner's copy moves word for word, by script, and every page's visible text is compared before and after.
+- **Booking stays as it is.** The Square link becomes `site.contact.bookingUrl`, and the card-on-file lines stay her words. Replacing them is E55.
+- **`tokens.json` is not built here**: no precedent on Client 1 or the test site. Section 7, item 1.
+- **Text that art is drawn against is locked and unmarked** (PRD D56), each one listed in the site guide.
+- **The contract at the version `main` runs**, and the demo's templates and content shape as the starting point, with the content from this repo.
+- **A stop before** merging to `main`, changing the Coolify app on either box, linking the site, or anything outside this doc's scope.
+
+### Agent calls inside scope
+
+- **The analytics allowlist is a constant.** Same rendered tag as today; a build variable can't reach the builder's build.
+- **No redirect on a trailing slash.** Client 1's `nginx.conf` sends `/classes/` to `/classes`. Every canonical, share address, and sitemap entry on this site names the slash form today (checked 2026-11-17), and SEO isn't changed in this epic, so both forms keep answering, as the test site' config has it.
+- **Starting prices and durations are left out of the menu.** Nothing renders them, and a value an owner can change through Quick Edit but never see is worse than none.
+- **Eyebrows and buttons stay in the templates**, as on Client 1 and the test site, though the demo keeps them in `pages.json`: they are Canopy's either way, and Quick Edit then never shows the owner a value it would refuse to change.
+- **About is page copy, not `team`.** It is one section about the owner, and nothing else on the site lists people. Her name and job title in the structured data stay in `design.ts`.
+- **One Instagram address.** The three links say `instagram.com` and the structured data `www.instagram.com`; with one source, the links take the `www` form. No visible text changes.
+
+## 7. Open
+
+For Michael. Items 2, 3, and 5 change what 4.2 builds; item 1 changes this doc and the ROADMAP; item 4 can wait for 4.6.
+
+1. **`tokens.json` (H3).** Its second half is already true: the fonts are self-hosted from Fontsource. Its first half would generate the seven colors and two font stacks that `src/styles/global.css` already holds in one `@theme` block. Nothing reads a `tokens.json`: the contract has no `tokens` collection, no tool exposes design (D29), E41's site kit doesn't list it, and two sites went onto Sites without one. Recommended: drop H3, treat the `@theme` block as the site's tokens, and take `tokens` out of PRD section 4.4 and the ROADMAP (H3, C1's list) in the same commit. The alternative is to leave H3 on the ROADMAP for E41 to settle for every site at once.
+2. **The home page's four featured services.** They are typed into the template, and they don't read as the menu does:
+
+   | Home page today | The menu today |
+   |---|---|
+   | Standard Haircut, $85 | Haircut, $85 |
+   | Full Color, from $170 | Full Color, $170 |
+   | Extensions, from $150 | Extensions for Volume, $150 |
+   | Full Face Wax, $45 | Full Face, $45 |
+
+   Each has a description the menu doesn't carry. The Extensions row's ("Hand-painted highlights, all over brightness") describes highlights; it moves as written whichever way this goes.
+   - **(a) The home page shows the menu's entries** (ROADMAP H2's one source, and what the contract's featured services are): five strings on the home page change to the menu's ("Standard Haircut" to "Haircut", "from $170" to "$170", "Extensions" to "Extensions for Volume", "from $150" to "$150", "Full Face Wax" to "Full Face"), and the four descriptions move onto their menu entries, shown on the home page only, as today. A price the owner changes then changes in both places. Recommended: these five would be the epic's only approved change to what a visitor reads.
+   - **(b) The four rows stay in the template**, word for word, Canopy's. Nothing a visitor reads changes, but a price lives in two places, and one of them the owner can't edit: the guide would tell Quick Edit to raise the home page's row with Michael whenever she changes one of those four.
+   - Cards are not an option: a card has no price, and a price typed into a title is a fact stored as wording (D48).
+3. **The share image is missing.** `og:image` and `twitter:image` name `/images/the owner-hero.jpg`, which answers 404 on the live site (checked 2026-11-17): the photos live under `src/assets` and nothing is at that address. A link to the site shares with no picture, which the Site Build Checklist's first item exists to prevent. Recommended: fix it in 4.2, pointing both tags at a 1200 by 630 rendition of the hero photo. It is Canopy's (SEO, D45), nothing on the pages changes, and otherwise 4.4 proves a broken tag was carried over faithfully.
+4. **the owner's sign-in email and her name** as the portal shows it, for Link a site (4.6).
+5. **Three dashes in text that is Canopy's, not the owner's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
+
+## 8. Completion report
+
+## 9. Progress log
+
+- 2026-11-17: Drafted from Michael's handoff and a read of the repo, the live site, both boxes' Coolify copies (read-only), the demo's `origin/main`, and Client 1's and the test site' repos. Found on the way: the share image answers 404; the analytics allowlist comes from a Coolify build variable; Fox's copy of the app has no health check; Webber holds no deployment record for the app; and the home page's featured services differ from the menu in five strings.
+
+## 10. Docs this makes stale
+
+Each lands with the change that causes it, never in a later pass.
+
+**This repo**: `docs/epics/README.md` (this epic); `docs/canopy-sites/ROADMAP.md` (the paragraph under Sequencing that says the repo was never converted, "The MVP" item 10, E46's brief, H1 to H3, and E55's first step once `bookingUrl` exists); `docs/canopy-sites/PRD.md` section 4.4 and the ROADMAP's C1, if section 7's item 1 drops `tokens`.
+
+**client2**: `CLAUDE.md`, `README.md`, a new `SITE_GUIDE.md` (4.2 item 7, 4.3).
+
+**Nextcloud**
+
+- **Sites Onboarding Runbook** (Canopy Sites collective): whatever this run corrects, including what the earlier sites didn't meet: an analytics allowlist that came from a build variable, and an app with no deploy on record.
+- **Quick Edit Eval Runbook**: the Client 2 set, and the run's report and log line.
+- **Engineering collective**: any page that names this app's build pack, at 4.5.
