@@ -1,6 +1,6 @@
 # Epic 35: Stats
 
-**Status:** Complete in 5.20.0 (2026-11-14), with section 6's decisions. 4.7, the operator's check, was added after it (Michael, 2026-11-17) and isn't released yet. Acceptance in section 5; checks in the progress log.
+**Status:** Complete in 5.20.0 (2026-11-14), with section 6's decisions; 4.7, the operator's check, added after it (Michael, 2026-11-17), in 5.22.0. Acceptance in section 5; checks in the progress log.
 **Phase:** 3 (`docs/canopy-sites/ROADMAP.md`, E35). Its demo half shipped with Epic 30 (the page, sample data for the demo); this is the rest: real numbers from Umami.
 **Predecessor:** Epic 30 (the Stats page and its sample source)
 
