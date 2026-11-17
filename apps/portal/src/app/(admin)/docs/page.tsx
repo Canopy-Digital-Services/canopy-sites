@@ -6,8 +6,8 @@ import { FileText } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/markdown";
-import { getAllDocs, getDocBySlug } from "@/lib/docs";
-import { docsNav } from "../../../../content/docs/meta";
+import { docsNavFor, getAllDocs, getDocBySlug } from "@/lib/docs";
+import { getCurrentEntitlements } from "@/lib/auth-utils";
 import { DocTOC } from "@/components/docs/doc-toc";
 
 export const metadata = {
@@ -52,8 +52,9 @@ function Tile({ slug, title, description, icon }: TileProps) {
 }
 
 export default async function DocsPage() {
+  const { sitesEnabled } = await getCurrentEntitlements();
   const index = await getDocBySlug("index");
-  const allDocs = await getAllDocs();
+  const allDocs = await getAllDocs(sitesEnabled);
 
   if (!index) {
     return (
@@ -69,9 +70,9 @@ export default async function DocsPage() {
   }
 
   const bySlug = new Map(allDocs.map((d) => [d.slug, d]));
-  const tileGroups = docsNav.map((g) => ({
+  const tileGroups = docsNavFor(sitesEnabled).map((g) => ({
     group: g.group,
-    items: (g.slugs as unknown as string[])
+    items: g.slugs
       .filter((slug) => slug !== "index")
       .map((slug) => bySlug.get(slug))
       .filter((d): d is NonNullable<typeof d> => Boolean(d))

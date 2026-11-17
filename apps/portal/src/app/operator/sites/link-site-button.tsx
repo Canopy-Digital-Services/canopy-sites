@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { linkSite } from "@/actions/admin/sites";
+import { PERSON_NAME_MAX } from "@/lib/person";
 import { publishSiteFromRepo } from "@/actions/admin/site-builds";
 import {
   parseLinkSite,
@@ -27,7 +28,7 @@ import type { AppRepo } from "@/lib/builder-client";
 type Field = keyof LinkSiteInput;
 type Text = Exclude<Field, "productionHostnames">;
 
-const EMPTY = { email: "", name: "", repoUrl: "", slug: "", umamiWebsiteId: "" };
+const EMPTY = { email: "", ownerName: "", name: "", repoUrl: "", slug: "", umamiWebsiteId: "" };
 
 /**
  * Links a live site (PRD D49): the client's account, its owner, who hasn't
@@ -158,6 +159,7 @@ export function LinkSiteButton({ repos }: { repos: AppRepo[] | null }) {
           </DialogHeader>
 
           {text("email", "Client email", { required: true, type: "email" })}
+          {text("ownerName", "Client name", { maxLength: PERSON_NAME_MAX })}
           {text("name", "Business name", { required: true, maxLength: SITE_NAME_MAX_LENGTH })}
           {repos ? (
             <div className="space-y-2">

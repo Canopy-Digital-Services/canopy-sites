@@ -3,22 +3,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartLine, ClipboardList, LayoutTemplate, Lightbulb } from "lucide-react";
+import { ChartLine, ClipboardList, LayoutTemplate, Lightbulb, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SITES_TABS, sitesTabOf, type SitesTabId } from "@/lib/sites-tabs";
 
-const ITEMS = [
-  { href: "/quick-edit", label: "Quick Edit", icon: Lightbulb },
-  { href: "/editor", label: "Editor", icon: LayoutTemplate },
-  { href: "/forms", label: "Forms", icon: ClipboardList },
-  { href: "/stats", label: "Stats", icon: ChartLine },
-] as const;
+const ICONS: Record<SitesTabId, LucideIcon> = {
+  "quick-edit": Lightbulb,
+  editor: LayoutTemplate,
+  forms: ClipboardList,
+  stats: ChartLine,
+};
 
 /** Top-nav items for accounts with Canopy Sites. */
 export function SitesNav() {
-  const pathname = usePathname();
+  const current = sitesTabOf(usePathname());
 
-  return ITEMS.map(({ href, label, icon: Icon }) => {
-    const active = pathname === href || pathname.startsWith(`${href}/`);
+  return SITES_TABS.map(({ id, href, label }) => {
+    const Icon = ICONS[id];
+    const active = id === current;
     return (
       <Button
         key={href}

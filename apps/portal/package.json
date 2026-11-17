@@ -11,8 +11,8 @@
     "embed:build": "node embed/esbuild.config.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "postdb:migrate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
-    "db:push": "prisma db push",
     "fonts:sync": "tsx scripts/sync-fonts.ts"
   },
   "dependencies": {

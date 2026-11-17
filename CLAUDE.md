@@ -16,7 +16,7 @@ npm run lint           # ESLint (must pass before committing)
 npm test               # Vitest, unit + database tests (must pass; run in the dev container)
 npm run embed:build    # Rebuild public/embed.js from embed/src/* (required after embed changes)
 npm run db:generate    # Regenerate Prisma client
-npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration)
+npm run db:migrate -- --name x  # prisma migrate dev (creates + applies migration), then prisma generate
 ```
 
 Tests cover decisions (sessions, membership, entitlements, guardrails); `docs/VERIFICATION_CHECKLIST.md` covers the rest of the quality gate.
@@ -50,7 +50,7 @@ Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both 
 
 - `/.Collectives/Engineering/Platforms/Coolify.md` — API shape and quirks, token locations and scopes, deploy and container behavior
 - `/.Collectives/Engineering/Servers/Readme.md` (SSH access section) — access model, tunnel and key setup
-- `/.Collectives/Engineering/Servers/Webber.md` — host inventory and what else runs there
+- `/.Collectives/Engineering/Servers/Webber/Readme.md` — host inventory and what else runs there
 - `/.Collectives/Engineering/Quality Assurance.md`: testing and verification rules shared by every Canopy repo
 - `/.Collectives/Canopy Sites/Sites Onboarding Runbook.md`: putting a site onto Canopy Sites, from its repo to the owner editing it, ending in acceptance
 

@@ -45,6 +45,7 @@ describe("parseLinkSite", () => {
       ok: true,
       value: {
         email: "owner@example.com",
+        ownerName: null,
         name: "Fern & Fig",
         repoUrl: "https://github.com/Canopy-Digital-Services/fern-and-fig",
         slug: "fern-and-fig",
@@ -52,6 +53,11 @@ describe("parseLinkSite", () => {
         umamiWebsiteId: null,
       },
     });
+  });
+
+  it("takes the owner's name when there is one, on one line, and refuses one that is too long (PRD D63)", () => {
+    expect(parseLinkSite({ ...link, ownerName: "  Jane \n Doe " })).toMatchObject({ ok: true, value: { ownerName: "Jane Doe" } });
+    expect(linkErrors({ ownerName: "x".repeat(81) })).toEqual({ ownerName: "A name can be 80 characters at most." });
   });
 
   it("requires every field but the Umami ID, and a hostname", () => {

@@ -38,7 +38,7 @@ Must exit 0. Catches TypeScript errors, missing imports, broken server component
 
 The build needs no network: fonts are self-hosted (verified 2026-10-17 with `--network none`). To check types alone: `docker exec canopy-portal npx tsc --noEmit -p .`. Vitest does not type-check, so passing tests do not mean the build compiles.
 
-**Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-portal env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the container writes `.next` on the bind mount as root, so a host build hits EACCES and corrupts the dev server's Turbopack cache. The container build shares `.next` with `next dev` too: if edits stop reaching the browser afterward (seen 2026-10-19 with a `globals.css` change that survived a restart), run `docker exec canopy-portal rm -rf .next` and restart `canopy-portal`.
+**Important:** `NODE_ENV` is deliberately unset in the dev container so `next dev` and `next build` each set their own value (verified 2026-08-14: `docker exec canopy-portal env` shows no `NODE_ENV`). Do not hardcode it in `Dockerfile.dev` or `docker-compose.dev.yml`. Run the build inside the container, never on the host: the app's dependencies are in the container's volume, and a host build into the shared `.next` corrupts the dev server's Turbopack cache. The container build shares `.next` with `next dev` too: if edits stop reaching the browser afterward (seen 2026-10-19 with a `globals.css` change that survived a restart), run `docker exec canopy-portal rm -rf .next` and restart `canopy-portal`.
 
 ### 2. Lint and test
 
@@ -51,11 +51,11 @@ Lint must exit 0 (or only pre-existing warnings). Do not suppress or disable lin
 
 ### 3. Migration verification (schema changes only)
 
-After running `npx prisma migrate dev --name ...`:
+After running `npm run db:migrate -- --name ...`:
 
 - Confirm a new directory was created under `prisma/migrations/`.
 - Confirm the migration SQL matches your intent (read the generated `.sql` file).
-- Run `npx prisma generate` and confirm the Prisma client reflects the new schema.
+- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`docs/tools/prisma-7.md`, "Migration Workflow for This Project").
 
 ### 4. Embed build (embed changes only)
 

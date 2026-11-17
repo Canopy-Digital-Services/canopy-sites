@@ -9,8 +9,14 @@
  *
  * Every source writes one draft per site (PRD D38): the pending ChangeSet.
  * Its ops are address ops (D36), so the draft survives a rebase onto a Canopy
- * push. The last write to a field wins; writes that arrive together are
- * applied one after the other, never refused.
+ * push. One person edits at a time (PRD D64): every write takes or keeps the
+ * site's hold for its caller (hold.ts) and is refused while someone else has
+ * it, and a publish or a discard that leaves no draft gives it up. The draft
+ * is its author's: nobody else adds to it, and anyone on the account
+ * publishes or discards it, so one person's unfinished changes never go out
+ * inside another's publish. The author's own writes are never refused: the
+ * last to a field wins, and ones that arrive together are applied one after
+ * the other.
  *
  * Callers pass the session's account id; never an id from the client.
  */
@@ -41,12 +47,15 @@ import {
   type SiteGuide,
 } from "@canopy/site-contract";
 import { z } from "zod";
-import type { ChangeSetSource, Prisma, Site } from "@prisma/client";
+import { Prisma, type ChangeSetSource, type Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
+import { personName } from "@/lib/person";
 import { changedFields, type FieldChange } from "./changes";
+import { draftNotice, editingNotice } from "@/lib/site-hold-policy";
+import { currentHold, extendHold, releaseHold, takeHold } from "./hold";
 
 export type { FieldChange } from "./changes";
 
@@ -61,10 +70,16 @@ export class ToolError extends Error {
    * to Michael (PRD D34); the message itself only says what was refused.
    */
   outOfLane: boolean;
-  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean } = {}) {
+  /** Set when someone else is editing the site (PRD D64): who, as the account's people know them. */
+  heldBy?: string;
+  /** Set when the site's draft is someone else's to publish or discard first (PRD D64): whose. */
+  draftBy?: string;
+  constructor(message: string, issues?: ToolIssue[], options: { outOfLane?: boolean; heldBy?: string; draftBy?: string } = {}) {
     super(message);
     this.issues = issues;
     this.outOfLane = options.outOfLane ?? false;
+    this.heldBy = options.heldBy;
+    this.draftBy = options.draftBy;
   }
 }
 
@@ -130,6 +145,150 @@ async function ownedSite(accountId: string, siteId: string): Promise<ToolSite> {
   return site;
 }
 
+/**
+ * The caller holds the site from here, or a ToolError naming who does (PRD
+ * D64). Every write calls it before anything else it would refuse or count,
+ * so a person who can't edit right now uses up nothing. A caller that is no
+ * person never takes the hold, and waits like anyone while a person has it.
+ */
+async function requireHold(siteId: string, ctx: ToolContext): Promise<void> {
+  const holder = ctx.userId ? await takeHold(siteId, ctx.userId) : await currentHold(siteId).then((h) => (h ? { held: false as const, by: h.by } : { held: true as const }));
+  if (!holder.held) throw new ToolError(`${editingNotice(holder.by)}.`, undefined, { heldBy: holder.by });
+}
+
+/**
+ * The site's draft when it is someone else's: last changed by a person who
+ * isn't the caller (PRD D64). A draft nobody is recorded on (its author was
+ * taken off the account) is nobody's, and anyone carries it on.
+ */
+async function othersDraft(siteId: string, userId: string | null): Promise<{ by: string; summary: string } | null> {
+  const draft = await prisma.changeSet.findFirst({
+    where: { siteId, status: { in: [...PENDING] } },
+    orderBy: { createdAt: "desc" },
+    select: { summary: true, updatedBy: { select: { id: true, name: true, email: true } } },
+  });
+  if (!draft?.updatedBy || draft.updatedBy.id === userId) return null;
+  return { by: personName(draft.updatedBy), summary: draft.summary };
+}
+
+/**
+ * The caller may add to the site's draft from here (PRD D64): the draft, if
+ * there is one, is theirs, and the site is theirs to hold. A draft belongs to
+ * the person who made it until it is published or discarded, which anyone on
+ * the account may do, so one person's unfinished changes never go out inside
+ * another's publish. Checked before the hold, so someone who can't edit
+ * doesn't take the site by trying.
+ */
+async function requireEdit(siteId: string, ctx: ToolContext): Promise<void> {
+  const draft = await othersDraft(siteId, ctx.userId);
+  if (draft) {
+    // Its author still at work is the fuller answer.
+    const editor = await otherEditor(siteId, ctx.userId ?? "");
+    if (editor) throw new ToolError(`${editingNotice(editor)}.`, undefined, { heldBy: editor });
+    throw new ToolError(`${draftNotice(draft.by)}. Publish or discard them first.`, undefined, { draftBy: draft.by });
+  }
+  await requireHold(siteId, ctx);
+}
+
+/**
+ * The caller published or discarded, and the site has no draft left: they are
+ * done, so the site is free at once rather than when their hold runs out
+ * (PRD D64). With a draft still pending (an edit saved while the publish was
+ * in flight), they keep it.
+ */
+async function doneEditing(siteId: string, ctx: ToolContext): Promise<void> {
+  if (!ctx.userId) return;
+  if ((await prisma.changeSet.count({ where: { siteId, status: { in: [...PENDING] } } })) > 0) return;
+  await releaseHold(siteId, ctx.userId);
+}
+
+/** The caller may edit the account's site, and holds it from here: what Quick Edit checks before it spends a model call. */
+export async function holdSite(ctx: ToolContext): Promise<void> {
+  await requireEdit((await siteFor(ctx.accountId)).id, ctx);
+}
+
+/** What an editing page needs to know about who has the site (PRD D64). */
+export interface SiteEditing {
+  /** Who else is making edits, as the account's people know them; null when nobody is, or the viewer is. */
+  by: string | null;
+  /** Where the draft and the published list stand: a page compares it to tell that the site moved while it wasn't holding it. */
+  marker: string;
+  hasDraft: boolean;
+  /** Whose the draft is, when it is someone else's to publish or discard before the viewer can edit; null otherwise. */
+  draftBy: string | null;
+  /** What that draft changes, so the viewer sees what they would publish or discard. */
+  draftSummary: string | null;
+}
+
+async function siteStanding(siteId: string, userId: string | null): Promise<Omit<SiteEditing, "by">> {
+  const [last, pending] = await Promise.all([
+    prisma.changeSet.findFirst({ where: { siteId }, orderBy: { updatedAt: "desc" }, select: { id: true, version: true, status: true } }),
+    prisma.changeSet.findFirst({
+      where: { siteId, status: { in: [...PENDING] } },
+      orderBy: { createdAt: "desc" },
+      select: { summary: true, updatedBy: { select: { id: true, name: true, email: true } } },
+    }),
+  ]);
+  // A preview finishing (DRAFT to PREVIEWED) changes nothing a page shows as content.
+  const state = last && PENDING.includes(last.status as (typeof PENDING)[number]) ? "PENDING" : last?.status;
+  const theirs = pending?.updatedBy && pending.updatedBy.id !== userId ? pending.updatedBy : null;
+  return {
+    marker: last ? `${last.id}:${last.version}:${state}` : "",
+    hasDraft: pending !== null,
+    draftBy: theirs ? personName(theirs) : null,
+    draftSummary: theirs && pending ? pending.summary : null,
+  };
+}
+
+/**
+ * Who has the account's site, for an editing page as it renders. Takes
+ * nothing: looking at a page never holds a site, so a prefetch or a reload
+ * can't lock anyone out. Null for an account without a site.
+ */
+export async function getSiteEditing(accountId: string, userId: string): Promise<SiteEditing | null> {
+  const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
+  if (!site) return null;
+  const [by, standing] = await Promise.all([otherEditor(site.id, userId), siteStanding(site.id, userId)]);
+  return { by, ...standing };
+}
+
+/** Where the account's site stands now: what an editing page adopts after its own write, so only someone else's reads as a move. */
+export async function getSiteMarker(accountId: string): Promise<string> {
+  const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
+  return site ? (await siteStanding(site.id, null)).marker : "";
+}
+
+/** Who else is making edits on the site, as the account's people know them, or null. Takes nothing. */
+export async function otherEditor(siteId: string, userId: string): Promise<string | null> {
+  const holder = await currentHold(siteId);
+  return holder && holder.userId !== userId ? holder.by : null;
+}
+
+/**
+ * An editing page asking who has the site (PRD D64). Asking keeps the
+ * person's hold going when they have one and never takes one: a page that is
+ * only open holds nothing. With `take`, the person has started an edit that
+ * hasn't reached the server yet (a field opened in the Editor), and the site
+ * becomes theirs unless someone else has it, or the draft is someone else's
+ * to publish or discard first. `mine` says whether it is.
+ */
+export async function keepSiteHold(ctx: ToolContext & { userId: string }, take = false): Promise<SiteEditing & { mine: boolean }> {
+  const site = await siteFor(ctx.accountId);
+  const standing = await siteStanding(site.id, ctx.userId);
+  let mine: boolean;
+  let by: string | null = null;
+  // Someone else's draft comes first: opening a field doesn't take a site the person can't edit yet.
+  if (take && !standing.draftBy) {
+    const hold = await takeHold(site.id, ctx.userId);
+    mine = hold.held;
+    if (!hold.held) by = hold.by;
+  } else {
+    mine = await extendHold(site.id, ctx.userId);
+    if (!mine) by = await otherEditor(site.id, ctx.userId);
+  }
+  return { by, mine, ...standing };
+}
+
 const builderSite = (site: Pick<ToolSite, "slug" | "repoUrl" | "defaultBranch" | "account">): BuilderSite => ({
   slug: site.slug,
   repoUrl: site.repoUrl ?? "",
@@ -187,7 +346,7 @@ async function pendingChange(siteId: string) {
   return prisma.changeSet.findFirst({
     where: { siteId, status: { in: [...PENDING] } },
     orderBy: { createdAt: "desc" },
-    include: { builds: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: { builds: { orderBy: { createdAt: "desc" }, take: 1 }, updatedBy: { select: { id: true, name: true, email: true } } },
   });
 }
 type Pending = NonNullable<Awaited<ReturnType<typeof pendingChange>>>;
@@ -474,25 +633,51 @@ async function writeDraftOnce(site: ToolSite, ctx: ToolContext, read: SiteRead, 
     : undefined;
   const ops = merged as unknown as Prisma.InputJsonValue;
 
-  const { changeSetId, buildId } = await prisma.$transaction(async (tx) => {
-    let changeSetId: string;
-    if (pending) {
-      const saved = await tx.changeSet.updateMany({
-        where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
-        data: { ops, version, summary, status: "DRAFT", error: null, ...(conversationId && !pending.conversationId ? { conversationId } : {}) },
-      });
-      if (saved.count === 0) throw new WriteRace();
-      await supersedeBuilds(tx, pending.id);
-      changeSetId = pending.id;
-    } else {
-      const created = await tx.changeSet.create({
-        data: { siteId: site.id, source: ctx.source, createdByUserId: ctx.userId, conversationId, summary, ops, baseCommit: read.commit, version },
-      });
-      changeSetId = created.id;
-    }
-    const build = await tx.build.create({ data: { siteId: site.id, changeSetId, baseCommit: read.commit, draftVersion: version } });
-    return { changeSetId, buildId: build.id };
-  });
+  const { changeSetId, buildId } = await prisma
+    .$transaction(async (tx) => {
+      let changeSetId: string;
+      if (pending) {
+        const saved = await tx.changeSet.updateMany({
+          where: { id: pending.id, version: pending.version, status: { in: [...PENDING] } },
+          data: {
+            ops,
+            version,
+            summary,
+            status: "DRAFT",
+            error: null,
+            // The draft is whoever last changed it's to finish (PRD D64).
+            ...(ctx.userId ? { updatedByUserId: ctx.userId } : {}),
+            ...(conversationId && !pending.conversationId ? { conversationId } : {}),
+          },
+        });
+        if (saved.count === 0) throw new WriteRace();
+        await supersedeBuilds(tx, pending.id);
+        changeSetId = pending.id;
+      } else {
+        const created = await tx.changeSet.create({
+          data: {
+            siteId: site.id,
+            source: ctx.source,
+            createdByUserId: ctx.userId,
+            updatedByUserId: ctx.userId,
+            conversationId,
+            summary,
+            ops,
+            baseCommit: read.commit,
+            version,
+          },
+        });
+        changeSetId = created.id;
+      }
+      const build = await tx.build.create({ data: { siteId: site.id, changeSetId, baseCommit: read.commit, draftVersion: version } });
+      return { changeSetId, buildId: build.id };
+    })
+    .catch((err: unknown) => {
+      // Another first write made the site's draft just now: the database holds
+      // a site to one (the partial index on change_sets), so this one joins it.
+      if (!pending && err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") throw new WriteRace();
+      throw err;
+    });
 
   const buildError = await startBuild(site, buildId, merged, read.commit);
   return { changeSetId, buildId, version, summary, buildError, changes, warnings };
@@ -581,6 +766,7 @@ export async function getDraftView(accountId: string, siteId: string) {
  */
 export async function proposeChange(ctx: ToolContext, input: { summary: string; ops: unknown; conversationId?: string }) {
   const site = await siteFor(ctx.accountId);
+  await requireEdit(site.id, ctx);
   if (isRateLimited(`site-tools:propose:${ctx.accountId}`, PROPOSALS_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
@@ -613,6 +799,7 @@ export async function proposeChange(ctx: ToolContext, input: { summary: string; 
  */
 export async function saveDraft(ctx: ToolContext, siteId: string, input: { ops: unknown }): Promise<DraftWriteResult> {
   const site = await ownedSite(ctx.accountId, siteId);
+  await requireEdit(site.id, ctx);
   if (isRateLimited(`site-tools:save:${ctx.accountId}`, SAVES_PER_HOUR, HOUR)) {
     throw new ToolError("Too many changes in the last hour. Try again later.");
   }
@@ -678,17 +865,19 @@ export async function refreshChange(accountId: string, changeSetId: string) {
  */
 export async function publishChange(ctx: ToolContext, changeSetId: string, buildId: string, author: { name: string; email: string }) {
   const changeSet = await ownedChange(ctx.accountId, changeSetId);
+  await requireHold(changeSet.siteId, ctx);
   const build = changeSet.builds[0];
   const current = build && (build.draftVersion === null || build.draftVersion === changeSet.version);
   if (changeSet.status !== "PREVIEWED" || build?.status !== "SUCCEEDED" || !current) {
     throw new ToolError("Only a change with a finished preview can be published.");
   }
   if (build.id !== buildId) throw new ToolError("The preview changed since this page loaded. Look it over again, then publish.");
+  const sent = asOps(changeSet.ops);
   let commit: string | null;
   try {
     ({ commit } = await requestPublish(builderSite(changeSet.site), {
       buildId: build.id,
-      ops: builderOps(asOps(changeSet.ops)),
+      ops: builderOps(sent),
       baseCommit: changeSet.baseCommit,
       message: `${changeSet.summary}\n\nPublished from Canopy Sites by ${author.email}`,
       authorName: author.name,
@@ -696,25 +885,118 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
     }));
   } catch (err) {
     if (err instanceof BuilderError && /changed since/.test(err.message)) {
-      await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "FAILED", error: err.message } });
+      // The site moved because this same change went live from another tab:
+      // it is published, and that Publish's answer is this one's too.
+      const now = await prisma.changeSet.findUnique({ where: { id: changeSet.id }, select: { status: true, publishedCommit: true } });
+      if (now?.status === "PUBLISHED") {
+        await doneEditing(changeSet.siteId, ctx);
+        return { commit: now.publishedCommit };
+      }
+      // Only the change as it was read: a save that landed since is a draft to keep.
+      await prisma.changeSet.updateMany({
+        where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
+        data: { status: "FAILED", error: err.message },
+      });
     }
     throw err instanceof BuilderError ? new ToolError(err.message) : err;
   }
-  await prisma.changeSet.update({
-    where: { id: changeSet.id },
-    data: { status: "PUBLISHED", publishedCommit: commit, publishedAt: new Date() },
-  });
+  await recordPublish(changeSet, sent, commit, ctx.userId);
+  await doneEditing(changeSet.siteId, ctx);
   return { commit };
 }
 
-export async function discardChange(accountId: string, changeSetId: string) {
-  const changeSet = await ownedChange(accountId, changeSetId);
-  if (!PENDING.includes(changeSet.status as (typeof PENDING)[number])) throw new ToolError("Only a pending change can be discarded.");
-  await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "DISCARDED" } });
+/** One op as the builder got it, to tell what went live from what was saved after. */
+const opKey = (op: ChangeOp) => JSON.stringify(builderOps([op])[0]);
+
+/**
+ * Records that a change went live, against the row as it is now, not as the
+ * publish read it. The change is live whatever its row has become since (a
+ * second Publish's refusal, a discard), so it ends PUBLISHED with the ops that
+ * were sent. Edits saved while the publish was in flight weren't sent: they
+ * become the site's new draft, brought onto the published commit and built.
+ */
+async function recordPublish(
+  changeSet: Awaited<ReturnType<typeof ownedChange>>,
+  sent: ChangeOp[],
+  commit: string | null,
+  publisherId: string | null,
+): Promise<void> {
+  const published = { status: "PUBLISHED" as const, error: null, publishedCommit: commit, publishedAt: new Date(), publishedByUserId: publisherId };
+  // The usual case: nothing was saved since the publish was sent.
+  const untouched = await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version }, data: published });
+  if (untouched.count === 1) return;
+
+  const went = new Set(sent.map(opKey));
+  let kept = false;
+  for (let attempt = 0; attempt < 5 && !kept; attempt++) {
+    const row = await prisma.changeSet.findUnique({ where: { id: changeSet.id } });
+    if (!row) return;
+    const pending = PENDING.includes(row.status as (typeof PENDING)[number]);
+    const left = pending ? asOps(row.ops).filter((op) => !went.has(opKey(op))) : [];
+    kept = await prisma.$transaction(async (tx) => {
+      const moved = await tx.changeSet.updateMany({
+        where: { id: row.id, version: row.version },
+        data: { ...published, ops: sent as unknown as Prisma.InputJsonValue, summary: changeSet.summary, version: changeSet.version },
+      });
+      if (moved.count === 0) return false; // Another save landed; read the row again.
+      await supersedeBuilds(tx, row.id);
+      if (left.length) {
+        await tx.changeSet.create({
+          data: {
+            siteId: row.siteId,
+            source: row.source,
+            // Whoever saved during the publish made it; the row carries them as its last editor.
+            createdByUserId: row.updatedByUserId ?? row.createdByUserId,
+            updatedByUserId: row.updatedByUserId ?? row.createdByUserId,
+            conversationId: row.conversationId,
+            summary: leftoverSummary(left),
+            ops: left as unknown as Prisma.InputJsonValue,
+            // The commit it was typed against: syncDraft below moves it onto the published one.
+            baseCommit: changeSet.baseCommit,
+            version: 1,
+          },
+        });
+      }
+      return true;
+    });
+    if (!kept || !left.length) continue;
+    // The publish stands whatever happens here: a draft this can't build now is
+    // rebased and built at the site's next read.
+    try {
+      const draft = await syncDraft(changeSet.site, await readSite(changeSet.site));
+      if (draft && draft.builds.length === 0) {
+        const fresh = await prisma.build.create({ data: { siteId: draft.siteId, changeSetId: draft.id, baseCommit: draft.baseCommit, draftVersion: draft.version } });
+        await startBuild(changeSet.site, fresh.id, asOps(draft.ops), draft.baseCommit);
+      }
+    } catch (err) {
+      console.error(JSON.stringify({ event: "leftover_draft_not_built", slug: changeSet.site.slug, message: (err as Error).message }));
+    }
+  }
 }
 
-/** The pending change and recent history for the Editor. */
-export async function getEditorChanges(accountId: string) {
+/** A summary for edits kept from a publish, until the draft's next write describes it from the content. */
+function leftoverSummary(ops: ChangeOp[]): string {
+  const lines = ops.map((op) => {
+    if (!isAddressOp(op)) return "A change";
+    return (op as DraftOp).summary ?? fieldInfo(op.address)?.label ?? op.address.split("/").pop() ?? op.address;
+  });
+  return [...new Set(lines)].join("; ").slice(0, 1000);
+}
+
+export async function discardChange(ctx: ToolContext, changeSetId: string) {
+  const changeSet = await ownedChange(ctx.accountId, changeSetId);
+  await requireHold(changeSet.siteId, ctx);
+  if (!PENDING.includes(changeSet.status as (typeof PENDING)[number])) throw new ToolError("Only a pending change can be discarded.");
+  await prisma.changeSet.update({ where: { id: changeSet.id }, data: { status: "DISCARDED" } });
+  await doneEditing(changeSet.siteId, ctx);
+}
+
+/**
+ * The pending change and recent history for the Editor. `by` on the draft is
+ * who last changed it when that isn't the viewer (PRD D64), and on a
+ * published change who published it.
+ */
+export async function getEditorChanges(accountId: string, viewerId?: string) {
   const site = await prisma.site.findUnique({ where: { accountId }, select: { id: true } });
   if (!site) return { pending: null, recent: [] };
   const [pending, recent] = await Promise.all([
@@ -723,7 +1005,7 @@ export async function getEditorChanges(accountId: string) {
       where: { siteId: site.id, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
       take: 10,
-      select: { id: true, summary: true, publishedAt: true, createdBy: { select: { email: true } } },
+      select: { id: true, summary: true, publishedAt: true, publishedBy: { select: { email: true, name: true } } },
     }),
   ]);
   return {
@@ -736,9 +1018,10 @@ export async function getEditorChanges(accountId: string) {
           error: pending.error,
           buildStatus: pending.builds[0]?.status ?? null,
           createdAt: pending.createdAt,
+          by: pending.updatedBy && pending.updatedBy.id !== viewerId ? personName(pending.updatedBy) : null,
         }
       : null,
-    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.createdBy?.email ?? null })),
+    recent: recent.map((c) => ({ id: c.id, summary: c.summary, publishedAt: c.publishedAt, by: c.publishedBy ? personName(c.publishedBy) : null })),
   };
 }
 

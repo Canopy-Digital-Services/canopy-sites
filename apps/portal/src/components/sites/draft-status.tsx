@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { discardPendingChange, getDraftState } from "@/actions/site-editor";
+import { theirChanges } from "@/lib/site-hold-policy";
 
-type Pending = { id: string; summary: string; status: string; buildStatus: string | null; error: string | null };
+type Pending = { id: string; summary: string; status: string; buildStatus: string | null; error: string | null; by: string | null };
 
 /** Fired by anything that changes the site's draft, so the chrome catches up at once. */
 export const DRAFT_CHANGED = "canopy:draft";
 /** Fired after a publish or a discard, so the canvas shows what is now live. */
 export const DRAFT_PUBLISHED = "canopy:published";
+/** Fired by an editing page when who has the site changes (PRD D64), so the chrome catches up with it. */
+export const HOLD_CHANGED = "canopy:hold";
 /** Carries the same news between the owner's tabs: Publish happens on the preview page's own tab. */
 const CHANNEL = "canopy-sites-draft";
 
@@ -36,12 +39,15 @@ const building = (p: Pending) => p.status === "DRAFT" && (p.buildStatus === "QUE
 /**
  * Unpublished changes, Preview, and Discard, in the Sites chrome whichever tab
  * made the changes (PRD D38). Preview opens the preview page in a new tab,
- * the only place to publish (D47). Renders nothing when the site has no draft.
+ * the only place to publish (D47). While someone else is making edits (D64)
+ * the draft is theirs to discard, so Discard is left out; the tool layer
+ * refuses it either way. Renders nothing when the site has no draft.
  */
 export function DraftStatus() {
   const router = useRouter();
   const [pending, setPending] = useState<Pending | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [heldBy, setHeldBy] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback(() => {
@@ -49,12 +55,19 @@ export function DraftStatus() {
       if ("error" in result) return;
       setPending(result.pending);
       setSiteId(result.siteId);
+      setHeldBy(result.heldBy);
     });
   }, []);
 
   useEffect(() => {
     load();
     window.addEventListener(DRAFT_CHANGED, load);
+    window.addEventListener(HOLD_CHANGED, load);
+    // A page with no editing surface (Forms, Stats) hears nothing of who has the site: look again when it comes back into view.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     let channel: BroadcastChannel | null = null;
     try {
       channel = new BroadcastChannel(CHANNEL);
@@ -70,6 +83,8 @@ export function DraftStatus() {
     }
     return () => {
       window.removeEventListener(DRAFT_CHANGED, load);
+      window.removeEventListener(HOLD_CHANGED, load);
+      document.removeEventListener("visibilitychange", onVisible);
       channel?.close();
     };
   }, [load, router]);
@@ -85,7 +100,8 @@ export function DraftStatus() {
 
   const failed = pending.status === "DRAFT" && pending.buildStatus === "FAILED";
   const ready = pending.status === "PREVIEWED";
-  const label = ready ? "Unpublished changes" : failed ? "Preview failed" : "Preparing preview";
+  // A draft someone else last changed is named as theirs (PRD D64): it may hold work they haven't finished.
+  const label = ready ? (pending.by ? theirChanges(pending.by) : "Unpublished changes") : failed ? "Preview failed" : "Preparing preview";
   const dot = ready ? "bg-amber-500" : failed ? "bg-destructive" : "bg-muted-foreground";
 
   function discard() {
@@ -94,6 +110,7 @@ export function DraftStatus() {
       const result = await discardPendingChange(pending.id);
       if ("error" in result) {
         toast.error(result.error);
+        if (result.heldBy) setHeldBy(result.heldBy);
         return;
       }
       setPending(null);
@@ -113,17 +130,19 @@ export function DraftStatus() {
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">{failed && pending.error ? pending.error : pending.summary}</TooltipContent>
       </Tooltip>
-      <ConfirmDialog
-        title="Discard changes"
-        description="Every unpublished change goes, and your site stays as it is now."
-        onConfirm={discard}
-        destructive
-        trigger={
-          <Button variant="ghost" size="sm" disabled={isPending}>
-            Discard
-          </Button>
-        }
-      />
+      {heldBy ? null : (
+        <ConfirmDialog
+          title={pending.by ? `Discard ${pending.by}'s changes` : "Discard changes"}
+          description="Every unpublished change goes, and your site stays as it is now."
+          onConfirm={discard}
+          destructive
+          trigger={
+            <Button variant="ghost" size="sm" disabled={isPending}>
+              Discard
+            </Button>
+          }
+        />
+      )}
       {siteId ? (
         <Button size="sm" asChild>
           <a href={`/preview/${siteId}`} target="_blank" rel="opener">

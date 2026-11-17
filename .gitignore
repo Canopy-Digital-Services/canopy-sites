@@ -49,3 +49,5 @@ docker-compose.override.yml
 # Allow tracked env template
 !.env.example
 
+# Local scratch for client media (recordings, captions): never committed
+/temp/

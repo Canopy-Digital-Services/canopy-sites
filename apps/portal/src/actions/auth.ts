@@ -17,6 +17,7 @@ import {
 } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
 import { isActing } from "@/lib/act-as";
+import { releaseHolds } from "@/lib/site-tools/hold";
 import { createClaimLink, issuePasswordToken } from "@/lib/claim";
 import { normalizeEmail } from "@/lib/validation";
 import { canonicalTimeZone, UNKNOWN_TIME_ZONE } from "@/lib/time-zone";
@@ -395,6 +396,8 @@ export async function signOutAction() {
   const session = await getSession();
   // Signing out ends acting as a client too (PRD D49).
   if (session?.actingAs) await endActAs(session.actingAs.id);
+  // Whoever is waiting to edit a site this person held gets it at once (PRD D64).
+  if (session) await releaseHolds(session.user.id);
   if (session) await invalidateSession(session.id);
   await clearSessionCookie();
   redirect("/login");

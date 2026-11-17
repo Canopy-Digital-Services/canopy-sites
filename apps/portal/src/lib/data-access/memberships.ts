@@ -1,7 +1,8 @@
 /**
  * Membership is how a user reaches an account. v1 gives every user exactly
- * one membership, as OWNER; the many-membership path is the throw below, not
- * a feature. Resolve accounts for a user only through this module.
+ * one membership, as the account's OWNER or a MEMBER the operator added (PRD
+ * D63); the many-membership path is the throw below, not a feature. Resolve
+ * accounts for a user only through this module.
  */
 
 import { prisma } from "@/lib/db";
@@ -60,6 +61,21 @@ export async function sessionCanUseAccount(session: SessionAccess, accountId: st
     select: { id: true },
   });
   return membership !== null;
+}
+
+/**
+ * The id of the session user's own membership of the account, or null when
+ * they have none. An operator acting as the account (PRD D49) has none: what
+ * is recorded against a person, such as a welcome video they were shown
+ * (ROADMAP E39), is never recorded for the operator standing in for them.
+ */
+export async function ownMembershipId(session: SessionAccess, accountId: string): Promise<string | null> {
+  if (session.actingAs) return null;
+  const membership = await prisma.membership.findUnique({
+    where: { userId_accountId: { userId: session.user.id, accountId } },
+    select: { id: true },
+  });
+  return membership?.id ?? null;
 }
 
 /** The email of the account's first owner, or null when it has none. */

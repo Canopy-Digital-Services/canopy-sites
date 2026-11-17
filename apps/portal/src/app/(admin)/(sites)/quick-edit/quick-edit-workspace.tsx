@@ -10,9 +10,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from "@/components/ui/textarea";
 import { discardPendingChange, refreshPendingChange, sendQuickEdit } from "@/actions/site-editor";
 import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-request-card";
+import { announceDraft } from "@/components/sites/draft-status";
+import { blockedNotice, SiteNotice, useSiteHold } from "@/components/sites/site-hold";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { theirChanges } from "@/lib/site-hold-policy";
 import { LocalTime } from "@/components/local-time";
 
-type Pending = { id: string; summary: string; status: string; error: string | null };
+/** `by` is who last changed the draft, when that isn't the person looking (PRD D64). */
+type Pending = { id: string; summary: string; status: string; error: string | null; by: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest; changeSetId?: string };
@@ -35,11 +40,24 @@ export function QuickEditWorkspace({
   /** What the owner sent Canopy (PRD D34), newest first. */
   requests: SentRequest[];
 }) {
+  // Why this person can't edit, where the chat would be (PRD D64). While someone else is making
+  // edits, the draft is theirs to preview and discard, and is offered only as a Preview beside
+  // their name. Once they have stopped, their draft's card is back with Preview and Discard: it
+  // has to be published or discarded before anyone else edits. The chat stays mounted
+  // underneath, so a conversation is still there when the site is free.
+  const hold = useSiteHold();
+  const blocked = blockedNotice(hold);
+  const previewHref = `/preview/${siteId}`;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <QuickEdit examples={examples} previewHref={`/preview/${siteId}`} pendingId={pending?.id ?? null} />
+      <div className="min-w-0">
+        {blocked ? <SiteNotice title={blocked} previewHref={hold.by && hold.hasDraft ? previewHref : undefined} /> : null}
+        <div hidden={blocked !== null}>
+          <QuickEdit examples={examples} previewHref={previewHref} pendingId={pending?.id ?? null} />
+        </div>
+      </div>
       <div className="space-y-6">
-        {pending ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
+        {pending && !hold.by ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
         {pagesCard}
         <RecentChanges recent={recent} />
@@ -59,6 +77,7 @@ function QuickEdit({
   pendingId: string | null;
 }) {
   const router = useRouter();
+  const { refused } = useSiteHold();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -83,6 +102,7 @@ function QuickEdit({
       const result = await sendQuickEdit({ conversationId, message });
       if ("error" in result) {
         setMessages((m) => [...m, { id: ++seq.current, role: "assistant", text: result.error }]);
+        refused(result);
         return;
       }
       setConversationId(result.conversationId);
@@ -96,7 +116,11 @@ function QuickEdit({
           changeSetId: result.changeSetId ?? undefined,
         },
       ]);
-      if (result.changeSetId) router.refresh();
+      if (result.changeSetId) {
+        // The Sites chrome shows the draft, and the page knows this change as its own.
+        announceDraft("changed");
+        router.refresh();
+      }
     });
   }
 
@@ -226,6 +250,7 @@ function StatusLine({ status, error }: { status: string; error: string | null })
 /** The draft, with Preview (a new tab, where Publish lives, PRD D47) and Discard. */
 function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }) {
   const router = useRouter();
+  const { refused } = useSiteHold();
   const [state, setState] = useState({ status: pending.status, error: pending.error });
   const [isPending, startTransition] = useTransition();
 
@@ -242,10 +267,23 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
     return () => clearInterval(timer);
   }, [pending.id, state.status, router]);
 
+  function discard() {
+    startTransition(async () => {
+      const result = await discardPendingChange(pending.id);
+      if ("error" in result) {
+        toast.error(result.error);
+        refused(result);
+      } else {
+        announceDraft("published");
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading">Change waiting for you</CardTitle>
+        <CardTitle className="font-heading">{pending.by ? theirChanges(pending.by) : "Change waiting for you"}</CardTitle>
         <CardDescription>{pending.summary}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -258,19 +296,24 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
-        <Button
-          variant="ghost"
-          disabled={isPending}
-          onClick={() =>
-            startTransition(async () => {
-              const result = await discardPendingChange(pending.id);
-              if ("error" in result) toast.error(result.error);
-              router.refresh();
-            })
-          }
-        >
-          Discard
-        </Button>
+        {pending.by ? (
+          // Someone else's work: discarding it asks first, and says whose.
+          <ConfirmDialog
+            title={`Discard ${pending.by}'s changes`}
+            description="Every unpublished change goes, and your site stays as it is now."
+            onConfirm={discard}
+            destructive
+            trigger={
+              <Button variant="ghost" disabled={isPending}>
+                Discard
+              </Button>
+            }
+          />
+        ) : (
+          <Button variant="ghost" disabled={isPending} onClick={discard}>
+            Discard
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

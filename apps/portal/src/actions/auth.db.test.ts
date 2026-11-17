@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { hashSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { hashToken } from "@/lib/auth-utils";
 import { hashPassword } from "@/lib/password";
-import { createAccount, resetDatabase } from "../../test/db";
+import { currentHold, takeHold } from "@/lib/site-tools/hold";
+import { createAccount, createSite, resetDatabase } from "../../test/db";
 import { jar, requestHeaders, resetRequest, signInAs } from "../../test/next-request";
 import { resetRateLimits } from "@/lib/rate-limit";
 import { AUTH_LIMITS, THROTTLED_MESSAGE } from "@/lib/auth-throttle";
@@ -231,6 +232,17 @@ describe("signOutAction", () => {
 
     expect(await prisma.session.count({ where: { id: session.id } })).toBe(0);
     expect(jar.has(SESSION_COOKIE)).toBe(false);
+  });
+
+  it("gives up the site the person was editing, so whoever waits gets it at once (PRD D64)", async () => {
+    const { account, user } = await createAccount({ planCode: "SITES" });
+    const site = await createSite(account.id);
+    await takeHold(site.id, user.id);
+    await signInAs(user.id);
+
+    await expectRedirect(signOutAction(), "/login");
+
+    expect(await currentHold(site.id)).toBeNull();
   });
 });
 

@@ -1,9 +1,9 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HelpCircle, BookOpen, Library, Mail, MessageSquare } from "lucide-react";
+import { HelpCircle, BookOpen, CirclePlay, Library, Mail, MessageSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getHelpHref } from "@/lib/docs-route-map";
+import { sitesTabOf, type SitesTabId } from "@/lib/sites-tabs";
 import { ContactDialog } from "@/components/contact-dialog";
+import { WelcomeVideoDialog } from "@/components/welcome-video-dialog";
 import type { ContactKind } from "@/actions/contact";
+import { welcomeVideoShown } from "@/actions/welcome";
+import type { WelcomeVideo } from "@/lib/welcome-video";
 
 const DOCS_INDEX = "/docs";
 
@@ -28,9 +32,15 @@ function extractIds(pathname: string) {
 type HelpBubbleProps = {
   /** Passed from the admin layout's session; prefills the support reply address. */
   accountEmail: string;
+  /**
+   * The site's welcome videos (ROADMAP E39), one for each tab that has one:
+   * an item here on that tab's pages, and open by itself the first time the
+   * person visits the tab.
+   */
+  welcome?: WelcomeVideo[];
 };
 
-export function HelpBubble({ accountEmail }: HelpBubbleProps) {
+export function HelpBubble({ accountEmail, welcome }: HelpBubbleProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -40,7 +50,35 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
 
   const { formId, submissionId } = useMemo(() => extractIds(pathname), [pathname]);
 
-  if (!href) return null;
+  // The video of the tab this page is on. The layout hands over each one's `open` as of
+  // the page's load, and moving between tabs never asks again, so the tabs whose video
+  // this visit has closed, and the one it opened from the menu, are kept here.
+  const here = welcome?.find((w) => w.tab === sitesTabOf(pathname)) ?? null;
+  const [closed, setClosed] = useState<SitesTabId[]>([]);
+  const [replaying, setReplaying] = useState<SitesTabId | null>(null);
+  const opensItself = here !== null && here.open && !closed.includes(here.tab);
+  const openingTab = opensItself ? here.tab : null;
+  useEffect(() => {
+    // Once per person and tab: the server stops asking for it after this.
+    if (openingTab) void welcomeVideoShown(openingTab);
+  }, [openingTab]);
+
+  // A tab's one automatic showing happens on whichever of its pages the person lands, pages with no bubble included.
+  const welcomeDialog = here ? (
+    <WelcomeVideoDialog
+      key={here.video}
+      open={opensItself || replaying === here.tab}
+      onOpenChange={(open) => {
+        setReplaying(open ? here.tab : null);
+        if (!open) setClosed((tabs) => (tabs.includes(here.tab) ? tabs : [...tabs, here.tab]));
+      }}
+      tab={here.tab}
+      video={here.video}
+      captions={here.captions}
+    />
+  ) : null;
+
+  if (!href) return welcomeDialog;
 
   // On routes with no specific doc page, `getHelpHref` falls back to the index —
   // which is where "Browse documentation" already goes. Drop the duplicate.
@@ -60,6 +98,12 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" className="w-56">
+            {here && (
+              <DropdownMenuItem onSelect={() => setReplaying(here.tab)}>
+                <CirclePlay className="h-4 w-4" />
+                Welcome video
+              </DropdownMenuItem>
+            )}
             {showContextualHelp && (
               <DropdownMenuItem onSelect={() => router.push(href)}>
                 <BookOpen className="h-4 w-4" />
@@ -88,6 +132,7 @@ export function HelpBubble({ accountEmail }: HelpBubbleProps) {
         accountEmail={accountEmail}
         context={{ pathname, search, formId, submissionId }}
       />
+      {welcomeDialog}
     </>
   );
 }

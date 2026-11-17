@@ -6,10 +6,16 @@
  * call the new one), or the connection dropped. The owner's text is on screen
  * but in no draft. These helpers keep it in localStorage, per site, so the
  * Editor can save it once the page is reloaded.
+ *
+ * Each stash carries where the site stood when its edits were typed (the
+ * tool layer's marker). Once the site has moved, someone else has edited
+ * since (PRD D64), and sending the edits would put old text over newer work:
+ * they stop being offered, and `outdatedEdits` counts them so the person can
+ * be told.
  */
 export type UnsavedEdit = { address: string; value: string | null };
 
-type Stash = { at: number; edits: UnsavedEdit[] };
+type Stash = { at: number; edits: UnsavedEdit[]; marker: string | null };
 /** The storage this needs: localStorage, or a stand-in. */
 export type EditStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -28,17 +34,24 @@ function read(storage: EditStorage, siteId: string): Stash | null {
     const edits = parsed.edits.filter(
       (e): e is UnsavedEdit => Boolean(e) && typeof e.address === "string" && (typeof e.value === "string" || e.value === null),
     );
-    return { at: parsed.at, edits };
+    return { at: parsed.at, edits, marker: typeof parsed.marker === "string" ? parsed.marker : null };
   } catch {
     return null;
   }
 }
 
-/** The edits waiting for this site, oldest first; none once they are too old to trust. */
-export function unsavedEdits(storage: EditStorage, siteId: string, now: number): UnsavedEdit[] {
+/** The edits waiting for this site, oldest first; none once they are too old to trust, or once the site has moved since they were typed. */
+export function unsavedEdits(storage: EditStorage, siteId: string, now: number, marker: string): UnsavedEdit[] {
   const stash = read(storage, siteId);
-  if (!stash || now - stash.at > UNSAVED_MAX_AGE_MS) return [];
+  if (!stash || now - stash.at > UNSAVED_MAX_AGE_MS || stash.marker !== marker) return [];
   return stash.edits;
+}
+
+/** How many edits are waiting that can't be sent any more, because the site has moved since they were typed. */
+export function outdatedEdits(storage: EditStorage, siteId: string, now: number, marker: string): number {
+  const stash = read(storage, siteId);
+  if (!stash || now - stash.at > UNSAVED_MAX_AGE_MS || stash.marker === marker) return 0;
+  return stash.edits.length;
 }
 
 /**
@@ -46,12 +59,12 @@ export function unsavedEdits(storage: EditStorage, siteId: string, now: number):
  * one, and takes its place at the end, so the order is the order of last change.
  * Returns how many are waiting. Storage that refuses (private mode, full) keeps nothing.
  */
-export function keepUnsavedEdits(storage: EditStorage, siteId: string, edits: UnsavedEdit[], now: number): number {
-  const kept = unsavedEdits(storage, siteId, now);
+export function keepUnsavedEdits(storage: EditStorage, siteId: string, edits: UnsavedEdit[], now: number, marker: string): number {
+  const kept = unsavedEdits(storage, siteId, now, marker);
   const addresses = new Set(edits.map((e) => e.address));
   const all = [...kept.filter((e) => !addresses.has(e.address)), ...edits].slice(-MAX_EDITS);
   try {
-    storage.setItem(keyOf(siteId), JSON.stringify({ at: now, edits: all } satisfies Stash));
+    storage.setItem(keyOf(siteId), JSON.stringify({ at: now, edits: all, marker } satisfies Stash));
     return all.length;
   } catch {
     return 0;

@@ -41,5 +41,7 @@ Each epic's Status line says what has been released and what is left. Move an ep
 | [Epic 29: Plan Extension, Site Model, Operator Sites](epic-29-plan-site-model-operator-sites.md) | v5.2.0 | 2026-10-16 | ✅ Complete |
 | [Epic 30: Builder, Preview, and the Demo Slice](epic-30-demo-slice.md) | v5.3.0 | 2026-10-16 | ✅ Complete |
 | [Epic 35: Stats](epic-35-stats.md) | v5.20.0 | 2026-11-14 | ✅ Complete |
+| [Epic 53: People on an Account](epic-53-people-on-an-account.md) | v5.21.0 | 2026-11-17 | ✅ Complete |
+| [Epic 54: One Editor at a Time](epic-54-one-editor-at-a-time.md) | v5.21.0 | 2026-11-17 | ✅ Complete |
 
 See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.
