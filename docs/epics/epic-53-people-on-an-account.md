@@ -1,6 +1,6 @@
 # Epic 53: People on an account
 
-**Status:** Approved (Michael, 2026-11-14). In progress: 4.1 and 4.2 built, unreleased, waiting on Michael's check of the People card (section 6).
+**Status:** Approved (Michael, 2026-11-14). Built and unreleased: 4.1 and 4.2 are on `dev`, and Michael added a person through the People card on 2026-11-15 while checking Epic 54 and raised nothing about it. Left: the Onboarding Runbook's section 6 at release (4.3), and ticking section 5 once it is live.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 38 (link and claim), whose claim link every person uses
 **Successor:** Epic 54 (one editor at a time), which needs a second person to exist
@@ -77,3 +77,4 @@ Operator → Accounts keeps the same Add person dialog, for accounts with no sit
 ## 6. Progress
 
 - 2026-11-14: 4.1 and 4.2 built on `dev`. `User.name` is migration `user_name`. The People card is `src/app/operator/sites/[siteId]/people-card.tsx`, with `add-person-button.tsx` shared by the Accounts page; the actions are in `src/actions/admin/members.ts` and `claims.ts`, tested in `members.db.test.ts` and `claim.db.test.ts`. Left: Michael's check of the card, and the Onboarding Runbook's section 6 once this is released (it describes production).
+- 2026-11-17: the owners' help now says who can sign in and how people are added and removed (`content/docs/editing-together.md` and a section in `account.md`, Epic 54's 4.5).

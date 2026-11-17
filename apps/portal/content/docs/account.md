@@ -21,6 +21,10 @@ Your email is also the contact address used for email notifications, so use an a
 
 Canopy sets up your Canopy Sites account when your site goes live, and sends you a link (by text or email) to set your password. Open it, choose a password, and you're signed in. The link works once and lasts a week. If it has expired, the page offers to email you a new one.
 
+## Other people on your Canopy Sites account
+
+More than one person can sign in to a Canopy Sites account, each with their own email and password. Canopy adds and removes them. **Editing with other people**, under Your website in these docs, has the details.
+
 ## Signing in
 
 Sign in at `/login` with your email and password. Login errors are intentionally generic ("Invalid email or password") to avoid revealing whether an account exists for a given address.
