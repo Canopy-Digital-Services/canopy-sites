@@ -30,12 +30,14 @@ export default async function DocPage({ params }: DocPageProps) {
     notFound();
   }
 
-  const doc = await getDocBySlug(slug);
+  // A page about a Canopy Sites website isn't there for an account without one.
+  const { sitesEnabled } = await getCurrentEntitlements();
+  const allDocs = await getAllDocs(sitesEnabled);
+  const doc = allDocs.some((d) => d.slug === slug) ? await getDocBySlug(slug) : null;
   if (!doc) {
     notFound();
   }
 
-  const allDocs = await getAllDocs();
   const { prev, next } = getPrevNext(slug, allDocs);
 
   return (

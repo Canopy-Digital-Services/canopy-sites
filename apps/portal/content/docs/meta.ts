@@ -3,9 +3,13 @@
 //
 // When adding a new doc page: create the .md file with frontmatter (title,
 // description, icon) and add its slug to the appropriate group below.
+//
+// A group marked `sites` is about a Canopy Sites website: only accounts with
+// Canopy Sites see it or can open its pages (`docsNavFor` in src/lib/docs.ts).
 
 export const docsNav = [
   { group: "Get started", slugs: ["index", "forms"] },
+  { group: "Your website", slugs: ["editing-together"], sites: true },
   { group: "Design & publish", slugs: ["appearance", "publishing", "hosted-forms"] },
   { group: "Operate", slugs: ["submissions", "account"] },
   { group: "Help", slugs: ["troubleshooting"] },
