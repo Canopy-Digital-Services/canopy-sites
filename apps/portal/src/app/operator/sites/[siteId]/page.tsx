@@ -1,6 +1,8 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { requireGlobalAdmin } from "@/lib/auth-utils";
 import { getSiteForOperator, listAccountsAvailableForSite } from "@/lib/data-access/sites";
 import { PageContent } from "@/components/patterns/page-content";
@@ -11,6 +13,7 @@ import { SiteSettingsForm } from "./site-settings-form";
 import { SiteBuildsCard } from "./site-builds-card";
 import { PeopleCard, type PersonRow } from "./people-card";
 import { WelcomeVideoCard } from "./welcome-video-card";
+import { StatsCard, StatsCardShell } from "./stats-card";
 import { listPeopleAccess } from "@/lib/claim";
 import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
 import { SITES_TABS } from "@/lib/sites-tabs";
@@ -115,6 +118,19 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             }
           }
         />
+
+        <Suspense
+          fallback={
+            <StatsCardShell>
+              <p className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking Umami…
+              </p>
+            </StatsCardShell>
+          }
+        >
+          <StatsCard site={site} />
+        </Suspense>
 
         <SiteSettingsForm
           siteId={site.id}

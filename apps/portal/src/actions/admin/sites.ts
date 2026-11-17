@@ -17,6 +17,7 @@ import { requireGlobalAdmin } from "@/lib/auth-utils";
 import { requireId } from "@/lib/ids";
 import { parseSiteSettings, type FieldErrors, type LinkSiteInput, type SiteSettingsInput } from "@/lib/sites";
 import { createLinkedSite, type LinkSiteResult } from "@/lib/site-link";
+import { umamiIdRefusal } from "@/lib/stats/health";
 import { revalidatePath } from "next/cache";
 
 export type SiteActionResult<I> =
@@ -71,8 +72,13 @@ export async function updateSite(
   if (!parsed.ok) return { error: INVALID, fieldErrors: parsed.errors };
   const settings = parsed.value;
 
-  if (!(await prisma.site.findUnique({ where: { id: siteId }, select: { id: true } }))) {
-    return { error: "Site not found." };
+  const current = await prisma.site.findUnique({ where: { id: siteId }, select: { umamiWebsiteId: true } });
+  if (!current) return { error: "Site not found." };
+
+  // Checked only when the id changes, so a website that stopped being readable never blocks saving the rest.
+  if (settings.umamiWebsiteId && settings.umamiWebsiteId !== current.umamiWebsiteId) {
+    const refusal = await umamiIdRefusal(settings.umamiWebsiteId);
+    if (refusal) return { error: INVALID, fieldErrors: { umamiWebsiteId: refusal } };
   }
 
   // Caddy will route each hostname to one site's build; a second claim would

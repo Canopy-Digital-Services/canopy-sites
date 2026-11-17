@@ -1,6 +1,6 @@
 # Epic 53: People on an account
 
-**Status:** Complete in 5.21.0 (2026-11-17). Acceptance in section 5, checked on the local portal and by test; the production check is the progress log's last entry. The Onboarding Runbook's part (4.3) is written with the release.
+**Status:** Complete in 5.21.0 (2026-11-17). Acceptance in section 5, checked on the local portal and by test; the production check is the progress log's last entry.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 38 (link and claim), whose claim link every person uses
 **Successor:** Epic 54 (one editor at a time), which needs a second person to exist
@@ -78,3 +78,4 @@ Operator → Accounts keeps the same Add person dialog, for accounts with no sit
 
 - 2026-11-14: 4.1 and 4.2 built on `dev`. `User.name` is migration `user_name`. The People card is `src/app/operator/sites/[siteId]/people-card.tsx`, with `add-person-button.tsx` shared by the Accounts page; the actions are in `src/actions/admin/members.ts` and `claims.ts`, tested in `members.db.test.ts` and `claim.db.test.ts`. Left: Michael's check of the card, and the Onboarding Runbook's section 6 once this is released (it describes production).
 - 2026-11-17: the owners' help now says who can sign in and how people are added and removed (`content/docs/editing-together.md` and a section in `account.md`, Epic 54's 4.5).
+- 2026-11-17: Released in 5.21.0 (PR #63, `05f1304`). The release smoke passed on forms-dev and sites-dev at `c0f47a3`, with two checks added for this release: a Forms account's help has no website pages, and a Sites account's has "Editing with other people". Production: the portal's deploy finished and applied the release's seven migrations, the builder redeployed, and the login pages and `/demo` answer. Not checked in production: anything signed in. No production account has a second person yet, so two people editing there is still to see; the Client 3 site's people will be the first. The Sites Onboarding Runbook in Nextcloud now covers it: section 6, step 5, and Link a site's name field in section 4.

@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { getSoleMembership, MultipleMembershipsError } from "@/lib/data-access/memberships";
 import { DEFAULT_LOCKED_FIELDS, normalizeGitHubRepo, parseLinkSite, type FieldErrors, type LinkSiteInput } from "@/lib/sites";
 import { CANOPY_TIME_ZONE } from "@/lib/time-zone";
+import { umamiIdRefusal } from "@/lib/stats/health";
 
 export type LinkSiteResult =
   | { success: true; siteId: string; accountId: string; attached: boolean }
@@ -89,6 +90,10 @@ export async function createLinkedSite(
 
   const clash = await conflicts(site.slug, site.repoUrl, site.productionHostnames);
   if (clash) return { error: INVALID, fieldErrors: clash };
+
+  // A website the portal's key can't read would leave the owner's Stats unable to load.
+  const umamiRefusal = site.umamiWebsiteId ? await umamiIdRefusal(site.umamiWebsiteId) : null;
+  if (umamiRefusal) return { error: INVALID, fieldErrors: { umamiWebsiteId: umamiRefusal } };
 
   const existing = await existingAccount(site.email);
   if ("refusal" in existing) return { error: existing.refusal, fieldErrors: { email: existing.refusal } };
