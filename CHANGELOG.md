@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.22.0] - 2026-11-17
+
+### Added
+
+- Sites: the operator's site page has a **Stats** card (Epic 35, 4.7). It names the Umami website the site's Stats read, with its domain and its first and last visit, and flags what an owner would otherwise find first: a website Umami won't let the portal read (their Stats can't load), a website whose domain is none of the site's hostnames (such as another client's id pasted in), and one that has recorded nothing in a week
+- Link a site and the site settings refuse an Umami website the portal can't read, on the Umami field
+
 ## [5.21.0] - 2026-11-17
 
 ### Added
