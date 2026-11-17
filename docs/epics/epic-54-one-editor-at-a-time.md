@@ -1,6 +1,6 @@
 # Epic 54: One editor at a time
 
-**Status:** Approved (Michael, 2026-11-14). Built and unreleased: 4.1 to 4.4 passed Michael's checks (2026-11-15 and 2026-11-17), and the owner help page is written. Left: the Onboarding Runbook at release (4.5), and ticking section 5 once it is live.
+**Status:** Complete in 5.21.0 (2026-11-17). Acceptance in section 5, checked with two people on the local portal and by test; the production check is the progress log's last entry. The Onboarding Runbook's part (4.5) is written with the release.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`)
 **Predecessor:** Epic 53 (people on an account)
 **Successor:** the VETS site's claim links (ROADMAP "The MVP")
@@ -84,14 +84,14 @@ Built a section at a time, each proposed to Michael and checked by him on `local
 
 ## 5. Acceptance
 
-- [ ] Two first saves at once leave one draft holding both edits; two Publish requests leave the change published once and recorded as published.
-- [ ] With two people signed in to one account and both only looking, neither is held back, on Quick Edit or the Editor.
-- [ ] Once the first opens a field or sends a Quick Edit message, the second can't save, send a Quick Edit message, publish, or discard, and is told who is making edits.
-- [ ] The second can open the preview page and see the draft.
-- [ ] When the first publishes or discards, a minute and a half after they leave the editing pages, or ten minutes after they go quiet, the second's page opens up and they can edit.
-- [ ] One person's laptop and phone never refuse each other.
-- [ ] The second person finds the first's unpublished changes marked as theirs with what they change, can't add to them, and can edit after publishing or discarding them; a publish names who published.
-- [ ] `npm run build`, `npm run lint`, and `npm test` pass.
+- [x] Two first saves at once leave one draft holding both edits; two Publish requests leave the change published once and recorded as published (`site-tools.db.test.ts`)
+- [x] With two people signed in to one account and both only looking, neither is held back, on Quick Edit or the Editor (two people in headless Chromium on the local demo site, as every browser check below)
+- [x] Once the first opens a field or sends a Quick Edit message, the second can't save, send a Quick Edit message, publish, or discard, and is told who is making edits (the notice, the glass, and Publish and Discard held back in the browser; each refusal in `site-tools.db.test.ts`)
+- [x] The second can open the preview page and see the draft (browser)
+- [x] When the first publishes or discards, a minute and a half after they leave the editing pages, or ten minutes after they go quiet, the second's page opens up and they can edit (in the browser the first signed out, which releases the hold as publishing does; publish, discard, the 90 seconds, and the ten-minute rule by test, none of them waited out in a browser)
+- [x] One person's laptop and phone never refuse each other (`site-tools.db.test.ts`, the same person from a second context)
+- [x] The second person finds the first's unpublished changes marked as theirs with what they change, can't add to them, and can edit after publishing or discarding them; a publish names who published (the notice, the card, the glass, and Discard's question in the browser; adding refused, and editing after a publish or a discard, by test)
+- [x] `npm run build`, `npm run lint`, and `npm test` pass
 
 ## 6. Progress
 
