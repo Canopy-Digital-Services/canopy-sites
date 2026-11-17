@@ -471,8 +471,9 @@ Goal: a new client asks Sierra for an appointment from her site, with photos of 
 Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Drafted and not yet approved: when it is built, and PRD D66, are its section 7.
 
 - Found converting Hair & Harvest (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
-- Contract 0.8.0 (lists the canvas can open, the id rule exported), the Services tab, the canvas opening the tab's own forms, and each site's lists marked
-- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list
+- Contract 0.8.0 (a template says where a list is, the id rule exported), the Services tab, and each site's lists named to the canvas
+- The canvas's action layer (Michael, 2026-11-17): a click that could mean more than one thing shows its actions as icons. On a service it opens the tab's own forms; on marked text inside a link it gives a pencil and a follow icon
+- Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list. Button and menu text as an owner's edit, which the layer is built to carry and PRD D50 keeps Canopy's today, is open in the epic doc (its section 7)
 
 ---
 
