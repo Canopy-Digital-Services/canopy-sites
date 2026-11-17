@@ -1,6 +1,6 @@
 # Epic 46: Hair & Harvest on Sites
 
-**Status:** Draft (2026-11-17). Waiting on Michael's approval of sections 2, 3, and 7 before anything is built.
+**Status:** In progress (2026-11-17). 4.1 to 4.4 are built on `hair-and-harvest` branch `canopy-sites` (`95b1c00`), not pushed. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. Next is 4.5, on his go-ahead.
 **Phase:** 1's Hair & Harvest migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
 **Predecessor:** Epic 42 (Fur-Ever Friends on Sites), the pattern; Epic 40 (Toro Z on Sites), the worked example
 **Successor:** Sierra's claim; E55's first step (her request form in place of Square's booking); Epic 56 (Services), which gives her menu a tab
@@ -166,6 +166,11 @@ Section 10, each in the commit that changes the behavior.
 - **Buttons go in `pages.json` where the contract has a place for one** (the hero's and a section's), as the demo has them. They stay Canopy's there, and are already content when button text becomes an owner's edit (ROADMAP E57). The booking buttons' labels and the menu's items have no field in the contract and stay in the templates. Eyebrows stay in the templates too, as on Toro Z and Fur-Ever Friends.
 - **About is page copy, not `team`.** It is one section about Sierra, and nothing else on the site lists people. Her name and job title in the structured data stay in `design.ts`.
 - **One Instagram address.** The three links say `instagram.com` and the structured data `www.instagram.com`; with one source, the links take the `www` form. No visible text changes.
+- **CSS is built for Vite's baseline browser list** (`build.cssTarget`). Astro 7 builds for `esnext`, and its minifier then drops every vendor prefix: the header's blur lost `-webkit-backdrop-filter`, the only form Safari before 18 reads.
+- **A price is held at today's longest**, 21 characters ("Consultation required"). On a phone that already fills its share of a row, and any service can be featured, where the row is tighter still.
+- **The featured and reviews sections are left out when empty.** Sierra can remove every review or unfeature every service, and a heading over nothing looks broken.
+- **The menu has no branch for durations.** The old template had one that no service used; with durations out of the content it would be a field an owner could fill and never measured.
+- **Analytics events are named by constants**, never by a label: the demo's templates name some by the button's text, which would rename an event when a label changes.
 
 ## 7. Open
 
@@ -182,6 +187,13 @@ For Michael. Items 2 and 4 change what 4.2 builds; item 1 changes this doc and t
 
 - 2026-11-17: Drafted from Michael's handoff and a read of the repo, the live site, both boxes' Coolify copies (read-only), the demo's `origin/main`, and Toro Z's and Fur-Ever Friends' repos. Found on the way: the share image answers 404; the analytics allowlist comes from a Coolify build variable; Fox's copy of the app has no health check; Webber holds no deployment record for the app; and the home page's featured services differ from the menu in five strings.
 - 2026-11-17 (later): Michael on the featured services: no rule for one page; services are one list with a feature of its own. Epic 56 (Services) drafted from that, and the featured rows here become the menu's entries (section 6), which left section 7. Michael also means button and menu text to become editable on the canvas (Epic 56's action layer), so the two buttons the contract can hold move into `pages.json` now.
+- 2026-11-17 (later): 4.1 to 4.4 built on `hair-and-harvest` branch `canopy-sites` (`95b1c00`, ten commits, not pushed), checked in headless Chromium against hairandharvest.com with analytics blocked.
+  - **4.1.** Astro 7.4.12, Tailwind 4.3.5, Node 24, the Dockerfile and `nginx.conf`. Astro 7 changed the pages in two ways the comparison caught: its default whitespace handling closed up the wordmark (`compressHTML: true` restores Astro 5's), and its `esnext` CSS target cost the header its blur (section 6). With both set, the three pages equal the live site to the pixel at 360 and 1440 px, with the same text, head tags, structured data, links, and events.
+  - **4.2.** Contract 0.7.0. The content was written by a script from the built pages and the old `services.json`: 43 services, 3 reviews, 6 photos, the three pages' copy. 150 fields are marked (316 elements); each one's text equals its content value exactly, and none is a field Canopy owns or locks. The analytics tag renders as the live one does.
+  - **4.3.** `SITE_GUIDE.md`: 34 limits measured at both widths, 15 counts, and `avoid` of `emoji`, `all-caps`, and `exclamations`, none of which Sierra's copy uses. A build with every limited field at its limit (1,008 of them) and every list at its count overflows nothing with the whole menu open, and one with no reviews and nothing featured drops those two sections. Today's content passes its own guide. Read from the rendered pages, the name is the only text art is drawn against.
+  - **4.4.** Services and policies equal the live site to the pixel at both widths, text included. The home page differs in the featured block alone: the five strings, and 20 px less height on a phone, where a shorter price lets a description wrap less. Photos keep their file names and were re-encoded by a newer sharp, a difference below what the pixel comparison counts. A violation in a content file fails the build with its message. The builder's build (a clean clone, `npm ci --ignore-scripts && npm run build`, no environment) and the Docker image name the same 83 `_astro` files. Pages, `_astro` files, fonts, and the logo send `Access-Control-Allow-Origin: *`; `/services` and `/services/` both answer. `npm run check` is clean, where `main` had 35 errors.
+  - **Found by loading each page as the canvas does** (a sandboxed srcdoc frame, a `<base>` at the site, each flag): the intro script read `sessionStorage`, which throws in an opaque origin, so under the preview flag it stopped and left its overlay over the page. Guarded, as the demo's is. Both flags then load styled, with fonts from the site and no console errors; the editor flag shows no intro and all 13 menu panels open.
+  - **Owed to the Sites Onboarding Runbook at 4.5**: section 2, step 1 gains Astro 7's two defaults that change a page (`compressHTML`, the CSS target), and step 9 a load in a sandboxed frame with each flag, since storage throws there. The demo's header has the same blur and no CSS target; not checked.
 
 ## 10. Docs this makes stale
 
