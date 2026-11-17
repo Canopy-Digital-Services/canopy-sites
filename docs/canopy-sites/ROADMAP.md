@@ -35,20 +35,19 @@ Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friend
 
 1. **Fur-Ever Friends' claim** (Epic 42), with Michael's daughter as the owner: the claim's test before a client's.
 2. **E47, tool layer fixes** (F1, F3, F5; F2 and F4 were fixed with E54).
-3. **E53, people on an account, then E54, one editor at a time** (PRD D63, D64): before the VETS site's claim links go out.
-4. **E39, the welcome video**: before the VETS site's claim links go out, tried first on Fur-Ever Friends.
-5. **E48, deploys and checks** (F25, F27, F28, F29).
-6. **E49, alerting and records** (F26, F31).
-7. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
-8. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
-9. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
-10. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
-11. **E46, Hair & Harvest onto Sites**, then its claim.
-12. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
+3. **E39, the welcome video**: before the VETS site's claim links go out, tried first on Fur-Ever Friends.
+4. **E48, deploys and checks** (F25, F27, F28, F29).
+5. **E49, alerting and records** (F26, F31).
+6. **Mail that can carry a launch.** The portal's mail shares a small daily ceiling with other mailboxes (the private page). Not moved yet (Michael, 2026-11-10): a risk to track and a fast follow, with what was checked and the candidate in REVIEW_FINDINGS F32. A sender with headroom, and a cap on notification mail, come before claim links go to clients.
+7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
+8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
+9. **Toro Z's claim** (Epic 40, 4.7): the first client owner.
+10. **E46, Hair & Harvest onto Sites**, then its claim.
+11. **The VETS site onto Sites**, through the Sites Onboarding Runbook, its form going to Monday.com (PRD D53).
 
 **Pivot, 2026-11-12 (Michael):** the MVP now has to carry the VETS site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The VETS item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
 
-**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out.
+**Several people, 2026-11-14 (Michael):** the VETS organization has more than one person who updates its site, so the MVP carries several people on one account (E53), one editing at a time (E54). The operator adds them; an owner inviting their own people, roles, and asking for control stay out. Both shipped in 5.21.0 (2026-11-17) and left the list.
 
 **Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the VETS site's claim links, so each person there opens their portal on a walkthrough of it. Fur-Ever Friends gets the first one. Since 2026-11-15 it is one video for each tab, which keeps each short.
 
@@ -385,7 +384,7 @@ Goal: a guide rule the site already breaks doesn't stop an owner's edit, a build
 - F1, F3, and F5, each landing with the test that fails without it. F3 and F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
 
-### E53 · People on an account
+### E53 · People on an account (shipped v5.21.0)
 
 Goal: an organization's several people each sign in as themselves on the site's one account (PRD D63). Epic doc: `docs/epics/epic-53-people-on-an-account.md`.
 
@@ -394,7 +393,7 @@ Goal: an organization's several people each sign in as themselves on the site's 
 - No owner-side screen: an owner inviting their own people is after v1
 - Acceptance: a second person is added to a site's account, claims, edits, and publishes as themselves; a removed person is signed out and can't sign in
 
-### E54 · One editor at a time
+### E54 · One editor at a time (shipped v5.21.0)
 
 Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
 
