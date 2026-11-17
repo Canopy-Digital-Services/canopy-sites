@@ -22,7 +22,7 @@ Phase 5  Client 1 migration             [client1]              T1, E42          
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
-Phase 9  The suite                    [this repo]          E50 → E51 → E52            (after the MVP: Gallery, Events, Booking)
+Phase 9  The suite                    [this repo]          E50 → E51, E55, E52        (Gallery, Events after the MVP; E55's place to decide; Booking when a client needs it)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -51,9 +51,11 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 
 **Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the Client 3 site's claim links, so each person there opens their portal on a walkthrough of it. the test site gets the first one. Since 2026-11-15 it is one video for each tab, which keeps each short.
 
+**Client 2 leaves Square, 2026-11-17 (Michael):** the owner is moving off Square and takes payment by Venmo, so her site's booking becomes a request form (PRD D65, E55). Her site has four links to Square's booking page and three lines saying a card on file is required (`client2`, checked 2026-11-17); the links stop working the day her Square account closes, a date not yet asked of her. E55's first step, the form from today's field types, is due by then. To decide: whether E55 joins this list, and where. This paragraph goes when that is decided.
+
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
-After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), E43 to E45, then E52 (Booking). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
+After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -149,7 +151,7 @@ Goal: the Zod schemas for every v1 collection, exported three ways.
 
 ### E46 · Client 2 on Sites (`client2`)
 
-In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Client 1 was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). The epic doc carries the requirements.
+In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Client 1 was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). Its links to Square's booking page and its card-on-file lines are E55's, whichever of the two epics reaches the repo first. The epic doc carries the requirements.
 
 ### H1 · Client 2 → Astro 7 (`client2`)
 
@@ -428,7 +430,7 @@ Goal: Michael is told when the portal or the builder is down, and what happened 
 
 ## Phase 9: The suite
 
-After the MVP (PRD D52, D54, D55).
+After the MVP (PRD D52, D54, D55), except E55, whose place is to decide ("The MVP", above).
 
 ### E50 · Media pipeline and the Gallery tab
 
@@ -449,7 +451,20 @@ Goal: an owner adds an event with its date, time, and place, and it leaves the s
 
 ### E52 · Booking
 
-PRD D55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+PRD D55. Waits for a client who needs it (Michael, 2026-11-17); Client 2's requests for appointments are E55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+
+### E55 · Requests (Client 2's appointment form)
+
+Goal: a new client asks the owner for an appointment from her site, with photos of their hair and her policy agreed to, and she reads the request on her phone and books the time herself (PRD D65). As of 2026-11-17 Forms has no field that takes a file; an Approval's text is plain, with no link and nothing kept of what was agreed to; and a Sites account's Forms tab is the Forms product's list of forms, with no view of submissions across forms, no count on the tab, and no way to call, text, or email from a submission.
+
+- **Step 1, the form from today's field types**, with nothing built in this repo: name, phone, email, hair goals, the services wanted (Choose several), hair history, the days and times that suit, and an Approval of the salon's policies, with the answers in the notification email. In `client2`, the four links to Square's booking page point at the form and the three card-on-file lines go; once the site is converted (E46) the link is `site.contact.bookingUrl`. Client 2's Report Profile (Nextcloud, Monthly Reports) names a tap through to Square as the report's conversion, and is rewritten with this step. Due the day her Square account closes ("The MVP", above).
+- **Photos**, a field type: a visitor attaches photos, up to a count the owner sets, downscaled in the browser, then checked by content and re-encoded on the server with location data stripped. They are stored on the portal's media volume (E39's, which dev and prod lack as of 2026-11-17), shown only to the account's signed-in people, and deleted with their submission, form, or account. The notification email counts them and links to the submission, and never attaches them. The volume joins the backups: a welcome video is re-uploaded from Michael's original, and a visitor's photo has none. The upload route is public, so it carries the submit route's origin check and rate limit, a size cap, and a cap for each form.
+- **An Approval with a document**: the owner pastes the document's text into the field, the form shows a link beside the statement that opens it, as Square's "See full policy" does (Michael's screenshots, 2026-11-17), and the submission keeps the text as it stood when the box was ticked. No typed name and no drawn signature. With no card on file, that record is what the owner has when a client disputes a cancellation fee.
+- **A Sites account's Forms tab opens on what came in**: submissions across the account's forms, newest first, new ones marked, a count on the tab, a search by name, and archived ones still to be found, since a request is the only record of a client (PRD D65). A submission shows its photos, and its phone and email answers call, text, and write to the person. The forms and their builder are one click away, and a Forms account keeps today's page. Laid out for a phone first, and built a section at a time with Michael.
+- Not in this epic: confirming a request with a time ("Not scheduled", below), a contacts model (PRD D52), and any text message Canopy sends.
+- Open for the epic doc: which cancellation window her policy states (Square's says two days and her policies page 24 hours, both read 2026-11-17; the owner's to settle); which account holds the form before her site is linked (`linkSite`'s `attach` links a site to the email's existing Sites account, so a form built there ahead of E46 stays hers); the tab's label (its id stays `forms`, which welcome videos are named by); whether photos upload with the submission or ahead of it; and how long photos are kept.
+- For Michael to decide before the form is her only way to be booked: it lives only on Webber (F12), and its notification mail shares the ceiling in F32.
+- Acceptance: on a phone, a visitor sends a request with three photos and the policy agreed to; the owner gets the email, opens the request in her portal, sees the photos and the policy's text as agreed, and texts the client from it; a later edit to the policy doesn't change what that submission shows; someone outside her account can't fetch a photo by its address; deleting the submission deletes its files.
 
 ---
 
@@ -457,6 +472,7 @@ PRD D55. Open for the epic doc: where a bookable service's length lives (the con
 
 - Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
 - Members (a light CRM) and newsletters as runtime components (PRD D52)
+- Confirming a request with a time, after E55: the client gets an email with a calendar invite, then a reminder by email at the cancellation cutoff. Proposed 2026-11-17, not decided
 - An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
