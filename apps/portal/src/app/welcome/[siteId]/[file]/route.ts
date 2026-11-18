@@ -9,10 +9,12 @@ import { welcomeFile } from "@/lib/welcome-video";
  * the site's account and an operator acting as it; a 404 for anyone else, a
  * name that isn't the site's current key, and a signed-out request.
  *
- * Cloudflare caches `.mp4` by its extension, so what this sends decides who
- * else could be handed the file: `private` keeps a video out of the shared
+ * Its addresses end in no file extension (src/lib/welcome-video.ts says
+ * why), so Cloudflare never treats one as cacheable and passes the player's
+ * byte ranges through, which is how it seeks. The headers still say what may
+ * be kept, should that change: `private` keeps a video out of any shared
  * cache, and `no-store` keeps a 404 from being cached and then served to the
- * person who may see it. Byte ranges let the player seek.
+ * person who may see it.
  */
 
 function notFound() {

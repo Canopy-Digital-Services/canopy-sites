@@ -104,8 +104,8 @@ describe("uploading a tab's welcome video (ROADMAP E39)", () => {
 
     resetRequest();
     await signInAs(owner.id);
-    const played = await GET(new Request(`https://sites.test/welcome/${site.id}/${name}.mp4`), {
-      params: Promise.resolve({ siteId: site.id, file: `${name}.mp4` }),
+    const played = await GET(new Request(`https://sites.test/welcome/${site.id}/${name}-video`), {
+      params: Promise.resolve({ siteId: site.id, file: `${name}-video` }),
     });
     expect(played.status).toBe(200);
     expect(Buffer.from(await played.arrayBuffer()).equals(video)).toBe(true);
