@@ -828,7 +828,9 @@ const BUILD_STATUS = { queued: "QUEUED", running: "RUNNING", succeeded: "SUCCEED
 /**
  * Brings a change's preview status up to date from the builder. A draft
  * becomes PREVIEWED when the build of its current version succeeds. A failed
- * build leaves the draft pending with the reason, so no edit is lost.
+ * build leaves the draft pending, so no edit is lost, with a plain line for
+ * the owner; the builder's reason stays on the build, for the operator, and
+ * goes to the log.
  */
 export async function refreshChange(accountId: string, changeSetId: string) {
   const changeSet = await ownedChange(accountId, changeSetId);
@@ -851,10 +853,12 @@ export async function refreshChange(accountId: string, changeSetId: string) {
       finishedAt: remote.finishedAt ? new Date(remote.finishedAt) : undefined,
     },
   });
+  const failed =
+    buildStatus === "FAILED" ? builderFailure("build", remote.error ?? "The build failed and gave no reason.", { slug: changeSet.site.slug, buildId: build.id }) : null;
   const current = build.draftVersion === null || build.draftVersion === changeSet.version;
   if (!done || !current || buildStatus === "SUPERSEDED") return { ...unchanged, buildStatus };
   // Only if no save landed meanwhile: a newer version isn't built yet.
-  const data = buildStatus === "SUCCEEDED" ? { status: "PREVIEWED" as const, error: null } : { status: "DRAFT" as const, error: remote.error ?? "The preview build failed." };
+  const data = failed === null ? { status: "PREVIEWED" as const, error: null } : { status: "DRAFT" as const, error: failed };
   const moved = await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version, status: { in: [...PENDING] } }, data });
   if (moved.count === 0) return { ...unchanged, buildStatus };
   return { status: data.status, buildStatus, buildVersion: build.draftVersion, error: data.error };

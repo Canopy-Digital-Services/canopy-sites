@@ -34,4 +34,8 @@ describe("a builder failure (Epic 46, H6)", () => {
       expect(sentence).not.toMatch(/git|builder|exited|\d|[–—]/i);
     }
   });
+
+  it("fits a failed build's line where the preview bar cuts it", () => {
+    expect(BUILDER_FAILED.build.length).toBeLessThanOrEqual(60);
+  });
 });
