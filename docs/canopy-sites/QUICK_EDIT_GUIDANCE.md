@@ -74,7 +74,7 @@ Written into the schemas as each field's description, beside its kind and label 
 - `priceLabel`: display text, written the way the menu writes it ("$90", "From $150").
 - `hours`: the regular week, 24-hour times. One-off closures and holiday hours are announcements.
 - `announcements.message`: 160 characters or fewer. `startsOn` and `endsOn` (YYYY-MM-DD) whenever the message is about a date; the banner hides itself after `endsOn`.
-- `serviceIds`: a featured service shows the menu's name and price. To change either, edit the menu.
+- `serviceIds`: a featured service shows the menu's name and price. To change either, edit the menu. Each entry is the id of a service on the menu; which services a page features, and in what order, is the owner's.
 - `gallery`: page order is list order. `alt` describes what is in the photo for someone who can't see it; it does not sell.
 - `id` fields: stable once set; never renamed to match a new name.
 - `reviews`: a real customer's exact words and name, as the owner gives them.
