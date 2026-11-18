@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyChanges,
   avoidWarnings,
+  fieldInfo,
   LaneRuleError,
   laneViolations,
   parseSiteGuide,
@@ -182,6 +183,46 @@ describe("laneViolations", () => {
     expect(laneViolations(c, removeCard)).toEqual([]);
     const newCard = edit(c, (d) => d.pages[0].sections[1].cards.push({ id: "more", eyebrow: "More", title: "Also" }));
     expect(reasons(laneViolations(c, newCard))).toEqual(["canopy pages/home/sections/about/cards/more/eyebrow"]);
+  });
+
+  it("lets the owner choose a page's featured services, while an entry's own id stays Canopy's", async () => {
+    // Found by Client 2's Quick Edit eval (H9, 2026-11-18): each featured
+    // entry was the Id type, so any change to the list was "ID is Canopy's to change".
+    expect(fieldInfo("pages/home/sections/featured/serviceIds/0")).toEqual({
+      kind: "reference",
+      label: "Featured service",
+      description: "The id of a service on the menu.",
+      maxLength: 60,
+    });
+    expect(fieldInfo("pages/home/sections/featured/id")).toMatchObject({ kind: "id", canopy: true });
+    expect(fieldInfo("services/haircuts/services/haircut/id")).toMatchObject({ kind: "id", canopy: true });
+
+    const c = await load();
+    expect(c.pages[0].sections[0].serviceIds).toEqual(["haircut", "full-face-wax"]);
+    const featuring = (fn: (ids: string[]) => void) => edit(c, (d) => fn(d.pages[0].sections[0].serviceIds));
+    const edits = {
+      swap: featuring((ids) => (ids[1] = "clipper-cut")),
+      add: featuring((ids) => ids.push("clipper-cut")),
+      remove: featuring((ids) => ids.splice(0, 1)),
+      reorder: featuring((ids) => ids.reverse()),
+      clear: featuring((ids) => ids.splice(0)),
+    };
+    for (const [name, after] of Object.entries(edits)) {
+      expect({ name, violations: laneViolations(c, after) }).toEqual({ name, violations: [] });
+      expect({ name, issues: messages(after) }).toEqual({ name, issues: [] });
+    }
+
+    // The ids those entries name are still checked against the menu.
+    const offMenu = featuring((ids) => (ids[1] = "balayage"));
+    expect(laneViolations(c, offMenu)).toEqual([]);
+    expect(messages(offMenu)).toEqual(['pages/0/sections/0/serviceIds/1: "balayage" is not a service on the menu']);
+    expect(messages(featuring((ids) => (ids[1] = "Full Face Wax")))).toEqual([
+      "pages/0/sections/0/serviceIds/1: Lowercase letters, digits, and hyphens only",
+    ]);
+
+    // A section's own id is still Canopy's: a new id is a new section, which pages refuse.
+    const renamed = edit(c, (d) => (d.pages[0].sections[0].id = "favorites"));
+    expect(reasons(laneViolations(c, renamed))).toContain("fixed pages/home/sections");
   });
 
   it("holds locks by address, covering everything under one, with * for any segment", async () => {
