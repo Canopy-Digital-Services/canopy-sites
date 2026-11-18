@@ -58,14 +58,14 @@ describe("each tab's welcome video opening once (ROADMAP E39)", () => {
     expect(await welcomeVideosFor(session!, account.id)).toEqual([
       {
         tab: "quick-edit",
-        video: `/welcome/${site.id}/quick-edit-0123456789abcdef.mp4`,
-        captions: `/welcome/${site.id}/quick-edit-0123456789abcdef.vtt`,
+        video: `/welcome/${site.id}/quick-edit-0123456789abcdef-video`,
+        captions: `/welcome/${site.id}/quick-edit-0123456789abcdef-captions`,
         open: true,
       },
       {
         tab: "editor",
-        video: `/welcome/${site.id}/editor-fedcba9876543210.mp4`,
-        captions: `/welcome/${site.id}/editor-fedcba9876543210.vtt`,
+        video: `/welcome/${site.id}/editor-fedcba9876543210-video`,
+        captions: `/welcome/${site.id}/editor-fedcba9876543210-captions`,
         open: true,
       },
     ]);

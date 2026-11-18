@@ -68,7 +68,7 @@ describe("/welcome (ROADMAP E39)", () => {
     for (const id of [user.id, member.id]) {
       resetRequest();
       await signInAs(id);
-      const video = await get(site.id, `${NAME}.mp4`);
+      const video = await get(site.id, `${NAME}-video`);
       expect(video.status).toBe(200);
       expect(video.headers.get("content-type")).toBe("video/mp4");
       expect(video.headers.get("content-length")).toBe("1000");
@@ -76,7 +76,7 @@ describe("/welcome (ROADMAP E39)", () => {
       expect(video.headers.get("cache-control")).toBe("private");
       expect((await bytes(video)).equals(VIDEO)).toBe(true);
 
-      const captions = await get(site.id, `${NAME}.vtt`);
+      const captions = await get(site.id, `${NAME}-captions`);
       expect(captions.status).toBe(200);
       expect(captions.headers.get("content-type")).toBe("text/vtt; charset=utf-8");
       expect(captions.headers.get("cache-control")).toBe("private");
@@ -87,51 +87,51 @@ describe("/welcome (ROADMAP E39)", () => {
   it("gives an operator the files only while acting as the account", async () => {
     const { account, site } = await siteWithVideo();
     const operator = await signInActingAs(account.id);
-    expect((await get(site.id, `${NAME}.mp4`)).status).toBe(200);
+    expect((await get(site.id, `${NAME}-video`)).status).toBe(200);
 
     resetRequest();
     await signInAs(operator.id);
-    expect((await get(site.id, `${NAME}.mp4`)).status).toBe(404);
+    expect((await get(site.id, `${NAME}-video`)).status).toBe(404);
   });
 
   it("answers a byte range with those bytes, so the player seeks", async () => {
     const { user, site } = await siteWithVideo();
     await signInAs(user.id);
 
-    const first = await get(site.id, `${NAME}.mp4`, "bytes=0-1");
+    const first = await get(site.id, `${NAME}-video`, "bytes=0-1");
     expect(first.status).toBe(206);
     expect(first.headers.get("content-range")).toBe("bytes 0-1/1000");
     expect(first.headers.get("content-length")).toBe("2");
     expect((await bytes(first)).equals(VIDEO.subarray(0, 2))).toBe(true);
 
-    const middle = await get(site.id, `${NAME}.mp4`, "bytes=400-");
+    const middle = await get(site.id, `${NAME}-video`, "bytes=400-");
     expect(middle.status).toBe(206);
     expect(middle.headers.get("content-range")).toBe("bytes 400-999/1000");
     expect((await bytes(middle)).equals(VIDEO.subarray(400))).toBe(true);
 
-    const tail = await get(site.id, `${NAME}.mp4`, "bytes=-10");
+    const tail = await get(site.id, `${NAME}-video`, "bytes=-10");
     expect(tail.headers.get("content-range")).toBe("bytes 990-999/1000");
     expect((await bytes(tail)).equals(VIDEO.subarray(990))).toBe(true);
 
-    const past = await get(site.id, `${NAME}.mp4`, "bytes=1000-");
+    const past = await get(site.id, `${NAME}-video`, "bytes=1000-");
     expect(past.status).toBe(416);
     expect(past.headers.get("content-range")).toBe("bytes */1000");
   });
 
   it("is a 404 that nothing caches for a signed-out request and for another account", async () => {
     const { site } = await siteWithVideo();
-    const signedOut = await get(site.id, `${NAME}.mp4`);
+    const signedOut = await get(site.id, `${NAME}-video`);
     expect(signedOut.status).toBe(404);
     expect(signedOut.headers.get("cache-control")).toBe("no-store");
 
     const { user: outsider } = await createAccount({ planCode: "SITES" });
     await signInAs(outsider.id);
-    for (const file of [`${NAME}.mp4`, `${NAME}.vtt`]) {
+    for (const file of [`${NAME}-video`, `${NAME}-captions`]) {
       const res = await get(site.id, file);
       expect(res.status, file).toBe(404);
       expect(res.headers.get("cache-control")).toBe("no-store");
     }
-    expect((await get("no-such-site", `${NAME}.mp4`)).status).toBe(404);
+    expect((await get("no-such-site", `${NAME}-video`)).status).toBe(404);
   });
 
   it("gives each tab its own video", async () => {
@@ -141,11 +141,11 @@ describe("/welcome (ROADMAP E39)", () => {
     await writeFile(path.join(dir, "editor-fedcba9876543210.mp4"), other);
     await signInAs(user.id);
 
-    expect((await bytes(await get(site.id, `${NAME}.mp4`))).equals(VIDEO)).toBe(true);
-    expect((await bytes(await get(site.id, "editor-fedcba9876543210.mp4"))).equals(other)).toBe(true);
+    expect((await bytes(await get(site.id, `${NAME}-video`))).equals(VIDEO)).toBe(true);
+    expect((await bytes(await get(site.id, "editor-fedcba9876543210-video"))).equals(other)).toBe(true);
     // One tab's key under another tab's name is neither.
-    expect((await get(site.id, `editor-${KEY}.mp4`)).status).toBe(404);
-    expect((await get(site.id, "quick-edit-fedcba9876543210.mp4")).status).toBe(404);
+    expect((await get(site.id, `editor-${KEY}-video`)).status).toBe(404);
+    expect((await get(site.id, "quick-edit-fedcba9876543210-video")).status).toBe(404);
   });
 
   it("is a 404 for any name but the current two files of a tab that has a video", async () => {
@@ -155,7 +155,15 @@ describe("/welcome (ROADMAP E39)", () => {
     await writeFile(path.join(mediaDir, "secret.mp4"), VIDEO);
     await signInAs(user.id);
     for (const file of [
+      // The current pair's own file names: an address ending in an extension
+      // is one Cloudflare would treat as cacheable (src/lib/welcome-video.ts).
+      `${NAME}.mp4`,
+      `${NAME}.vtt`,
+      `${NAME}-video.mp4`,
+      `${NAME}-VIDEO`,
+      `${NAME}-audio`,
       // A video the tab had before, still on disk.
+      "quick-edit-fedcba9876543210-video",
       "quick-edit-fedcba9876543210.mp4",
       // A file on disk under a tab the site has no video for, and names with no tab or one that isn't a tab.
       `stats-${KEY}.mp4`,
@@ -181,10 +189,10 @@ describe("/welcome (ROADMAP E39)", () => {
     const { user, site, dir } = await siteWithVideo();
     await signInAs(user.id);
     await rm(path.join(dir, `${NAME}.vtt`));
-    expect((await get(site.id, `${NAME}.vtt`)).status).toBe(404);
-    expect((await get(site.id, `${NAME}.mp4`)).status).toBe(200);
+    expect((await get(site.id, `${NAME}-captions`)).status).toBe(404);
+    expect((await get(site.id, `${NAME}-video`)).status).toBe(200);
 
     vi.stubEnv("MEDIA_DIR", "");
-    expect((await get(site.id, `${NAME}.mp4`)).status).toBe(404);
+    expect((await get(site.id, `${NAME}-video`)).status).toBe(404);
   });
 });

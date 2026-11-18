@@ -7,7 +7,12 @@
  * `<MEDIA_DIR>/welcome/<siteId>/<tab>-<key>.mp4` and `.vtt` (captions), the
  * key a hash of the MP4. With `MEDIA_DIR` unset there are no videos. They
  * are client media: never in the repo or the image, and served only by
- * `/welcome/[siteId]/[file]`, to the account's people. The operator uploads
+ * `/welcome/[siteId]/[file]`, to the account's people, at
+ * `/welcome/<siteId>/<tab>-<key>-video` and `-captions`. Those addresses end
+ * in no file extension on purpose: Cloudflare treats a `.mp4` address as one
+ * it could cache, and on such a request's miss it fetches the whole file
+ * without the player's byte range, so the player gets a 200 and can't seek
+ * (seen on sites-dev, 2026-11-18). An address it can't cache passes ranges. The operator uploads
  * and removes them on the site's page. A `WelcomeView` row is one person's
  * viewing of one video.
  */
@@ -30,10 +35,14 @@ import {
 } from "@/lib/welcome-video-limits";
 
 /** A file as it is asked for: the tab, its video's key, and which of the pair. */
-const FILE = /^([a-z-]+)-([0-9a-f]{16})\.(mp4|vtt)$/;
+const FILE = /^([a-z-]+)-([0-9a-f]{16})-(video|captions)$/;
+/** Each part's file on the disk, and the type it is sent as. */
+const PARTS = {
+  video: { extension: "mp4", type: "video/mp4" },
+  captions: { extension: "vtt", type: "text/vtt; charset=utf-8" },
+} as const;
 /** A file as it is stored, which is also an upload still arriving (`.part`, under a random key). */
 const STORED = /^([a-z-]+)-([0-9a-f]{16})\.(mp4|vtt|part)$/;
-const TYPES = { mp4: "video/mp4", vtt: "text/vtt; charset=utf-8" } as const;
 
 type WelcomeSession = Pick<SessionContext, "user" | "memberships" | "actingAs">;
 
@@ -70,7 +79,7 @@ export async function welcomeVideosFor(session: WelcomeSession, accountId: strin
     const video = site.welcomeVideos.find((v) => v.tab === id);
     if (!video) return [];
     const base = `/welcome/${site.id}/${id}-${video.key}`;
-    return [{ tab: id, video: `${base}.mp4`, captions: `${base}.vtt`, open: shown !== null && !shown.has(video.id) }];
+    return [{ tab: id, video: `${base}-video`, captions: `${base}-captions`, open: shown !== null && !shown.has(video.id) }];
   });
 }
 
@@ -127,10 +136,11 @@ export async function welcomeFile(session: WelcomeSession, siteId: string, file:
   });
   if (!video || video.key !== name[2]) return null;
   if (!(await sessionCanUseAccount(session, video.site.accountId))) return null;
-  const full = path.join(dir, "welcome", video.site.id, `${name[1]}-${name[2]}.${name[3]}`);
+  const part = PARTS[name[3] as keyof typeof PARTS];
+  const full = path.join(dir, "welcome", video.site.id, `${name[1]}-${name[2]}.${part.extension}`);
   const info = await stat(full).catch(() => null);
   if (!info?.isFile()) return null;
-  return { path: full, size: info.size, type: TYPES[name[3] as keyof typeof TYPES] };
+  return { path: full, size: info.size, type: part.type };
 }
 
 export type WelcomeVideoState = "none" | "missing" | { uploadedAt: Date };
