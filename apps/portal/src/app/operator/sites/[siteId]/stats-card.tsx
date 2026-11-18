@@ -62,7 +62,7 @@ export async function StatsCard({ site }: { site: StatsCardSite }) {
         <dt className="text-muted-foreground">Umami website</dt>
         <dd>
           {website.name}
-          {website.domain ? <span className="text-muted-foreground"> · {website.domain}</span> : null}
+          {website.domain ? <span className="block text-muted-foreground">{website.domain}</span> : null}
         </dd>
         <dt className="text-muted-foreground">First visit</dt>
         <dd className={website.firstEvent ? undefined : "text-muted-foreground"}>{website.firstEvent ? date(website.firstEvent) : "None yet"}</dd>
