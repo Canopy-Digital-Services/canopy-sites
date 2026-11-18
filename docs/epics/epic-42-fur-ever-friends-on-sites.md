@@ -1,6 +1,6 @@
 # Epic 42: Fur-Ever Friends on Sites
 
-**Status:** Approved (Michael, 2026-11-06), with section 6's decisions. In progress: 4.1 to 4.4 live and the site linked; in 4.5, acceptance and the eval passed acting as Jane, and a claim link is copied for Michael's phone (progress log, 2026-11-06). Left: Michael claims the account and publishes an edit that shows on furever.skibri.us.
+**Status:** Approved (Michael, 2026-11-06), with section 6's decisions. Every acceptance item has passed: 4.1 to 4.4 live, the site linked, acceptance and the eval passed acting as Jane, and Jane claimed on her phone and published an edit on 2026-11-12 (`fur-ever-friends` `cf91bba`, live on furever.skibri.us). That evening, at Michael's request, her claim was reset so she can claim again. Left: her second claim (ROADMAP's MVP, item 1), then the completion report.
 **Phase:** 5, beside T1 (`docs/canopy-sites/ROADMAP.md`): a site Michael controls, so the owner's claim is tested end to end before Toro Z's link goes out
 **Predecessor:** Epic 40 (Toro Z on Sites), the worked example; Epic 38 (Link and claim)
 **Successor:** Toro Z's claim link, held in Epic 40 4.7
@@ -120,7 +120,7 @@ The site's form, `cmq5ebz64000001p7catdwjps`, is in Michael's own account, with 
   - **F6.** "Add a review from Mrs. Lee: 'Jane is the best!'" Added verbatim; the preview shows it on the home page.
   - **F7.** "I do Oak Park now too." The service area is Canopy's, with the card, and the reply names the copy that says Tahoe Park.
   - **F8.** "Add my last name to the about page." Refused, offered to Michael.
-- The claim link, with Michael's OK, copied for him to open on his phone.
+- The claim link, with Michael's OK, copied for Jane, the owner, to open on her phone.
 
 ### 4.6 Docs
 
@@ -128,13 +128,13 @@ Section 10, each in the commit that changes the behavior.
 
 ## 5. Acceptance
 
-- [ ] The repo is in the org, a push to `main` deploys it through the Dockerfile, and the Canopy Sites App lists it.
-- [ ] The four pages match the live site at 360 and 1440 px, apart from 4.2's one row; the form works on the live contact page and shows a placeholder on the canvas.
-- [ ] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
-- [ ] Jane's form is in her account, the site embeds it, a test submission shows in her Forms tab, and the old form is unpublished.
-- [ ] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
-- [ ] The eval passes, shared set and F1 to F8.
-- [ ] Michael claims the account on his phone and publishes an edit that shows on furever.skibri.us.
+- [x] The repo is in the org, a push to `main` deploys it through the Dockerfile, and the Canopy Sites App lists it.
+- [x] The four pages match the live site at 360 and 1440 px, apart from 4.2's one row; the form works on the live contact page and shows a placeholder on the canvas.
+- [x] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
+- [x] Jane's form is in her account, the site embeds it, a test submission shows in her Forms tab, and the old form is unpublished.
+- [x] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
+- [x] The eval passes, shared set and F1 to F8.
+- [x] Jane claims the account on her phone and publishes an edit that shows on furever.skibri.us.
 
 ## 6. Decisions
 
@@ -148,6 +148,7 @@ Section 10, each in the commit that changes the behavior.
 - **"My services" on the About page links to `/services`** (it went to the home page).
 - **The services page's search description loses its "--"**, rewritten without an em dash: "Dog walks, cat care visits, fish feeding, and vacation packages, all at fair, flat prices. More than one pet, or going away? Just ask."
 - **A client's form is built in their account by the operator acting as them**, and the site's embed points at it; submissions are what the owner will use, and their UX comes later.
+- **Jane claims, not Michael** (ROADMAP's MVP, 2026-11-10): she is the owner, and the first to test a claim.
 - **A fact asked to change changes only where asked.** Quick Edit then says where else it appears and asks whether to change it there too (eval F1). It's a rule for every site, so it lives in the base prompt, not the guide.
 
 ### Agent calls inside scope
@@ -179,6 +180,8 @@ None.
 - 2026-11-06: Michael's call on F1 (section 6) is in the base prompt (`381bbd8`). Michael ran the cleanup script for the eval's acting-created requests and the test submission; a read afterwards found no help requests, submissions, or drafts on Jane's account. The phone check passed on Michael's phone (an edit previewed, then discarded) and found Quick Edit wider than the screen: a long example request couldn't wrap, which pushed the help bubble and the top bar off the page. Fixed (`60555b3`) and checked at 390 px. Both fixes released as 5.14.2 (PR #49, `5e01c67`), live on prod and the builder.
 - 2026-11-06: F1 passes on 5.14.2 (report "Eval - Fur-Ever Friends 2026-11-06 (5.14.2)"): one operation, the dog walk's price, then a question about the card's "from" price. The shared set and F2 to F8 weren't rerun on 5.14.2. The site has no help requests and no draft. The claim link was copied for Michael's phone; it works once, until November 13.
 - 2026-11-06: The claim link pasted into WhatsApp previewed as the portal's generic "CANOPY SITES". 5.14.3 gave the claim page its own title and description (the site's name, never the owner's email); 5.14.4 added a picture, Canopy Boy holding up the keys with the site's name on a tag (art edited with Gemini). WhatsApp for Windows then fetched the page and the picture and still showed a bare card; 5.14.5 made the picture a 63 KB JPEG named by site, cached by Cloudflare, with no token in its address. Coolify's Traefik gzips it, so no `Content-Length` reaches clients. Michael copied a new claim link (the first one is retired); whether WhatsApp shows the preview is untested on 5.14.5. Webber's tunnel is on London edges again, about 1 s per request.
+- 2026-11-12: Three claim links had been made on 2026-11-06 and 07, and each retires the one before, so the one Jane opened said "This link has expired" with its week not up. 5.14.8 makes an expired link's page offer only a new link by email. Jane then claimed on her phone and published "Fish feeding now $2, with "Tank cleaning +$5" under it" (`cf91bba`, 22:08 UTC), live on furever.skibri.us: every acceptance item has passed. That evening, at Michael's request, her claim was reset for a second claim; the portal has no unclaim, so it was SQL on production with his go-ahead.
+- 2026-11-17: The Sites Onboarding Runbook (Nextcloud) carries this run's lessons: a repo moved into the org from a personal account, a live site moved off nixpacks, a site with a form (section 4, step 5, and its test submission cleared with the test requests), Astro's client router on the canvas, and re-pasting a claim link with `&v=2` when a messaging app shows an old preview. The claim link's preview (5.14.3 to 5.14.5) still serves its picture from Cloudflare.
 
 ## 10. Docs this makes stale
 

@@ -1,6 +1,6 @@
 # Epic 46: Hair & Harvest on Sites
 
-**Status:** In progress (2026-11-17). 4.1 to 4.4 are built on `hair-and-harvest` branch `canopy-sites` (`95b1c00`), not pushed. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. Next is 4.5, on his go-ahead.
+**Status:** In progress. 4.1 to 4.5 done, the site linked, and acceptance passed but for the phone check: hairandharvest.com has served `hair-and-harvest` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. Next: the Hair & Harvest eval set and its run, clearing the test request (a production write, with Michael's OK), the phone check, and the claim link.
 **Phase:** 1's Hair & Harvest migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
 **Predecessor:** Epic 42 (Fur-Ever Friends on Sites), the pattern; Epic 40 (Toro Z on Sites), the worked example
 **Successor:** Sierra's claim; E55's first step (her request form in place of Square's booking); Epic 56 (Services), which gives her menu a tab
@@ -121,7 +121,7 @@ Michael's go-ahead first: it changes the Coolify app on both boxes and deploys t
 ### 4.6 Link, acceptance, eval, claim
 
 - The repo on the Canopy Sites App's installation (runbook section 4, step 1), Michael's browser step.
-- Link a site: Sierra's email and name (section 7, item 3), "Hair & Harvest", repo `hair-and-harvest`, `hairandharvest.com` and `www.hairandharvest.com`, the Umami id in 4.2.
+- Link a site: Sierra's email and name (section 6), "Hair & Harvest", repo `hair-and-harvest`, `hairandharvest.com` and `www.hairandharvest.com`, the Umami id in 4.2.
 - On the site page, locks beside the contact fields: `site/name` (art is drawn against it, PRD D56), `site/description` (SEO), and `site/contact/bookingUrl` until E55's form replaces Square's address. Fixed lists: `gallery`, whose grid places five photos on a desktop and six on a phone by position, and whatever 4.3 finds the templates place entry by entry.
 - Acting as Sierra: the runbook's section 5. The publish round trip uses one small edit on a quiet page and puts it back.
 - The eval: the shared set and a Hair & Harvest set, written from the guide and added to the runbook. Its cases are drafted with 4.3.
@@ -133,10 +133,10 @@ Section 10, each in the commit that changes the behavior.
 
 ## 5. Acceptance
 
-- [ ] A push to `main` deploys the site through the Dockerfile on Webber, and Fox builds the same commit.
-- [ ] The three pages match the live site at 360 and 1440 px, with every page's visible text equal apart from the five featured strings (section 6) and whatever section 7's answers change.
-- [ ] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
-- [ ] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as Sierra wrote them.
+- [x] A push to `main` deploys the site through the Dockerfile on Webber, and Fox builds the same commit.
+- [x] The three pages match the live site at 360 and 1440 px, with every page's visible text equal apart from the five featured strings (section 6) and whatever section 7's answers change.
+- [x] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
+- [x] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as Sierra wrote them.
 - [ ] Umami records a visit and a booking tap from hairandharvest.com, and nothing from the canvas.
 - [ ] The site guide lists every piece of text that art is drawn against, each locked on the site's row and unmarked on the canvas.
 - [ ] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
@@ -158,6 +158,11 @@ Section 10, each in the commit that changes the behavior.
 
 - **Services are one list, with a feature of its own** (Epic 56), never a rule for one page. Here that means the home page's four featured rows are the menu's entries, as the contract's featured services are. Five strings on the home page change to the menu's: "Standard Haircut" to "Haircut", "from $170" to "$170", "Extensions" to "Extensions for Volume", "from $150" to "$150", and "Full Face Wax" to "Full Face". The four descriptions move onto their menu entries and show on the home page only, as today. The Extensions row's description ("Hand-painted highlights, all over brightness") describes highlights; it moves as written, and is Sierra's to change.
 
+### Michael (2026-11-17, at linking)
+
+- **Sierra signs in with her personal email**, which Michael gave, and her name on the account is Sierra Harvest. The address stays out of this public repo; it is on the account in the portal.
+- **Michael authorized adding the repo to the Canopy Sites App.** It went through his signed-in browser: the GitHub CLI's token can't change an app installation.
+
 ### Agent calls inside scope
 
 - **The analytics allowlist is a constant.** Same rendered tag as today; a build variable can't reach the builder's build.
@@ -174,12 +179,11 @@ Section 10, each in the commit that changes the behavior.
 
 ## 7. Open
 
-For Michael. Items 2 and 4 change what 4.2 builds; item 1 changes this doc and the ROADMAP; item 3 can wait for 4.6.
+For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and the ROADMAP.
 
 1. **`tokens.json` (H3).** Its second half is already true: the fonts are self-hosted from Fontsource. Its first half would generate the seven colors and two font stacks that `src/styles/global.css` already holds in one `@theme` block. Nothing reads a `tokens.json`: the contract has no `tokens` collection, no tool exposes design (D29), E41's site kit doesn't list it, and two sites went onto Sites without one. Recommended: drop H3, treat the `@theme` block as the site's tokens, and take `tokens` out of PRD section 4.4 and the ROADMAP (H3, C1's list) in the same commit. The alternative is to leave H3 on the ROADMAP for E41 to settle for every site at once.
 2. **The share image is missing.** `og:image` and `twitter:image` name `/images/sierra-hero.jpg`, which answers 404 on the live site (checked 2026-11-17): the photos live under `src/assets` and nothing is at that address. A link to the site shares with no picture, which the Site Build Checklist's first item exists to prevent. Recommended: fix it in 4.2, pointing both tags at a 1200 by 630 rendition of the hero photo. It is Canopy's (SEO, D45), nothing on the pages changes, and otherwise 4.4 proves a broken tag was carried over faithfully.
-3. **Sierra's sign-in email and her name** as the portal shows it, for Link a site (4.6).
-4. **Three dashes in text that is Canopy's, not Sierra's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
+3. **Three dashes in text that is Canopy's, not Sierra's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
 
 ## 8. Completion report
 
@@ -193,7 +197,29 @@ For Michael. Items 2 and 4 change what 4.2 builds; item 1 changes this doc and t
   - **4.3.** `SITE_GUIDE.md`: 34 limits measured at both widths, 15 counts, and `avoid` of `emoji`, `all-caps`, and `exclamations`, none of which Sierra's copy uses. A build with every limited field at its limit (1,008 of them) and every list at its count overflows nothing with the whole menu open, and one with no reviews and nothing featured drops those two sections. Today's content passes its own guide. Read from the rendered pages, the name is the only text art is drawn against.
   - **4.4.** Services and policies equal the live site to the pixel at both widths, text included. The home page differs in the featured block alone: the five strings, and 20 px less height on a phone, where a shorter price lets a description wrap less. Photos keep their file names and were re-encoded by a newer sharp, a difference below what the pixel comparison counts. A violation in a content file fails the build with its message. The builder's build (a clean clone, `npm ci --ignore-scripts && npm run build`, no environment) and the Docker image name the same 83 `_astro` files. Pages, `_astro` files, fonts, and the logo send `Access-Control-Allow-Origin: *`; `/services` and `/services/` both answer. `npm run check` is clean, where `main` had 35 errors.
   - **Found by loading each page as the canvas does** (a sandboxed srcdoc frame, a `<base>` at the site, each flag): the intro script read `sessionStorage`, which throws in an opaque origin, so under the preview flag it stopped and left its overlay over the page. Guarded, as the demo's is. Both flags then load styled, with fonts from the site and no console errors; the editor flag shows no intro and all 13 menu panels open.
-  - **Owed to the Sites Onboarding Runbook at 4.5**: section 2, step 1 gains Astro 7's two defaults that change a page (`compressHTML`, the CSS target), and step 9 a load in a sandboxed frame with each flag, since storage throws there. The demo's header has the same blur and no CSS target; not checked.
+  - The demo's header has the same blur and no CSS target; not checked.
+- 2026-11-17 (later): 4.5 done, with Michael's go-ahead after he clicked through the branch's image locally.
+  - **Coolify, both boxes** (app `r8kgko4og008ss0w0oc84okc`, through the API): the `dockerfile` build pack, `is_static` off, port 80, Coolify's health check on `/` (Fox's copy had none), and `NIXPACKS_NODE_VERSION` and `PUBLIC_UMAMI_DOMAINS` deleted. None of it deployed by itself.
+  - **The switch.** `main` was fast-forwarded to `95b1c00` from the branch, pushed at 23:12 UTC. GitHub's webhook queued Webber's deploy within a second, the first deployment of this app on Webber's record, so a publish (a push) is proven to deploy. It built from the Dockerfile, passed its health check, and swapped with a rolling update at 23:13. Fox's copy was deployed through the API at once rather than waiting for its 04:30 UTC redeploy, and finished at 23:14, healthy. Both boxes serve the same pages and assets, checked through each box's own Traefik.
+  - **Live checks.** The three pages equal the local image of `95b1c00` to the pixel at 360 and 1440 px, with the same text, head tags, links, and events; all 150 marked fields check against the content. All 83 of the builder-style build's `_astro` files answer 200 on hairandharvest.com, sent with `Access-Control-Allow-Origin: *`. One real page view, from a headless browser presenting as desktop Chrome and clicking nothing, reached Umami as a pageview on `hairandharvest.com` at 23:18; no booking tap was made, so that half of acceptance's Umami item waits for a real one.
+  - **Found:** Toro Z's copy on Fox has no health check while Webber's has one, against the runbook's section 3; Fur-Ever Friends has none on either box. Not changed here.
+  - The Sites Onboarding Runbook (section 2, steps 1 and 9) and the Coolify page's open item on webhooks were corrected the same day.
+- 2026-11-17 (later): Linked, with Michael's go-ahead, through his browser (Claude in Chrome); the GitHub CLI's token is refused by the installation API (403, "contact an Organization Owner"), and GitHub asked for his passkey (sudo mode) before the change.
+  - **The App.** `hair-and-harvest` joined the Canopy Sites App's installation, which stays on selected repositories (five now).
+  - **Link a site** created Sierra's Sites account (Pacific time) and the site `hair-and-harvest` (`hairandharvest.com`, `www.hairandharvest.com`, the Umami id), detected contract 0.7.0, and its first build and publish succeeded, committing nothing (`main` still `95b1c00`). The site page's Stats card reads her Umami website.
+  - **Locks and fixed lists.** `site/name`, `site/description`, and `site/contact/bookingUrl` joined the three contact locks; `gallery` is a fixed list. Both read back after a reload. The featured list isn't fixed: its count (4) is a ceiling, and fewer render (4.3).
+  - **Branch protection.** `main` is unprotected, and rulesets aren't available to the org's private repos on its plan, so nothing refuses the builder's push.
+  - Left in 4.6: acceptance acting as Sierra (its publish round trip deploys the live site twice), the Hair & Harvest eval set and its run, clearing the test requests, and the claim link.
+- 2026-11-17 (later): Acceptance (runbook section 5) acting as Sierra, with Michael's go-ahead, in Claude in Chrome on his session. Passed:
+  - Quick Edit lists Home, Services, and Salon Policies; its examples come from her content ("Raise the Haircut price to $90", "We're open until 6:00 PM on Saturdays now"); View site opens `https://hairandharvest.com`.
+  - The canvas renders the site styled, with no intro, and the console shows React's #418 alone, as on Toro Z, with no CORS error. Marked: the hero line, headings, the featured rows' names, descriptions, and prices, and the policies' copy; unmarked: the name, navigation, eyebrows, buttons, photos, and the footer. The page picker and the site's own links move the canvas.
+  - A featured price opened at "3 of 21 characters" (the guide's limit); typing past it showed "6 characters too many" with the overflow marked and Done disabled; Cancel put `$45` back and saved nothing.
+  - An in-place edit (the Policies booking heading, "Come see me" to "Come see me soon") showed as typed and saved; the chrome showed Unpublished changes, Discard, and Preview. The preview opened on the changed page, filled its tab with the banner above and "Previewing unpublished changes" below, showed the edit unmarked, and the footer's Services link moved it to `/services`.
+  - Publish answered "Published. It will be live on hairandharvest.com in a few minutes." Commit `bf1ad14`, authored by Michael, changed that one line of `pages.json`; Webber's webhook deployed it in about 40 seconds and the live page read "Come see me soon". Put back the same way as `eda3872`, deployed and live; `src/content` on `main` is again identical to `95b1c00`'s. Quick Edit's Recently published lists both, under Michael's email.
+  - Nothing left unpublished; Stop returned to the site page. Michael's own account gets a 404 on her preview link, and with no session it redirects to `/login` (the canvas route answers 404).
+- **Not run:** the phone check (Michael's phone), and the refusals through Quick Edit with their card. Quick Edit answered "couldn't reach the model just now" twice; the production portal's log shows `quick_edit_api_error` 401 `invalid x-api-key` from the Claude API. The container (started 23:31 UTC, 5.22.0) holds a well-formed key, so the key itself has been revoked or deleted. Quick Edit is down on every site until Michael sets a new `ANTHROPIC_API_KEY` on the production app and redeploys; dev likely shares the cause. No request was sent, so there is nothing to decline or clear.
+- 2026-11-18: Michael replaced the production portal's Claude API key: a new key that never expires, scoped to one workspace, since the portal sends no `anthropic-workspace-id` header and an organization-scoped key would fail every request with a 400 (`new Anthropic()` in `apps/portal/src/lib/quick-edit/index.ts`). The Console can't extend a key's expiry, only issue a new one, which is how the 30-day key lapsed unnoticed. After the redeploy the Claude API answers 200 to the key from inside the portal container. The dev portal has no key set, and Fox's copies of both portal apps are stopped, so neither needs it now.
+- 2026-11-18: Acceptance's Quick Edit item passed acting as Sierra. Asked to rename the business, Quick Edit said Canopy handles the name "because the logo and the header art are built around it" and drafted a card; sent, it answered "Sent to Michael. You can text him if you need it sooner." and the request showed on Operator → Requests as sent while acting, so nobody was emailed, and was declined there. Asked to change the Services page's title, it said Canopy handles page titles, drafted a card, and offered to change the visible heading instead; Not now filed nothing. Nothing was left unpublished, and Stop returned to the site page. The one test request is now in Sierra's Sent list, to clear before the claim link (the runbook's section 6, step 2).
 
 ## 10. Docs this makes stale
 
