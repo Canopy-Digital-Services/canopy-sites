@@ -1,6 +1,6 @@
 # Epic 46: Hair & Harvest on Sites
 
-**Status:** In progress. 4.1 to 4.5 done, the site linked, and acceptance passed but for the phone check: hairandharvest.com has served `hair-and-harvest` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. The eval passed 26 of 27 (H9 fails on a contract bug). Next: clearing the test requests (a production write, with Michael's OK), the phone check, and the claim link.
+**Status:** In progress. 4.1 to 4.5 done, the site linked, and acceptance passed but for the phone check: hairandharvest.com has served `hair-and-harvest` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. The eval passed 26 of 27 (H9 fails on a contract bug). The test requests are cleared. Next: the phone check and the claim link.
 **Phase:** 1's Hair & Harvest migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
 **Predecessor:** Epic 42 (Fur-Ever Friends on Sites), the pattern; Epic 40 (Toro Z on Sites), the worked example
 **Successor:** Sierra's claim; E55's first step (her request form in place of Square's booking); Epic 56 (Services), which gives her menu a tab
@@ -226,6 +226,7 @@ For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and t
   - Close passes: H1 hedged ("If Haircut is one of the featured services") though the content says it is; H2 removed the two card-only lines at once and asked about the mixed paragraph, which is right for an explicit request, so its pass line was rewritten; S13's Thanksgiving fell on a Thursday she's closed, rerun with a Saturday.
   - Quick Edit also noticed the Extensions for Volume description reads like highlights (section 6). It's Sierra's to change.
   - 11 request rows with `actAsId` set are on her site from acceptance and the eval, for the cleanup before the claim link.
+- 2026-11-18: With Michael's OK, the 11 help requests on her site, all created while acting on 2026-11-18 (one declined, ten dismissed), were deleted from production by id, in a transaction that checked the count first. None are left on the site, so her Sent to Michael list and Operator → Requests start empty (the runbook's section 6, step 2).
 
 ## 10. Docs this makes stale
 
