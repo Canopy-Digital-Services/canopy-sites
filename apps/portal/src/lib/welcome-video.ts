@@ -19,8 +19,7 @@
 
 import path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { prisma } from "@/lib/db";
 import type { SessionContext } from "@/lib/session";
@@ -250,7 +249,11 @@ export async function storeWelcomeVideo(
       }
     }
     await mkdir(dir, { recursive: true });
-    await pipeline(video(), createWriteStream(partial, { flags: "wx" }));
+    // Opened before anything is written, so the cleanup below always finds it: a
+    // stream that opens the file itself can create it after an early refusal's
+    // cleanup has run, and leave it behind.
+    const file = await open(partial, "wx");
+    await pipeline(video(), file.createWriteStream());
 
     const key = hash.digest("hex").slice(0, 16);
     await writeFile(path.join(dir, `${tab}-${key}.vtt`), captions);
