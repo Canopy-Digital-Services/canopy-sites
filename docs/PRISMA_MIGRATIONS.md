@@ -46,7 +46,7 @@ Key details:
 
 ### Dockerfile (runner stage)
 
-[`apps/portal/Dockerfile`](../apps/portal/Dockerfile) builds with the repo root as context (npm workspaces). Its runner stage copies, at minimum, what migrations need: the standalone output (which places `server.js` in `apps/portal/`), `apps/portal/prisma/`, `apps/portal/prisma.config.ts`, the **full** root `node_modules` from the deps stage (Prisma CLI and engines included), and `apps/portal/scripts/`. It then sets `WORKDIR /app/apps/portal` and runs `CMD ["./scripts/start.sh"]` as the `nextjs` user.
+[`apps/portal/Dockerfile`](../apps/portal/Dockerfile) builds with the repo root as context (npm workspaces). Its runner stage copies, at minimum, what migrations need: the standalone output (which places `server.js` in `apps/portal/`), `apps/portal/prisma/`, `apps/portal/prisma.config.ts`, the **full** root `node_modules` from the deps stage (Prisma CLI and engines included), and `apps/portal/scripts/`. It then sets `WORKDIR /app/apps/portal` and runs `CMD ["./scripts/start.sh"]` as the `nextjs` user. It also creates `/app/media` owned by `nextjs`, where each app mounts its welcome-video volume (Coolify settings, below): a new named volume takes the owner of the directory it is first mounted over, so the app can write to it (checked 2026-11-18 with a fresh volume over a uid 1001 directory).
 
 What each piece does:
 - `prisma/`: contains `schema.prisma` and `migrations/` directory with SQL files
