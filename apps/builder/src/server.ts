@@ -16,7 +16,7 @@ import {
   viewRoot,
   type SiteRef,
 } from "./sites.ts";
-import { StepError } from "./run.ts";
+import { failureFields, StepError } from "./run.ts";
 import { AppAccessError, appConfig, appRepos } from "./github-app.ts";
 
 /**
@@ -178,7 +178,10 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 createServer((req, res) => {
   handle(req, res).catch((err) => {
     const known = err instanceof StepError || err instanceof SyntaxError;
-    if (!known) console.error(JSON.stringify({ event: "builder_error", message: (err as Error).message, stack: (err as Error).stack }));
+    // A known failure is the portal's to word for the owner, and Canopy's to read here (Epic 46, H6).
+    const path = new URL(req.url ?? "/", "http://builder").pathname;
+    if (known) console.warn(JSON.stringify({ event: "builder_request_failed", method: req.method, path, ...failureFields(err) }));
+    else console.error(JSON.stringify({ event: "builder_error", method: req.method, path, message: (err as Error).message, stack: (err as Error).stack }));
     if (!res.headersSent) json(res, known ? 422 : 500, { error: known ? (err as Error).message : "Builder error", issues: (err as { issues?: unknown }).issues });
     else res.end();
   });

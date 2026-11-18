@@ -19,7 +19,36 @@ export class Log {
   }
 }
 
-export class StepError extends Error {}
+export class StepError extends Error {
+  /** The last lines a failed program wrote (git's "fatal: ..."), for the builder's log only: never in a response. */
+  output?: string;
+  constructor(message: string, output?: string) {
+    super(message);
+    this.output = output;
+  }
+}
+
+/** The last few lines of a program's output, for a log line. */
+export function lastLines(text: string, lines = 5, chars = 1000): string {
+  return text
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim() !== "")
+    .slice(-lines)
+    .join("\n")
+    .slice(-chars);
+}
+
+/**
+ * A failure as the builder logs it: its message, which is also what the
+ * portal hears, and the failed program's last lines when there are any. git
+ * gets the repo's token only through its environment (git.ts), so neither
+ * carries it.
+ */
+export function failureFields(err: unknown): { message: string; output?: string } {
+  const message = err instanceof Error ? err.message : String(err);
+  return err instanceof StepError && err.output ? { message, output: err.output } : { message };
+}
 
 /**
  * Runs a program with an argument array (never a shell, so nothing in a
@@ -50,7 +79,7 @@ export function run(
     child.on("close", (code, signal) => {
       clearTimeout(timer);
       if (code === 0) resolve(out);
-      else reject(new StepError(`${cmd} ${args[0] ?? ""} ${signal ? `was killed (${signal})` : `exited with ${code}`}`));
+      else reject(new StepError(`${cmd} ${args[0] ?? ""} ${signal ? `was killed (${signal})` : `exited with ${code}`}`, lastLines(out) || undefined));
     });
   });
 }
