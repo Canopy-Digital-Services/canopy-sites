@@ -65,14 +65,26 @@ const plain = (max: number) =>
 const text = (max: number, label: string, description?: string) => field(plain(max), { kind: "text", label, description });
 const paragraph = (max: number, label: string, description?: string) => field(plain(max), { kind: "paragraph", label, description });
 
-/** Stable identifier for an entry: lowercase letters, digits, inner hyphens. */
-export const Id = field(
+const idFormat = () =>
   z
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Lowercase letters, digits, and hyphens only")
-    .max(60),
-  { kind: "id", label: "ID", description: "Stable once set; never renamed to match a new name. A new entry gets one.", canopy: true },
-);
+    .max(60);
+
+/** Stable identifier for an entry: lowercase letters, digits, inner hyphens. */
+export const Id = field(idFormat(), {
+  kind: "id",
+  label: "ID",
+  description: "Stable once set; never renamed to match a new name. A new entry gets one.",
+  canopy: true,
+});
+
+/**
+ * Another entry named by its id, such as a featured service. The format is an
+ * id's, but which entries it names is the owner's to choose, so it is not
+ * Canopy's the way an entry's own id is (PRD D50).
+ */
+const reference = (label: string, description?: string) => field(idFormat(), { kind: "reference", label, description });
 
 // A link is written into attributes and structured data, so it may not carry
 // the characters that end one (markup, quotes, whitespace), even though a
@@ -249,7 +261,7 @@ export const SectionSchema = z
     /** The section's cards, in page order. */
     cards: uniqueIds(CardSchema, 24).optional(),
     /** Featured services, by service id; name and price come from the menu. */
-    serviceIds: field(z.array(Id).max(24), {
+    serviceIds: field(z.array(reference("Featured service", "The id of a service on the menu.")).max(24), {
       kind: "reference",
       label: "Featured services",
       description: "A featured service shows the menu's name and price. To change either, edit the menu.",
