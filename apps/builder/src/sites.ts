@@ -17,7 +17,7 @@ import {
 } from "@canopy/site-contract";
 import { formatIssues, readContent, validateSite, writeContent } from "@canopy/site-contract/node";
 import { fetchBranch, git, gitEnv, resetTree, resolveRepo, showFile, syncClone, type Clone, type RepoRef } from "./git.ts";
-import { buildEnv, Log, run, StepError } from "./run.ts";
+import { buildEnv, failureFields, Log, run, StepError } from "./run.ts";
 import { claimOutput, handOver, insideBuilds, keepPrivate, pagesDir, sealBuild, siteUser, stopAll, type SiteUser } from "./sandbox.ts";
 
 export const SITES_ROOT = process.env.SITES_ROOT ?? "/srv/sites";
@@ -354,6 +354,7 @@ export function startPreview(site: SiteRef, id: string, ops: ChangeOp[], baseCom
       rec.error = err instanceof StepError ? err.message : `Unexpected error: ${(err as Error).message}`;
       if (err instanceof ContentError) rec.issues = err.issues;
       log.add(rec.error);
+      console.warn(JSON.stringify({ event: "preview_build_failed", slug: site.slug, build: id, ...failureFields(err), message: rec.error }));
     } finally {
       rec.finishedAt = new Date().toISOString();
       rec.log = log.toString();
@@ -554,7 +555,7 @@ async function nightlyTick() {
     await saveSchedule();
     rebuildCurrent(entry).then(
       (id) => console.log(JSON.stringify({ event: "nightly_rebuild", slug: entry.slug, date: today, build: id })),
-      (err) => console.error(JSON.stringify({ event: "nightly_rebuild_failed", slug: entry.slug, date: today, message: (err as Error).message })),
+      (err) => console.error(JSON.stringify({ event: "nightly_rebuild_failed", slug: entry.slug, date: today, ...failureFields(err) })),
     );
   }
 }
