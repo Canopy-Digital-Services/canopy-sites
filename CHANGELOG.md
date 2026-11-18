@@ -5,6 +5,12 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.22.1] - 2026-11-18
+
+### Fixed
+
+- Sites: the operator's Stats card shows the Umami website's domain on its own line under its name, where it had wrapped mid-line
+
 ## [5.22.0] - 2026-11-17
 
 ### Added
