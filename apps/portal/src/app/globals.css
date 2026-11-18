@@ -334,6 +334,19 @@
   display: none;
 }
 
+/* Welcome videos show their captions in a strip under the picture
+ * (welcome-video-dialog.tsx), so the browser's own, drawn over it, stay hidden
+ * until the player goes full screen, where the strip can't follow. Two rules:
+ * Firefox drops a whole rule over a WebKit-only pseudo-element. */
+.welcome-video:not(:fullscreen)::cue {
+  visibility: hidden;
+  background: transparent;
+}
+
+.welcome-video:not(:fullscreen)::-webkit-media-text-track-container {
+  display: none;
+}
+
 /* Keep the animations (the flow advances on animationend) but make them
  * effectively instant for users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
