@@ -1,6 +1,6 @@
 # Epic 46: Client 2 on Sites
 
-**Status:** In progress. 4.1 to 4.5 done, the site linked, and acceptance passed but for the phone check: client2.example has served `client2` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. The eval passed 26 of 27 (H9 fails on a contract bug). The test requests are cleared. Next: the phone check and the claim link.
+**Status:** In progress. 4.1 to 4.5 done, the site linked, and acceptance passed but for the phone check: client2.example has served `client2` `main` at `95b1c00` from the Dockerfile on both boxes since 2026-11-17. Michael settled the featured services (section 6); the rest of section 7 is still his, and the build took its conservative side: no `tokens.json`, the share image and the three dashes left as they are. The eval passed 26 of 27 (H9 failed on a contract bug, fixed in contract 0.7.1 on canopy-sites `dev`, which reaches production with the next portal release). The test requests are cleared. Next: the phone check, H9's rerun once that release is live, and the claim link.
 **Phase:** 1's Client 2 migration (`docs/canopy-sites/ROADMAP.md`, E46 with H1 to H3), item 10 of "The MVP"
 **Predecessor:** Epic 42 (the test site on Sites), the pattern; Epic 40 (Client 1 on Sites), the worked example
 **Successor:** the owner's claim; E55's first step (her request form in place of Square's booking); Epic 56 (Services), which gives her menu a tab
@@ -227,6 +227,7 @@ For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and t
   - Quick Edit also noticed the Extensions for Volume description reads like highlights (section 6). It's the owner's to change.
   - 11 request rows with `actAsId` set are on her site from acceptance and the eval, for the cleanup before the claim link.
 - 2026-11-18: With Michael's OK, the 11 help requests on her site, all created while acting on 2026-11-18 (one declined, ten dismissed), were deleted from production by id, in a transaction that checked the count first. None are left on the site, so her Sent to Michael list and Operator → Requests start empty (the runbook's section 6, step 2).
+- 2026-11-18 (later): H9's contract bug is fixed in contract 0.7.1 on canopy-sites `dev`: each entry of a section's `serviceIds` is now a reference, the owner's to choose, without the `canopy` flag (Epic 56's progress log has the detail). Run against this site's content with the locks and fixed list this log records, H9's edit (`full-face` out, `full-highlight-balayage` in) gives no lane violation and passes validation. Only the portal's tool layer checks the lane, so this site stays on 0.7.0 and nothing in `client2` changes; H9 is rerun, acting as the owner, once a portal release with 0.7.1 is live on production.
 
 ## 10. Docs this makes stale
 
