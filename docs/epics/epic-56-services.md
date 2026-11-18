@@ -164,6 +164,7 @@ For Michael.
 
 - 2026-11-17: Drafted after Epic 46's read of Hair & Harvest found its home page's four featured services typed apart from the menu. Checked in the code that day: the contract holds the list and featured ids, with a check that a featured id is on the menu; `saveDraft` takes structural ops by address; the canvas edits `text`, `paragraph`, and `price` in place and sends every other kind to the Quick Edit popover; the nav lists four tabs for every Sites account; no portal code names services.
 - 2026-11-17 (later): Michael's action layer (section 6) replaces the draft's plan to mark a list and click the space around its rows. 4.1 gains `list()`, and 4.5 is rewritten around the layer, with its link half for text already marked. Button and menu text was section 7's item 3 until Michael made it an epic of its own (ROADMAP E57).
+- 2026-11-18: Hair & Harvest's eval (Epic 46) found that the contract's lane refuses any change to a featured list: each entry of `serviceIds` is the `Id` type, flagged as Canopy's. 4.4 needs that fixed first: a reference type for the entries without the flag, with a lane test.
 
 ## 10. Docs this makes stale
 
