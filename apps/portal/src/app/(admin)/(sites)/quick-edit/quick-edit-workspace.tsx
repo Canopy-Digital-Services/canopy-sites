@@ -17,7 +17,7 @@ import { theirChanges } from "@/lib/site-hold-policy";
 import { LocalTime } from "@/components/local-time";
 
 /** `by` is who last changed the draft, when that isn't the person looking (PRD D64). */
-type Pending = { id: string; summary: string; status: string; error: string | null; by: string | null };
+type Pending = { id: string; summary: string; status: string; buildStatus: string | null; version: number; error: string | null; by: string | null };
 type Recent = { id: string; summary: string; publishedAt: string | null; by: string | null };
 export type SentRequest = { id: string; summary: string; status: "OPEN" | "DONE" | "DECLINED"; sentAt: string | null; note: string | null };
 type ChatMessage = { id: number; role: "owner" | "assistant"; text: string; helpRequest?: DraftedRequest; changeSetId?: string };
@@ -57,7 +57,8 @@ export function QuickEditWorkspace({
         </div>
       </div>
       <div className="space-y-6">
-        {pending && !hold.by ? <PendingChange key={pending.id} pending={pending} siteId={siteId} /> : null}
+        {/* Each version of the draft is its own build, so a new one starts the card over. */}
+        {pending && !hold.by ? <PendingChange key={`${pending.id}:${pending.version}`} pending={pending} siteId={siteId} /> : null}
         <SentRequests requests={requests} />
         {pagesCard}
         <RecentChanges recent={recent} />
@@ -222,8 +223,13 @@ function Examples({ examples, onPick }: { examples: Promise<string[]>; onPick: (
   );
 }
 
-function StatusLine({ status, error }: { status: string; error: string | null }) {
-  if (status === "PREVIEWED") {
+type CardState = { status: string; buildStatus: string | null; error: string | null };
+
+/** A draft whose build failed stays a draft, and waits for its next edit (site-tools refreshChange). */
+const buildFailed = (s: CardState) => s.status === "DRAFT" && s.buildStatus === "FAILED";
+
+function StatusLine({ state }: { state: CardState }) {
+  if (state.status === "PREVIEWED") {
     return (
       <span className="flex items-center gap-2 text-sm">
         <span className="h-2 w-2 rounded-full bg-success" />
@@ -231,11 +237,16 @@ function StatusLine({ status, error }: { status: string; error: string | null })
       </span>
     );
   }
-  if (status === "FAILED") {
+  if (state.status === "FAILED" || buildFailed(state)) {
+    // A failed draft's error says why on its own; a failed build's is what to do next.
+    const text =
+      state.status === "FAILED"
+        ? (state.error ?? "The preview couldn't be built.")
+        : ["The preview couldn't be built.", state.error].filter(Boolean).join(" ");
     return (
       <span className="flex items-start gap-2 text-sm text-destructive">
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" />
-        {error ?? "The preview couldn't be built."}
+        {text}
       </span>
     );
   }
@@ -251,21 +262,25 @@ function StatusLine({ status, error }: { status: string; error: string | null })
 function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }) {
   const router = useRouter();
   const { refused } = useSiteHold();
-  const [state, setState] = useState({ status: pending.status, error: pending.error });
+  const [state, setState] = useState<CardState>({ status: pending.status, buildStatus: pending.buildStatus, error: pending.error });
   const [isPending, startTransition] = useTransition();
+  const waiting = state.status === "DRAFT" && !buildFailed(state);
 
   useEffect(() => {
-    if (state.status !== "DRAFT") return;
+    if (!waiting) return;
     const timer = setInterval(async () => {
       const result = await refreshPendingChange(pending.id);
       if ("error" in result) return;
-      if (result.status !== "DRAFT") {
-        setState({ status: result.status, error: result.reason });
+      const next = { status: result.status, buildStatus: result.buildStatus, error: result.reason };
+      if (next.status !== "DRAFT") {
+        setState(next);
         router.refresh();
+      } else if (buildFailed(next)) {
+        setState(next);
       }
     }, 2000);
     return () => clearInterval(timer);
-  }, [pending.id, state.status, router]);
+  }, [pending.id, waiting, router]);
 
   function discard() {
     startTransition(async () => {
@@ -287,7 +302,7 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
         <CardDescription>{pending.summary}</CardDescription>
       </CardHeader>
       <CardContent>
-        <StatusLine status={state.status} error={state.error} />
+        <StatusLine state={state} />
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
         <Button asChild>
