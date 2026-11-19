@@ -53,6 +53,7 @@ import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
 import { sessionCanUseAccount } from "@/lib/data-access/memberships";
 import { personName } from "@/lib/person";
+import { builderFailure } from "./builder-failure";
 import { changedFields, type FieldChange } from "./changes";
 import { draftNotice, editingNotice } from "@/lib/site-hold-policy";
 import { currentHold, extendHold, releaseHold, takeHold } from "./hold";
@@ -306,15 +307,6 @@ const isDraftOps = (ops: ChangeOp[]): ops is DraftOp[] => ops.every(isAddressOp)
 const builderOps = (ops: ChangeOp[]): ChangeOp[] =>
   ops.map((op) => (isAddressOp(op) ? { op: op.op, address: op.address, value: op.value, before: op.before } : op));
 
-async function builderCall<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof BuilderError) throw new ToolError(err.message, err.issues);
-    throw err;
-  }
-}
-
 function guideOf(raw: string | null | undefined, slug: string): SiteGuide {
   try {
     return parseSiteGuide(raw);
@@ -332,8 +324,16 @@ interface SiteRead {
   guide: SiteGuide;
 }
 
+/** The branch as the builder reads it. A builder failure is a plain try-again for the owner, and logged (`builder-failure.ts`). */
 async function readSite(site: ToolSite): Promise<SiteRead> {
-  const { commit, content, guide, contractVersion } = await builderCall(() => fetchContent(builderSite(site)));
+  let read: Awaited<ReturnType<typeof fetchContent>>;
+  try {
+    read = await fetchContent(builderSite(site));
+  } catch (err) {
+    if (!(err instanceof BuilderError)) throw err;
+    throw new ToolError(builderFailure("read", err, { slug: site.slug }));
+  }
+  const { commit, content, guide, contractVersion } = read;
   // The repo owns its contract version (PRD D24); a Canopy push can move it
   // without the portal publishing anything, so every read records it.
   if (contractVersion && contractVersion !== site.contractVersion) {
@@ -421,7 +421,11 @@ async function supersedeBuilds(tx: Prisma.TransactionClient, changeSetId: string
   });
 }
 
-/** Asks the builder for a preview; a failure is recorded on the build and returned, not thrown. */
+/**
+ * Asks the builder for a preview. A failure is not thrown: the builder's
+ * message goes on the build, for the operator's builds card, and the owner's
+ * plain sentence is returned.
+ */
 async function startBuild(site: ToolSite, buildId: string, ops: ChangeOp[], baseCommit: string): Promise<string | null> {
   try {
     await requestPreview(builderSite(site), buildId, builderOps(ops), baseCommit);
@@ -429,7 +433,7 @@ async function startBuild(site: ToolSite, buildId: string, ops: ChangeOp[], base
   } catch (err) {
     const message = err instanceof BuilderError ? err.message : "The preview couldn't be started.";
     await prisma.build.update({ where: { id: buildId }, data: { status: "FAILED", error: message, finishedAt: new Date() } });
-    return message;
+    return builderFailure("preview", err, { slug: site.slug, buildId });
   }
 }
 
@@ -833,7 +837,7 @@ export async function refreshChange(accountId: string, changeSetId: string) {
   if (!PENDING.includes(changeSet.status as (typeof PENDING)[number]) || !build || (build.status !== "QUEUED" && build.status !== "RUNNING")) {
     return unchanged;
   }
-  const remote = await builderCall(() => fetchBuild(changeSet.site.slug, build.id)).catch(() => null);
+  const remote = await fetchBuild(changeSet.site.slug, build.id).catch(() => null);
   if (!remote) return unchanged;
   const buildStatus = BUILD_STATUS[remote.status];
   const done = buildStatus !== "QUEUED" && buildStatus !== "RUNNING";
@@ -897,8 +901,11 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
         where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
         data: { status: "FAILED", error: err.message },
       });
+      // The one builder message written for the owner: the site moved since the preview.
+      throw new ToolError(err.message);
     }
-    throw err instanceof BuilderError ? new ToolError(err.message) : err;
+    if (!(err instanceof BuilderError)) throw err;
+    throw new ToolError(builderFailure("publish", err, { slug: changeSet.site.slug, changeSetId: changeSet.id }));
   }
   await recordPublish(changeSet, sent, commit, ctx.userId);
   await doneEditing(changeSet.siteId, ctx);

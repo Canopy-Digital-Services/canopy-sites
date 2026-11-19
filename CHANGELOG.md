@@ -5,6 +5,22 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.23.0] - 2026-11-18
+
+### Added
+
+- Operator: `apps/portal/scripts/prepare-welcome-video.py` makes a welcome video's two files from a recording, on the operator's workstation with uv and ffmpeg: the sound levelled, the picture made smaller, and the captions transcribed, with any caption holding a word it was unsure of listed to check by ear (Epic 39)
+
+### Changed
+
+- Sites: a welcome video's captions show in a strip under the picture, so they no longer cover what the screen is showing. Full screen still draws them over the picture (Epic 39)
+- The portal image has a `/app/media` folder the app owns, where an environment's welcome-video volume mounts (`MEDIA_DIR`). Production doesn't set one yet
+
+### Fixed
+
+- Site contract 0.7.1: an owner can change which services a page features. Swapping, removing, or reordering a featured service was refused as Canopy's on every site, so Quick Edit offered to ask Canopy instead (found by Hair & Harvest's Quick Edit eval)
+- Sites: when the site builder fails, the owner reads a plain sentence in Quick Edit, the Editor, and the preview ("Your change wasn't published. Try again in a moment.") where the builder's own error had shown ("git fetch exited with 128"). The portal logs the builder's message with the site, and the builder logs every failed request and preview build
+
 ## [5.22.1] - 2026-11-18
 
 ### Fixed

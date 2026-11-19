@@ -12,6 +12,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getContentView, holdSite, proposeChange, ToolError, type FieldChange, type ToolContext } from "@/lib/site-tools";
+import { BUILDER_FAILED } from "@/lib/site-tools/builder-failure";
 import { draftHelpRequest, type HelpRequestView } from "@/lib/site-tools/help-requests";
 import { BASE_RUNBOOK } from "./runbook";
 
@@ -169,7 +170,9 @@ export async function runQuickEdit(
   }
 
   const view = await getContentView(ctx.accountId).catch((err) => {
-    throw new QuickEditError(err instanceof ToolError ? err.message : "The site couldn't be loaded.");
+    if (err instanceof ToolError) throw new QuickEditError(err.message);
+    console.error(JSON.stringify({ event: "quick_edit_read_failed", accountId: ctx.accountId, message: (err as Error).message }));
+    throw new QuickEditError(BUILDER_FAILED.read);
   });
   const site = { id: view.site.id, name: view.site.name };
 
