@@ -13,23 +13,27 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/password-policy"
 
 export function ClaimForm({ token, email, siteName }: { token: string; email: string; siteName: string | null }) {
   const [password, setPassword] = useState("");
-  const [touched, setTouched] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [touched, setTouched] = useState<{ password?: boolean; confirmPassword?: boolean }>({});
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const error = !password
-    ? "Password is required"
-    : password.length < PASSWORD_MIN_LENGTH
-      ? `Password must be at least ${PASSWORD_MIN_LENGTH} characters. (Your current entry is only ${password.length})`
-      : "";
-  const showError = (touched || submitted) && error;
+  const errors = {
+    password: !password
+      ? "Password is required"
+      : password.length < PASSWORD_MIN_LENGTH
+        ? `Password must be at least ${PASSWORD_MIN_LENGTH} characters. (Your current entry is only ${password.length})`
+        : "",
+    confirmPassword: !confirmPassword ? "Confirm your password" : confirmPassword !== password ? "Passwords do not match" : "",
+  };
+  const showError = (field: keyof typeof errors) => (touched[field] || submitted) && errors[field];
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitted(true);
     setServerError("");
-    if (error) return;
+    if (errors.password || errors.confirmPassword) return;
     startTransition(async () => {
       const result = await claimAccount({ token, password });
       if ("error" in result) {
@@ -73,20 +77,39 @@ export function ClaimForm({ token, email, siteName }: { token: string; email: st
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => setTouched(true)}
-              aria-invalid={!!showError}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+              aria-invalid={!!showError("password")}
               aria-describedby="password-error"
               disabled={isPending}
             />
-            {showError ? (
+            {showError("password") ? (
               <p id="password-error" className="text-sm text-destructive">
-                {error}
+                {errors.password}
               </p>
             ) : (
               <p id="password-error" className="text-xs text-muted-foreground">
                 At least {PASSWORD_MIN_LENGTH} characters
               </p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <PasswordInput
+              id="confirmPassword"
+              maxLength={PASSWORD_MAX_LENGTH}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, confirmPassword: true }))}
+              aria-invalid={!!showError("confirmPassword")}
+              aria-describedby="confirmPassword-error"
+              disabled={isPending}
+            />
+            {showError("confirmPassword") ? (
+              <p id="confirmPassword-error" className="text-sm text-destructive">
+                {errors.confirmPassword}
+              </p>
+            ) : null}
           </div>
           {serverError ? (
             <p role="alert" className="text-sm text-destructive">
