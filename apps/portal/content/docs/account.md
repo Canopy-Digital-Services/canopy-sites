@@ -19,7 +19,7 @@ Your email is also the contact address used for email notifications, so use an a
 
 ## Your first sign-in to Canopy Sites
 
-Canopy sets up your Canopy Sites account when your site goes live, and sends you a link (by text or email) to set your password. Open it, choose a password, and you're signed in. The link works once and lasts a week. If it has expired, the page offers to email you a new one.
+Canopy sets up your Canopy Sites account when your site goes live, and sends you a link (by text or email) to set your password. Open it, choose a password, type it a second time to confirm it, and you're signed in. The link works once and lasts a week. If it has expired, the page offers to email you a new one.
 
 ## Other people on your Canopy Sites account
 
