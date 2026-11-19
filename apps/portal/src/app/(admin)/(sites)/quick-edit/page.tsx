@@ -113,6 +113,8 @@ export default async function QuickEditPage() {
                       id: changes.pending.id,
                       summary: changes.pending.summary,
                       status: changes.pending.status,
+                      buildStatus: changes.pending.buildStatus,
+                      version: changes.pending.version,
                       error: changes.pending.error,
                       by: changes.pending.by,
                     }
