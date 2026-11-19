@@ -31,9 +31,9 @@ It takes about a minute for two minutes of speech. It writes `<recording>-welcom
 
 ## 3. The captions
 
-Read the whole `.vtt`, not only the listed captions: a word heard wrongly with confidence isn't listed. Correct it against the portal's names as its screens spell them (Quick Edit, the Editor, Preview, Publish, Discard), the client's words, and the site's content from step 1. The usual mistakes are a name taken for an ordinary word ("editors" for the Editor), a homophone, and a web address spelled out wrongly. Change only the text: keep each cue's number and times, at most two lines of about 42 characters, and `&`, `<` and `>` escaped as `&amp;`, `&lt;` and `&gt;`.
+Read the whole `.vtt`, not only the listed captions: a word heard wrongly with confidence isn't listed. Correct it against the portal's names as its screens spell them (Quick Edit, the Editor, Preview, Publish, Discard), the client's words, and the site's content from step 1. The usual mistakes are a name taken for an ordinary word ("editors" for the Editor), a homophone, and a web address spelled out wrongly. Change only the text: keep each cue's number and times, at most two lines of about 42 characters, and `&`, `<` and `>` escaped as `&amp;`, `&lt;` and `&gt;`. A correction that takes a cue past about 84 characters splits it in two at a sentence, its time divided by length, and the cues are numbered again.
 
-You can't hear the recording. For every place the text alone doesn't settle (each listed word you didn't resolve, and any change you made on a guess), give Michael the time, the caption, and what is in doubt, and wait for his answers before uploading.
+You can't hear the recording. For every place the text alone doesn't settle (each listed word you didn't resolve, and any change you made on a guess), give Michael the time, the caption, and what is in doubt, and wait for his answers before uploading. When nobody on the account can sign in yet (no one has claimed, or their claim was just reset), upload first and Replace with the corrected captions once he answers: nobody sees the first version.
 
 ## 4. Upload
 
