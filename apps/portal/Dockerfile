@@ -77,6 +77,11 @@ COPY --from=builder /app/packages/site-contract ./packages/site-contract
 COPY apps/portal/scripts ./apps/portal/scripts
 RUN chmod +x ./apps/portal/scripts/start.sh
 
+# Welcome videos (MEDIA_DIR, ROADMAP E39). Each app mounts a Coolify volume
+# here, and a new volume takes this directory's owner when first mounted, so
+# the app, which runs as nextjs, can write to it.
+RUN mkdir -p /app/media && chown nextjs:nodejs /app/media
+
 USER nextjs
 WORKDIR /app/apps/portal
 

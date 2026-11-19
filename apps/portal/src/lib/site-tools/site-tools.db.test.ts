@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { prisma } from "@/lib/db";
 import { isRateLimited, resetRateLimits } from "@/lib/rate-limit";
 import { createAccount, createMember, createSite, resetDatabase } from "../../../test/db";
@@ -52,6 +52,19 @@ vi.mock("@/lib/builder-client", async () => {
 
 const tools = await import("./index");
 const hold = await import("./hold");
+const { BUILDER_FAILED } = await import("./builder-failure");
+
+/** The JSON lines logged under an event. */
+function loggedEvents(spy: MockInstance<typeof console.error>, event: string): unknown[] {
+  return spy.mock.calls.flatMap(([line]) => {
+    try {
+      const parsed = JSON.parse(String(line));
+      return parsed?.event === event ? [parsed] : [];
+    } catch {
+      return [];
+    }
+  });
+}
 
 type Menu = Array<{ services: Array<Record<string, string>> }>;
 const { ToolError } = tools;
@@ -313,6 +326,55 @@ describe("the lane (PRD D50)", () => {
   });
 });
 
+describe("a builder failure (Epic 46, H6)", () => {
+  let logged: MockInstance<typeof console.error>;
+  beforeEach(() => {
+    logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+  afterEach(() => logged.mockRestore());
+
+  it("reaches the owner as a plain try-again from Quick Edit's read, its proposal, and the Editor's save, and is logged with the site", async () => {
+    const { ctx, site } = await siteAccount();
+    const { BuilderError, fetchContent } = await import("@/lib/builder-client");
+    const fails = () => vi.mocked(fetchContent).mockRejectedValueOnce(new BuilderError("git fetch exited with 128"));
+    const plain = { message: BUILDER_FAILED.read };
+    fails();
+    await expect(tools.getContentView(ctx.accountId)).rejects.toSatisfy((e) => e instanceof ToolError && e.message === plain.message);
+    fails();
+    await expect(tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE })).rejects.toMatchObject(plain);
+    fails();
+    await expect(tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [PRICE_OP] })).rejects.toMatchObject(plain);
+    expect(loggedEvents(logged, "builder_read_failed")).toEqual(
+      Array(3).fill({ event: "builder_read_failed", slug: site.slug, message: "git fetch exited with 128" }),
+    );
+    expect(await prisma.changeSet.count()).toBe(0);
+    // A minute later the builder reads the site again, and so does Quick Edit.
+    await expect(tools.getContentView(ctx.accountId)).resolves.toMatchObject({ site: { slug: site.slug } });
+  });
+
+  it("saves a change whose preview the builder won't start, says so plainly, and keeps the builder's message on the build", async () => {
+    const { ctx, site } = await siteAccount();
+    const { BuilderError, requestPreview } = await import("@/lib/builder-client");
+    const raw = "The site builder didn't respond (TimeoutError).";
+    vi.mocked(requestPreview).mockRejectedValueOnce(new BuilderError(raw));
+    await expect(tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE })).rejects.toMatchObject({ message: BUILDER_FAILED.preview });
+    vi.mocked(requestPreview).mockRejectedValueOnce(new BuilderError(raw));
+    const saved = await tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [ANNOUNCE_OP] });
+    expect(saved.buildError).toBe(BUILDER_FAILED.preview);
+
+    const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: saved.changeSetId! }, include: { builds: { orderBy: { createdAt: "asc" } } } });
+    expect(cs.ops).toHaveLength(2);
+    // The operator's builds card shows what the builder said.
+    expect(cs.builds.map((b) => ({ status: b.status, error: b.error }))).toEqual([
+      { status: "FAILED", error: raw },
+      { status: "FAILED", error: raw },
+    ]);
+    expect(loggedEvents(logged, "builder_preview_failed")).toEqual(
+      cs.builds.map((b) => ({ event: "builder_preview_failed", slug: site.slug, buildId: b.id, message: raw })),
+    );
+  });
+});
+
 describe("content reads", () => {
   it("record the contract version the repo installs, which a Canopy push can move (PRD D24)", async () => {
     const { account, site } = await siteAccount();
@@ -430,6 +492,27 @@ describe("refresh and publish", () => {
     await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/changed since this preview/);
     const cs = await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } });
     expect(cs).toMatchObject({ status: "DRAFT", version: 2 });
+  });
+
+  it("answers a publish the builder fails with a plain try-again, logged, and the change stays ready to publish", async () => {
+    const { ctx, site } = await siteAccount();
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+      await tools.refreshChange(ctx.accountId, changeSetId);
+      const { BuilderError, requestPublish } = await import("@/lib/builder-client");
+      vi.mocked(requestPublish).mockRejectedValueOnce(new BuilderError("git push exited with 128"));
+      const author = { name: "O", email: "o@test.invalid" };
+      await expect(tools.publishChange(ctx, changeSetId, buildId, author)).rejects.toMatchObject({ message: BUILDER_FAILED.publish });
+      expect(loggedEvents(logged, "builder_publish_failed")).toEqual([
+        { event: "builder_publish_failed", slug: site.slug, changeSetId, message: "git push exited with 128" },
+      ]);
+      expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: changeSetId } })).toMatchObject({ status: "PREVIEWED", error: null });
+      // Trying again is all it takes.
+      expect(await tools.publishChange(ctx, changeSetId, buildId, author)).toEqual({ commit: "b".repeat(40) });
+    } finally {
+      logged.mockRestore();
+    }
   });
 
   it("keeps an edit saved during a publish as the site's new draft", async () => {

@@ -4,6 +4,7 @@ import { getCurrentAccountId, requireAuth } from "@/lib/auth-utils";
 import { getAccountSite } from "@/lib/data-access/sites";
 import { builderConfigured } from "@/lib/builder-client";
 import { getDraftView, getSiteEditing, ToolError } from "@/lib/site-tools";
+import { BUILDER_FAILED } from "@/lib/site-tools/builder-failure";
 import { liveSite } from "@/lib/site-live";
 import { PageContent } from "@/components/patterns/page-content";
 import { PageHeader } from "@/components/patterns/page-header";
@@ -47,7 +48,8 @@ export default async function EditorPage() {
       <PageContent>
         <div className="space-y-6">
           {header}
-          <EmptyState title="Your site couldn't be loaded" description={err.message} />
+          {/* The builder's failure already says what the title does; only its try-again is news. */}
+          <EmptyState title="Your site couldn't be loaded" description={err.message === BUILDER_FAILED.read ? "Try again in a moment." : err.message} />
         </div>
       </PageContent>
     );
