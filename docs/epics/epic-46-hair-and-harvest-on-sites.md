@@ -138,9 +138,9 @@ Section 10, each in the commit that changes the behavior.
 - [x] A content violation fails the build; the builder's build and the image name the same `_astro` files; pages, `_astro` files, and fonts send `Access-Control-Allow-Origin: *`.
 - [x] Every booking button reads its address from `site.contact.bookingUrl`, and the three card-on-file lines read as Sierra wrote them.
 - [ ] Umami records a visit and a booking tap from hairandharvest.com, and nothing from the canvas.
-- [ ] The site guide lists every piece of text that art is drawn against, each locked on the site's row and unmarked on the canvas.
+- [x] The site guide lists every piece of text that art is drawn against, each locked on the site's row and unmarked on the canvas.
 - [ ] The runbook's section 5 passes acting as the client, with no CORS or script errors on the canvas.
-- [ ] The eval passes, shared set and the Hair & Harvest set.
+- [x] The eval passes, shared set and the Hair & Harvest set.
 - [ ] Sierra claims the account and publishes an edit that shows on hairandharvest.com.
 
 ## 6. Decisions
@@ -230,6 +230,7 @@ For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and t
 - 2026-11-18 (later): H9's contract bug is fixed in contract 0.7.1 on canopy-sites `dev`: each entry of a section's `serviceIds` is now a reference, the owner's to choose, without the `canopy` flag (Epic 56's progress log has the detail). Run against this site's content with the locks and fixed list this log records, H9's edit (`full-face` out, `full-highlight-balayage` in) gives no lane violation and passes validation. Only the portal's tool layer checks the lane, so this site stays on 0.7.0 and nothing in `hair-and-harvest` changes; H9 is rerun, acting as Sierra, once a portal release with 0.7.1 is live on production.
 - 2026-11-18 (later): Portal 5.23.0 took contract 0.7.1 to production (PR #66, `main` at `74f71a3`). The portal's container, started 00:24 UTC on 2026-11-19, holds 0.7.1 with the reference type in its build. H9 can be rerun now; it has not been.
 - 2026-11-19: H9 passes on its rerun, acting as Sierra on production with Michael's go-ahead (report "Eval - Hair & Harvest 2026-11-19 (5.23.0)" under the runbook, and its run log). Quick Edit swapped Full Face for Full Highlight / Balayage in "My personal favorites", said the row shows just the name and $350 because the balayage has no description, and asked for one; no request card. The draft's build shows the balayage fourth, in Full Face's place, with every other marked field on the home page, and all of the services and policies pages, equal to the live site's. The draft was discarded, nothing was published, and the site was left with no draft and no request. With the 26 that passed on 2026-11-18, all 27 cases that apply pass; the other cases weren't rerun on 5.23.0.
+- 2026-11-19: Umami since the switch (2026-11-17 23:12 UTC to 2026-11-19 15:30 UTC): one page view, on `hairandharvest.com`, the check visit in 4.5, and no other hostname, so the canvas and preview loads of acceptance and the eval recorded nothing. No booking tap yet; acceptance's Umami item waits on a real one. The phone check couldn't be stood in for: the connected browser wouldn't resize below its maximized width, and the item is a phone's anyway. The local test image and container from 4.4 are removed.
 
 ## 10. Docs this makes stale
 
