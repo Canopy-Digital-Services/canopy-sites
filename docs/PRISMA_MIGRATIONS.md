@@ -82,6 +82,7 @@ Note: the `seed` property is only used when manually running `npx prisma db seed
 |---------|-------|
 | Pre-deployment command | *(empty)* |
 | Post-deployment command | *(empty)* |
+| Persistent storage | Welcome videos (ROADMAP E39): a volume at `/app/media`, named `portal-media` when added (Coolify puts the app's uuid in front), and the env var `MEDIA_DIR=/app/media`. On the dev app since 2026-11-18. On the prod app since 2026-11-19, and in its container from its first deploy after that, the first release later than 5.23.0. Not backed up, by decision: a lost video is uploaded again from the original. |
 
 Migrations are handled by the container entrypoint. Coolify hooks are not needed.
 

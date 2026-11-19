@@ -164,11 +164,6 @@ model Site {
   maxBuildsRetained   Int      @default(5)
   // A sales demo, never a client's site (PRD D23): Stats shows sample data.
   isDemo              Boolean  @default(false)
-  /// Retired 2026-11-12, when the zone moved to Account.timeZone. @ignore keeps
-  /// it out of the client, so no query names the column. Remove it, with its
-  /// migration, once main's schema carries this @ignore (AGENT_CONTEXT
-  /// section 5, dropping a column).
-  timeZone            String   @default("America/Los_Angeles") @ignore
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

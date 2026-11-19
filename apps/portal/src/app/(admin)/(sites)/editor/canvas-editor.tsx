@@ -99,7 +99,9 @@ export function CanvasEditor({
   // "unsent": a save never reached the server (the portal restarted with a new
   // build under this page, or the connection dropped). The edits wait in the
   // browser (lib/unsaved-edits) and are saved once the page is reloaded.
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "updating" | "error" | "unsent">("idle");
+  // "previewFailed": the change is saved, and the build that would show it failed; the
+  // chrome's draft status says the same, with what to do.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "updating" | "previewFailed" | "error" | "unsent">("idle");
   const [dates, setDates] = useState<{ startsOn: string; endsOn: string } | null>(null);
   const selectedRef = useRef<Selected | null>(null);
   const hashRef = useRef<string | null>(null);
@@ -216,8 +218,12 @@ export function CanvasEditor({
       for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 1000));
         const r = await refreshPendingChange(changeSetId);
-        if ("error" in r || r.status === "FAILED" || r.buildStatus === "FAILED") {
+        if ("error" in r || r.status === "FAILED") {
           setSaveState("error");
+          return;
+        }
+        if (r.buildStatus === "FAILED") {
+          setSaveState("previewFailed");
           return;
         }
         if (r.status === "PREVIEWED") {
@@ -541,6 +547,8 @@ export function CanvasEditor({
             </span>
           ) : saveState === "saved" ? (
             <span className="text-sm text-muted-foreground">Saved</span>
+          ) : saveState === "previewFailed" ? (
+            <span className="text-sm text-destructive">Preview failed</span>
           ) : saveState === "error" ? (
             <span className="text-sm text-destructive">Not saved</span>
           ) : saveState === "unsent" ? (
