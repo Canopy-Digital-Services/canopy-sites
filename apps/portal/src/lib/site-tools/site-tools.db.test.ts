@@ -373,6 +373,23 @@ describe("a builder failure (Epic 46, H6)", () => {
       cs.builds.map((b) => ({ event: "builder_preview_failed", slug: site.slug, buildId: b.id, message: raw })),
     );
   });
+
+  it("leaves a draft whose preview build failed with a plain line, and the builder's reason on the build and in the log", async () => {
+    const { ctx, site } = await siteAccount();
+    builder.buildStatus = "failed";
+    const { changeSetId, buildId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });
+    expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: BUILDER_FAILED.build });
+    // What the chrome's "Preview failed" and the preview bar read.
+    expect((await tools.getEditorChanges(ctx.accountId)).pending).toMatchObject({ buildStatus: "FAILED", error: BUILDER_FAILED.build });
+    // The operator's builds card shows what the builder said.
+    expect(await prisma.build.findUniqueOrThrow({ where: { id: buildId } })).toMatchObject({ status: "FAILED", error: "boom" });
+    expect(loggedEvents(logged, "builder_build_failed")).toEqual([{ event: "builder_build_failed", slug: site.slug, buildId, message: "boom" }]);
+
+    // As the line says, the next edit builds it again.
+    builder.buildStatus = "succeeded";
+    const next = await tools.saveDraft({ ...ctx, source: "EDITOR" }, site.id, { ops: [ANNOUNCE_OP] });
+    expect(await tools.refreshChange(ctx.accountId, next.changeSetId!)).toMatchObject({ status: "PREVIEWED", buildStatus: "SUCCEEDED", error: null });
+  });
 });
 
 describe("content reads", () => {
@@ -439,9 +456,9 @@ describe("refresh and publish", () => {
     await tools.refreshChange(ctx.accountId, changeSetId);
     await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
 
-    // A failed build keeps the draft, with the reason, so no edit is lost.
+    // A failed build keeps the draft, so no edit is lost.
     builder.buildStatus = "failed";
-    expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: "boom" });
+    expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: BUILDER_FAILED.build });
     await expect(tools.publishChange(ctx, changeSetId, buildId, { name: "O", email: "o@test.invalid" })).rejects.toThrow(/finished preview/);
     expect(builder.publishes).toHaveLength(0);
   });

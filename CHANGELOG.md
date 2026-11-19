@@ -5,6 +5,22 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.23.1] - 2026-11-19
+
+### Fixed
+
+- Sites: a welcome video can be skipped through on a deployed portal. Cloudflare sometimes fetched a `.mp4` address whole, ignoring the player's request for one part, so a jump forward or back didn't land; the video's addresses now end in no file extension (Epic 39)
+- Operator: a welcome video upload refused partway for its size leaves no partial file on the media volume (Epic 39)
+- Sites: a failed preview build says the preview failed. The Editor said "Not saved" though the edit was saved, Quick Edit's change card spun on "Building preview" for good, and the preview bar could show the builder's own error. The Editor now says "Preview failed", and the card and the bar say the preview couldn't be built, that the changes are kept, and that the next edit tries again
+
+### Changed
+
+- Production has welcome-video storage (`MEDIA_DIR` and its volume), so a site's tabs can have their videos there (Epic 39)
+
+### Removed
+
+- The retired `Site.timeZone` column, out of the Prisma client since 5.21.0
+
 ## [5.23.0] - 2026-11-18
 
 ### Added
