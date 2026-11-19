@@ -43,8 +43,9 @@ next-env.d.ts
 src/generated/prisma/
 docker-compose.override.yml
 
-# Claude Code local session state (permissions, scheduler lock)
-.claude/
+# Claude Code local session state (permissions, scheduler lock, worktrees); its skills are the repo's
+.claude/*
+!.claude/skills/
 
 # Allow tracked env template
 !.env.example
