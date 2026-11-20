@@ -10,6 +10,7 @@ Each epic's Status line says what has been released and what is left. Move an ep
 - [Epic 40: Toro Z on Sites](epic-40-toroz-on-sites.md)
 - [Epic 42: Fur-Ever Friends on Sites](epic-42-fur-ever-friends-on-sites.md)
 - [Epic 46: Hair & Harvest on Sites](epic-46-hair-and-harvest-on-sites.md)
+- [Epic 55: Requests](epic-55-requests.md)
 - [Epic 56: Services](epic-56-services.md)
 
 ## Completed Epics
