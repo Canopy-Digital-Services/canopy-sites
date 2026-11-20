@@ -18,11 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addAccountMember } from "@/actions/admin/members";
 import { PERSON_NAME_MAX } from "@/lib/person";
-import { CopyLinkField } from "./copy-link-field";
+import { CopyLinkField, EmailClaimLinkButton } from "./copy-link-field";
 
 /**
  * Adds a person to an account (PRD D63): their name and a new email, then
- * their claim link, shown once to pass on.
+ * their claim link, shown once to copy, email, or both.
  */
 export function AddPersonButton({
   accountId,
@@ -84,6 +84,7 @@ export function AddPersonButton({
             </DialogHeader>
             <CopyLinkField url={added.claimUrl} label="Claim link" />
             <DialogFooter>
+              <EmailClaimLinkButton url={added.claimUrl} />
               <Button type="button" onClick={() => setOpen(false)}>
                 Done
               </Button>

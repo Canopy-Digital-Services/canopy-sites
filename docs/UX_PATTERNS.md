@@ -652,6 +652,10 @@ The reply address is user-supplied and lands in an SMTP header, so the action re
 
 ---
 
+### Emails to a person
+
+An email that asks one person to do one thing (claim, reset a password) is the card in [email-card.ts](src/lib/email-card.ts): an optional picture, a teal heading, a line, one button, and a grey note. The button's link is never printed under it; the plain-text part carries it. What an email says is said the same way wherever its link shows: the claim's headline and button are `claimWords` ([claim.ts](src/lib/claim.ts)), read by the email, the link's preview in a messaging app, and the claim page.
+
 ## 11. Embed theming
 
 Embedded forms use their own theming system in `embed/src/theme.ts`, unrelated to the admin tokens. Three types:
