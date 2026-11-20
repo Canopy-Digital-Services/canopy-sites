@@ -12,6 +12,8 @@ export interface EmailOptions {
   replyTo?: string;
   /** The sender, from `senderFor` on the recipient's account; unset means `SMTP_FROM`. */
   from?: string;
+  /** Pictures the HTML shows as `<img src="cid:...">`. They travel with the message, so they show where remote images are blocked. */
+  images?: { cid: string; filename: string; content: Buffer }[];
 }
 
 /**
@@ -60,6 +62,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: options.images?.map((image) => ({ ...image, contentDisposition: "inline" as const })),
     });
 
     console.log(`✅ Email sent successfully to ${recipients}`);
