@@ -101,15 +101,19 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 **The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
 
-**The email.** From `Canopy Sites <sites@canopyds.com>`, plain and short, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2):
+**The email.** From `Canopy Sites <sites@canopyds.com>`, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2). It is the handoff of the owner's website, so the HTML opens with the link preview's picture (Canopy Boy holding the keys, the site's name on the tag), sent inline with the message:
 
-> Subject: Your website account for Toro Z Muay Thai
+> Subject: Your Canopy Site is ready
 >
-> Michael at Canopy set up an account for you to update torozmuaythai.com.
+> **Your Canopy Site is ready!**
 >
-> Set your password: <link>
+> Click the button below to log in and start managing it.
+>
+> [Claim my site]
 >
 > The link works once and expires on November 12.
+
+A person added to the account since (PRD D63) gets the same picture and a plainer message: the subject "You've been added to the Toro Z Muay Thai website", the heading "You're in!", then "You've been added as a user on the Toro Z Muay Thai website in Canopy Sites. Click the button below to set your password and log in.", and **Set my password**.
 
 **The sender.** Today every email goes out as `Forms@CanopyDS.com` (`SMTP_FROM`, production env, checked 2026-11-05). `sites@canopyds.com` is a send-as identity on the same Migadu mailbox (`forms@`, the portal's SMTP login), and mail sent to it reaches `clients@` through an alias of the same name (both created 2026-11-05). So the portal picks the From by product, beside the link host (`appUrlFor`): a new `SMTP_FROM_SITES` (`Canopy Sites <sites@canopyds.com>`) for every email to a Sites account, the claim, reset, and submission notifications alike, with `SMTP_FROM` for the rest. Same login, no new secret. All of it shares Migadu's 20 a day outgoing limit for the whole account (Engineering → Migadu), which is one reason a copied link, which sends nothing, is the usual way to hand over a claim.
 

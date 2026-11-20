@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { generateToken, hashToken } from "@/lib/auth-utils";
 import { hashPassword } from "@/lib/password";
 import { sendEmail } from "@/lib/email";
+import { claimImageJpeg } from "@/lib/claim-image";
 import { getAccountEntitlements } from "@/lib/data-access/entitlements";
 import { getAccountTimeZone } from "@/lib/data-access/accounts";
 import { getSoleMembership } from "@/lib/data-access/memberships";
@@ -53,7 +54,7 @@ export async function issuePasswordToken(
   return { id: row.id, token, expiresAt };
 }
 
-/** Who a user is to the emails and pages a claim needs: their account's host, product, time zone, and site. */
+/** Who a user is to the emails and pages a claim needs: their account's host, product, time zone, and site, and whether they own it. */
 async function accountOf(userId: string) {
   const membership = await getSoleMembership(userId);
   const entitlements = membership ? await getAccountEntitlements(membership.accountId) : { sitesEnabled: false };
@@ -64,39 +65,83 @@ async function accountOf(userId: string) {
         select: { id: true, name: true, productionHostnames: true },
       })
     : null;
-  return { entitlements, timeZone, site };
+  return { entitlements, timeZone, site, owner: membership?.role === "OWNER" };
 }
 
-function claimEmail(args: { url: string; expiresAt: Date; timeZone: string; site: { name: string; productionHostnames: string[] } | null; productName: string }) {
+/** The claim email's picture, as the HTML names it. */
+const CLAIM_PICTURE_CID = "claim-keys";
+
+/**
+ * The claim email. To the owner it is the handoff of the website Canopy built
+ * them; to a person added to the account since (PRD D63) it says only that
+ * they were added. With `picture`, the HTML opens with the link preview's
+ * picture (Canopy Boy holding the keys, the site's name on the tag), which
+ * the caller sends along as `CLAIM_PICTURE_CID`.
+ */
+export function claimEmail(args: {
+  url: string;
+  expiresAt: Date;
+  timeZone: string;
+  site: { name: string } | null;
+  productName: string;
+  owner: boolean;
+  picture: boolean;
+}) {
   const { url, site, productName } = args;
-  const what = site?.productionHostnames[0] ?? "your website";
+  const headline = args.owner ? "Your Canopy Site is ready!" : "You're in!";
+  /** What the added person is told first; the owner's headline has said it all. */
+  const added = args.owner ? null : `You've been added as a user ${site ? `on the ${site.name} website in` : "in"} ${productName}.`;
+  const invitation = args.owner ? "Click the button below to log in and start managing it." : `${added} Click the button below to set your password and log in.`;
+  const button = args.owner ? "Claim my site" : "Set my password";
   const expires = args.expiresAt.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     timeZone: args.timeZone,
   });
-  const subject = site ? `Your website account for ${site.name}` : `Your ${productName} account`;
+  const subject = args.owner ? "Your Canopy Site is ready" : `You've been added to ${site ? `the ${site.name} website` : productName}`;
   const text = [
-    `Michael at Canopy set up an account for you to update ${what}.`,
+    ...(added ? [headline, "", added] : [headline]),
     "",
-    `Set your password: ${url}`,
+    `${button}: ${url}`,
     "",
     `The link works once and expires on ${expires}.`,
     "",
     "---",
     productName,
   ].join("\n");
+  // Tables and inline styles: what Outlook and Gmail both lay out. The picture is 1200 by 630, shown at the card's width.
+  const picture = args.picture
+    ? `
+        <tr>
+          <td style="font-size: 0; line-height: 0;">
+            <a href="${url}"><img src="cid:${CLAIM_PICTURE_CID}" width="560" alt="${escapeHtml(`The keys to ${site?.name ?? `your ${productName} account`}`)}" style="display: block; width: 100%; max-width: 560px; height: auto; border: 0;"></a>
+          </td>
+        </tr>`
+    : "";
   const html = `<!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  <p>Michael at Canopy set up an account for you to update ${escapeHtml(what)}.</p>
-  <p style="margin: 20px 0;">
-    <a href="${url}" style="background: #005f6a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Set your password</a>
-  </p>
-  <p style="color: #666; font-size: 14px;">The link works once and expires on ${expires}.</p>
-  <p style="color: #666; word-break: break-all; font-size: 12px;">${url}</p>
-  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  <p style="color: #999; font-size: 12px;">${productName}</p>
+<body style="margin: 0; padding: 0; background: #f2f5f4;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f2f5f4;">
+    <tr>
+      <td align="center" style="padding: 24px 12px;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 560px; background: #ffffff; border-radius: 12px; overflow: hidden; font-family: Arial, sans-serif; line-height: 1.6; color: #1d1d1f;">${picture}
+        <tr>
+          <td style="padding: 28px 32px 24px;">
+            <h1 style="margin: 0 0 8px; font-size: 28px; line-height: 1.25; color: #005e69;">${headline}</h1>
+            <p style="margin: 0; font-size: 16px;">${escapeHtml(invitation)}</p>
+            <p style="margin: 24px 0;">
+              <a href="${url}" style="background: #005e69; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: bold;">${button}</a>
+            </p>
+            <p style="margin: 0; color: #666; font-size: 14px;">The link works once and expires on ${expires}.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 16px 32px; border-top: 1px solid #eee; color: #999; font-size: 12px;">${productName}</td>
+        </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
   return { subject, text, html };
@@ -120,14 +165,21 @@ export async function createClaimLink(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, password: true } });
   if (user.password !== null) throw new ClaimError(`${user.email} has already claimed the account.`);
 
-  const { entitlements, timeZone, site } = await accountOf(userId);
+  const { entitlements, timeZone, site, owner } = await accountOf(userId);
   const { id, token, expiresAt } = await issuePasswordToken(userId, "CLAIM", { createdByUserId: opts.createdByUserId });
   const url = `${appUrlFor(entitlements)}/claim?token=${token}`;
 
   let emailed = false;
   if (opts.email) {
-    const { subject, text, html } = claimEmail({ url, expiresAt, timeZone, site, productName: productNameFor(entitlements) });
-    emailed = await sendEmail({ to: user.email, subject, text, html, from: senderFor(entitlements) });
+    const productName = productNameFor(entitlements);
+    // The email goes without its picture if drawing fails: the link is what the owner needs.
+    const picture = await claimImageJpeg(site?.name ?? productName).catch((error) => {
+      console.error("Could not draw the claim email's picture:", error);
+      return null;
+    });
+    const { subject, text, html } = claimEmail({ url, expiresAt, timeZone, site, productName, owner, picture: picture !== null });
+    const images = picture ? [{ cid: CLAIM_PICTURE_CID, filename: "keys.jpg", content: picture }] : undefined;
+    emailed = await sendEmail({ to: user.email, subject, text, html, images, from: senderFor(entitlements) });
     if (emailed) await prisma.passwordToken.update({ where: { id }, data: { emailedAt: new Date() } });
   }
   return { url, email: user.email, emailed, expiresAt };

@@ -78,9 +78,13 @@ describe("the operator's claim link (PRD D49)", () => {
 
     const mail = vi.mocked(sendEmail).mock.calls[0][0];
     expect(mail).toMatchObject({ to: owner.email, from: "Canopy Sites <sites@example.com>" });
-    expect(mail.subject).toBe(`Your website account for ${site.name}`);
-    expect(mail.text).toContain("update toroz.example.com");
+    expect(mail.subject).toBe("Your Canopy Site is ready");
+    expect(mail.html).toContain("Claim my site</a>");
     expect(mail.text).toMatch(/https:\/\/sites\.example\.com\/claim\?token=[a-f0-9]{64}/);
+    // The keys picture travels with the message, and the HTML shows it.
+    expect(mail.images).toMatchObject([{ cid: "claim-keys", filename: "keys.jpg" }]);
+    expect(mail.images?.[0].content.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+    expect(mail.html).toContain('src="cid:claim-keys"');
     expect((await prisma.passwordToken.findFirstOrThrow({ where: { userId: owner.id } })).emailedAt).not.toBeNull();
   });
 
@@ -263,6 +267,12 @@ describe("a person added to the account (PRD D63)", () => {
     const copied = await sendClaimLink(site.id, partner.id, "copy");
     expect((copied as { url: string }).url).toMatch(/\/claim\?token=/);
     expect(await sendClaimLink(site.id, partner.id, "email")).toEqual({ success: true, message: "Sent to partner@example.com." });
+    // Their email says they were added; the handoff of the site is the owner's.
+    const mail = vi.mocked(sendEmail).mock.calls[0][0];
+    expect(mail.subject).toBe(`You've been added to the ${site.name} website`);
+    expect(mail.text).toContain(`You've been added as a user on the ${site.name} website in Canopy Sites`);
+    expect(mail.html).toContain("Set my password</a>");
+    expect(mail.html).toContain('src="cid:claim-keys"');
     // The owner's own link is untouched by a link made for someone else.
     expect(await prisma.passwordToken.count({ where: { userId: owner.id } })).toBe(0);
 
