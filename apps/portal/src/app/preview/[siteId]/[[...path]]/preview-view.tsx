@@ -224,6 +224,23 @@ export function PreviewView({
     }, 300);
   }
 
+  // Cancel leaves the draft as it is. A tab that can't close goes back to the
+  // portal page that linked here, or the portal's home.
+  function cancel() {
+    window.close();
+    setTimeout(() => {
+      if (window.closed) return;
+      let back = "/";
+      try {
+        const from = new URL(document.referrer);
+        if (from.origin === window.location.origin && !from.pathname.startsWith("/preview/")) back = from.pathname + from.search;
+      } catch {
+        // No referrer: the portal's home.
+      }
+      window.location.assign(back);
+    }, 300);
+  }
+
   const building = pending?.buildStatus === "QUEUED" || pending?.buildStatus === "RUNNING";
   const failed = pending?.status === "DRAFT" && pending.buildStatus === "FAILED";
   const ready = Boolean(pending?.publishable && pending.publishable === shownBuild);
@@ -274,15 +291,25 @@ export function PreviewView({
           {message}
         </span>
         {failed && pending?.error ? <span className="max-w-md truncate font-normal opacity-90">{pending.error}</span> : null}
-        {!published && pending ? (
-          // While someone else is making edits (PRD D64) the draft is theirs to publish: the bar says who.
-          hold.by ? (
-            <span className="font-normal opacity-90">{editingNotice(hold.by)}</span>
-          ) : (
-            <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
-              Publish
+        {/* While someone else is making edits (PRD D64) the draft is theirs to publish: the bar says who. */}
+        {!published && pending && hold.by ? <span className="font-normal opacity-90">{editingNotice(hold.by)}</span> : null}
+        {!published ? (
+          <span className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-primary-foreground/15 hover:text-primary-foreground"
+              onClick={cancel}
+              disabled={isPublishing}
+            >
+              Cancel
             </Button>
-          )
+            {pending && !hold.by ? (
+              <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
+                Publish
+              </Button>
+            ) : null}
+          </span>
         ) : null}
         {published ? (
           cantClose ? (

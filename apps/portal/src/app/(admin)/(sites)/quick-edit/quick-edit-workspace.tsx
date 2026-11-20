@@ -311,24 +311,18 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
-        {pending.by ? (
-          // Someone else's work: discarding it asks first, and says whose.
-          <ConfirmDialog
-            title={`Discard ${pending.by}'s changes`}
-            description="Every unpublished change goes, and your site stays as it is now."
-            onConfirm={discard}
-            destructive
-            trigger={
-              <Button variant="ghost" disabled={isPending}>
-                Discard
-              </Button>
-            }
-          />
-        ) : (
-          <Button variant="ghost" disabled={isPending} onClick={discard}>
-            Discard
-          </Button>
-        )}
+        {/* Asks first, as the Sites chrome's Discard does, and says whose when it's someone else's work. */}
+        <ConfirmDialog
+          title={pending.by ? `Discard ${pending.by}'s changes` : "Discard changes"}
+          description="Every unpublished change goes, and your site stays as it is now."
+          onConfirm={discard}
+          destructive
+          trigger={
+            <Button variant="ghost" disabled={isPending}>
+              Discard
+            </Button>
+          }
+        />
       </CardFooter>
     </Card>
   );
