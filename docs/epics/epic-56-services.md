@@ -1,6 +1,6 @@
 # Epic 56: Services
 
-**Status:** Draft (2026-11-17). Waiting on Michael's approval of sections 2, 3, and 7.
+**Status:** Draft (2026-11-17). Michael set it to be built now, ahead of E55 (2026-11-20); section 7's items 2 and 3 still wait on him. Nothing is built.
 **Phase:** 9, The suite (`docs/canopy-sites/ROADMAP.md`, E56)
 **Predecessor:** Epic 46 (Hair & Harvest on Sites), whose templates put the home page's featured services and the menu on one list; Epic 33 (the visual editor) and Epic 54 (one editor at a time), which the tab stands on
 **Successor:** E57 (button and menu text on the canvas), which the action layer is built to carry; E50 (Gallery) and E51 (Events), which reuse the tab's list and form
@@ -38,7 +38,7 @@ This epic gives the list a tab, and gives the canvas an action layer: a click th
 | Adding, removing, or reordering categories and the sections and groups inside them | Templates place some by id (Fur-Ever Friends' three cards). Renaming one is a text edit, here and on the canvas; the rest stays Quick Edit's where the list isn't fixed, and Canopy's where it is |
 | Editing the text of buttons and menu items | ROADMAP E57, an epic of its own straight after this one (Michael, 2026-11-17). The layer built here carries it: a pencil and a follow icon on anything that links. Opening those fields to owners changes the lane and every site's guide (PRD D50 keeps buttons and navigation labels Canopy's, and no site marks them), where this epic changes neither |
 | Products sold online (a cart, checkout, stock) | A runtime component (PRD D52), and a feature of its own. A price list of things a business sells fits this list as it is |
-| A form's choices taken from the list | E55's first step types the services into a Choose several field. Reading them from the list is a later step, noted here because it is the next place a second copy appears |
+| A form's choices taken from the list | E55's to build (its section 7, item 11): Hair & Harvest's request form asks which services a client wants, and it is the next place a second copy would appear |
 | How long a service takes, for Booking | E52's open question. The contract's `duration` is display text |
 | Quick Edit filling the tab's form (PRD D54's third step) | Quick Edit already changes services through the tool layer, into the same draft the tab shows. Decided after owners have used the tab |
 | Tabs for classes, the team, FAQs, or reviews | Each when a site needs it. The list and the form built here are made to be reused |
@@ -139,6 +139,10 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 - **The action layer.** A click on anything that links gives two icons, a pencil and a follow icon, so the owner chooses; following on a click is what makes editing feel like using the site, and that stays for links that aren't editable. He had it in mind for the text of buttons and menu items. The same layer carries "edit service" and "add a service line".
 - **Button and menu text is an epic of its own**, straight after this one (ROADMAP E57).
 
+### Michael (2026-11-20)
+
+- **Built now**, ahead of E55's Forms parts: Sierra's request form waits on a conversation with her around 2026-12-04. He means the list to serve that form, which is E55's to build (its section 7, item 11).
+
 ### Agent calls inside scope
 
 - **No new tool-layer write.** `saveDraft` already takes add, remove, move, and replace by address, with every guard. The tab is a form over it.
@@ -154,7 +158,7 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 
 For Michael.
 
-1. **When.** Recommended: after the MVP, and the first tab built, ahead of Gallery and Events, since it needs nothing they wait on and they reuse its list and form. Until then Sierra changes a price on the canvas and asks Quick Edit to add a service or change a favorite. The alternative is to build it before her claim, which puts it ahead of the VETS site in "The MVP".
+1. **When.** Now, and the first tab built (section 6, 2026-11-20). Left open: whether it comes ahead of the VETS site in "The MVP", and so before or after Sierra's claim. Until it ships Sierra changes a price on the canvas and asks Quick Edit to add a service or change a favorite.
 2. **Which fields the form offers.** The tab can't see a site's templates, so it can't tell that Hair & Harvest renders no duration. Recommended: name and price always, and description and duration only where the site's guide gives the field a limit, since the guide carries a limit for every field the templates mark. The alternative is the contract's whole service on every site, which offers Sierra a field that shows nowhere.
 3. **PRD D66**, to land with approval, with D54's "Gallery first" and section 6's Tool tabs row following item 1's answer, and D43's line on a marked link reworded for the layer. D50 is E57's to revise. Proposed: "**A site's services are one list with a tab of its own.** Every place a service shows (the menu, a page's featured services, later a form's choices and Booking) renders the list's entry, with one name and one price, never wording of its own for that place. The tab is where an owner adds, removes, and reorders services and picks the featured ones; the canvas opens the tab's own forms from the list they change, so nothing about a service can be changed in one place and not the other. It is a Sites feature like Gallery and Events (D54), and the first of them built."
 

@@ -1,8 +1,8 @@
 # Epic 55: Requests
 
-**Status:** Draft (2026-11-19). Waiting on Michael's approval of sections 2, 3, and 7. Nothing is built.
+**Status:** Draft (2026-11-19), paused on 2026-11-20: Services (Epic 56) is built first, and Michael takes the form up with Sierra around 2026-12-04. Sections 2, 3, and 7 still wait on him. Nothing is built.
 **Phase:** 9, The suite (`docs/canopy-sites/ROADMAP.md`, E55); 4.1 and 4.2 are its first step, which is in "The MVP"
-**Predecessor:** Epic 46 (Hair & Harvest on Sites), which linked her site, made her account, and put her booking address in one locked value; Epic 42 (4.4), the pattern for a client's form built by acting as them; E39, whose media volume the photos share
+**Predecessor:** Epic 56 (Services), built first, whose list her form's services come from; Epic 46 (Hair & Harvest on Sites), which linked her site, made her account, and put her booking address in one locked value; Epic 42 (4.4), the pattern for a client's form built by acting as them; E39, whose media volume the photos share
 **Successor:** confirming a request with a time (ROADMAP, "Not scheduled"); E52 (Booking), when a client needs a calendar
 
 > **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/UX_PATTERNS.md` (section 1, and sections 8 and 11 for the embed), `docs/canopy-sites/PRD.md` (D52, D55, D65), `docs/canopy-sites/ROADMAP.md` ("The MVP", E55), `docs/canopy-sites/REVIEW_FINDINGS.md` (F12, F32), `docs/epics/epic-42-fur-ever-friends-on-sites.md` (4.4), and `docs/epics/epic-46-hair-and-harvest-on-sites.md` (4.6, sections 6 and 9). In `apps/portal`: `src/lib/public-submit.ts`, `src/lib/field-types.ts`, `embed/src/form.ts`, `embed/src/validation.ts`, `src/lib/submission-email.ts`, `src/lib/welcome-video.ts` with its route `src/app/welcome/[siteId]/[file]/route.ts`, `src/app/(admin)/forms/`, and `src/components/sites/sites-nav.tsx`. In `hair-and-harvest`: `CLAUDE.md` and `SITE_GUIDE.md`.
@@ -45,7 +45,6 @@ Her form itself needs none of that to start: every question but the photos is a 
 | A typed or drawn signature | Square's agreement is a box beside a link to the policy (Michael's screenshots, 2026-11-17), and hers matches it |
 | Payments, deposits, a card on file | She takes payment by Venmo, outside the site |
 | Files other than photos | Nobody has asked. The type is named for what it takes, and a general file field would come after it in the Add field menu |
-| Service options fed from the site's `services` | Her form's options are typed by hand. Epic 56 gives the list a tab; a form reading it is later |
 | Steps in a long form, and fields shown by an earlier answer | `docs/future-features.md` |
 | The form on a page of her own site | Section 7, item 3. A new page is a template and a contract change, Canopy's and later |
 | A sender with headroom (F32), and the portal on one box (F12) | Their own items. Section 7, item 9, asks whether either comes before 4.2 |
@@ -55,7 +54,7 @@ Her form itself needs none of that to start: every question but the photos is a 
 
 ## 3. Order
 
-- **This session**: this doc. Building starts once sections 2, 3, and 7 are approved.
+- **After Epic 56** (Michael, 2026-11-20). Building starts once sections 2, 3, and 7 are approved and Sierra has answered section 7's item 2.
 - **4.1, with Michael's go-ahead** (it writes to production): her form, built and published with nothing linking to it. It waits on nothing but her wording (section 7, item 2).
 - **4.3** next: it is small, it works on the notification email alone, and it is the part her form should have on its first day.
 - **4.2 on Sierra's date**, with Michael's go-ahead: one commit to `hair-and-harvest` `main`, which deploys the live site. It has no place in this order, because the date is hers; if it comes before 4.3, her form's Approval is a plain line until 4.6.
@@ -158,15 +157,19 @@ Section 10, each in the commit that changes the behavior.
 
 - Hair & Harvest is on Sites (Epic 46), and the booking work is picked up.
 
+### Michael (2026-11-20)
+
+- **Services first.** There is time with Sierra: the conversation with her resumes in about two weeks. The service list is meant to support this form (section 7, item 11).
+
 ### Agent calls inside scope
 
 None yet.
 
 ## 7. Open
 
-For Michael, and through him Sierra. Items 1, 3, and 7 change what is built; item 2 is what 4.1 and 4.2 wait on.
+For Michael, and through him Sierra. Items 1, 3, 7, and 11 change what is built; item 2 is what 4.1 and 4.2 wait on.
 
-1. **When the three Forms parts are built.** They were recorded on 2026-11-17 as after the MVP, their place there to decide, and picked up on 2026-11-19. Recommended: 4.3 now, since her form wants it on its first day and it is a session; 4.4 and 4.5 as sessions allow beside the MVP's list, with the ROADMAP's "After the MVP" line and PRD D51 changed to say so in the commit that approves this.
+1. **When the three Forms parts are built.** After Epic 56 (section 6). They were recorded on 2026-11-17 as after the MVP, their place there to decide. Recommended: 4.3 as soon as this resumes, since her form wants it on its first day and it is a session; 4.4 and 4.5 as sessions allow beside the MVP's list, with the ROADMAP's "After the MVP" line and PRD D51 changed to say so in the commit that approves this.
 2. **From Sierra.** The date Square closes. Her cancellation window: Square's policy says two days and her policies page 24 hours (both read 2026-11-17). Her words for the three lines that ask for a card on file. What the form asks, in her words: Michael set aside drafting it on 2026-11-17, and 4.1 waits on it.
 3. **A hosted form, or the form on her own site.** Recommended: hosted, for 4.1. Her booking button already leaves the site for Square's page, the switch is then one value, and the hosted page takes her colors and type. A page of her own with the form in it is a new template and a contract change (pages are fixed on every site), and can follow.
 4. **Photos before 4.5.** The form can't take them until then. Recommended: the message after sending asks for them by Instagram message, the one way her site already gives to reach her. Hers to choose.
@@ -176,12 +179,14 @@ For Michael, and through him Sierra. Items 1, 3, and 7 change what is built; ite
 8. **How long photos are kept.** Recommended: until the request is deleted, with no expiry, and a cap for each form that tells the owner when it is near.
 9. **Before the switch.** The form becomes her only way to be booked. It lives on Webber alone (F12): with Webber down her pages serve from Fox and the form doesn't answer. Its notification mail shares the ceiling in F32, and a notification that fails is logged and nowhere else. Recommended: the sender with headroom (the MVP's item 6) before 4.2, and F12 left as it is, since her pages already say to reach her on Instagram.
 10. **The buttons' wording.** Three labels today. Recommended: "Request an appointment" on all of them. Canopy's text, so Michael's to set.
+11. **Her form's services: typed, or read from her list.** 4.1 types them into a Choose several field, a second copy of the menu that goes stale when she adds a service. With Services built first, the form can read the site's list. Recommended: a step ahead of 4.1, a choice field whose options are the site's services, so her form is never typed from her menu. Epic 56 leaves it to this epic (its section 2).
 
 ## 8. Completion report
 
 ## 9. Progress log
 
 - 2026-11-19: Drafted from Michael's direction of 2026-11-17, Sierra's message, his screenshots of her Square agreement, and a read of the Forms code, `hair-and-harvest` `main` at `eda3872`, and Epic 46's log. Since the ROADMAP's brief was written, Epic 46 linked her site, which settles whose account holds the form, and both portal apps have their media volume (E39).
+- 2026-11-20: Paused. Michael: Services (Epic 56) is built first, and the conversation with Sierra resumes in about two weeks. Item 11 added to section 7.
 
 ## 10. Docs this makes stale
 
