@@ -1,7 +1,7 @@
 /**
- * The picture a claim link shows in a messaging app's preview: Canopy Boy
- * holding up the keys, a tag on the ring carrying the site's name. Drawn per
- * link by next/og, which reads TTF (not WOFF2), hence the TTF copies of
+ * The picture a claim link shows in a messaging app's preview, and the one
+ * the claim email opens with: Canopy Boy holding up the keys, a tag on the
+ * ring carrying the site's name. Drawn per site by next/og, which reads TTF (not WOFF2), hence the TTF copies of
  * Urbanist. Served as JPEG: about a quarter of the PNG's size, well under
  * what WhatsApp will load for a preview.
  */

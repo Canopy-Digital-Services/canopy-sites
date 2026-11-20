@@ -5,6 +5,21 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.24.0] - 2026-11-20
+
+### Added
+
+- Sites: the claim email opens with Canopy Boy holding the keys to the site, the picture the link's preview already had. It travels inside the message, so it shows where remote pictures are blocked (Epic 38)
+- Sites: a person added to a site's account gets their own email: "You're in!", that they've been added as a user on the site's website in Canopy Sites, and a Set my password button (Epic 38)
+- Operator: Email it, beside Done on a claim link just made. It emails that same link, so a link already copied for a text keeps working (Epic 38)
+
+### Changed
+
+- Sites: the owner's claim email reads "Your Canopy Site is ready!" with a Claim my site button, and no longer spells the link out under the button (Epic 38)
+- Sites: a claim link's preview in a messaging app and the claim page lead with the email's picture, headline and button (Epic 38)
+- Operator: emailing a claim link says when it replaced one that still worked (Epic 38)
+- The password reset email is laid out like the claim email
+
 ## [5.23.3] - 2026-11-19
 
 ### Fixed

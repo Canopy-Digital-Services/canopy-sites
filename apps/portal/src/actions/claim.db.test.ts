@@ -13,7 +13,7 @@ vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.spyOn(console, "log").mockImplementation(() => {});
 
 const { claimAccount, resendClaimLink } = await import("./claim");
-const { sendClaimLink } = await import("./admin/claims");
+const { emailShownClaimLink, sendClaimLink } = await import("./admin/claims");
 const { addAccountMember } = await import("./admin/members");
 const { requestPasswordReset, resetPassword, signInAction } = await import("./auth");
 const { claimPreview, readClaim } = await import("@/lib/claim");
@@ -78,10 +78,44 @@ describe("the operator's claim link (PRD D49)", () => {
 
     const mail = vi.mocked(sendEmail).mock.calls[0][0];
     expect(mail).toMatchObject({ to: owner.email, from: "Canopy Sites <sites@example.com>" });
-    expect(mail.subject).toBe(`Your website account for ${site.name}`);
-    expect(mail.text).toContain("update client1.example.com");
+    expect(mail.subject).toBe("Your Canopy Site is ready");
+    expect(mail.html).toContain("Claim my site</a>");
     expect(mail.text).toMatch(/https:\/\/sites\.example\.com\/claim\?token=[a-f0-9]{64}/);
+    // The keys picture travels with the message, and the HTML shows it.
+    expect(mail.images).toMatchObject([{ cid: "claim-keys", filename: "keys.jpg" }]);
+    expect(mail.images?.[0].content.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+    expect(mail.html).toContain('src="cid:claim-keys"');
     expect((await prisma.passwordToken.findFirstOrThrow({ where: { userId: owner.id } })).emailedAt).not.toBeNull();
+  });
+
+  it("emails the link a dialog shows as it is, so the copied one keeps working", async () => {
+    const { site, owner } = await linkedSite();
+    const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
+
+    expect(await emailShownClaimLink(url)).toEqual({ success: true, message: `Sent to ${owner.email}.` });
+
+    expect(vi.mocked(sendEmail).mock.calls[0][0].text).toContain(url);
+    expect(await readClaim(tokenOf(url))).toMatchObject({ state: "ready" });
+    expect(await prisma.passwordToken.findMany({ where: { userId: owner.id }, select: { emailedAt: true } })).toEqual([{ emailedAt: expect.any(Date) }]);
+
+    // A new emailed link says the earlier one is gone, and the earlier one can no longer be emailed.
+    vi.mocked(sendEmail).mockClear();
+    expect(await sendClaimLink(site.id, owner.id, "email")).toEqual({
+      success: true,
+      message: `Sent to ${owner.email}. Their earlier link no longer works.`,
+    });
+    expect(await emailShownClaimLink(url)).toEqual({ error: "That link no longer works. Make a new one." });
+    expect(await emailShownClaimLink("not a link")).toHaveProperty("error");
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("is the operator's to email: nobody else can", async () => {
+    const { site, owner } = await linkedSite();
+    const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
+    resetRequest();
+
+    await expect(emailShownClaimLink(url)).rejects.toThrow();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
   it("gives the expiry date in the account's time zone", async () => {
@@ -120,7 +154,7 @@ describe("claiming (PRD D49)", () => {
     const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
     resetRequest();
 
-    expect(await readClaim(tokenOf(url))).toEqual({ state: "ready", email: owner.email, siteId: site.id, siteName: site.name });
+    expect(await readClaim(tokenOf(url))).toEqual({ state: "ready", email: owner.email, siteId: site.id, siteName: site.name, owner: true });
     expect(await readClaim(tokenOf(url))).toMatchObject({ state: "ready" }); // reading consumes nothing
 
     expect(await claimAccount({ token: tokenOf(url), password: "my new password" })).toEqual({ success: true });
@@ -140,12 +174,13 @@ describe("claiming (PRD D49)", () => {
     });
   });
 
-  it("previews with the site's name, never the owner's email or the link's token", async () => {
+  it("previews with the email's words and the site's name, never the owner's email or the link's token", async () => {
     const { site, owner } = await linkedSite();
     const url = ((await sendClaimLink(site.id, owner.id, "copy")) as { url: string }).url;
 
     const preview = claimPreview(await readClaim(tokenOf(url)), "Canopy Sites");
-    expect(preview.title).toBe(`Claim your ${site.name} website`);
+    expect(preview.title).toBe("Your Canopy Site is ready!");
+    expect(preview.description).toBe(`Set your password and start managing ${site.name}.`);
     expect(preview.image).toMatch(new RegExp(`^${site.id}-[0-9a-f]{8}\\.jpg$`));
     expect(JSON.stringify(preview)).not.toContain(owner.email);
     expect(JSON.stringify(preview)).not.toContain(tokenOf(url));
@@ -248,6 +283,11 @@ describe("a person added to the account (PRD D63)", () => {
     const url = (result as { claimUrl: string }).claimUrl;
     expect(url).toMatch(/^https:\/\/sites\.example\.com\/claim\?token=/);
     expect(await prisma.user.findUniqueOrThrow({ where: { email: "partner@example.com" } })).toMatchObject({ password: null, name: "Pat Partner" });
+    // Their link previews as theirs: they were added, the site isn't theirs to claim.
+    expect(claimPreview(await readClaim(tokenOf(url)), "Canopy Sites")).toMatchObject({
+      title: "You're in!",
+      description: expect.stringContaining("You've been added as a user on the "),
+    });
 
     resetRequest();
     requestHeaders.set("cf-connecting-ip", "203.0.113.20");
@@ -262,7 +302,17 @@ describe("a person added to the account (PRD D63)", () => {
 
     const copied = await sendClaimLink(site.id, partner.id, "copy");
     expect((copied as { url: string }).url).toMatch(/\/claim\?token=/);
-    expect(await sendClaimLink(site.id, partner.id, "email")).toEqual({ success: true, message: "Sent to partner@example.com." });
+    // Adding them made a link and the copy above another, so this one replaces a link that worked.
+    expect(await sendClaimLink(site.id, partner.id, "email")).toEqual({
+      success: true,
+      message: "Sent to partner@example.com. Their earlier link no longer works.",
+    });
+    // Their email says they were added; the handoff of the site is the owner's.
+    const mail = vi.mocked(sendEmail).mock.calls[0][0];
+    expect(mail.subject).toBe(`You've been added to the ${site.name} website`);
+    expect(mail.text).toContain(`You've been added as a user on the ${site.name} website in Canopy Sites`);
+    expect(mail.html).toContain("Set my password</a>");
+    expect(mail.html).toContain('src="cid:claim-keys"');
     // The owner's own link is untouched by a link made for someone else.
     expect(await prisma.passwordToken.count({ where: { userId: owner.id } })).toBe(0);
 
