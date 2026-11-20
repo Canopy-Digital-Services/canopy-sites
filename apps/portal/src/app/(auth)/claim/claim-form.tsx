@@ -11,7 +11,24 @@ import { Button } from "@/components/ui/button";
 import { claimAccount, resendClaimLink } from "@/actions/claim";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 
-export function ClaimForm({ token, email, siteName }: { token: string; email: string; siteName: string | null }) {
+/**
+ * Where a claim link lands: its picture and headline, as the email and the
+ * link's preview showed them, then the password to set.
+ */
+export function ClaimForm({
+  token,
+  email,
+  headline,
+  button,
+  picture,
+}: {
+  token: string;
+  email: string;
+  headline: string;
+  /** The submit button, named as the email's button was. */
+  button: string;
+  picture: { src: string; alt: string; width: number; height: number };
+}) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [touched, setTouched] = useState<{ password?: boolean; confirmPassword?: boolean }>({});
@@ -46,16 +63,13 @@ export function ClaimForm({ token, email, siteName }: { token: string; email: st
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex justify-center py-2">
-          <AuthBrandMark />
-        </div>
-      </CardHeader>
+    <Card className="overflow-hidden pt-0">
+      {/* eslint-disable-next-line @next/next/no-img-element -- Drawn per site by /claim/image */}
+      <img src={picture.src} alt={picture.alt} width={picture.width} height={picture.height} className="block h-auto w-full" />
       <form onSubmit={handleSubmit} noValidate>
         <CardContent className="space-y-4">
           <div className="mb-4 space-y-1 text-center">
-            <h2 className="text-xl font-heading font-semibold">{siteName ?? "Your account"}</h2>
+            <h1 className="text-2xl font-heading font-semibold text-primary">{headline}</h1>
             <p className="text-sm text-muted-foreground">{email}</p>
           </div>
           {/* The email as the username, so the phone's password manager saves the pair. */}
@@ -119,7 +133,7 @@ export function ClaimForm({ token, email, siteName }: { token: string; email: st
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Setting password..." : "Set password"}
+            {isPending ? "Setting password..." : button}
           </Button>
         </CardFooter>
       </form>

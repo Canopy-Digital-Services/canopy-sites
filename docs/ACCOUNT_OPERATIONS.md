@@ -78,9 +78,9 @@ A person's name (`User.name`, optional) is what the portal calls them to anyone 
 ### Claim (PRD D49)
 
 **Route:** `/claim?token=...` on the account's home host
-**Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` in `src/actions/admin/claims.ts`
+**Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` and `emailShownClaimLink()` in `src/actions/admin/claims.ts`
 
-A person with no password, the owner of a linked site or anyone added to its account since, gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the person's row on the site's People card to text it, or has the portal email it (`emailedAt`); Forgot password for someone who hasn't claimed emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
+A person with no password, the owner of a linked site or anyone added to its account since, gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the person's row on the site's People card to text it, or has the portal email it (`emailedAt`); the dialog that shows a link can email that same link (`emailShownClaimLink`), so one link serves both. Forgot password for someone who hasn't claimed emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
 
 Opening the page reads the token and consumes nothing, so a messaging app's link preview can't use it up. Setting the password consumes it with one conditional update (a claim token, unused, unexpired) and sets the password only where it is still null, in one transaction; then a "keep me signed in" session starts and `lastLoginAt` is set. An expired link offers to email a new one to the same address (`resendClaimLink`, under the reset throttle); a used one points to sign-in.
 
@@ -182,7 +182,7 @@ Flow:
 1. User submits email on `/forgot-password`
 2. Server looks up User by email — always returns generic success message (prevents email enumeration)
 3. Unless throttled, if the user exists: an owner who hasn't claimed (no password) gets the claim email instead (Claim, above). Otherwise generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and retire the user's earlier unused tokens by moving their expiry to now, so only the newest link works (`issuePasswordToken` in `src/lib/claim.ts`)
-4. Send reset email with link to `/reset-password?token=...`, from the account's sender (`senderFor`)
+4. Send reset email with link to `/reset-password?token=...`, from the account's sender (`senderFor`), in the card the claim email uses (`src/lib/email-card.ts`)
 5. User sets new password → server consumes the token with one conditional update (a reset token, unused and unexpired; a claim link, PRD D49, is refused here), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
 6. Redirect to `/login?reset=success`
 

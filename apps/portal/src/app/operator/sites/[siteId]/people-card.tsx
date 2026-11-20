@@ -17,7 +17,7 @@ import { actAsClient } from "@/actions/admin/act-as";
 import { removeAccountMember, setPersonName } from "@/actions/admin/members";
 import { PERSON_NAME_MAX } from "@/lib/person";
 import { AddPersonButton } from "../../add-person-button";
-import { CopyLinkField } from "../../copy-link-field";
+import { CopyLinkField, EmailClaimLinkButton } from "../../copy-link-field";
 
 /** A person as the operator page shows them; dates are formatted on the server. */
 export type PersonRow = {
@@ -165,6 +165,8 @@ export function PeopleCard({
           </DialogHeader>
           {copied ? <CopyLinkField url={copied.url} label="Claim link" /> : null}
           <DialogFooter>
+            {/* Keyed by the link, so a new link's button starts unsent. */}
+            {copied ? <EmailClaimLinkButton key={copied.url} url={copied.url} /> : null}
             <Button type="button" onClick={() => setCopied(null)}>
               Done
             </Button>

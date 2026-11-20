@@ -1,7 +1,7 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 import { cache } from "react";
 import type { Metadata } from "next";
-import { claimPreview, readClaim } from "@/lib/claim";
+import { claimPreview, claimWords, readClaim } from "@/lib/claim";
 import { CLAIM_IMAGE_SIZE } from "@/lib/claim-image";
 import { appUrlFor, getHostProduct, productNameFor } from "@/lib/product";
 import { ClaimForm, ClaimProblem } from "./claim-form";
@@ -35,13 +35,18 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 /**
- * Claiming an account the operator linked (PRD D49): the site's name, the
- * owner's email, and a password to set. Opening it consumes nothing.
+ * Claiming an account the operator linked (PRD D49): the picture and words
+ * the link's email and preview led with (`claimWords`), the person's email,
+ * and a password to set. Opening it consumes nothing.
  */
 export default async function ClaimPage({ searchParams }: Props) {
   const token = await tokenOf(searchParams);
   const claim = await readClaimOnce(token);
+  if (claim.state !== "ready") return <ClaimProblem state={claim.state} token={token} />;
 
-  if (claim.state === "ready") return <ClaimForm token={token} email={claim.email} siteName={claim.siteName} />;
-  return <ClaimProblem state={claim.state} token={token} />;
+  const productName = productNameFor({ sitesEnabled: (await getHostProduct()) === "sites" });
+  const { headline, button, pictureAlt } = claimWords({ owner: claim.owner, siteName: claim.siteName, productName });
+  // The preview's picture, from the same cached file.
+  const picture = { src: `/claim/image/${claimPreview(claim, productName).image}`, alt: pictureAlt, ...CLAIM_IMAGE_SIZE };
+  return <ClaimForm token={token} email={claim.email} headline={headline} button={button} picture={picture} />;
 }

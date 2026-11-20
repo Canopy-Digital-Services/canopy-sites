@@ -99,7 +99,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 ### 4.4 Claim
 
-**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
+**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text, with **Email it** beside it: that emails the link shown and makes no new one, so the texted copy and the emailed one are the same link. Email claim link on the card does make a new one, and its toast says so when the earlier link still worked. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
 
 **The email.** From `Canopy Sites <sites@canopyds.com>`, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2). It is the handoff of the owner's website, so the HTML opens with the link preview's picture (Canopy Boy holding the keys, the site's name on the tag), sent inline with the message:
 
@@ -115,12 +115,14 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 A person added to the account since (PRD D63) gets the same picture and a plainer message: the subject "You've been added to the Client 1 website", the heading "You're in!", then "You've been added as a user on the Client 1 website in Canopy Sites. Click the button below to set your password and log in.", and **Set my password**.
 
+**The preview.** Pasted into a messaging app, the link shows the same picture and the email's words (`claimWords`): "Your Canopy Site is ready!" over "Set your password and start managing Client 1." for the owner, "You're in!" over the added sentence for anyone else. Never the person's email.
+
 **The sender.** Today every email goes out as `Forms@CanopyDS.com` (`SMTP_FROM`, production env, checked 2026-11-05). `sites@canopyds.com` is a send-as identity on the same Migadu mailbox (`forms@`, the portal's SMTP login), and mail sent to it reaches `clients@` through an alias of the same name (both created 2026-11-05). So the portal picks the From by product, beside the link host (`appUrlFor`): a new `SMTP_FROM_SITES` (`Canopy Sites <sites@canopyds.com>`) for every email to a Sites account, the claim, reset, and submission notifications alike, with `SMTP_FROM` for the rest. Same login, no new secret. All of it shares Migadu's 20 a day outgoing limit for the whole account (Engineering → Migadu), which is one reason a copied link, which sends nothing, is the usual way to hand over a claim.
 
 **The page.** `/claim` on the Sites host, in the auth layout with the host's branding:
 
 - Opening the link reads the token and consumes nothing, so a messaging app's link preview can't use it up. Only setting the password consumes it, with one conditional update, as reset does (`resetPassword`).
-- It shows the site's name and the owner's email, which can't be changed there, a new password (`PasswordInput`, `new-password`, with a hidden `username` field holding the email, so the phone's password manager saves the pair), and **Set password**. Nothing else on the page: no third-party script, since the token is in the URL.
+- It opens with the picture and headline the email and the preview led with, then the person's email, which can't be changed there, a new password (`PasswordInput`, `new-password`, with a hidden `username` field holding the email, so the phone's password manager saves the pair), and the email's button again: **Claim my site** for the owner, **Set my password** for anyone added since. Nothing else on the page: no third-party script, since the token is in the URL.
 - On success: the password and `passwordChangedAt` set, the token consumed, a "keep me signed in" session started, and home (`/quick-edit`). The owner's `lastLoginAt` is set as a sign-in sets it.
 - A used or expired link says so and offers to send a new one to the same address (the Forgot password path below), so a client who waited too long needs nothing from Michael.
 
