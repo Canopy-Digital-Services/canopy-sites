@@ -22,7 +22,7 @@ Phase 5  Client 1 migration             [client1]              T1, E42          
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
-Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (after the MVP: Gallery, Events, E55 past its first step, Services, then button and menu text; Booking when a client needs it)
+Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (Services now, then button and menu text; after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -51,11 +51,11 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 
 **Welcome video, 2026-11-14 (Michael):** E39 joins the MVP ahead of the Client 3 site's claim links, so each person there opens their portal on a walkthrough of it. the test site gets the first one. Since 2026-11-15 it is one video for each tab, which keeps each short.
 
-**Client 2 leaves Square, 2026-11-17 (Michael):** the owner is moving off Square and takes payment by Venmo, so her site's booking becomes a request form (PRD D65, E55). Her booking buttons read one value, `site.contact.bookingUrl`, which is still Square's address, and three lines of her copy say a card on file is required (`client2` `main`, checked 2026-11-19); the buttons stop working the day her Square account closes, a date Canopy doesn't have yet. E55's first step, the form from today's field types, is in the MVP (Michael, 2026-11-17). It has no place in the numbered order, because its date is hers: it is worked as soon as she gives that date and settles her policy's wording (E55). The rest of E55 comes after the MVP. This paragraph goes when the form is live on her site.
+**Client 2 leaves Square, 2026-11-17 (Michael):** the owner is moving off Square and takes payment by Venmo, so her site's booking becomes a request form (PRD D65, E55). Her booking buttons read one value, `site.contact.bookingUrl`, which is still Square's address, and three lines of her copy say a card on file is required (`client2` `main`, checked 2026-11-19); the buttons stop working the day her Square account closes, a date Canopy doesn't have yet. E55's first step, the form from today's field types, is in the MVP (Michael, 2026-11-17). It has no place in the numbered order, because its date is hers: it is worked as soon as she gives that date and settles her policy's wording (E55). Michael takes that up with her around 2026-12-04, and Services (E56) is built first (Michael, 2026-11-20). The rest of E55 comes after the MVP. This paragraph goes when the form is live on her site.
 
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
 
-After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is drafted for after the MVP as the first tab built, which is Michael's to confirm (its epic doc, section 7). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
+After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is built now, ahead of E55's Forms parts and of Gallery and Events (Michael, 2026-11-20). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
 ### Demo slice first (decided 2026-10-16)
 
@@ -467,7 +467,7 @@ Goal: a new client asks the owner for an appointment from her site, with photos 
 
 ### E56 · Services
 
-Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Drafted and not yet approved: when it is built, and PRD D66, are its section 7.
+Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Built now (Michael, 2026-11-20). Still his to approve: which fields the form offers, and PRD D66 (its section 7).
 
 - Found converting Client 2 (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
 - Contract 0.8.0 (a template says where a list is, the id rule exported), the Services tab, and each site's lists named to the canvas
