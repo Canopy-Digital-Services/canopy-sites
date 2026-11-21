@@ -23,6 +23,7 @@ Phase 6  Site kit                     [site-kit, starter]  E41                  
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (Services now, then button and menu text; after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
+Phase 10 Keeping a site true          [this repo]          E58, E59, E60, E61         (from the positioning session of 2026-11-21; order to decide)
 ```
 
 Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -53,7 +54,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Toro Z, Fur-Ever Friend
 
 **Hair & Harvest leaves Square, 2026-11-17 (Michael):** Sierra is moving off Square and takes payment by Venmo, so her site's booking becomes a request form (PRD D65, E55). Her booking buttons read one value, `site.contact.bookingUrl`, which is still Square's address, and three lines of her copy say a card on file is required (`hair-and-harvest` `main`, checked 2026-11-19); the buttons stop working the day her Square account closes, a date Canopy doesn't have yet. E55's first step, the form from today's field types, is in the MVP (Michael, 2026-11-17). It has no place in the numbered order, because its date is hers: it is worked as soon as she gives that date and settles her policy's wording (E55). Michael takes that up with her around 2026-12-04, and Services (E56) is built first (Michael, 2026-11-20). The rest of E55 comes after the MVP. This paragraph goes when the form is live on her site.
 
-To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), restore (F7), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24).
+To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24). Restore (F7) is E58 and holds up no claim: Toro Z, the first, is a free customer and a portfolio piece (Michael, 2026-11-21).
 
 After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is built now, ahead of E55's Forms parts and of Gallery and Events (Michael, 2026-11-20). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
 
@@ -487,13 +488,55 @@ Goal: an owner changes the words on a button or a menu item where they see it, a
 
 ---
 
+## Phase 10: Keeping a site true
+
+From a session on positioning with Michael, 2026-11-21. Each of these backs something Sites would say to a buyer: the site is safe to touch, it stays current, it works from a phone, and it is the client's to take. He agreed to all four that day. Their order, among themselves and against Phase 9, is to decide.
+
+### E58 · History and restore
+
+Goal: an owner sees what was published, when, and by whom, and takes the site back to any of those versions, so a published mistake is never a reason to be afraid of editing (F7; PRD section 4.5).
+
+- A restore is a draft that sets content back to a published version, then is built, previewed, and published like any other (PRD section 4.5). It is never the builder's `current` pointed at an older build
+- The list is the site's published ChangeSets: what changed, when, who published it, and whose draft it was (PRD D64). PRD section 6 puts it on Quick Edit's home
+- For an organization the same list is its record of who changed what
+- Open for the epic doc: how far back the list goes; a Canopy push between two versions, where a template no longer renders an old field; and photos, once E50 lands
+
+### E59 · The site asks
+
+A concept, with its specifics not worked out (Michael, 2026-11-21).
+
+Goal: the site notices what may have gone out of date and asks its owner, instead of waiting for them to remember.
+
+- The idea: every so often the owner is shown a few facts and asked whether each is still true (the hours, a price, a phone number, text naming a date or a year that has passed, a notice about to end), and answers with one tap or one Quick Edit message
+- What it would stand on: facts stored structured (PRD D48), the tool layer's date and stale-mention warnings (`QUICK_EDIT_GUIDANCE.md` section 2), and the portal's mail
+- Needs first: dated notices on client sites and a nightly rebuild that reaches them (F6), so whatever has an end date ends by itself and only the rest is asked about
+- Open, all of it: which facts, how often, by email or in the portal, what an answer records, and how it stays out of the mail an owner ignores
+
+### E60 · The portal on a phone, and answers about the site
+
+Goal: an owner does from a phone what they came to do, and can ask what happened on their site and get a number back.
+
+- Quick Edit is the product on a phone if the Editor isn't offered there (F24): the conversation survives a reload (F20), and a photo comes from the camera roll (E50)
+- Questions as well as edits (Michael, 2026-11-21): "How many people have responded since yesterday?", "How many people clicked on the gallery last month?", answered from the account's submissions and its Stats
+- Not an assistant: Michael wants it clear of the AI-assistant trend, and Quick Edit is never marketed as one (PRD section 1). An answer is a figure and where it came from, never advice
+- Open for the epic doc: whether questions belong in Quick Edit, whose name says edits; what it may read, since submissions hold visitors' personal details; and what a question costs (F8)
+
+### E61 · Export
+
+Goal: a client who leaves takes their site with them, with none of Canopy's contract in it (PRD D58).
+
+- The main work is stripping the content contract out (`@canopy/site-contract`, the marks, the content loader), leaving a site that builds and reads by itself (Michael, 2026-11-21)
+- An export to plain code and an export to WordPress are different pieces of work, and which are offered is open
+- Open for the epic doc: what the output is (built pages, or a project with its content written in); forms and other runtime components, which stay Canopy's (PRD D52, D53); media; a client who already holds their repo (PRD D61); and whether it is the owner's button or something Canopy does when asked
+
+---
+
 ## Not scheduled (recorded so they are not forgotten)
 
 - Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
 - Members (a light CRM) and newsletters as runtime components (PRD D52)
 - Forms sold as a public product (PRD D67)
 - Confirming a request with a time, after E55: the client gets an email with a calendar invite, then a reminder by email at the cancellation cutoff. Proposed 2026-11-17, not decided
-- An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)
 - An owner inviting their own people, member roles such as who may publish, and asking another person for control of the site (PRD D63, D64)
