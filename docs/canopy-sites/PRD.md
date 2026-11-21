@@ -26,6 +26,8 @@
 
 **Revision note (2026-11-21, pricing):** sections 1 and 2 revised. Pricing is undecided, its model included, and this doc states no price.
 
+**Revision note (2026-11-21, positioning):** section 1 revised. The positioning is rewritten from what the product does, and owner-operated businesses are who Sites goes after first.
+
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
@@ -35,11 +37,11 @@
 | | |
 |---|---|
 | Product | Canopy Sites: a hand-built static website plus hosting, maintenance, and updates |
-| ICP | Small businesses that need a website and will pay for high quality that is easy to update |
-| Core promise | We build the site, then we handle everything (domain transfer is the one thing the client must help with) |
-| Positioning | A site that isn't built from a template, and is easier to keep updated than WordPress. Local, reachable, we run our own stack |
+| ICP | Owner-operated small businesses first: the person who runs the business keeps the site current. Organizations with several people, more traffic, and higher uptime needs are taken when they come and not pursued yet, while the hosting is proven for them. Nothing public says who is first (Michael, 2026-11-21) |
+| Core promise | We build a working draft before the client commits, then the site. The owner keeps it current, and we handle everything else (domain transfer is the one thing the client must help with) |
+| Positioning | We build it, you keep it current, and nothing you do can break it. Canopy owns how the site looks; the owner owns what it says, changes it in about a minute, and sees it before it goes live. It is theirs: their domain and code, no trackers on their visitors, hosted in Sacramento by someone they can text. The enemy is the site that has gone out of date, not another product (worked out with Michael, 2026-11-21) |
 | Pricing | Undecided, with the business case: no price and no model (Michael, 2026-11-21). A free build followed by a flat monthly fee is probably not it. The public page shows no price, and still says "for one flat monthly rate" (read 2026-11-21) |
-| Public page | `canopyds.com/websites` (live since the redesign launched; verified 2026-10-19). Copy change required: "No dashboards to learn" → "Update through whatever channel works for you: text us, talk to the site editor, or open the full editor view" |
+| Public page | `canopyds.com/websites`. Its copy sells an older product, with Canopy making every update (read 2026-11-21); its rework to the positioning above is the website repo's, from a brief written that day |
 
 ### Update channels (all converge on one pipeline)
 
