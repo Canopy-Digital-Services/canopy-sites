@@ -92,7 +92,7 @@ Only the demo has an `announcements` collection; Client 1, the test site, and ca
 
 ### F7. No restore
 
-An owner who publishes a mistake can edit again or ask Michael. PRD section 4.5 plans a restore to a published version; the portal has none. Basis: read.
+An owner who publishes a mistake can edit again or ask Michael. PRD section 4.5 plans a restore to a published version; the portal has none. Basis: read. On the roadmap as E58, with a history of what was published, and it holds up no claim (Michael, 2026-11-21).
 
 ### F8. No ceiling on Quick Edit spend
 
