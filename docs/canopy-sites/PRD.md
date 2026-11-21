@@ -24,6 +24,8 @@
 
 **Revision note (2026-11-21, Forms and Sites part as products):** D67 and D68 added; D2 and D53 revised; sections 2 and 6 revised. In Sites a form is Canopy's to build and its owner's to read, built with the site and with no embed. Forms is to be a public product of its own, later, and stays on this codebase.
 
+**Revision note (2026-11-21, pricing):** sections 1 and 2 revised. Pricing is undecided, its model included, and this doc states no price.
+
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
@@ -32,11 +34,11 @@
 
 | | |
 |---|---|
-| Product | Canopy Sites: a hand-built static website plus hosting, maintenance, and updates for one flat monthly rate |
+| Product | Canopy Sites: a hand-built static website plus hosting, maintenance, and updates |
 | ICP | Small businesses that need a website and will pay for high quality that is easy to update |
-| Core promise | We build the site for free, you see it before you commit, then we handle everything (domain transfer is the one thing the client must help with) |
+| Core promise | We build the site, then we handle everything (domain transfer is the one thing the client must help with) |
 | Positioning | A site that isn't built from a template, and is easier to keep updated than WordPress. Local, reachable, we run our own stack |
-| Pricing | Unsettled, with the business case (Michael, 2026-11-09). As published: **$175/mo** (design, build, hosting, SSL, backups, basic stats, updates). **+$75/mo** search & reporting (SEO work, AI-answer visibility, monthly report). "Build quote then $49/mo hosting-only" exists on the site but is not a featured product and gets no portal support in v1 |
+| Pricing | Undecided, with the business case: no price and no model (Michael, 2026-11-21). A free build followed by a flat monthly fee is probably not it. The public page shows no price, and still says "for one flat monthly rate" (read 2026-11-21) |
 | Public page | `canopyds.com/websites` (live since the redesign launched; verified 2026-10-19). Copy change required: "No dashboards to learn" → "Update through whatever channel works for you: text us, talk to the site editor, or open the full editor view" |
 
 ### Update channels (all converge on one pipeline)
@@ -85,7 +87,7 @@ The MVP, the part of v1 that launches first, is D51; its order is ROADMAP's "The
 | An owner inviting their own people; member roles (who may publish); asking another person for control of the site | The operator adds people, and every one of them edits and publishes (D63). One edits at a time, and people message each other (D64) |
 | Tool tabs: Gallery, Calendar, blog, newsletter | After the MVP, Gallery first (D54). Until then a photo is a request to Michael, and announcements go through quick edit and the canvas (D42) |
 | Self-serve demo for prospects; more than one demo site | A Canopy person drives every demo; several demos come later behind a switcher (D44) |
-| SEO tier report | +$75 tier is a service, not software, in v1 |
+| SEO tier report | Search and reporting is a service, not software, in v1 |
 | Creating a site's repo, DNS, Coolify app, or Umami website from the portal | Michael creates them; the operator links the live site (D49) |
 | DNS / domain automation | Cloudflare by hand, per `deploy-to-webber.md` pattern |
 | The public MCP endpoint | After v1; it would mostly serve Michael (D59) |
