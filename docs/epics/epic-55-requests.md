@@ -161,17 +161,21 @@ Section 10, each in the commit that changes the behavior.
 
 - **Services first.** There is time with the owner: the conversation with her resumes in about two weeks. The service list is meant to support this form (section 7, item 11).
 
+### Michael (2026-11-21)
+
+- **In Sites a form is Canopy's to build and its owner's to read** (PRD D67), **built with the site and with no embed** (PRD D68). Forms is to be a public product of its own, later, on this codebase. 4.4 is the first thing built on that. This epic was drafted before both: it has her form made in the Forms builder and shown on a hosted page (4.1), and 4.3 and 4.5 built into Forms' embed and hosted page for every account (section 1). Section 7's items 3, 11, and 12 are where that is settled.
+
 ### Agent calls inside scope
 
 None yet.
 
 ## 7. Open
 
-For Michael, and through him the owner. Items 1, 3, 7, and 11 change what is built; item 2 is what 4.1 and 4.2 wait on.
+For Michael, and through him the owner. Items 1, 3, 7, 11, and 12 change what is built; item 2 is what 4.1 and 4.2 wait on.
 
 1. **When the three Forms parts are built.** After Epic 56 (section 6). They were recorded on 2026-11-17 as after the MVP, their place there to decide. Recommended: 4.3 as soon as this resumes, since her form wants it on its first day and it is a session; 4.4 and 4.5 as sessions allow beside the MVP's list, with the ROADMAP's "After the MVP" line and PRD D51 changed to say so in the commit that approves this.
 2. **From the owner.** The date Square closes. Her cancellation window: Square's policy says two days and her policies page 24 hours (both read 2026-11-17). Her words for the three lines that ask for a card on file. What the form asks, in her words: Michael set aside drafting it on 2026-11-17, and 4.1 waits on it.
-3. **A hosted form, or the form on her own site.** Recommended: hosted, for 4.1. Her booking button already leaves the site for Square's page, the switch is then one value, and the hosted page takes her colors and type. A page of her own with the form in it is a new template and a contract change (pages are fixed on every site), and can follow.
+3. **A hosted form, or the form on her own site.** PRD D68 makes a site's form part of the site, which for her is a page of her own with the form in it: a new template, a contract change (pages are fixed on every site), and E45, which isn't built. A hosted form needs nothing built, takes her colors and type, and her booking button already leaves the site for Square's page. Recommended: on her site if E45 is built before her date; hosted for 4.1 if it isn't, and moved onto her site after.
 4. **Photos before 4.5.** The form can't take them until then. Recommended: the message after sending asks for them by Instagram message, the one way her site already gives to reach her. Hers to choose.
 5. **The tab's label.** It reads Forms. Its id stays `forms`, which welcome videos are named by. Settled with 4.4's first section.
 6. **An account with no forms.** The Client 3 site's form goes to an outside CRM, so its people would open the tab on nothing. Recommended: the tab is left out for an account that has no form, as Epic 56 shows Services only for a site that has services.
@@ -179,7 +183,8 @@ For Michael, and through him the owner. Items 1, 3, 7, and 11 change what is bui
 8. **How long photos are kept.** Recommended: until the request is deleted, with no expiry, and a cap for each form that tells the owner when it is near.
 9. **Before the switch.** The form becomes her only way to be booked. It lives on Webber alone (F12): with Webber down her pages serve from Fox and the form doesn't answer. Its notification mail shares the ceiling in F32, and a notification that fails is logged and nowhere else. Recommended: the sender with headroom (the MVP's item 6) before 4.2, and F12 left as it is, since her pages already say to reach her on Instagram.
 10. **The buttons' wording.** Three labels today. Recommended: "Request an appointment" on all of them. Canopy's text, so Michael's to set.
-11. **Her form's services: typed, or read from her list.** 4.1 types them into a Choose several field, a second copy of the menu that goes stale when she adds a service. With Services built first, the form can read the site's list. Recommended: a step ahead of 4.1, a choice field whose options are the site's services, so her form is never typed from her menu. Epic 56 leaves it to this epic (its section 2).
+11. **Her form's services: typed, or read from her list.** A form built with her site (PRD D68) lists her services from the same build, and nothing is built in Forms for it. A hosted form (item 3) types them into a Choose several field, a second copy of the menu that goes stale when she adds a service. Recommended: typed only for as long as her form is hosted, and no choice field in Forms that reads a site's list. Epic 56 leaves it to this epic (its section 2).
+12. **Where 4.3 and 4.5 are built.** As drafted, in Forms' embed and hosted page, for every account. With PRD D68 her form's Approval and photos are drawn by her site. The portal's part is the same either way: keeping the document's text with the answer, and taking, storing, showing, and removing the files. Recommended: the portal's part as drafted, and the visitor's side in the package sites build in (E45), added to Forms' own embed and hosted page when Forms is sold and someone needs it there. That puts 4.5, and the link in 4.3, after E45.
 
 ## 8. Completion report
 

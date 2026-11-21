@@ -365,13 +365,15 @@ Goal: a new client claims their portal and edits their copy before any visitor c
 
 ### E45 · A site's forms from its build
 
-Goal: a new site's form works the moment the site does, in the client's own account, with nothing rewired after linking. As of 2026-11-06, Forms can't import, export, or duplicate a form; a site embeds a form by its id; and a form's allowed origins are typed by hand. So a site's form is built after linking, acting as the client (D49), and its id committed after that (Epic 42, 4.4).
+Goal: a site's form is part of the site (PRD D68): written with its pages, in its own markup and styles, working the moment the site does, with what it takes in landing in the client's account and nothing rewired after linking. No embed. As of 2026-11-21 a site embeds a Forms form by its id, which draws it in the visitor's browser from the portal; the form is built after linking, acting as the client (D49), and its id committed after that (Epic 42, 4.4).
 
-- **The form is written during the build** (Site Build Checklist), as a definition file in the site repo in Forms' own field model: fields, title, settings, and notifications to the owner. Forms gains import of that file and export to it, so a form Michael builds by hand can become one too.
-- **Link a site imports the repo's forms** into the new account, so the owner's Forms tab and submissions start with them; acting as the client, an Import does the same for a site already linked.
-- **The embed names its form** (`contact`) and the portal resolves the name within the site's account, so the template is written once, before any account exists. A form's allowed origins come from its site's hostnames.
-- The embed component, with its placeholder under the portal flags, goes into the site kit (E41).
-- Acceptance: a site from the starter with a form definition, once linked, serves a working form whose submissions land in the client's account, with no commit after linking.
+- **The form is written during the build** (Site Build Checklist), as a definition in the site's repo, and a component in the site kit (E41) draws it at build. A choice can list the site's services (E56), since both come from one build.
+- **The portal learns a site's forms from the site**, at Link a site and at each publish, so the owner's Forms tab names them and answers are checked and labeled. Nobody builds a site's form in the Forms builder.
+- **Sending goes to the portal**, on the route Forms' own forms post to and through the same checks. A form is named within its site (`contact`), so the template is written once, before any account exists, and the origins it accepts are the site's hostnames.
+- **What runs in the visitor's browser is a package the site builds in**, written once for every site.
+- the test site first, then canopyds.com (Michael, 2026-11-21). Both embed a form by id today, and the embed by id is owed nothing once they have moved.
+- Open for the epic doc: where the definition sits (in the contract, its labels marked for the owner as other text is, or a file beside it); the sending route as a versioned agreement, since a site carries the package it was built with until its next build; what a visitor without JavaScript gets; a site with a server (D62), whose form is D53's slot with another provider; whether Forms' embed is drawn by the same package.
+- Acceptance: a site from the starter with a form definition, once linked, serves a working form whose submissions land in the client's account, with no commit after linking and no request to the portal until a visitor sends.
 
 ---
 
@@ -489,6 +491,7 @@ Goal: an owner changes the words on a button or a menu item where they see it, a
 
 - Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
 - Members (a light CRM) and newsletters as runtime components (PRD D52)
+- Forms sold as a public product (PRD D67)
 - Confirming a request with a time, after E55: the client gets an email with a calendar invite, then a reminder by email at the cancellation cutoff. Proposed 2026-11-17, not decided
 - An export that strips the CMS out of a site (PRD D58)
 - Database failover for the portal (PRD D51, F12)
