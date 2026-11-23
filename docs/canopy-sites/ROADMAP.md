@@ -470,7 +470,7 @@ Goal: a new client asks the owner for an appointment from her site, with photos 
 
 ### E56 · Services
 
-Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Built now (Michael, 2026-11-20). Still his to approve: PRD D66 (its section 7).
+Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Built now (Michael, 2026-11-20). PRD D66. Its screens wait on the planning of the portal's shape (its section 7, item 4).
 
 - Found converting Client 2 (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
 - The list is any business's, not a salon's menu (Michael, 2026-11-23): a service needs no price, a list needs no categories, room is left for several prices, and the tab's form is read from the contract and the site's guide
