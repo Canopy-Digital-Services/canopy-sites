@@ -21,8 +21,8 @@ The site goes onto Sites as it reads today. the owner's copy moves word for word
 
 ### In
 
-- **Builds that match (4.1)**: ROADMAP H1. Astro 7, Node 24, a Dockerfile and `nginx.conf` like Client 1's.
-- **The repo on the contract (4.2)**: ROADMAP H2 and the runbook's section 2. The contract at the version `main` runs, content in `src/content`, marks, portal flags, CORS, and Umami recording what it records today.
+- **Builds that match (4.1)**: Astro 7, Node 24, a Dockerfile and `nginx.conf` like Client 1's.
+- **The repo on the contract (4.2)**: the runbook's section 2. The contract at the version `main` runs, content in `src/content`, marks, portal flags, CORS, and Umami recording what it records today.
 - **The site guide (4.3)**, with limits measured from the rendered pages and every piece of text that art is drawn against listed (PRD D56).
 - **Proof (4.4)**: the runbook's section 2 step 9, and every page compared against client2.example at 360 and 1440 px.
 - **The switch (4.5)**: the branch onto `main` with both boxes' Coolify copies moved to the Dockerfile. Michael's go-ahead first.
@@ -33,7 +33,7 @@ The site goes onto Sites as it reads today. the owner's copy moves word for word
 
 | Not here | Why / where |
 |---|---|
-| `tokens.json` (ROADMAP H3) | Neither Client 1 nor the test site has one, and the contract has no `tokens` collection. Not built; section 7, item 1 |
+| `tokens.json` | Neither Client 1 nor the test site has one, and the contract has no `tokens` collection. Not built; section 7, item 1 |
 | The Square booking links and the card-on-file lines | E55's first step (PRD D65). Here the four links become one value, `site.contact.bookingUrl`, still Square's address, and the three card-on-file lines move as the owner wrote them |
 | Copy and price changes | the owner's once the site is on Sites, or Canopy's through the Editor. The featured services' five strings (section 6) are the one place the conversion changes what a visitor reads |
 | A Services tab, and adding a service or changing a featured one on the canvas | Epic 56, which also marks the site's lists. Until then the owner edits a name, description, or price in place and asks Quick Edit for the rest |
@@ -55,7 +55,7 @@ About three sessions: this one; the switch with linking and acceptance; the eval
 
 ## 4. Requirements
 
-### 4.1 Builds that match (`client2`, ROADMAP H1)
+### 4.1 Builds that match (`client2`)
 
 As of 2026-11-17 the repo is on Astro `^5.17.1`, and Coolify app `r8kgko4og008ss0w0oc84okc` builds it with nixpacks on both boxes from `Canopy-Digital-Services/client2` through the org's `canopyds-github` App, serving `/dist` from `nginx:alpine`. It carries two build variables, `NIXPACKS_NODE_VERSION` and `PUBLIC_UMAMI_DOMAINS`. Webber's copy has a health check and Fox's has none. Webber's Coolify holds no deployment record for the app: the last commit to `main` is from 2026-04-29, before Webber's rebuild on 2026-07-16, so a webhook deploy of this app has never been seen there.
 
@@ -65,7 +65,7 @@ As of 2026-11-17 the repo is on Astro `^5.17.1`, and Coolify app `r8kgko4og008ss
 4. Tailwind reads `src/` only (`@import "tailwindcss" source("..");`), so the builder's CSS and the image's are one file under one name.
 5. No content or design change: the three pages match the live site.
 
-### 4.2 The repo on the contract (`client2`, ROADMAP H2)
+### 4.2 The repo on the contract (`client2`)
 
 The runbook's section 2, the test site' 4.2 as the pattern. The templates and `content.ts` start from `canopy-demo-site` (`origin/main`, `6bcf837`), which renders this site from content files on contract 0.2. The content does not come from the demo, whose copy has been edited since (its haircut costs $90): a script writes it from this repo's templates and `services.json` as they read today.
 
@@ -181,7 +181,7 @@ Section 10, each in the commit that changes the behavior.
 
 For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and the ROADMAP.
 
-1. **`tokens.json` (H3).** Its second half is already true: the fonts are self-hosted from Fontsource. Its first half would generate the seven colors and two font stacks that `src/styles/global.css` already holds in one `@theme` block. Nothing reads a `tokens.json`: the contract has no `tokens` collection, no tool exposes design (D29), E41's site kit doesn't list it, and two sites went onto Sites without one. Recommended: drop H3, treat the `@theme` block as the site's tokens, and take `tokens` out of PRD section 4.4 and the ROADMAP (H3, C1's list) in the same commit. The alternative is to leave H3 on the ROADMAP for E41 to settle for every site at once.
+1. **`tokens.json`.** The plan was a `tokens.json` generating the site's CSS custom properties, with fonts from Fontsource only. The fonts are already self-hosted from Fontsource. The file would generate the seven colors and two font stacks that `src/styles/global.css` already holds in one `@theme` block. Nothing reads a `tokens.json`: the contract has no `tokens` collection, no tool exposes design (D29), E41's site kit doesn't list it, and two sites went onto Sites without one. Recommended: drop it, treat the `@theme` block as the site's tokens, and take `tokens` out of PRD section 4.4 in the same commit. The alternative is a line in E41's brief, for the site kit to settle for every site at once.
 2. **The share image is missing.** `og:image` and `twitter:image` name `/images/the owner-hero.jpg`, which answers 404 on the live site (checked 2026-11-17): the photos live under `src/assets` and nothing is at that address. A link to the site shares with no picture, which the Site Build Checklist's first item exists to prevent. Recommended: fix it in 4.2, pointing both tags at a 1200 by 630 rendition of the hero photo. It is Canopy's (SEO, D45), nothing on the pages changes, and otherwise 4.4 proves a broken tag was carried over faithfully.
 3. **Three dashes in text that is Canopy's, not the owner's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
 
@@ -237,7 +237,7 @@ For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and t
 
 Each lands with the change that causes it, never in a later pass.
 
-**This repo**: `docs/epics/README.md` (this epic); `docs/canopy-sites/ROADMAP.md` (the paragraph under Sequencing that says the repo was never converted, "The MVP" item 10, E46's brief, H1 to H3, and E55's first step once `bookingUrl` exists); `docs/canopy-sites/PRD.md` section 4.4 and the ROADMAP's C1, if section 7's item 1 drops `tokens`.
+**This repo**: `docs/epics/README.md` (this epic); `docs/canopy-sites/ROADMAP.md` (E55's first step once `bookingUrl` exists); `docs/canopy-sites/PRD.md` section 4.4, if section 7's item 1 drops `tokens`.
 
 **client2**: `CLAUDE.md`, `README.md`, a new `SITE_GUIDE.md` (4.2 item 7, 4.3).
 

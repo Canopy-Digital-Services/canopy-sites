@@ -1,7 +1,7 @@
 # Epic 33: Visual Editor
 
 **Status:** In progress: sections 4.1 to 4.6 released in v5.5.0 (2026-10-18) for Michael's UAT on the demo
-**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of E31 and E32 ("Visual editor next")
+**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of E31 and E32
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
@@ -19,7 +19,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 ### In
 
-- **C3, contract v0.2** (ROADMAP C3): required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
+- **C3, contract v0.2**: required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
 - **The draft** (PRD D38, from E31): `ChangeSet.version`, draft saves, per-field merging and conflicts, rebase on a branch move, sites resolved by id.
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
 - **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.

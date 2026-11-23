@@ -12,23 +12,23 @@ Open findings from the 2026-11-09 review of the build are in `docs/canopy-sites/
 
 ## Sequencing
 
+Phases 0 and 2 have shipped (Epics 27 to 30), and so has the contract's first release.
+
 ```
-Phase 0  Portal foundation            [this repo]         E27 → E28 → E29
-Phase 1  Content contract + Client 2       [site-contract, Client 2] C1 → H1 → H2 → H3         (parallel with Phase 0)
-Phase 2  Builder, preview             [this repo]         E30                        (needs E29, C1)
-Phase 3  Editor                       [this repo]         E33 → E32 → E31 → E35      (needs E30; E33 first, below)
+Phase 1  Client 2               [Client 2]                E46                        (its claim is in the MVP)
+Phase 3  Editor                       [this repo]         E33 → E32 → E31            (E33 first)
 Phase 4  Production on nginx          [webber]             E36                        (after the MVP; both boxes keep serving, PRD D57)
 Phase 5  Client 1 migration             [client1]              T1, E42                    (needs E38; follows canopyds.com's path, E37; not gated on E36; Client 2 is E46)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (after T1, before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
-Phase 8  Launch readiness             [this repo, webber]  E47, E53 → E54, E48, E49   (the MVP's own work)
+Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (Services now, then button and menu text; after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
 Phase 10 Keeping a site true          [this repo]          E58, E59, E60, E61         (from the positioning session of 2026-11-21; order to decide)
 ```
 
-Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Everything in Phases 2–3 is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
+Every site on Sites keeps deploying through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys (the fallback path, how canopyds.com runs on Sites since Epic 37). Every edit is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
 
-Client 2's own repo is on the contract and live from it since 2026-11-17 (Epic 46, 4.1 to 4.5); it isn't linked yet, so on Sites it is still only the demo's copy (PRD D23). Linking and the claim are E46's rest, in the MVP (PRD D51). canopyds.com (Epic 37) is the precedent every site follows onto Sites.
+Client 2's repo is on the contract and its site linked since 2026-11-17 (Epic 46); its claim is left, in the MVP (PRD D51). canopyds.com (Epic 37) is the precedent every site follows onto Sites.
 
 ### The MVP (decided 2026-11-09)
 
@@ -43,7 +43,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 7. **The Editor and Quick Edit for a first owner**: F21, F22, F23, F19.
 8. **Epics 33, 37, and 38 closed** (F10): mostly Michael's own checks.
 9. **Client 1's claim** (Epic 40, 4.7): the first client owner.
-10. **E46, Client 2 onto Sites**, then its claim.
+10. **Client 2's claim** (Epic 46).
 11. **The Client 3 site onto Sites**, through the Sites Onboarding Runbook, its form going to an outside CRM (PRD D53).
 
 **Pivot, 2026-11-12 (Michael):** the MVP now has to carry the Client 3 site, a real organization Michael is responsible for, with its repo in its own GitHub org and a server of its own. What Sites needed for that is built: a client-owned repo (PRD D61, 5.15.0), and a site with a server and no hours (PRD D62, contract 0.6.0). The Client 3 item's remaining work is in the site's repo (the contract, its copy into content files, the site guide) and the link, which can happen before its domain is live, on a `canopyds.com` name (E44 does this by hand today: the operator edits the hostnames at launch).
@@ -57,22 +57,6 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 To decide before launch, each an entry in REVIEW_FINDINGS: dated notices on a client site (F6), Quick Edit spend the operator can see (F8), the chat forgetting itself on a reload (F20), and the Editor on phones (F24). Restore (F7) is E58 and holds up no claim: Client 1, the first, is a free customer and a portfolio piece (Michael, 2026-11-21).
 
 After the MVP: E36 (the builder as the production build, both boxes serving), E50 (the media pipeline and the Gallery tab), E51 (Events), E41 (the site kit), and E43 to E45. E55 past its first step (photos, the Approval's document, the Forms tab) is after the MVP too, its place among these to decide. E56 (Services) is built now, ahead of E55's Forms parts and of Gallery and Events (Michael, 2026-11-20). E52 (Booking) waits for a client who needs it (PRD D55). E36 comes first because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build (F11).
-
-### Demo slice first (decided 2026-10-16)
-
-E30 is built first as the demo slice (PRD D23): the builder, preview and publish for the demo site at `sites.canopyds.com/demo`, plus the parts of C1, E31, E32 and E35 the demo needs (Stats with sample data). The demo site has its own repo, so H1 to H3 no longer gate E30; they stay Client 2's own migration. Each brief below keeps whatever the slice leaves, and the E30 epic doc records the split.
-
-### Visual editor next (decided 2026-10-17)
-
-E33 is built next as the visual editor (PRD D35 to D45), on Client 2 as served at `/demo`. It pulls forward what the editor stands on: contract v0.2 (C3), the site's draft (D38) from E31, the site guide's front matter (D40), and the nightly rebuild in the account's time zone (D42) from E32. Photos are the fast follow: E32 starts with its media pipeline, which brings photos to quick edit and to the canvas popover (D41). Until then quick edit can't take a photo at all (as of 2026-10-17). The E33 epic doc, `docs/epics/epic-33-visual-editor.md`, records the split.
-
-### canopyds.com on Sites (decided 2026-10-19)
-
-E37 moves canopyds.com onto Sites on Michael's account (PRD D46): the site's Astro port in `canopy-website`, builder isolation, the canvas for client sites, which loads a site's assets from its live address, and a preview page that opens a draft full-window in a new tab, without the Sites chrome, for every site, so there are no preview hostnames (D47). Publish stays a commit to `main`, deployed by the site's Coolify app, until E36. The epic doc, `docs/epics/epic-37-canopyds-on-sites.md`, carries the requirements.
-
-### Link and claim before Client 1 (decided 2026-11-05)
-
-E38 lets the operator link a live site, which creates the client's account, and lets the client claim it from a link, so Client 1 is the first client set up that way (PRD D49). E39, the per-client welcome video, follows it. The epic doc, `docs/epics/epic-38-link-and-claim.md`, carries the requirements.
 
 ### A site kit before the next site (decided 2026-11-06)
 
@@ -88,129 +72,11 @@ If the builder and nginx model has to be abandoned: keep Coolify building each s
 
 ---
 
-## Phase 0 — Portal foundation (this repo)
-
-### E27 · Restructure in place; product-based chrome
-
-Goal: this repo becomes the unified portal, serving `forms.canopyds.com` and `sites.canopyds.com` from one deploy, with the account's products deciding what a logged-in user sees.
-
-Repo and deploy:
-- `git mv` the Next.js app into `apps/portal`; add `apps/builder` (empty stub) and `packages/site-contract` (empty stub); root `package.json` with npm workspaces. Per-file history across the move needs `git log --follow`; accepted
-- Rename the GitHub repo `Canopy-Forms` → `canopy-sites`; it stays public (PRD §4.3). GitHub redirects the old URL; Coolify's GitHub App source follows the rename (verify)
-- Existing Coolify apps (`dev`, `prod`) keep their DB, env and secrets. Change only the Dockerfile/build path and add `sites.canopyds.com` (and a `sites-dev` host) as domains. If the first build fails, the old container keeps serving
-- No migration-parity gate needed: the migrations never leave the repo
-- Update `docs/AGENT_CONTEXT.md` §6 for the new paths and hostnames
-
-Chrome:
-- **`Plan.sitesEnabled` picks the chrome** (landed in E29; until then `getAccountEntitlements` derived `sitesEnabled` from the `UNLOCKED` plan, which E29 made a Forms-only plan, PRD D20). Sites accounts get Editor · Forms · Stats on either hostname; all other accounts get today's Forms UI exactly, on either hostname
-- Hostname brands **logged-out pages only** (login, signup, password reset; `/docs` requires sign-in). After login, hostname carries no meaning: no per-host home route, no per-host gate page, no per-host sign-out target
-- Survey and fix the places where the host currently carries meaning: `NEXTAUTH_URL` / `trustHost`, `validateOrigin`'s use of `NEXT_PUBLIC_APP_URL`, email links, home redirects. Record findings in the epic doc
-- Forms mounted at `/forms` as today; Sites home at `/editor`, Stats at `/stats`; `/` redirects by product
-
-Acceptance: both hostnames serve from one deploy; a Forms-only account's experience is unchanged in behavior on both hostnames; a Sites-flagged account sees the Sites nav on both hostnames and can reach its forms; sign-out and auth flows work from either hostname; `npm run build` + `lint` pass
-
-### E28 · Account audit and Membership model (shipped v5.1.0)
-
-Outcome: `docs/epics/epic-28-account-audit-membership.md`. Beyond the brief, Q7 ended in owned database sessions with no auth library (PRD D16), plus credential throttling, hashed reset tokens, scrypt, and security headers.
-
-
-Goal: pull Forms' account code forward with obvious improvements, and replace `User.accountId` 1:1 with `Membership`.
-
-- **Audit first, change second.** Review `src/lib/auth.ts`, `auth-utils.ts`, `actions/auth.ts`, `actions/accounts.ts`, `data-access/accounts.ts`, `(auth)/*`, `components/account/*`. Record findings in the epic doc before editing. Known candidates: dynamic `import("@/lib/db")` inside `getCurrentAccountId`; failed-login tracking without lockout; `VALIDATION_INTERVAL = 0` validating every request; `bcrypt` cost 10 (confirm acceptable); any place the UI assumes one form owner; the PRD Q7 auth-library decision and the Q8 test runner come first
-- Add `Membership { userId, accountId, role OWNER|MEMBER }`, `@@unique([userId, accountId])`. Migration backfills one `OWNER` row per existing user. Drop `User.accountId` in a **second** migration after code no longer reads it
-- `getCurrentAccountId()` resolves through Membership; v1 asserts exactly one membership and throws otherwise (the many-membership path is a stub, not a feature)
-- Add `Account.status`, `Account.billingRef`; operator can set both
-- No invite UI, no role UI beyond what operator already has
-- Acceptance: all existing flows (signup, login, reset, delete account, operator account list) work unchanged; every `accountId` lookup goes through the data-access layer; migrations read and verified per `docs/AGENT_CONTEXT.md` §5
-
-### E29 · Plan extension, Site model, operator Sites (shipped v5.2.0)
-
-Outcome: `docs/epics/epic-29-plan-site-model-operator-sites.md`. Beyond the brief, by Michael's decisions there: `UNLOCKED` stopped being a Sites plan (PRD D20), one site per account (D19), and each account got a home host with a sign-in handoff from the Forms host (D22).
-
-
-Goal: the portal knows what a Site is and which accounts have the product.
-
-- Extend `Plan`: `sitesEnabled`. Seed `SITES` plan: `sitesEnabled = true`, `maxPublishedForms = NULL` (same Forms entitlement as `PAID`). Existing plans (`FREE`, `HOSTING`, `PAID`, `UNLOCKED`) get `sitesEnabled = false` (PRD D20). Replace E27's `UNLOCKED` stand-in in `getAccountEntitlements` with the column. `analyticsTier` and the token budget are not added (PRD D21)
-- Add `Site` per PRD §5, one per account (PRD D19). `Build` and `ChangeSet` are deferred to E30 (PRD D21)
-- Operator: `/operator/sites` list and detail (create site, assign to account, repo URL, hostnames, contract version, locked fields, runbook overlay textarea). Creating a site does **not** create a repo or DNS; those are manual in v1
-- Sites home for a client with one site: placeholder Editor page showing the site name and "nothing to edit yet"
-- Acceptance: operator can create Client 2 as a Site on Michael's account; client login lands on it at the Sites host, and the Forms host points there (PRD D22)
-
----
-
-## Phase 1 — Content contract and Client 2 migration
-
-### C1 · `site-contract` v0.1 (`packages/site-contract`, released per PRD D26)
-
-Goal: the Zod schemas for every v1 collection, exported three ways.
-
-- Collections per PRD §4.4, each landing with the first site that renders it (D21's rule): v0.1 holds what the demo site renders, `site`, `pages`, `services`, `reviews`, `gallery`, `announcements`; `tokens` arrives with H3, `schedule` and `team` with T1, `events` and `text` with the first site that shows them. No `canopy.json` (PRD D24)
-- Exports: Zod schemas; inferred TS types; JSON Schema (generated, committed); a `validateSite(dir)` function the builder calls
-- Shapes are derived from Client 2 `services.json` and Client 1 `site.ts`; do not invent fields neither site needs. Hours allows structured or freeform string
-- Versioned from day one: each version is a GitHub release `site-contract-vX.Y.Z` carrying the packed tarball (PRD D26)
-- Acceptance: `validateSite` passes on a fixture mirroring Client 2 content and fails with readable errors on a bad fixture
+## Phase 1: Client 2
 
 ### E46 · Client 2 on Sites (`client2`)
 
-In the MVP (PRD D51). H1 to H3 below are its repo work, brought up to the contract as it stands when the epic starts; then the site is linked, accepted acting as the client, run through the Quick Edit eval, and claimed, as Client 1 was (Epic 40, 4.5 to 4.8) through the Sites Onboarding Runbook. It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its art is checked for text it is drawn against, which is locked and unmarked (PRD D56). Its links to Square's booking page and its card-on-file lines are E55's, whichever of the two epics reaches the repo first. The epic doc, `docs/epics/epic-46-client2-on-sites.md`, carries the requirements.
-
-### H1 · Client 2 → Astro 7 (`client2`)
-
-- Upgrade Astro 5 → 7 and deps; Node 24 Dockerfile (copy Client 1's pattern) so Coolify builds from a Dockerfile, not nixpacks
-- No content or design change. Visual parity check on all three pages
-- Deploy through the existing Coolify app on `main` (D14)
-
-### H2 · Client 2 → content collections
-
-- Move `services.json` and every hardcoded string (hero copy, about, reviews, policies, contact, hours, socials) into `src/content/<collection>.json` per C1. Install `site-contract` by release tarball
-- Every fact has one source: the home page's featured services reference the menu, and hours render from structured data into both the contact section and the JSON-LD
-- Gallery images stay in `src/assets`; gallery entries name them by path under `src/assets`
-- Pages render from collections; no business data in templates (the Client 1 `site.ts` rule, applied through collections)
-- Locked fields (phone, email, address) are set on the `Site` row (PRD D24)
-- Write Client 2's `SITE_GUIDE.md` (PRD D31, D40). `canopy-demo-site` has its own, written from its runbook overlay in Epic 40 (4.4, 2026-11-06); quick edit reads it, as it does every site's
-- Acceptance: `validateSite` passes; `astro check` clean; visual parity
-
-### H3 · Client 2 → tokens
-
-- `tokens.json` → generated CSS custom properties imported by `global.css` `@theme`. Current palette/fonts become the token values; zero visual change
-- Fonts limited to Fontsource-hosted families (no external font requests, per Client 1). Tokens are Canopy's to edit in the repo; no client-facing token editing (PRD D29)
-- Acceptance: changing a token value and rebuilding changes the site; visual parity at default values
-
-(Client 1's `DESIGN.md` and accessibility invariants are the reference for how a site repo documents itself. Client 2 gets a trimmed equivalent as part of H2/H3.)
-
-### C2 · Shared template
-
-Folded into E41 (2026-11-06): the starter is E41's, built on the site kit and extracted from canopyds.com and Client 1, since Client 2 was never converted.
-
-### C3 · `site-contract` v0.2 (built inside E33)
-
-- Every list entry has a required `id` (services, service groups and sections, socials, and every other list of objects); ids are never reused (PRD D36)
-- Addresses name a field by collection, then the id of each list entry and the key of each object on the way down (`pages/home/sections/featured/heading`, `services/hair/services/haircut/priceLabel`, `site/hours`). An id need only be unique within its list. `resolveAddress` turns one into the JSON Pointer `applyChanges` uses, against the content it is applied to, so ops survive reordering
-- Field metadata through Zod's `.meta()`: kind, label, and description (wording from `QUICK_EDIT_GUIDANCE.md` section 3); `jsonSchemaFor` carries them to the model
-- `field(address)`: the attributes a template spreads onto the element it renders an editable value into, which mark it for the canvas
-- `parseSiteGuide(markdown)`: the front matter (limits by address, `*` for any id; display formats) and the prose (PRD D40); `validateContent` takes the limits
-- A migration from v0.1 content (adds the missing ids), run on the demo site
-- Acceptance: the demo site builds on v0.2 with every marked field resolving to a value; a site guide limit refuses an over-length value with a readable reason
-
----
-
-## Phase 2 — Builder, preview only
-
-### E30 · Builder service and preview
-
-Outcome (as the demo slice, v5.3.0): `docs/epics/epic-30-demo-slice.md`. Built: `Build` and `ChangeSet`, the builder (previews, publish by pointing `current` at the previewed build, demo reset), and the demo served by the portal at `/demo`. Remaining here: client production hostnames (with E36), build retention by `Site.maxBuildsRetained`, the operator build log, and a builder on forms-dev.
-
-
-Goal: a ChangeSet against Client 2 produces a viewable preview without touching production.
-
-- Add `Build` and `ChangeSet` (deferred from E29, PRD D21): pick one foreign-key direction between them; hosting stays the builder's (PRD D27, D60)
-
-- `apps/builder`: long-running Node worker, pinned Node 24 image. Per-site working clone under `/srv/sites/<slug>/repo` (repo-scoped token, read/write). Queue: one job at a time per site, jobs across sites may run concurrently (cap 2)
-- Job: pull → apply ChangeSet ops → stage media → `validateSite` → preflight media (resize to max edge, strip EXIF, HEIC→JPEG, size cap; moderation hook stubbed) → `npm ci` (cached) → `astro build` → `/srv/sites/<slug>/builds/<buildId>` → flip `preview` symlink → record `Build`
-- No preview hostnames (PRD D47); serving production is E36's (PRD D60)
-- Retention: prune builds beyond `Site.maxBuildsRetained`, never prune `current` or `preview` targets
-- Operator: build log per site with status, duration, stdout tail
-- Acceptance: operator triggers a no-op ChangeSet on Client 2 → the canvas shows the built site in < 60 s; a deliberately broken ChangeSet fails validation and leaves `preview` pointing at the previous build
+In the MVP (PRD D51). The repo is on the contract, and the site is linked, accepted acting as the client, and through the Quick Edit eval; its claim is left, through the Sites Onboarding Runbook as Client 1's is (Epic 40, 4.7). It copies Client 1's plumbing, as the test site did, and moves onto the site kit with the others (E41). Its links to Square's booking page and its card-on-file lines are E55's. The epic doc, `docs/epics/epic-46-client2-on-sites.md`, carries the requirements.
 
 ---
 
@@ -266,12 +132,6 @@ After v1 (PRD D59), and not scheduled.
 - Operator and account UI: create/revoke keys, copy once
 - Docs page under `/docs`: how to connect Claude Desktop / other clients, what the tools do, and that a change is published from its preview page
 - Acceptance: Claude Desktop with the key can list collections, propose a change, and return the preview page's link, where the owner publishes; a key for site A cannot read site B
-
-### E35 · Stats
-
-From `docs/epics/epic-35-stats.md`. The page and the demo's sample data shipped with E30; E35 reads every other site's numbers from Umami with a view-only key, in the account's time zone, with the Client 3 site as the first case (2026-11-14). Every Sites account gets the same Stats; there is no `analyticsTier` in v1 (PRD D21).
-
----
 
 ### E38 · Link and claim
 
@@ -388,26 +248,6 @@ Goal: a guide rule the site already breaks doesn't stop an owner's edit, a build
 
 - F1, F3, and F5, each landing with the test that fails without it. F3 and F5 have tests beside the catalog that pass while the defect is present
 - Acceptance: those tests turned around and passing; the suite passes
-
-### E53 · People on an account (shipped v5.21.0)
-
-Goal: an organization's several people each sign in as themselves on the site's one account (PRD D63). Epic doc: `docs/epics/epic-53-people-on-an-account.md`.
-
-- A name per person, typed by the operator at Link a site and when adding a person, shown wherever the portal names someone to other people
-- The operator's site page lists the account's people in place of its one owner: add a person, a claim link for anyone who hasn't claimed (copied or emailed), remove a person
-- No owner-side screen: an owner inviting their own people is after v1
-- Acceptance: a second person is added to a site's account, claims, edits, and publishes as themselves; a removed person is signed out and can't sign in
-
-### E54 · One editor at a time (shipped v5.21.0)
-
-Goal: two people on one account never edit a site at once, and the second sees who is editing (PRD D64). Epic doc: `docs/epics/epic-54-one-editor-at-a-time.md`.
-
-- Groundwork: F2 and F4, so a draft and a publish hold up when two writes land together
-- The hold: one row per site, taken when a person starts an edit and never by opening a page, kept by the editing pages while that person is active, given up when they publish or discard, and enforced in the tool layer with a database test per guard
-- The pages: who is making edits in place of the Quick Edit chat and over the Editor's site behind frosted glass, the preview page viewable with Publish held back, Discard held back in the Sites chrome, each opening up when the hold frees. Built and checked with Michael a section at a time
-- The draft is its author's: once they have stopped, nobody else adds to it, and anyone publishes or discards it, told whose it is and what it changes, before editing themselves
-- The handoff: a page loads the site again when it moved without it, a field left open keeps its text or has it handed back, edits a save couldn't send are dropped once the site has moved, and the published list names who published
-- Acceptance: with two people signed in, neither is held back while both only look; once the first starts an edit the second can't save, send a Quick Edit message, publish, or discard, and can again when the first publishes or discards, ten minutes after they go quiet, or a minute and a half after they leave; a draft one person left can't be added to by another, who can publish or discard it and then edit; one person's laptop and phone never refuse each other
 
 ### E48 · Deploys and checks
 
@@ -536,7 +376,9 @@ Goal: a client who leaves takes their site with them, with none of Canopy's cont
 
 - Tool tabs after Gallery and Events (PRD D39): a Calendar putting announcements and events on one timeline (D42), blog, newsletter
 - Members (a light CRM) and newsletters as runtime components (PRD D52)
-- Forms sold as a public product (PRD D67)
+- Forms sold as a public product (PRD D67). Before it is: a usability round with a few real users, and a keyboard and screen-reader pass on the form builder, the embed, and hosted forms
+- Forms features asked for, none decided: a stored value apart from an option's label (a code behind "United States"); fields shown by an earlier answer, and steps or titled sections in a long form; starting a form from a template; an email to the person who submitted, with their answers; changing an account's email, confirmed from the new address; a click anywhere on a row opening it, as the Fields list does; each appearance control marking what it styles in the preview, as `PreviewMark` does for a header input and a field row (UX_PATTERNS section 10)
+- An operator build log for each site (status, duration, the build's output), left from E30
 - Confirming a request with a time, after E55: the client gets an email with a calendar invite, then a reminder by email at the cancellation cutoff. Proposed 2026-11-17, not decided
 - Database failover for the portal (PRD D51, F12)
 - A demo-account home with a switcher between several demo sites (PRD D44)

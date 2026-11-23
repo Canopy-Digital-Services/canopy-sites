@@ -1,36 +1,6 @@
 # Canopy Sites — Product Requirements
 
-**Status:** Draft 1, 2026-10-15. Written from a planning session with Michael; every decision below traces to his input or to a recommendation he accepted. What has shipped is in `docs/epics/README.md`. Companion: `docs/canopy-sites/ROADMAP.md`.
-
-**Revision note (2026-10-15, after Claude Code review of E27):** D2 and §4.3 revised. Chrome is decided by the account's products, not the hostname; the unified codebase is the existing Forms repo restructured in place, not a new repo.
-
-**Revision note (2026-10-16, demo planning):** D23 to D27 added; Q1 and Q9 answered; §2, §4.1, §4.4, §4.8 revised. The sales demo is its own site and account, with Client 2's content standing in for a dedicated demo site; `canopy.json` is gone; preview hostnames sit one level under the zone.
-
-**Revision note (2026-10-17, quick edit guidance):** D29 to D34 added; D9 and D10 revised; Q3 and Q4 answered; §1, §2, §4.4 to §4.7, §5, §6 revised. Editing is content only; quick edit and MCP share one set of definitions; each site's guide lives in its repo; owners supply copy verbatim. The guidance itself is `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md`.
-
-**Revision note (2026-10-17, visual editor):** D35 to D45 added; D28 revised; Q2 answered by D43; §1, §2, §4.4 to §4.6, §6, §7 revised. The Editor becomes a working in-place editor for content, with quick edit as the fallback for fields it can't edit yet; every source writes one draft per site; tools such as Gallery and Calendar are build-time tabs; per-site limits live in the site guide's front matter.
-
-**Revision note (2026-10-19, canopyds.com on Sites):** D46 and D47 added; D22, D23, D25, D38, D43 revised; §1, §2, §4.1, §4.5, §4.7, §4.8, §6, §7 revised. canopyds.com moves onto Sites as the first site that isn't the demo, and D13's Astro stands after a framework review. There are no preview hostnames: a client site's canvas loads its assets from the site's live address, and Preview opens the draft in a new tab, whose bar holds the only Publish.
-
-**Revision note (2026-11-09, review of the build):** D51 to D60 added; D6, D8, D18, D39, D41 revised; §1, §2, §4.4, §4.7, §6, §7 revised. Nothing has launched, and the MVP is defined (D51); the MCP endpoint leaves v1 (D59); what visitors write to is a runtime component, with Booking after Forms (D52, D55); Gallery and Events are Sites features built tab first (D54); client sites keep both boxes when the builder becomes the production build (D57). What the review found, and what is still to decide, is in `docs/canopy-sites/REVIEW_FINDINGS.md`.
-
-**Revision note (2026-11-12, client-owned repos):** D61 added; D4 and D49 revised; Q6 revised. A site's repo may live in the client's own GitHub org or account, reached through the same App installed there; Canopy's org stays the default.
-
-**Revision note (2026-11-12, a site with a server):** D62 added; D6 and section 4.4 revised. A site may run its own server, with every page of editable copy prerendered; the builder takes those pages from `dist/client/`, and the site keeps its own app. `site.hours` is optional from contract 0.6.0.
-
-**Revision note (2026-11-14, several people on an account):** D63 and D64 added; D11, D38, D49, D51 revised; sections 2, 5, 6 revised. An organization has more than one person who updates its site (the Client 3 site is the first): the operator adds each to the site's account, and one person edits at a time. Revised 2026-11-15 after Michael's check: a hold starts with an edit, not with opening a page. Revised again that day: a draft is its author's until it is published or discarded, so one person's unfinished changes never go out inside another's publish.
-
-**Revision note (2026-11-17, Client 2's requests):** D65 added; D51, D52, and D55 revised; section 2 revised. the owner is leaving Square, so her site's booking becomes a request form she answers herself: Forms gains photos from a visitor and an Approval that carries a document, and a Sites account's Forms tab opens on what came in. The form itself, from the field types Forms has today, is in the MVP. Booking with a calendar (D55) waits for a client who needs it.
-
-**Revision note (2026-11-21, Forms and Sites part as products):** D67 and D68 added; D2 and D53 revised; sections 2 and 6 revised. In Sites a form is Canopy's to build and its owner's to read, built with the site and with no embed. Forms is to be a public product of its own, later, and stays on this codebase.
-
-**Revision note (2026-11-21, pricing):** sections 1 and 2 revised. Pricing is undecided, its model included, and this doc states no price.
-
-**Revision note (2026-11-21, positioning):** section 1 revised. The positioning is rewritten from what the product does, and owner-operated businesses are who Sites goes after first.
-
-**Revision note (2026-11-21, sign-in):** D69 added; D49 and section 5 revised. Nobody has a password: a person signs in with a passkey or a code emailed to them, on Forms and Sites alike, and a Global Admin only with a passkey.
-
-**Revision note (2026-11-23, services):** D66 added; D43, section 2, and section 6 revised. A site's services are one list with a tab of its own, built for any business and not a salon's menu, and the first tab built. On the canvas, a click that could mean more than one thing shows its actions as icons.
+**Status:** Draft 1, 2026-10-15. Written from a planning session with Michael; every decision below traces to his input or to a recommendation he accepted. What has shipped is in `docs/epics/README.md`. Companion: `docs/canopy-sites/ROADMAP.md`. What each revision changed is in the git history.
 
 **For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
@@ -247,7 +217,7 @@ Collections (v1), from what Client 2 and Client 1 actually contain:
 | `text` | long-form markdown pages | Client 2 policies, bios |
 | `tokens` | colors, font stacks, heading scale, radii | `tokens.json` → generated CSS custom properties consumed by `global.css` `@theme`. Canopy edits it in the repo; the tool layer never exposes it (D29) |
 
-What ships in each contract version is in `packages/site-contract`; collections land with the first site that renders them (ROADMAP C1). Adding one is a minor version, and its field descriptions carry its guidance (`QUICK_EDIT_GUIDANCE.md` section 3). Every list entry has a stable id and every field a kind and label (D36); a version that changes the shape of existing content ships a migration the builder runs when a site upgrades. The contract's length caps are absolute; each site's tighter limits come from its site guide (D40).
+What ships in each contract version is in `packages/site-contract`; collections land with the first site that renders them. Adding one is a minor version, and its field descriptions carry its guidance (`QUICK_EDIT_GUIDANCE.md` section 3). Every list entry has a stable id and every field a kind and label (D36); a version that changes the shape of existing content ships a migration the builder runs when a site upgrades. The contract's length caps are absolute; each site's tighter limits come from its site guide (D40).
 
 File layout in a site repo: one JSON document per collection at `src/content/<collection>.json`, parsed with the contract's schemas at build time so a violation fails the build; `src/assets/` for media; `tokens.json` at root. No `canopy.json` (D24).
 
@@ -352,11 +322,3 @@ Unpublished changes and Preview sit in the Sites chrome, whichever tab made the 
 | Q5 | Does the portal ever write to the site repo other than through the builder | No |
 | Q6 | Client access to a repo in Canopy's org: read-only collaborator, or transfer on exit. A client who holds their own repo has it already (D61) | Read-only collaborator |
 
----
-
-## 9. References
-
-- `canopyds.com/websites` copy and pricing (read 2026-10-15)
-- Canopy Forms `docs/AGENT_CONTEXT.md`, `prisma/schema.prisma` v4.14.1
-- `client2` and `client1` repos (structure, data files, image handling, deploy notes)
-- Anthropic support article 15036540, "Use the Agent SDK with your Claude plan" — credit paused, individual-use only

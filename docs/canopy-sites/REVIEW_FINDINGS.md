@@ -7,7 +7,7 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - Anything exploitable stays out of this file, since the repo is public. The security pass of 2026-11-09 is in the Nextcloud Engineering collective, on the page "Canopy Sites Security Review 2026-11-09", and what production records and doesn't is on "Logging and Detection 2026-11-10".
 - **F3 and F5 have tests** in `review-findings-repro.db.test.ts.txt`, beside this file: each passes while its defect is present. To fix one, copy its test into `apps/portal/src/lib/site-tools/`, turn its expectations around, and land it with the fix. The builder is stood in, as the suite does, so the builder's half of F3 (its 404 after a restart) is read, not run. Delete that file with the second of the two.
 
-**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Client 1, the test site, Client 2, and soon the Client 3 site) claim their portal, edit, preview, and publish safely. Converting Client 2 is in it (F9). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox. Client 2's request form, from the field types Forms has today, joined the MVP on 2026-11-17 (PRD D65); no other Forms work on those sites did.
+**MVP, as Michael set it on 2026-11-09:** nothing has launched. Owners of sites the size of today's (Client 1, the test site, Client 2, and soon the Client 3 site) claim their portal, edit, preview, and publish safely. Converting Client 2 is in it (Epic 46). Not in MVP: Gallery, Forms on those sites, the MCP endpoint, Booking, and database failover to Fox. Client 2's request form, from the field types Forms has today, joined the MVP on 2026-11-17 (PRD D65); no other Forms work on those sites did.
 
 ## Before launch: defects
 
@@ -47,10 +47,6 @@ Started 2026-11-09, from a top-down review of the build with Michael. This is th
 - **Basis:** reproduced in Chrome on the local stack, 2026-11-09.
 
 ## Before launch: work
-
-### F9. Client 2 is not on Sites
-
-Decided, Michael, 2026-11-09: converting it is in the MVP, as ROADMAP E46 (PRD D51), whose epic doc is `docs/epics/epic-46-client2-on-sites.md`. The repo is converted and live from its content files since 2026-11-17 (the epic's 4.1 to 4.5); linking, acceptance, the eval, and the claim are left.
 
 ### F23. Lock the text that art is drawn against
 
@@ -130,7 +126,7 @@ Forms today and Booking later live only on Webber. Rate limits (`src/lib/rate-li
 
 ### F30. The Sites pipeline has no environment before production
 
-The dev deployment has no builder (AGENT_CONTEXT section 6), so the builder, the canvas, Preview, and Publish first run deployed on production, where the demo site and canopyds.com are the canaries. ROADMAP E30 lists a builder on forms-dev as remaining. It matters once clients are editing. The builder's volume is also outside the backups, which is right while everything on it can be rebuilt from the repos, and stops being right when it serves production (F11). Basis: read.
+The dev deployment has no builder (AGENT_CONTEXT section 6), so the builder, the canvas, Preview, and Publish first run deployed on production, where the demo site and canopyds.com are the canaries. It matters once clients are editing. The builder's volume is also outside the backups, which is right while everything on it can be rebuilt from the repos, and stops being right when it serves production (F11). Basis: read.
 
 ### F26. Operator and sign-in events aren't kept
 

@@ -45,7 +45,7 @@ Her form itself needs none of that to start: every question but the photos is a 
 | A typed or drawn signature | Square's agreement is a box beside a link to the policy (Michael's screenshots, 2026-11-17), and hers matches it |
 | Payments, deposits, a card on file | She takes payment by Venmo, outside the site |
 | Files other than photos | Nobody has asked. The type is named for what it takes, and a general file field would come after it in the Add field menu |
-| Steps in a long form, and fields shown by an earlier answer | `docs/future-features.md` |
+| Steps in a long form, and fields shown by an earlier answer | ROADMAP, "Not scheduled" |
 | The form on a page of her own site | Section 7, item 3. A new page is a template and a contract change, Canopy's and later |
 | A sender with headroom (F32), and the portal on one box (F12) | Their own items. Section 7, item 9, asks whether either comes before 4.2 |
 | Forms import and export (E45) | Her form is built by hand, acting as her, as Jane's was |
