@@ -70,6 +70,7 @@ export default async function AdminLayout({
             <NotificationBell />
             <UserMenu
               email={session.user?.email}
+              name={session.user?.name}
               isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
             />
           </div>
