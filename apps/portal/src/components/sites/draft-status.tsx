@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { discardPendingChange, getDraftState } from "@/actions/site-editor";
-import { theirChanges } from "@/lib/site-hold-policy";
+import { discardQuestion, theirChanges } from "@/lib/site-hold-policy";
 
 type Pending = { id: string; summary: string; status: string; buildStatus: string | null; error: string | null; by: string | null };
 
@@ -132,8 +132,7 @@ export function DraftStatus() {
       </Tooltip>
       {heldBy ? null : (
         <ConfirmDialog
-          title={pending.by ? `Discard ${pending.by}'s changes` : "Discard changes"}
-          description="Every unpublished change goes, and your site stays as it is now."
+          {...discardQuestion(pending.by)}
           onConfirm={discard}
           destructive
           trigger={

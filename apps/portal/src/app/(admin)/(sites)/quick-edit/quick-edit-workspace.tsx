@@ -13,7 +13,7 @@ import { HelpRequestCard, type DraftedRequest } from "@/components/sites/help-re
 import { announceDraft } from "@/components/sites/draft-status";
 import { blockedNotice, SiteNotice, useSiteHold } from "@/components/sites/site-hold";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { theirChanges } from "@/lib/site-hold-policy";
+import { discardQuestion, theirChanges } from "@/lib/site-hold-policy";
 import { LocalTime } from "@/components/local-time";
 
 /** `by` is who last changed the draft, when that isn't the person looking (PRD D64). */
@@ -313,8 +313,7 @@ function PendingChange({ pending, siteId }: { pending: Pending; siteId: string }
         </Button>
         {/* Asks first, as the Sites chrome's Discard does, and says whose when it's someone else's work. */}
         <ConfirmDialog
-          title={pending.by ? `Discard ${pending.by}'s changes` : "Discard changes"}
-          description="Every unpublished change goes, and your site stays as it is now."
+          {...discardQuestion(pending.by)}
           onConfirm={discard}
           destructive
           trigger={
