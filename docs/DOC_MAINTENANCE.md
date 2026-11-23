@@ -1,8 +1,8 @@
 # Doc Maintenance
 
-Rules for editing `docs/AGENT_CONTEXT.md`, `docs/UX_PATTERNS.md`, `docs/VERIFICATION_CHECKLIST.md`, `CLAUDE.md`, and `docs/tools/*.md`.
+Rules for editing `CLAUDE.md` and everything under `docs/`: the engineering docs, `docs/tools/*.md`, and the Sites PRD, ROADMAP, and epic docs. The in-app help in `apps/portal/content/docs` is written for owners and isn't covered here.
 
-These docs are read by coding agents, not people browsing. Their value is density and accuracy, not completeness or flow. Each rule below exists because the opposite happened and cost something real.
+These docs are read by coding agents and by Michael, not by people browsing. Their value is density and accuracy, not completeness or flow. Each rule below exists because the opposite happened and cost something real.
 
 ## Before you add anything
 

@@ -56,13 +56,13 @@ Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both 
 
 ## Documentation Maintenance
 
-After completing substantive work, check whether your changes affect documentation. **`docs/DOC_MAINTENANCE.md` defines how to write these docs** (no duplicated facts, no summary tables, delete what a change supersedes). Read it before editing `AGENT_CONTEXT.md` or `UX_PATTERNS.md`.
+After completing substantive work, check whether your changes affect documentation. **`docs/DOC_MAINTENANCE.md` defines how to write these docs** (no duplicated facts, no summary tables, delete what a change supersedes). Read it before editing any doc under `docs/`.
 
 - **Schema changes** → update the `docs/AGENT_CONTEXT.md` appendix if the model shape or an enum changed.
 - **New/changed UI patterns** → update `docs/UX_PATTERNS.md` if you introduced or modified a component pattern, validation approach, or layout convention.
 - **Embed theme/behavior changes** → update `docs/UX_PATTERNS.md` section 11 (embed theming) or section 8 (embed validation).
 - **New npm scripts or dependencies** → update `docs/AGENT_CONTEXT.md` section 4 (only if the script is non-obvious; the table is not a mirror of `package.json`).
-- **Coolify/Docker/infra changes** → update `docs/PRISMA_MIGRATIONS.md`.
+- **Coolify/Docker/infra changes** → update `docs/AGENT_CONTEXT.md` section 6 for the deploy setup, and `docs/PRISMA_MIGRATIONS.md` when the change touches the Dockerfile, `start.sh`, or how migrations run.
 - **User-visible feature or flow changes** → review `apps/portal/content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `apps/portal/content/docs/meta.ts` if the feature has no existing home.
 - **Epic completion or version bump** → follow the release checklist in `docs/AGENT_CONTEXT.md` section 10.
 - **Any doc claim the live system contradicts** → fix that doc in the same session you observed it. State claims (versions, counts, "X exists / isn't possible yet") follow `docs/DOC_MAINTENANCE.md` section on staleness.

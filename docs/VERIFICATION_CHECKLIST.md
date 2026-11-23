@@ -210,7 +210,8 @@ Before committing, scan this table. If your changes match a trigger, check the l
 | Embed validation behavior | `docs/UX_PATTERNS.md` section 8 | The two dialects, embed specifics |
 | New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 4 | Commands (only if the script is non-obvious) |
 | New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
-| Dockerfile, `start.sh`, or Coolify config | `docs/PRISMA_MIGRATIONS.md` | Build/deploy docs |
+| Dockerfile or `start.sh` | `docs/PRISMA_MIGRATIONS.md` | How migrations run on deploy |
+| Coolify config (apps, domains, env, watch paths) | `docs/AGENT_CONTEXT.md` section 6 | Deployment |
 | New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 2 (Public API contracts) | Gate order, response codes |
 | Auth or session logic | `docs/AGENT_CONTEXT.md` section 2 (Auth & ownership) | Auth rules |
 | New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 7 | Env variable table |

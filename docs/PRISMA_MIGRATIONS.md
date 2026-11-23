@@ -1,6 +1,6 @@
 # Coolify + Prisma Migration Strategy
 
-How database migrations work in this project, why they work this way, and how to set this up in new projects.
+How database migrations work in this project, and why they work this way.
 
 ---
 
@@ -88,19 +88,7 @@ Migrations are handled by the container entrypoint. Coolify hooks are not needed
 
 ---
 
-## Prisma 7 migration notes
-
-### Breaking changes from Prisma 5/6
-
-These are relevant to the migration setup:
-
-1. **`prisma.config.ts` is required.** The `datasource.url` was removed from `schema.prisma`. If `prisma.config.ts` is missing, `prisma migrate deploy` fails with: `Error: The datasource.url property is required in your Prisma config file`.
-
-2. **`package.json` seed config removed.** The old `"prisma": {"seed": "tsx prisma/seed.ts"}` block in `package.json` no longer works. Seeding is now configured in `prisma.config.ts` under `migrations.seed`.
-
-3. **Auto-seeding on `migrate dev` removed.** In Prisma 6 and earlier, `prisma migrate dev` automatically ran the seed script. In Prisma 7, you must run `npx prisma db seed` explicitly.
-
-### `migration_lock.toml`
+## `migration_lock.toml`
 
 The file `prisma/migrations/migration_lock.toml` records the database provider. It should be committed to version control:
 
@@ -185,52 +173,3 @@ Check if the migration SQL actually creates the column the Prisma Client expects
 
 When `prisma migrate dev` cannot produce the migration (a change that loses data, an enum value rename, SQL that has to be exact), the migration is written by hand. The cases and the steps are in `docs/tools/prisma-7.md` ("Hand-Written Migration"). Nothing differs on deploy: `start.sh` applies the SQL file like any other migration.
 
----
-
-## Setting up a new Coolify + Prisma project
-
-Checklist for starting a new project on the right foot:
-
-### 1. Prisma configuration
-
-- [ ] Create `prisma.config.ts` with `defineConfig`, `datasource.url`, and `migrations.seed`
-- [ ] `schema.prisma` datasource block has `provider` but **no `url`** (url comes from config)
-- [ ] `prisma/migrations/migration_lock.toml` exists and is committed
-- [ ] No `"prisma": {"seed": "..."}` in `package.json` (Prisma 7 removed this)
-
-### 2. Entrypoint script
-
-- [ ] Create `scripts/start.sh` (see template above)
-- [ ] Script uses `set -e` so failures are fatal
-- [ ] Script runs `prisma migrate deploy` before starting the app
-- [ ] Script uses `exec` for the final `node server.js`
-
-### 3. Dockerfile
-
-- [ ] Multi-stage build: `deps` → `builder` → `runner`
-- [ ] Runner copies these from builder:
-  - `prisma/` (schema + migrations)
-  - `prisma.config.ts`
-  - `node_modules/.prisma` (generated client)
-  - `node_modules/prisma` (CLI for migrate deploy)
-  - `node_modules/@prisma` (CLI runtime dependencies)
-- [ ] Runner copies `scripts/start.sh` and `chmod +x`
-- [ ] `CMD ["./start.sh"]` (not `CMD ["node", "server.js"]`)
-
-### 4. `.dockerignore`
-
-- [ ] `scripts/` is **not** in `.dockerignore` (it needs to be in the build context)
-
-### 5. Coolify
-
-- [ ] `DATABASE_URL` is set in the environment variables
-- [ ] Pre-deployment command: **empty**
-- [ ] Post-deployment command: **empty**
-- [ ] Seeding (if needed) is a one-time manual operation: `docker exec <container> npx prisma db seed`
-
-### 6. First deploy
-
-- [ ] Run initial migration locally: `npx prisma migrate dev --name init`
-- [ ] Commit `prisma/schema.prisma`, `prisma/migrations/`, and `prisma/migrations/migration_lock.toml`
-- [ ] Deploy — container entrypoint applies the migration automatically
-- [ ] Seed manually if needed: `docker exec <container> npx prisma db seed`

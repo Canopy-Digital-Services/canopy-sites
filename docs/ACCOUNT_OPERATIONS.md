@@ -4,21 +4,6 @@ How accounts, authentication, and sessions work in this project. **Read this bef
 
 ---
 
-## Table of Contents
-
-1. [Account Model](#account-model)
-2. [Account Creation (Signup)](#account-creation-signup)
-3. [Authentication (Sign-in)](#authentication-sign-in)
-4. [Session Management](#session-management)
-5. [Time Zone](#time-zone)
-6. [Password Change](#password-change)
-7. [Password Reset](#password-reset)
-8. [Account Deletion](#account-deletion)
-9. [Operator Account Management](#operator-account-management)
-10. [Billing](#billing)
-
----
-
 ## Account Model
 
 The Account is the tenant boundary: forms, submissions, and fields belong to it. Users reach an account through a **Membership** (`OWNER` or `MEMBER`, Epic 28). A user has exactly one: `getSoleMembership` in `src/lib/data-access/memberships.ts` throws for more than one, and `getCurrentAccountId()` resolves through it. An account has one `OWNER`, from signup or Link a site, and any number of `MEMBER`s, each added by the operator (People on an account, below). A member does everything the owner does except delete the account.
@@ -210,19 +195,7 @@ prisma.user.deleteMany()   // users whose only membership was this account
 
 A user who also belongs to another account keeps their login. No tombstones.
 
-### Why hard delete (not soft delete)
-
-**Previous approach (Epic 6):** Hybrid soft-delete — delete forms, blank password, set `deletedAt` tombstone on Account. This caused:
-- Blocked re-registration (email still existed in User table)
-- Password reset could "resurrect" a deleted account
-- Login flow needed to check `deletedAt` on every auth attempt
-- Operator console filtered out tombstoned accounts anyway (no audit value)
-
-**Current approach (Epic 14):** Hard delete via cascade. This:
-- Allows re-registration with the same email immediately
-- No zombie records in auth flows
-- No guards needed in signup, login, or password reset
-- One transaction (atomic)
+A tombstone was tried first and caused trouble: the leftover user blocked signing up again with the same email, and every sign-in path had to check for it.
 
 ### Self-service flow
 
@@ -253,7 +226,7 @@ The operator console shows metadata only:
 - Owner email, created date, last login, form count, submission count, plan, billing status and reference, role
 - No form content, submission data, or field definitions are ever exposed
 
-Non-admins are silently redirected to their home (`/forms` or `/editor`).
+Non-admins are silently redirected to their home (`getHomePath`: `/quick-edit` for a Sites account, `/forms` for the rest).
 
 ### Acting as a client (PRD D49)
 
@@ -263,7 +236,7 @@ A banner on every page (the admin chrome, the operator console, the preview page
 
 ### Role system
 
-User roles live in the `roles` catalog table (Epic 24). `User.roleCode` is a
+User roles live in the `roles` catalog table. `User.roleCode` is a
 FK to `Role.code`. Two roles ship today:
 
 | code           | purpose |
