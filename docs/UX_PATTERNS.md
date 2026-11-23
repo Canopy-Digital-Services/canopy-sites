@@ -45,20 +45,21 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
 30. A dropdown for a choice of two to four short options in a settings panel, or loose buttons or a tab strip for any exclusive choice (a setting, a view, a filter). Use `ToggleGroup` (section 6), which shows every option.
 31. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
+32. `default`, `outline`, or `ghost` buttons on a `bg-primary` bar. Use `inverse` and `inverse-outline` (section 6, On a filled bar).
 
 **Always:**
 
-32. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-33. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-34. `font-heading` on every semantic heading (page, card, section, nav titles, and the row titles of the editor's Fields and Appearance lists, `ROW_TITLE`). Never on body, buttons, labels, table content, or toasts.
-35. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-36. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-37. `GripVertical` visible in a sortable row, even when the whole row drags.
-38. `PageHeader` for page titles. Never an inline `<h1>`.
-39. `PageContent` on admin pages, except the form editor.
-40. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-41. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
-42. `LocalTime` for a date or time shown without a zone. Never `toLocaleString` or its kin in a page or component without a `timeZone`, and never in an email without a `timeZone`, a locale, and the zone's name in the text (section 10, Dates and times).
+33. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
+34. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
+35. `font-heading` on every semantic heading (page, card, section, nav titles, and the row titles of the editor's Fields and Appearance lists, `ROW_TITLE`). Never on body, buttons, labels, table content, or toasts.
+36. `noValidate` on admin and auth forms, with the touched/submitted pattern.
+37. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
+38. `GripVertical` visible in a sortable row, even when the whole row drags.
+39. `PageHeader` for page titles. Never an inline `<h1>`.
+40. `PageContent` on admin pages, except the form editor.
+41. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
+42. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
+43. `LocalTime` for a date or time shown without a zone. Never `toLocaleString` or its kin in a page or component without a `timeZone`, and never in an email without a `timeZone`, a locale, and the zone's name in the text (section 10, Dates and times).
 
 **Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
 
@@ -241,6 +242,7 @@ Passed, and why: "Domains allowed to embed and submit to this form. Localhost is
 | `ghost` | Tertiary and icon-only in toolbars |
 | `secondary` | Alternative secondary styling; also the current section in `SitesNav` |
 | `link` | Text actions. With `text-destructive`, de-emphasizes a dangerous option beside a safer primary. |
+| `inverse`, `inverse-outline` | `default` and `outline` on a `bg-primary` bar (below) |
 
 **Exclusive choices** (a setting such as a width, a view such as chart or table, a filter such as a submission status) use one look: `ToggleGroup` ([toggle-group.tsx](src/components/ui/toggle-group.tsx)), a bordered `bg-card` track whose pressed option gets the soft `secondary` highlight, the same selection color as the current nav section. Every option shows and takes one click. Loose `secondary`/`ghost` buttons read as a second nav bar, and the muted pill track is `Tabs`, which is for navigation.
 
@@ -249,6 +251,8 @@ Passed, and why: "Domains allowed to embed and submit to this form. Localhost is
 - A setting with five or more options, or long labels, stays a `Select`. A filter shows every option, since it is read as well as set.
 
 Sizes step on a tight scale: `sm` 28px, `default` 32px (deliberately compact), `lg` 40px, plus `icon-sm` 28px (**use for action icons in lists**), `icon` 32px, `icon-lg` 40px. Corners are the workhorse radius. Filled variants carry no shadow; `outline` carries `shadow-xs`. Ghost hover lands on `hover:bg-muted`.
+
+**On a filled bar.** On a `bg-primary` surface (as of 2026-11 only the preview bar, [preview-view.tsx](src/app/preview/[siteId]/[[...path]]/preview-view.tsx)) a `default` button disappears into the bar, so the roles turn inside out: `inverse` (white, teal text) is the main action and `inverse-outline` (transparent, white outline and text) the secondary one, Cancel left of the main action as in a dialog footer. Each keeps its own disabled look, a faint white tint with dimmed text: the shared `disabled:opacity-50` turned a white button into a murky teal block. Bare text (`ghost`) doesn't read as a button there.
 
 ### Tooltips
 

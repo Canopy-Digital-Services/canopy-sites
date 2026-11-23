@@ -19,6 +19,11 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-muted hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // On a bg-primary bar (UX_PATTERNS section 6, "On a filled bar"): default and outline turned inside out.
+        inverse:
+          "bg-primary-foreground text-primary hover:bg-primary-foreground/90 focus-visible:ring-primary-foreground/60 disabled:opacity-100 disabled:bg-primary-foreground/20 disabled:text-primary-foreground/60",
+        "inverse-outline":
+          "border border-primary-foreground/60 text-primary-foreground hover:bg-primary-foreground/15 focus-visible:ring-primary-foreground/60 disabled:opacity-100 disabled:border-primary-foreground/25 disabled:text-primary-foreground/50",
       },
       size: {
         default: "h-8 px-3 py-1.5 has-[>svg]:px-2.5",
