@@ -72,6 +72,7 @@ export default async function OperatorLayout({
         userMenu={
           <UserMenu
             email={session.user?.email}
+            name={session.user?.name}
             isGlobalAdmin={session.user?.role === "GLOBAL_ADMIN"}
           />
         }

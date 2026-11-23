@@ -13,7 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function getInitials(email: string | null | undefined): string {
+/** The name's first and last initials (two letters of a one-word name), else two letters of the email. */
+function getInitials(name: string | null | undefined, email: string | null | undefined): string {
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length > 1) return `${Array.from(words[0])[0]}${Array.from(words[words.length - 1])[0]}`.toUpperCase();
+  if (words.length === 1) return Array.from(words[0]).slice(0, 2).join("").toUpperCase();
   if (!email || !email.trim()) return "?";
   const local = email.split("@")[0];
   if (!local) return "?";
@@ -23,11 +27,12 @@ function getInitials(email: string | null | undefined): string {
 
 type UserMenuProps = {
   email: string | null | undefined;
+  name?: string | null;
   isGlobalAdmin?: boolean;
 };
 
-export function UserMenu({ email, isGlobalAdmin = false }: UserMenuProps) {
-  const initials = getInitials(email);
+export function UserMenu({ email, name, isGlobalAdmin = false }: UserMenuProps) {
+  const initials = getInitials(name, email);
   const [, startTransition] = useTransition();
 
   return (
