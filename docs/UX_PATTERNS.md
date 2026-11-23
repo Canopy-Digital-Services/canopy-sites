@@ -294,6 +294,8 @@ Only when the disabled state has a reason worth showing. Loading and in-flight s
 
 `ConfirmDialog` ([confirm-dialog.tsx](src/components/confirm-dialog.tsx)) covers simple confirm/cancel. Props are on the component; `destructive` switches the confirm button styling.
 
+A dialog that asks whether to go ahead is titled as that question, ending in "?": "Discard changes?", "Remove Jane Doe?", "Delete field?", whether it is a `ConfirmDialog` or a controlled dialog. A dialog that takes input before it acts ("Move the test site", "Change plan") is titled as its action, with no "?".
+
 ### Footer hierarchy when a safe and a dangerous option compete
 
 ```

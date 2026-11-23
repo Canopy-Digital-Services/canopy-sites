@@ -22,7 +22,7 @@ export function DeleteFormButton({ formName, action }: DeleteFormButtonProps) {
 
   return (
     <ConfirmDialog
-      title="Delete Form"
+      title="Delete Form?"
       description={`Are you sure you want to delete "${formName}"? This will delete all submissions.`}
       onConfirm={handleDelete}
       destructive

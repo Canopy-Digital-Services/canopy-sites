@@ -57,7 +57,7 @@ export function DeleteFieldDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent ref={dialogRef}>
         <DialogHeader>
-          <DialogTitle>Delete field</DialogTitle>
+          <DialogTitle>Delete field?</DialogTitle>
           <DialogDescription>
             {isChecking ? (
               <span className="flex items-center gap-2">
