@@ -122,7 +122,7 @@ export function PeopleCard({
                   </Tooltip>
                   {p.owner ? null : (
                     <ConfirmDialog
-                      title={`Remove ${p.name ?? p.email}`}
+                      title={`Remove ${p.name ?? p.email}?`}
                       description="They're signed out and can't sign in again."
                       onConfirm={() => remove(p)}
                       destructive

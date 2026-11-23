@@ -44,7 +44,7 @@ export function DeleteFormIcon({ formId, formName }: DeleteFormIconProps) {
       <TooltipTrigger asChild>
         <div className="inline-block">
           <ConfirmDialog
-            title="Delete Form"
+            title="Delete Form?"
             description={`Are you sure you want to delete "${formName}"? This will delete all submissions.`}
             onConfirm={handleDelete}
             destructive

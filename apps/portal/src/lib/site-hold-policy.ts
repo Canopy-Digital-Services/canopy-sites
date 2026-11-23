@@ -51,3 +51,12 @@ export function theirChanges(by: string): string {
 export function draftNotice(by: string): string {
   return `${by} has unpublished changes`;
 }
+
+/** Discard's question, wherever a draft can be discarded. Someone else's is named, with why it stands in the way. */
+export function discardQuestion(by?: string | null): { title: string; description: string } {
+  if (!by) return { title: "Discard changes?", description: "All unpublished changes will be lost." };
+  return {
+    title: `Discard ${by}'s changes?`,
+    description: `${by} is not actively editing the site, but they have made changes that have not yet been published. Before anyone else can edit the site, these changes must be published or discarded. Do not proceed unless you are sure all unpublished changes can be lost.`,
+  };
+}

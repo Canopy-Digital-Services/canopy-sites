@@ -73,7 +73,7 @@ export function WelcomeVideoCard({ siteId, videos }: { siteId: string; videos: W
                     </Button>
                     {row.state === "none" ? null : (
                       <ConfirmDialog
-                        title={`Remove the ${label} video`}
+                        title={`Remove the ${label} video?`}
                         description="Clears how far each person watched it. A video you upload for this tab later opens once for each of them again."
                         onConfirm={() => remove(row.tab)}
                         destructive
