@@ -3,10 +3,11 @@
  *
  * Two shapes, chosen per form by `Form.emailIncludeResponses`:
  *   - off (default): metadata only — form name, time, dashboard link.
- *     This is the Epic 4 privacy-focused email and the behavior every existing
- *     form keeps.
+ *     Answers stay behind the dashboard's sign-in, and every existing form
+ *     keeps this.
  *   - on: every submitted value, plus a Reply-To pointing at the submitter, so
- *     recipients can triage and reply without signing in (Epic 26).
+ *     recipients can triage and reply without signing in. Opt-in because the
+ *     Reply-To reveals who submitted.
  *
  * Colors are hardcoded hex on purpose. Email clients don't load `globals.css`,
  * so the design tokens aren't available here — these values mirror them.

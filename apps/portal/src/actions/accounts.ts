@@ -63,7 +63,7 @@ export async function deleteAccount(accountId: string) {
  * account with a site is refused with a message: closing it is a
  * conversation, not a click (PRD D19).
  *
- * Epic 14: Self-service account deletion
+ * Self-service account deletion.
  */
 export async function deleteSelfAccount(): Promise<{ success: true } | { error: string }> {
   // The operator acting as a client (PRD D49) never deletes the client's account.

@@ -50,7 +50,7 @@ Identify which layer a change touches before starting.
 - Uniqueness: `@@unique([accountId, slug])` on Form, `@@unique([formId, name])` on Field.
 - Fields are **relational rows** with an explicit `order` and enum `FieldType`. Never JSON blobs.
 - Publishing needs at least one field: `toggleFormPublished` refuses without one, since a submission stores only fields. The editor's Fields step and the Publish tab's button hold until there is one.
-- Every Account has a `Plan` (FK on `planCode`). Entitlements are typed columns on `Plan` (`maxPublishedForms`, `sitesEnabled`), and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site, and never compare plan codes.
+- Every Account has a `Plan` (FK on `planCode`). Entitlements are typed columns on `Plan` (`maxPublishedForms`, `sitesEnabled`), and the catalog is seeded by migration, not editable at runtime. Enforce through `getAccountEntitlements` (`src/lib/data-access/entitlements.ts`). Never re-implement the comparison at a call site, and never compare plan codes. `maxPublishedForms` caps published forms only, and publishing is its one gate (`canPublishAnother` in `src/actions/forms.ts`): creating and deleting a form are never gated, and the public routes check `published`, not the plan.
 - `Account.requiresPlanResolution` is set when a plan change drops the cap below the account's live published count. While set, the admin layout renders `PlanResolutionDialog` as a non-dismissible blocker, cleared only by a successful `resolvePlan`.
 
 ### Auth & ownership

@@ -405,8 +405,8 @@ model Form {
   slug                      String // Account-unique, for admin URLs
   allowedOrigins            String[]  @default([]) // Domains allowed to embed/submit to this form
   notifyEmails              String[]  @default([])
-  emailNotificationsEnabled Boolean   @default(false) // Epic 4: Email account owner on new submission
-  emailIncludeResponses     Boolean   @default(false) // Epic 26: Include submitted values + Reply-To in notification emails
+  emailNotificationsEnabled Boolean   @default(false) // Email notifyEmails on each new submission
+  emailIncludeResponses     Boolean   @default(false) // Include submitted values + Reply-To in notification emails
   honeypotField             String? // Optional honeypot field name
   successMessage            String?
   redirectUrl               String?
@@ -496,6 +496,7 @@ enum FormType {
 
 // In-app notifications (bell). Dismiss-on-interaction — no retention.
 // One row per (accountId, formId, type); NEW_SUBMISSION increments `count`.
+// The account's, not a person's: one member dismissing it clears it for all.
 model Notification {
   id        String           @id @default(cuid())
   accountId String

@@ -4,7 +4,7 @@
  * database read nor this source code yields a usable session, and there is
  * no signing secret to leak. Deleting a row signs that browser out.
  *
- * Policy (unchanged from Epic 12): idle timeout 4h, or 7d with "Keep me
+ * Policy: idle timeout 4h, or 7d with "Keep me
  * signed in"; absolute cap 7d, or 30d. The idle expiry rolls forward on use,
  * in the database, at most once a minute, never past the absolute cap.
  *

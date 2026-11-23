@@ -1012,7 +1012,7 @@ One codebase now serves Canopy Forms and the Canopy Sites client portal (Epic 27
 - Updated server actions: `src/actions/forms.ts` - `updateAfterSubmission()` with email validation
 - Updated email queue: `src/lib/email-queue.ts` - loops through `notifyEmails[]`
 - Updated public submit: `src/lib/public-submit.ts` and `src/app/api/submit/[formId]/[fieldName]/route.ts` - pass `form.notifyEmails`
-- Migration: `docs/epics/epic-7-backfill-notify-emails.sql` for existing forms
+- Migration: a one-off backfill of `notifyEmails` for existing forms
 - No schema migration needed - `notifyEmails` field already existed (unused until now)
 
 ### UI/UX Details
@@ -1378,7 +1378,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - Client component for delete action uses `useTransition` for loading states
 - Toast notifications for operation feedback
 - Account scoping maintained across all operator operations
-- See [docs/epics/epic-6-admin-console.md](docs/epics/epic-6-admin-console.md) for full implementation details
 
 ### Completion
 
@@ -1408,7 +1407,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - No breaking changes to existing CSV export functionality
 - Account scoping enforced via `getCurrentAccountId()` and `getOwnedForm()` for both formats
 - Export data structure remains consistent with database schema
-- See [docs/epics/epic-5-submission-review-export.md](docs/epics/epic-5-submission-review-export.md) for full implementation details
 
 ---
 
@@ -1437,7 +1435,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - Existing `notifyEmails` array remains unchanged (for future custom recipient feature)
 - Email sending uses fire-and-forget queue pattern (non-blocking)
 - Direct function call for event trigger (no event bus, no background jobs)
-- See [docs/epics/epic-4-submission-events-email-notifications.md](docs/epics/epic-4-submission-events-email-notifications.md) for full implementation details
 
 ---
 
@@ -1457,7 +1454,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - Existing embed and manual submit endpoints continue working unchanged
 - Payload limit enforced in shared `handlePublicSubmit()` function
 - Fast rejection via Content-Length header before reading body
-- See [docs/epics/epic-3-submission-ingestion.md](docs/epics/epic-3-submission-ingestion.md) for full implementation details
 
 ---
 
@@ -1487,7 +1483,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - Public submission endpoints continue to work via `apiKey` (unchanged)
 - Migration applied via manual SQL (hybrid Prisma 7 state)
 - Existing forms and sites migrated to have `accountId` populated
-- See [docs/epics/epic-2-form-ownership.md](docs/epics/epic-2-form-ownership.md) for full implementation details
 
 ---
 
@@ -1515,7 +1510,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 - No breaking changes to existing functionality
 - All passwords remain bcrypt hashed with 10 rounds
 - Password reset tokens are cryptographically secure (32 bytes random, hex encoded)
-- See [docs/epics/epic-1-account-and-authentication.md](docs/epics/epic-1-account-and-authentication.md) for full implementation details
 
 ---
 
@@ -1540,7 +1534,6 @@ All v3 epics successfully implemented. Canopy Forms is now a complete, productio
 
 - No breaking changes to existing functionality
 - Submission notifications continue to work as before
-- See [docs/epics/epic-0-email-infrastructure.md](docs/epics/epic-0-email-infrastructure.md) for full implementation details
 
 ---
 

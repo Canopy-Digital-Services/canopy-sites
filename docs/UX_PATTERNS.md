@@ -590,7 +590,7 @@ Known gaps, deliberate and pending further disclosure work: the flow always star
 
 Fields save themselves, not through auto-save ([form-fields-manager.tsx](src/components/form-fields-manager.tsx): an edit 600ms after the last, create, delete, and reorder at once), and report each save through `trackSave`, so `saveStatus` covers them too. Every editor card shows `saveStatus` the same way, at the right of its header (`SaveIndicator`, [save-indicator.tsx](src/components/forms/save-indicator.tsx)): "Saving..." while in flight, "Saved" for two seconds after. A part of the editor that saves on its own feeds that, never a status line of its own.
 
-`FormPreview` ([form-preview.tsx](src/components/forms/form-preview.tsx)) handles both static and live rendering: `mode="embed"` is a centered `max-w-lg` container, `mode="page"` applies full page theming via `extractPageTheme()`, and `live` reads from `useFormContext()` with a 150ms debounce.
+`FormPreview` ([form-preview.tsx](src/components/forms/form-preview.tsx)) and the hosted page both draw the form with the embed's own `renderFromDefinition`, never a React copy of it, so the preview can't drift from what visitors get. `FormPreview` handles both static and live rendering: `mode="embed"` is a centered `max-w-lg` container, `mode="page"` applies full page theming via `extractPageTheme()`, and `live` reads from `useFormContext()` with a 150ms debounce.
 
 ### Cards
 
