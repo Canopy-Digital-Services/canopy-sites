@@ -17,7 +17,7 @@ type Pending = { id: string; summary: string; status: string; buildStatus: strin
 export const DRAFT_CHANGED = "canopy:draft";
 /** Fired after a publish or a discard, so the canvas shows what is now live. */
 export const DRAFT_PUBLISHED = "canopy:published";
-/** Fired by an editing page when who has the site changes (PRD D64), so the chrome catches up with it. */
+/** Fired by an editing page when who has the site changes (PRD D64), or the site moves while they have it, so the chrome catches up with it. */
 export const HOLD_CHANGED = "canopy:hold";
 /** Carries the same news between the owner's tabs: Publish happens on the preview page's own tab. */
 const CHANNEL = "canopy-sites-draft";
