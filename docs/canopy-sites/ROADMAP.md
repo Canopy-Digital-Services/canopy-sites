@@ -470,10 +470,11 @@ Goal: a new client asks the owner for an appointment from her site, with photos 
 
 ### E56 · Services
 
-Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Built now (Michael, 2026-11-20). Still his to approve: which fields the form offers, and PRD D66 (its section 7).
+Goal: an owner manages their service list in a tab, and on the canvas where they see it, and every place the site shows a service follows, because the site has one list (Michael, 2026-11-17). The epic doc, `docs/epics/epic-56-services.md`, carries the requirements. Built now (Michael, 2026-11-20). Still his to approve: PRD D66 (its section 7).
 
 - Found converting Client 2 (Epic 46): its home page's four featured services were typed apart from the menu. The contract already holds the list and features services by id; nothing in the portal manages it, and the canvas can't add a service or change which are featured
-- Contract 0.8.0 (a template says where a list is, the id rule exported), the Services tab, and each site's lists named to the canvas
+- The list is any business's, not a salon's menu (Michael, 2026-11-23): a service needs no price, a list needs no categories, room is left for several prices, and the tab's form is read from the contract and the site's guide
+- Contract 0.8.0 (a template says where a list is, the id rule exported, an optional price, a flat list), the Services tab, and each site's lists named to the canvas
 - The canvas's action layer (Michael, 2026-11-17): a click that could mean more than one thing shows its actions as icons. On a service it opens the tab's own forms; on marked text inside a link it gives a pencil and a follow icon
 - Not in this epic: a second name or price where a service is featured, prices as amounts, products sold online, and a form's choices read from the list. Button and menu text as an owner's edit, which the layer is built to carry, is E57
 
