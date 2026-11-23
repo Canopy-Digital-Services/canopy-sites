@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.24.2] - 2026-11-23
+
+### Fixed
+
+- Sites: while someone else is making edits, the top bar shows their changes with Preview as soon as they save, instead of only once they've left (Epic 54)
+- The avatar's initials come from the person's name, and from their email only when they have no name (Epic 53)
+
 ## [5.24.1] - 2026-11-23
 
 ### Changed

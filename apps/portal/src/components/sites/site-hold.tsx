@@ -78,6 +78,8 @@ export function SiteHoldProvider({
   const [hasDraft, setHasDraft] = useState(initial.hasDraft);
   const [draft, setDraft] = useState({ by: initial.draftBy, summary: initial.draftSummary });
   const [epoch, setEpoch] = useState(0);
+  /** Where the site stood at the last answer, whoever has it. */
+  const [standing, setStanding] = useState(initial.marker);
   const page = useRef({
     by: initial.by,
     /** Whether the site was this person's at the last answer. */
@@ -108,6 +110,7 @@ export function SiteHoldProvider({
         p.take = false;
         const result = await keepHold({ take });
         if ("error" in result) continue;
+        setStanding(result.marker);
         setHasDraft(result.hasDraft);
         setDraft((d) => (d.by === result.draftBy && d.summary === result.draftSummary ? d : { by: result.draftBy, summary: result.draftSummary }));
         if (result.by !== null) {
@@ -143,13 +146,14 @@ export function SiteHoldProvider({
     }
   }, [reload, router]);
 
-  // The Sites chrome holds back Discard while the site is someone else's: tell it when that changes.
-  const announced = useRef(initial.by);
+  // The Sites chrome shows the draft, and holds back Discard while the site is someone else's: tell it when who
+  // has the site changes, and when the site moves, as it does each time the person who has it saves.
+  const announced = useRef({ by: initial.by, standing: initial.marker });
   useEffect(() => {
-    if (announced.current === by) return;
-    announced.current = by;
+    if (announced.current.by === by && announced.current.standing === standing) return;
+    announced.current = { by, standing };
     window.dispatchEvent(new Event(HOLD_CHANGED));
-  }, [by]);
+  }, [by, standing]);
 
   useEffect(() => {
     const p = page.current;

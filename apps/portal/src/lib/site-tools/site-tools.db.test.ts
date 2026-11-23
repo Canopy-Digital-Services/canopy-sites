@@ -100,7 +100,7 @@ async function siteAccount() {
 
 /** A session as the preview checks see it: the user's own memberships, not acting. */
 function as(userId: string) {
-  return { user: { id: userId, email: "", role: "USER" }, memberships: [], actingAs: null };
+  return { user: { id: userId, email: "", name: null, role: "USER" }, memberships: [], actingAs: null };
 }
 
 beforeEach(async () => {

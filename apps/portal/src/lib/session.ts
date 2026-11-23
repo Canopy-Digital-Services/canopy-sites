@@ -33,7 +33,7 @@ export type SessionContext = {
   /** The row id (token hash). Never the token itself. */
   id: string;
   rememberMe: boolean;
-  user: { id: string; email: string; role: string };
+  user: { id: string; email: string; name: string | null; role: string };
   /** At most two rows: enough to tell none, one, and more than one apart. */
   memberships: { accountId: string; role: MembershipRole }[];
   /**
@@ -93,6 +93,7 @@ export async function validateSessionToken(token: string, now = new Date()): Pro
         select: {
           id: true,
           email: true,
+          name: true,
           roleCode: true,
           memberships: { select: { accountId: true, role: true }, take: 2 },
         },
@@ -129,7 +130,7 @@ export async function validateSessionToken(token: string, now = new Date()): Pro
   return {
     id: row.id,
     rememberMe: row.rememberMe,
-    user: { id: row.user.id, email: row.user.email, role: row.user.roleCode },
+    user: { id: row.user.id, email: row.user.email, name: row.user.name, role: row.user.roleCode },
     memberships: row.user.memberships,
     actingAs,
   };
