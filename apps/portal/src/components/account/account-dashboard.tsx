@@ -350,7 +350,7 @@ function DeleteAccountSection({ hasSite }: { hasSite: boolean }) {
       </CardHeader>
       <CardFooter>
         <ConfirmDialog
-          title="Delete Account"
+          title="Delete Account?"
           description="This will permanently delete your account, all your forms, and all submission data. This action cannot be undone."
           onConfirm={handleDelete}
           destructive

@@ -64,7 +64,7 @@ export function SiteBuildsCard({
         </Button>
         {isDemo ? (
           <ConfirmDialog
-            title="Reset demo"
+            title="Reset demo?"
             description="Puts the demo's content back at its baseline and publishes it. Edits made since, and the demo's change history and quick edit conversations, are removed."
             onConfirm={() => run(() => resetDemoSite(siteId))}
             trigger={

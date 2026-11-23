@@ -5,6 +5,13 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.24.1] - 2026-11-23
+
+### Changed
+
+- Sites: discarding someone else's unpublished changes asks "Discard <name>'s changes?" and says what that means: they aren't editing now, their changes have to be published or discarded before anyone else can edit, and not to go on unless they can all be lost. Your own ask "Discard changes?" (Epic 54)
+- A dialog that asks whether to go ahead is titled as a question: Delete Form?, Delete Account?, Delete field?, and on the operator's pages Remove <name>?, Remove the <tab> video?, Reset demo?
+
 ## [5.24.0] - 2026-11-20
 
 ### Added
