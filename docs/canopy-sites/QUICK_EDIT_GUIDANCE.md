@@ -1,141 +1,36 @@
 # Quick Edit Guidance
 
-**Status:** draft, 2026-10-17. The content of the guidance quick edit and MCP clients run on (PRD D29 to D34), sorted by where each rule lives, and how the visual editor uses the same rules (PRD D35 to D45). The live wording of the core guidance and the persona is `BASE_RUNBOOK` in `apps/portal/src/lib/quick-edit/runbook.ts`, written from sections 5 and 6 in Epic 40 (2026-11-06), which now point there. E32 moves it into the shared definitions module (PRD D30), after which this doc keeps only section 1 and the numbers code reads (section 2). E32 deletes this status note.
+Where a rule for Quick Edit (and later MCP clients) belongs, and the numbers planned for what isn't built yet. The wording the model runs on is `BASE_RUNBOOK` in `apps/portal/src/lib/quick-edit/runbook.ts`; change it there, then run the Quick Edit Eval Runbook (Nextcloud, Canopy Sites). A field's description, label, and kind are its `.meta()` in `packages/site-contract/src/schemas.ts`. The site guide's front matter syntax is in `packages/site-contract/README.md`; what every guide must cover is the Site Build Checklist (Nextcloud).
 
-Companions: `PRD.md` (decisions), `ROADMAP.md` (E31 to E34), and in the Nextcloud Canopy Sites collective, **Copy Guidelines** (bucket 3 is what a site guide holds) and **Site Build Checklist** (what every site guide must cover).
-
----
-
-## 1. Where a rule lives
+## Where a rule lives
 
 Pick the first home that can carry it:
 
-1. **Code.** Anything deterministic: validation, formats, image preflight, locked fields, publish gating. The model sees the result, never the rule. Per-site limits and display formats are code too, with their values in the site guide's front matter (PRD D40).
-2. **Contract field metadata** (`.meta()` in `packages/site-contract`, PRD D36). What a field means (its description), what it is called (its label), and what it holds (its kind). Descriptions reach the model through the JSON Schema; labels and kinds give the canvas its field names and inputs. All of it versions with the contract.
-3. **Tool descriptions and tool results.** Every MCP client shows these to its model, so a rule here works for a client's own assistant too. A tool result says what to tell the owner and what to do next.
-4. **Core guidance.** Judgment calls. MCP clients get it as server instructions, quick edit as its system prompt. A client may drop server instructions, so nothing a guardrail depends on lives only here.
-5. **Quick edit persona.** Portal chat only: the person on the other end is a non-technical owner.
-6. **Site guide.** What is true of one business. `SITE_GUIDE.md` in the site repo, written by Canopy (PRD D31): front matter for code (home 1), prose for the model.
+1. **Code.** Anything deterministic: validation, formats, image preflight, locks, publish gating. The model sees the result, never the rule. A site's limits and display formats are code too, with their values in its guide's front matter (PRD D40).
+2. **Contract field metadata** (PRD D36): what a field means, what it's called, and what it holds. It reaches every client through the JSON Schema and gives the canvas its labels, and it versions with the contract.
+3. **Tool descriptions and tool results.** Every MCP client shows these to its model, so a rule here works for a client's own assistant too. A result says what to tell the owner and what to do next; a warning is data (the field's address and a message), so the canvas shows it as well.
+4. **Core guidance** (`BASE_RUNBOOK`): judgment calls. A client may drop server instructions, so nothing a guardrail depends on lives only here.
+5. **Quick Edit persona**: the "Replying to the owner" part of `BASE_RUNBOOK`. Portal chat only.
+6. **Site guide** (`SITE_GUIDE.md` in the site's repo, PRD D31): what is true of one business. Canopy writes it; the model reads it from the published commit. A client's own assistant can read it, so it holds nothing the client shouldn't see.
 
-The boundary across all six: **content only** (PRD D29). No rule anywhere lets an edit reach design, layout, tokens, or components.
+Across all six: **content only** (PRD D29). No rule lets an edit reach design, layout, or components. The canvas's own editors run on homes 1 and 2, and every source writes the same draft through the same tool layer (PRD D38), so a rule in code holds everywhere.
 
-**The visual editor uses the same homes.** Its own editors on the canvas (plain text, prices, an announcement's dates) run on homes 1 and 2: the owner types the value, so the copy is verbatim by construction (PRD D32), and spelling is the browser's spellcheck. Every other marked field opens the quick edit popover, which is quick edit scoped to one field and runs on all six (PRD D37). Every source writes the same draft through the same tool layer (PRD D38), so a rule enforced in code holds on the canvas, in quick edit, and over MCP alike.
+Canopy's own copy mechanics (no em dashes, sentence case) are not checks: they govern copy Canopy writes, and owner text is verbatim (PRD D32).
 
----
+## Planned, not built
 
-## 2. Checks in code
+**Warnings in the tool result.** Only "what the copy avoids" (the guide's `avoid`) is built. Planned:
 
-### Validation and formats
+- **Stale mentions**: when a value is replaced, every other place the old value still appears ("$85 also appears in a section on the home page").
+- **Dates**: an `endsOn` in the past; a weekday that doesn't match its date ("Monday the 20th" when the 20th is a Tuesday).
+- **Duplicates**: a service name that already exists; an announcement already covering that date.
+- **Links**: an external link that doesn't answer with a success or a redirect.
+- **Housekeeping**: adding an announcement removes expired ones in the same change, before the cap of 5 applies.
 
-- Contract schemas: types, required fields, ids, link forms, dates, times, one line of plain text (markup, markdown, and line breaks rejected).
-- Length limits are what the rendered slot can hold. The contract sets absolute caps every site shares; the site guide's front matter tightens them per field address to this site's design (PRD D40), and the canvas shows them as counters. Alt text: 125 characters (screen reader announcement length).
-- Facts are stored structured and formatted at render with the site guide's display formats (phone, price, time). Stored text is never re-cased: casing is CSS, and owner copy is verbatim.
-- Canopy's own copy mechanics (Copy Guidelines bucket 2: no em dashes, sentence case) are **not** checks. They govern copy Canopy writes. Owner text follows the site guide (PRD D32).
-- The lane (PRD D50): Canopy's fields (ids, page paths, navigation labels, SEO fields, eyebrows, buttons), the site's locks, and its fixed lists, whose entries an owner can't add, remove, or reorder (pages and sections on every site). The refusal names each field by its label and says what to tell the owner.
-- The site guide's counts (most entries in a list) and refused phrases, beside its limits (PRD D40).
-- Rate limits and preview before publish: PRD D9.
+**Image preflight** (ROADMAP E50):
 
-### Checks that return warnings in the tool result
-
-Each warning is returned as data (the field's address and a message), so the canvas shows it as well as the model.
-
-- **What the copy avoids** (the site guide's `avoid`), in text the write changed: the copy is the owner's (PRD D32), so the model asks whether to keep it.
-- **Stale mentions.** When an op replaces a value, the result lists every other place in the site's content where the old value still appears ("$85 also appears in a section on the home page").
-- **Dates.** An `endsOn` in the past; a weekday in the text that doesn't match its date ("Monday the 20th" when the 20th is a Tuesday).
-- **Duplicates.** A service name that already exists; an announcement already covering that date.
-- **Links.** An external link that doesn't answer with a success or redirect when the change is proposed.
-
-### Housekeeping
-
-- Adding an announcement removes expired ones in the same ChangeSet before the cap of 5 applies.
-
-### Image preflight
-
-- **Accepted:** JPEG, PNG, WebP, AVIF, HEIC/HEIF, up to 25 MB.
-- **Normalized on every upload:** EXIF orientation applied, then EXIF stripped (phone photos carry GPS). Long edge scaled to at most 2400px. Re-encoded to land at 1 MB or less: JPEG, or WebP when the image has transparency. Astro builds the responsive sizes at build time; the repo keeps one master.
-- **Rejected with a reason:** GIF, SVG, PDF, anything that won't decode.
-- **Size per slot**, on the long edge. Below the floor the upload is refused; between the floor and the recommended size it is accepted with a warning.
-
-  | Slot | Refused under | Warned under |
-  |---|---|---|
-  | Hero | 1200px | 1800px |
-  | Gallery | 800px | 1200px |
-  | Headshot | 400px | |
-
-  Hero and headshot apply when the contract adds those image slots; v0.1 has gallery only (as of 2026-10-17).
-- **Vision** (PRD D33). The model gets a downscaled copy for alt text, placement, and moderation. A moderation reject notifies the operator.
-
----
-
-## 3. Contract field descriptions
-
-Written into the schemas as each field's description, beside its kind and label (PRD D36), so they reach every client:
-
-- `priceLabel`: display text, written the way the menu writes it ("$90", "From $150").
-- `hours`: the regular week, 24-hour times. One-off closures and holiday hours are announcements.
-- `announcements.message`: 160 characters or fewer. `startsOn` and `endsOn` (YYYY-MM-DD) whenever the message is about a date; the banner hides itself after `endsOn`.
-- `serviceIds`: a featured service shows the menu's name and price. To change either, edit the menu. Each entry is the id of a service on the menu; which services a page features, and in what order, is the owner's.
-- `gallery`: page order is list order. `alt` describes what is in the photo for someone who can't see it; it does not sell.
-- `id` fields: stable once set; never renamed to match a new name.
-- `reviews`: a real customer's exact words and name, as the owner gives them.
-- `site.credentials`: a certification's `name` is the full name (structured data and anyone spelling it out use it); `shortName` is for tight spaces such as a line of designations; `number` is written without a leading #; `verifyOn` is where a buyer can look it up. NAICS codes are six digits each, in the order shown.
-- `faqs`: a question as a customer would ask it; page order is list order. `link` is where the answer sends the reader next, shown after it, and is Canopy's.
-- `team`: `note` is a short line shown with the role (a credential, a branch of service, years in the trade). `group` is which part of the team a person is shown in, when the site shows more than one, and is Canopy's.
-
-Each new collection adds its descriptions when it enters the contract.
-
----
-
-## 4. Tool descriptions and results
-
-- **Reading:** read a collection before changing it.
-- **Proposing:** everything for one request goes in one proposal. The result says a preview is building and that nothing is live until the owner publishes, and lists every field the proposal changed, by label, old value to new, computed from the content rather than the ops. The model checks that list against the request, puts back anything it wasn't asked to change, and names each change in its reply. A proposal lands in the site's draft, which the owner may also be editing on the canvas (PRD D38); the last write to a field wins.
-- **Errors** say how to fix them. A refusal that is Canopy's call (the lane, a refused phrase) says only what was refused; quick edit adds the way out, `request_help` (below).
-- **Preflight warnings** carry the message to relay. Low resolution: *"This picture is low resolution and will look blurry on the page. Do you have a better version, or do you want to see what it looks like on the preview anyway?"* The model waits for the answer and uses the photo only if the owner says to.
-- **Alt text:** the upload result asks the model to suggest alt text from the photo; the owner accepts or edits it.
-- **`request_help`** (PRD D34) drafts a request in the owner's words, shown to them as a card with Send to Michael and Not now; nothing reaches Canopy until they send it. A refusal that is Canopy's call (the lane, a refused phrase) tells the model to call it rather than try another way. Reply: one sentence that this one is Canopy's and they can send it to Michael from the card. Once sent, the card says *"Sent to Michael. You can text him if you need it sooner."* Text that doesn't belong on the site (swearing, hate speech, nothing to do with the business) is drafted with `refused`, and the reply says it can't go on the site and that the owner can ask Michael for it from the card; nothing reaches him unless they send it. Over MCP (E34) there is no card: the tool files the request, and its description says to confirm with the owner first.
-- **`get_site_guide`** returns the site guide, for MCP clients that drop server instructions. Every other tool description points to it.
-- **No `publish` tool**, for quick edit or MCP: a change returns the preview page's link, and the owner publishes there (PRD D47).
-
----
-
-## 5. Core guidance (both surfaces)
-
-The wording is `BASE_RUNBOOK` in `apps/portal/src/lib/quick-edit/runbook.ts`, written from this section in Epic 40 (4.4): the owner's copy word for word (PRD D32), the lane and its way out to Michael (D34, D50), the judgment calls, and the lines quoted to the owner. Change it there, then run the Quick Edit Eval Runbook (Nextcloud, Canopy Sites). MCP clients get the same wording as server instructions once E34 moves it into the shared definitions module (D30).
-
-Still to add with E32's media pipeline, which they need:
-
-- **Alt text** is the one thing the model writes: suggested on upload, used as the owner accepts or edits it.
-- A photo that fails moderation is not used; say it can't go on the site.
-
----
-
-## 6. Quick edit persona (portal chat only)
-
-The persona is the "Replying to the owner" part of `BASE_RUNBOOK` (section 5).
-
----
-
-## 7. Site guide
-
-`SITE_GUIDE.md` at the root of each site repo (PRD D31). Canopy writes it; quick edit and MCP clients read it from the published commit and never write it. It is the home for Copy Guidelines bucket 3 (client rules) and for the quick edit specifics the Site Build Checklist lists. A client's own assistant can read it over MCP, so it holds nothing the client shouldn't see. The site's time zone and locked fields live on the `Site` row, not in the guide.
-
-It opens with YAML front matter that code reads (PRD D40): length limits and list counts by field address, with `*` standing for any entry id, display formats, what the copy avoids (a warning the owner decides on), and phrases the site refuses. The prose below is the model's. A limit or count belongs here once it is derived from the rendered design, which is the Copy Guidelines' "write it down when you do". The syntax is the contract's (`packages/site-contract/README.md`).
-
-```yaml
----
-limits:
-  pages/home/hero/subheadline: 60
-  services/*/services/*/name: 32
-counts:
-  team: 6
-formats:
-  phone: "(530) 555-1234"
-avoid:
-  - emoji
-  - all-caps
-refuse:
-  - free trial
-  - discount*
----
-```
+- Accepted: JPEG, PNG, WebP, AVIF, HEIC/HEIF, up to 25 MB. Rejected with a reason: GIF, SVG, PDF, anything that won't decode.
+- Every upload: EXIF orientation applied, then EXIF stripped (phone photos carry GPS); long edge at most 2400 px; re-encoded to 1 MB or less, JPEG, or WebP when the image has transparency. Astro builds the responsive sizes; the repo keeps one master.
+- Size per slot, on the long edge: refused under the floor, accepted with a warning under the recommended size. Hero 1200 / 1800 px, gallery 800 / 1200 px, headshot 400 px.
+- The low-resolution warning the model relays: *"This picture is low resolution and will look blurry on the page. Do you have a better version, or do you want to see what it looks like on the preview anyway?"* It uses the photo only if the owner says to.
+- The model gets a downscaled copy for alt text, placement, and moderation (PRD D33). It suggests alt text of 125 characters or fewer (the contract caps it at 200), which the owner accepts or edits; it is the one thing the model writes. A photo that fails moderation isn't used, the reply says it can't go on the site, and the operator is notified.

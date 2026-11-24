@@ -4,7 +4,7 @@ import { z } from "zod";
 // Field metadata (PRD D36). Every value an owner can see carries a kind (which
 // picks the visual editor's input), a label (what the editor and change
 // summaries call it), and optionally a description (what the model reads in
-// the JSON Schema; wording from QUICK_EDIT_GUIDANCE.md section 3).
+// the JSON Schema; these descriptions are where that wording lives).
 
 export const FIELD_KINDS = [
   "text",

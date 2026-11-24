@@ -235,7 +235,7 @@ After the MVP (PRD D52, D54, D55), except E55's first step.
 
 Goal: an owner adds, reorders, and removes photos in a tab, and Quick Edit does the same through the tab's own form (PRD D41, D54).
 
-- The media pipeline: `uploadMedia` with preflight per `QUICK_EDIT_GUIDANCE.md` (formats, normalization, size per slot with its refuse and warn levels), staged until publish. The model gets a downscaled copy for alt text, placement, and moderation (PRD D33), and the owner accepts or edits the alt text (125 characters at most)
+- The media pipeline: `uploadMedia` with the preflight `QUICK_EDIT_GUIDANCE.md` plans (formats, normalization, size per slot with its refuse and warn levels), staged until publish. The model gets a downscaled copy for alt text, placement, and moderation (PRD D33), and the owner accepts or edits the alt text
 - A draft's photo shows on the canvas from the builder: the canvas loads a client site's assets from its live address, where an unpublished photo doesn't exist
 - The Gallery tab, then Quick Edit and the canvas popover attaching through its form. Quick Edit answers an add with the tab's form filled in with what it heard, instead of asking for each part in turn
 - Instagram as a source, for Client 1: fetched at build and never committed, so after E36, when the token lives with the one production build. Open: Meta's review of the app
@@ -311,6 +311,7 @@ A client who leaves takes their site with them, with none of Canopy's contract i
 - The public MCP endpoint and its OAuth (E34; PRD D59)
 - Tests for the builder's queue, publish, pruning, and nightly rebuild; it has one test file, in the service that pushes to client repos
 - Compatibility code to remove: `lockedFieldViolations` in the contract (only its own test uses it), and the pointer-op draft paths in the tool layer (`isDraftOps`, the rewrite on a draft's first write, the pre-draft failure in `syncDraft`), after discarding any pending pointer-op drafts
+- The tool-result warnings `QUICK_EDIT_GUIDANCE.md` plans (stale mentions, dates, duplicates, links, expired announcements); only "what the copy avoids" is built
 - Quick Edit's model names list entries by position in `propose_change`, and the tool layer rewrites them as addresses: a miscount edits the wrong entry, caught only by the change report
 - Small:
   - Quick Edit sends no refusal fallback (`fallbacks` on `client.beta.messages`), so a decline by the API's safety classifiers ends at "send him a text" (`src/lib/quick-edit/index.ts`)
