@@ -2,7 +2,7 @@ The Canopy Sites epics in progress, briefed in [`docs/canopy-sites/ROADMAP.md`](
 
 ## In progress
 
-Each epic's Status line says what has been released and what is left. Each client site's epic (40, 42, 46, and 55) is on the Nextcloud page "Client Sites" instead, with the key to the labels this repo uses for client sites.
+Each epic's Status line says what has been released and what is left. Each client site's epic (40, 46, and 55) is on the Nextcloud page "Client Sites" instead, with the key to the labels this repo uses for client sites.
 
 - [Epic 33: Visual Editor](epic-33-visual-editor.md)
 - [Epic 37: canopyds.com on Sites](epic-37-canopyds-on-sites.md)
