@@ -43,13 +43,13 @@ describe("buildSources", () => {
     const rows = buildSources(
       0,
       [
-        { domain: "client3.example", visitors: 9 },
-        { domain: "www.client3.example", visitors: 4 },
+        { domain: "northgatecyclery.example", visitors: 9 },
+        { domain: "www.northgatecyclery.example", visitors: 4 },
         { domain: "localhost", visitors: 2 },
         { domain: "sites.localhost", visitors: 1 },
         { domain: "linkedin.com", visitors: 3 },
       ],
-      ["www.client3.example", "client3.org"],
+      ["www.northgatecyclery.example", "ngcycles.example"],
     );
     expect(rows).toEqual([{ source: "LinkedIn", visitors: 3 }]);
   });

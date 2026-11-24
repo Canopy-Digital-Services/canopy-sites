@@ -16,7 +16,7 @@ describe("Quick Edit's examples", () => {
     ]);
   });
 
-  it("name a gym's real class and coach (Client 1's shape)", () => {
+  it("name a gym's real class and coach", () => {
     const gym = {
       site: { hours: { kind: "freeform", text: "Open 7 days a week" } },
       classes: [
@@ -38,11 +38,11 @@ describe("Quick Edit's examples", () => {
   it("skip prices that aren't a plain amount, and spell out days and noon crossings", () => {
     const content = {
       services: [{ id: "a", name: "Color", services: [{ id: "c", name: "Color", priceLabel: "From $150" }] }],
-      classes: [{ id: "bjj", name: "Community BJJ", shortName: "BJJ", sessions: [{ id: "s", days: ["sunday"], starts: "11:15", ends: "12:30" }] }],
+      classes: [{ id: "sparring", name: "Community Sparring", shortName: "Sparring", sessions: [{ id: "s", days: ["sunday"], starts: "11:15", ends: "12:30" }] }],
       faqs: [{ id: "walk-ins", question: "Do you take walk-ins?", answer: "Yes." }],
     };
     expect(exampleRequests(content, "2026-11-06")).toEqual([
-      "BJJ is moving to 11:45 AM to 1:00 PM on Sundays",
+      "Sparring is moving to 11:45 AM to 1:00 PM on Sundays",
       'Change the answer to "Do you take walk-ins?"',
     ]);
   });

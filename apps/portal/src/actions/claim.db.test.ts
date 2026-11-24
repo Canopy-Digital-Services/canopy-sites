@@ -36,7 +36,7 @@ afterEach(() => vi.unstubAllEnvs());
 async function linkedSite() {
   const { account, user: owner } = await createAccount({ planCode: "SITES" });
   await prisma.user.update({ where: { id: owner.id }, data: { password: null } });
-  const site = await createSite(account.id, { productionHostnames: ["client1.example.com"] });
+  const site = await createSite(account.id, { productionHostnames: ["thistle.example.com"] });
   const { user: operator } = await createAccount({ planCode: "SITES", roleCode: "GLOBAL_ADMIN" });
   await signInAs(operator.id);
   return { account, owner, site, operator };

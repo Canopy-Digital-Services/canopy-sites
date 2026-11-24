@@ -292,7 +292,7 @@ export const PageSchema = z
   });
 
 // ---------------------------------------------------------------------------
-// services: the menu (Client 2's services.json is the reference shape)
+// services: the menu, grouped by category
 
 const PriceLabel = field(plain(40), {
   kind: "price",

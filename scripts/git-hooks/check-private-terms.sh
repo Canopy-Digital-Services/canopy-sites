@@ -2,9 +2,9 @@
 # Refuses text that identifies a client (CLAUDE.md, "Client information").
 # The terms are private and never in this repo: one per line in the file
 # $CANOPY_PRIVATE_TERMS names, else ~/.config/canopy/private-terms.txt (its
-# master copy is the Nextcloud page "Client Sites"). A term matches as a whole
-# word or phrase, ignoring case; prefix it with "case:" to match case. Lines
-# starting with # are comments.
+# master copy is the Nextcloud page "Client Sites"). A term matches anywhere in
+# the text, even inside a longer word or an identifier, ignoring case; prefix
+# it with "case:" to match case. Lines starting with # are comments.
 # Usage: check-private-terms.sh <file with the text to check> <what it is>
 text="$1"
 what="$2"
@@ -16,8 +16,8 @@ fi
 found=0
 while IFS= read -r term || [ -n "$term" ]; do
   case "$term" in ''|'#'*) continue ;; esac
-  flags="-n -F -w -i"
-  case "$term" in case:*) term="${term#case:}"; flags="-n -F -w" ;; esac
+  flags="-n -F -i"
+  case "$term" in case:*) term="${term#case:}"; flags="-n -F" ;; esac
   # shellcheck disable=SC2086
   hits=$(grep $flags -- "$term" "$text")
   if [ -n "$hits" ]; then

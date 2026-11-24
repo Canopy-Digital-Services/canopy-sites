@@ -30,12 +30,12 @@ const settings: SiteSettingsInput = {
   fixedLists: ["classes"],
 };
 
-const client1: LinkSiteInput = {
+const thistle: LinkSiteInput = {
   email: "Owner@Example.com",
-  name: "Client 1",
-  repoUrl: "https://github.com/Canopy-Digital-Services/client1.git",
-  slug: "client1",
-  productionHostnames: ["client1.example", "www.client1.example"],
+  name: "Thistle Boxing Club",
+  repoUrl: "https://github.com/Canopy-Digital-Services/thistle.git",
+  slug: "thistle",
+  productionHostnames: ["thistleboxing.example", "www.thistleboxing.example"],
   umamiWebsiteId: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
 };
 
@@ -43,7 +43,7 @@ describe("linkSite (PRD D49)", () => {
   it("creates the client's Sites account, an owner with no password, and the site", async () => {
     await signInAsAdmin();
 
-    const result = await linkSite(client1);
+    const result = await linkSite(thistle);
 
     expect(result).toMatchObject({ success: true, attached: false });
     const owner = await prisma.user.findUniqueOrThrow({
@@ -54,11 +54,11 @@ describe("linkSite (PRD D49)", () => {
     expect(owner.memberships).toHaveLength(1);
     expect(owner.memberships[0]).toMatchObject({ role: "OWNER", account: { planCode: "SITES", status: "ACTIVE", timeZone: "America/Los_Angeles" } });
     expect(await prisma.site.findUniqueOrThrow({ where: { accountId: owner.memberships[0].accountId } })).toMatchObject({
-      name: "Client 1",
-      slug: "client1",
-      repoUrl: "https://github.com/Canopy-Digital-Services/client1",
+      name: "Thistle Boxing Club",
+      slug: "thistle",
+      repoUrl: "https://github.com/Canopy-Digital-Services/thistle",
       defaultBranch: "main",
-      productionHostnames: ["client1.example", "www.client1.example"],
+      productionHostnames: ["thistleboxing.example", "www.thistleboxing.example"],
       umamiWebsiteId: "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
       lockedFields: DEFAULT_LOCKED_FIELDS,
       isDemo: false,
@@ -69,7 +69,7 @@ describe("linkSite (PRD D49)", () => {
     const { user } = await createAccount({ planCode: "SITES" });
     await signInAs(user.id);
 
-    await expect(linkSite(client1)).rejects.toThrow();
+    await expect(linkSite(thistle)).rejects.toThrow();
     expect(await prisma.site.count()).toBe(0);
     expect(await prisma.user.count({ where: { email: "owner@example.com" } })).toBe(0);
   });
@@ -80,10 +80,10 @@ describe("linkSite (PRD D49)", () => {
     const { account: withSite, user: siteOwner } = await createAccount({ planCode: "SITES" });
     await insertSite(withSite.id);
 
-    expect(await linkSite({ ...client1, email: forms.email })).toMatchObject({
+    expect(await linkSite({ ...thistle, email: forms.email })).toMatchObject({
       fieldErrors: { email: "That email already has an account on the Unlimited plan." },
     });
-    expect(await linkSite({ ...client1, email: siteOwner.email })).toHaveProperty("fieldErrors.email");
+    expect(await linkSite({ ...thistle, email: siteOwner.email })).toHaveProperty("fieldErrors.email");
     expect(await prisma.site.count()).toBe(1);
     expect(await prisma.account.count()).toBe(3);
   });
@@ -92,36 +92,36 @@ describe("linkSite (PRD D49)", () => {
     await signInAsAdmin();
     const { account, user } = await createAccount({ planCode: "SITES" });
 
-    expect(await linkSite({ ...client1, email: user.email })).toEqual({
+    expect(await linkSite({ ...thistle, email: user.email })).toEqual({
       error: "That email has a Sites account with no site.",
       attachable: true,
     });
     expect(await prisma.site.count()).toBe(0);
 
-    expect(await linkSite({ ...client1, email: user.email }, { attach: true })).toMatchObject({
+    expect(await linkSite({ ...thistle, email: user.email }, { attach: true })).toMatchObject({
       success: true,
       accountId: account.id,
       attached: true,
     });
-    expect(await prisma.site.findUniqueOrThrow({ where: { accountId: account.id } })).toMatchObject({ slug: "client1" });
+    expect(await prisma.site.findUniqueOrThrow({ where: { accountId: account.id } })).toMatchObject({ slug: "thistle" });
     expect(await prisma.user.count()).toBe(2); // the admin and the existing owner: nobody new
   });
 
   it("refuses a slug, hostname, or repository another site holds, and creates nothing", async () => {
     await signInAsAdmin();
     const { account: other } = await createAccount({ planCode: "SITES" });
-    const held = await insertSite(other.id, { slug: "client1", productionHostnames: ["www.client1.example"] });
+    const held = await insertSite(other.id, { slug: "thistle", productionHostnames: ["www.thistleboxing.example"] });
     await prisma.site.update({
       where: { id: held.id },
-      data: { repoUrl: "https://github.com/canopy-digital-services/client1/" },
+      data: { repoUrl: "https://github.com/canopy-digital-services/THISTLE/" },
     });
 
-    expect(await linkSite(client1)).toMatchObject({ fieldErrors: { slug: "Another site uses this slug" } });
-    expect(await linkSite({ ...client1, slug: "client1-2" })).toMatchObject({
-      fieldErrors: { productionHostnames: `www.client1.example belongs to ${held.name}` },
+    expect(await linkSite(thistle)).toMatchObject({ fieldErrors: { slug: "Another site uses this slug" } });
+    expect(await linkSite({ ...thistle, slug: "thistle-2" })).toMatchObject({
+      fieldErrors: { productionHostnames: `www.thistleboxing.example belongs to ${held.name}` },
     });
     expect(
-      await linkSite({ ...client1, slug: "client1-2", productionHostnames: ["client1.example.com"] })
+      await linkSite({ ...thistle, slug: "thistle-2", productionHostnames: ["thistle.example.com"] })
     ).toMatchObject({ fieldErrors: { repoUrl: `${held.name} is linked to this repository` } });
     expect(await prisma.site.count()).toBe(1);
     expect(await prisma.user.count({ where: { email: "owner@example.com" } })).toBe(0);
@@ -129,7 +129,7 @@ describe("linkSite (PRD D49)", () => {
 
   it("refuses input in the wrong shape before touching the database", async () => {
     await signInAsAdmin();
-    const result = await linkSite({ ...client1, repoUrl: "https://gitlab.com/x/y", productionHostnames: [] });
+    const result = await linkSite({ ...thistle, repoUrl: "https://gitlab.com/x/y", productionHostnames: [] });
     expect(result).toHaveProperty("fieldErrors.repoUrl");
     expect(result).toHaveProperty("fieldErrors.productionHostnames");
     expect(await prisma.user.count()).toBe(1);
@@ -177,7 +177,7 @@ describe("updateSite", () => {
 });
 
 describe("the Umami website a site reads", () => {
-  const READABLE = client1.umamiWebsiteId;
+  const READABLE = thistle.umamiWebsiteId;
   const OUTSIDE_TEAM = "9b2f6c1e-5a4d-4c3b-8e2f-0a1b2c3d4e5f";
   const fetchMock = vi.fn<typeof fetch>();
 
@@ -189,7 +189,7 @@ describe("the Umami website a site reads", () => {
     fetchMock.mockImplementation(async (input) => {
       const path = new URL(String(input)).pathname;
       if (path.includes(OUTSIDE_TEAM)) return Response.json({ error: { status: 401 } }, { status: 401 });
-      return Response.json(path.endsWith("/daterange") ? { startDate: null, endDate: null } : { name: "Client 1", domain: "client1.example" });
+      return Response.json(path.endsWith("/daterange") ? { startDate: null, endDate: null } : { name: "Thistle Boxing Club", domain: "thistleboxing.example" });
     });
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -202,7 +202,7 @@ describe("the Umami website a site reads", () => {
   it("Link a site refuses a website the portal's key can't read, and creates nothing", async () => {
     await signInAsAdmin();
 
-    const result = await linkSite({ ...client1, umamiWebsiteId: OUTSIDE_TEAM });
+    const result = await linkSite({ ...thistle, umamiWebsiteId: OUTSIDE_TEAM });
 
     expect(result).toHaveProperty("fieldErrors.umamiWebsiteId", expect.stringMatching(/Canopy Sites team/));
     expect(await prisma.site.count()).toBe(0);
@@ -211,10 +211,10 @@ describe("the Umami website a site reads", () => {
 
   it("Link a site takes a readable website, and one Umami gave no answer about", async () => {
     await signInAsAdmin();
-    expect(await linkSite(client1)).toMatchObject({ success: true });
+    expect(await linkSite(thistle)).toMatchObject({ success: true });
 
     fetchMock.mockImplementation(async () => Promise.reject(new TypeError("fetch failed")));
-    const other = { ...client1, email: "other@example.com", repoUrl: "https://github.com/example-org/other", slug: "other", productionHostnames: ["other.example"] };
+    const other = { ...thistle, email: "other@example.com", repoUrl: "https://github.com/example-org/other", slug: "other", productionHostnames: ["other.example"] };
     expect(await linkSite(other)).toMatchObject({ success: true });
   });
 
