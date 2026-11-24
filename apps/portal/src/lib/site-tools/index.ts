@@ -25,6 +25,8 @@ import {
   addressAt,
   applyChanges,
   avoidWarnings,
+  countIssues,
+  limitIssues,
   refusalIssues,
   COLLECTION_NAMES,
   fieldInfo,
@@ -385,32 +387,60 @@ function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGu
   if (lane.length) {
     throw new ToolError(`${lane.map((v) => v.message).join("; ")}.`, lane.map((v) => laneIssue(v, published, after)), { outOfLane: true });
   }
-  const result = validateContent(after, { limits: guide.limits, counts: guide.counts });
-  if (!result.ok) {
-    const issues: ToolIssue[] = result.issues.map((i) => {
-      try {
-        return { ...i, address: addressAt(after as Record<string, unknown>, i.collection, i.path) };
-      } catch {
-        return i;
-      }
-    });
-    throw new ToolError(`That change doesn't fit the site: ${result.issues.map((i) => `${i.collection}${i.path}: ${i.message}`).join("; ")}`, issues);
-  }
-  // Checked once the content is valid, and apart from the contract: a refused
-  // phrase is Canopy's call, not a mistake to fix.
-  const refused = refusalIssues(after, guide.refuse);
-  if (refused.length) {
-    const issues: ToolIssue[] = refused.map((i) => {
-      const issue = { ...i, collection: i.collection as ToolIssue["collection"] };
-      try {
-        return { ...issue, address: addressAt(after as Record<string, unknown>, issue.collection, i.path) };
-      } catch {
-        return issue;
-      }
-    });
-    throw new ToolError(`${refused.map((i) => i.message).join("; ")}.`, issues, { outOfLane: true });
-  }
+  // The contract runs over the whole draft: content that breaks it can't build.
+  const result = validateContent(after);
+  if (!result.ok) throw new ToolError(doesntFit(result.issues), located(after, result.issues));
+  const { fit, refused } = guideIssues(published, after, result.content as RawContent, guide);
+  if (fit.length) throw new ToolError(doesntFit(fit), fit);
+  // Apart from the rest: a refused phrase is Canopy's call, not a mistake to fix.
+  if (refused.length) throw new ToolError(`${refused.map((i) => i.message).join("; ")}.`, refused, { outOfLane: true });
   return after;
+}
+
+const doesntFit = (issues: Array<{ collection: string; path: string; message: string }>) =>
+  `That change doesn't fit the site: ${issues.map((i) => `${i.collection}${i.path}: ${i.message}`).join("; ")}`;
+
+/** Issues with the address of the field each is about, where the content has it. */
+function located(content: RawContent, issues: Array<{ collection: string; path: string; message: string }>): ToolIssue[] {
+  return issues.map((i) => {
+    const issue = { ...i, collection: i.collection as ToolIssue["collection"] };
+    try {
+      return { ...issue, address: addressAt(content as Record<string, unknown>, i.collection, i.path) };
+    } catch {
+      return issue;
+    }
+  });
+}
+
+function valueAt(content: RawContent, address: string): unknown {
+  try {
+    return resolveAddress(content, address).node;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The guide's rules this edit breaks (PRD D40): a limit or a refused phrase
+ * on a field whose value it changed or added, a count on a list it made
+ * longer. Fields and lists are compared by address, as `avoidWarnings` does,
+ * so a field that kept its value is never reported, however its list moved.
+ * A rule the published site already breaks never refuses an owner's edit
+ * elsewhere: the operator's site page lists those (`publishedGuideIssues`).
+ * `parsed` is `after` as the contract read it, which is what the rules see.
+ */
+function guideIssues(published: RawContent, after: RawContent, parsed: RawContent, guide: SiteGuide): { fit: ToolIssue[]; refused: ToolIssue[] } {
+  const changed = (i: ToolIssue) => !i.address || JSON.stringify(valueAt(published, i.address)) !== JSON.stringify(valueAt(after, i.address));
+  const grew = (i: ToolIssue) => {
+    if (!i.address) return true;
+    const was = valueAt(published, i.address);
+    const now = valueAt(after, i.address);
+    return !Array.isArray(was) || (Array.isArray(now) && now.length > was.length);
+  };
+  return {
+    fit: [...located(parsed, limitIssues(parsed, guide.limits)).filter(changed), ...located(parsed, countIssues(parsed, guide.counts)).filter(grew)],
+    refused: located(parsed, refusalIssues(parsed, guide.refuse)).filter(changed),
+  };
 }
 
 /** Marks a change's unfinished builds as replaced by the one about to start. */
@@ -760,6 +790,32 @@ export async function getContentView(accountId: string) {
 /** The same view, for a site named by id (PRD D44). */
 export async function getDraftView(accountId: string, siteId: string) {
   return draftView(await ownedSite(accountId, siteId));
+}
+
+export type PublishedGuideIssues =
+  | { status: "no-repo" | "unconfigured" | "unreachable" }
+  | { status: "read"; issues: Array<{ address: string; message: string }> };
+
+/**
+ * Where a site's published content breaks the contract or its guide, for
+ * the operator's site page, behind `requireGlobalAdmin`. Owner edits are
+ * checked only on what they change (`guideIssues`), so this is where the
+ * operator sees copy a Canopy push or a tightened guide left past a rule.
+ */
+export async function publishedGuideIssues(siteId: string): Promise<PublishedGuideIssues> {
+  const site = await prisma.site.findUnique({ where: { id: String(siteId) }, include: withZone });
+  if (!site?.repoUrl) return { status: "no-repo" };
+  if (!builderConfigured()) return { status: "unconfigured" };
+  let read: SiteRead;
+  try {
+    read = await readSite(site);
+  } catch (err) {
+    if (err instanceof ToolError) return { status: "unreachable" };
+    throw err;
+  }
+  const { limits, counts, refuse } = read.guide;
+  const { issues } = validateContent(read.published, { limits, counts, refuse });
+  return { status: "read", issues: located(read.published, issues).map((i) => ({ address: i.address ?? `${i.collection}${i.path}`, message: i.message })) };
 }
 
 /**

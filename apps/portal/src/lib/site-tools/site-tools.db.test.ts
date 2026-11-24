@@ -308,6 +308,49 @@ describe("the lane (PRD D50)", () => {
     ).rejects.toMatchObject({ message: expect.stringMatching(/doesn't say "Free trial"/), outOfLane: true });
   });
 
+  it("checks the guide only on what an edit changes, and shows the operator what the published site breaks (E47)", async () => {
+    const { ctx, site } = await siteAccount();
+    // Published copy past the guide, as a Canopy push or a tightened guide leaves it.
+    const menu = builder.content.services as Menu;
+    menu[0].services[0].name = "Haircut and blow-dry";
+    menu[0].services.push({ id: "trim", name: "Trim", priceLabel: "$40" });
+    (builder.content.site as Record<string, unknown>).description = "A salon with a free trial.";
+    builder.guide = "---\nlimits:\n  services/*/services/*/name: 10\ncounts:\n  services/*/services: 1\nrefuse:\n  - free trial\n---\n";
+    const editor = { ...ctx, source: "EDITOR" as const };
+
+    // An edit elsewhere goes through, beside a list it doesn't lengthen.
+    expect((await tools.saveDraft(editor, site.id, { ops: [PRICE_OP] })).changeSetId).toBeTruthy();
+    expect((await tools.saveDraft(editor, site.id, { ops: [{ op: "replace", address: "services/haircuts/services/trim/priceLabel", value: "$45" }] })).version).toBe(2);
+    // The rules still hold for what the owner changes.
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "replace", address: "services/haircuts/services/haircut/name", value: "Haircut and style" }] }),
+    ).rejects.toThrow(/10 characters or fewer/);
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "add", address: "services/haircuts/services", value: { id: "gloss", name: "Gloss", priceLabel: "$60" } }] }),
+    ).rejects.toThrow(/at most 1 on this site/);
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "add", address: "announcements", value: { id: "trial", message: "Free trial this week." } }] }),
+    ).rejects.toMatchObject({ outOfLane: true });
+
+    vi.stubEnv("BUILDER_URL", "http://builder.test.invalid:4100");
+    vi.stubEnv("BUILDER_TOKEN", "test-token");
+    try {
+      expect(await tools.publishedGuideIssues(site.id)).toEqual({
+        status: "read",
+        issues: [
+          { address: "services/haircuts/services/haircut/name", message: "Must be 10 characters or fewer on this site" },
+          { address: "services/haircuts/services", message: expect.stringMatching(/at most 1 on this site/) },
+          { address: "site/description", message: `This site doesn't say "free trial": that's Canopy's call` },
+        ],
+      });
+      builder.content = structuredClone(CONTENT);
+      builder.guide = null;
+      expect(await tools.publishedGuideIssues(site.id)).toEqual({ status: "read", issues: [] });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("says what each write changed, against the draft it started from, with what the copy avoids", async () => {
     const { ctx } = await siteAccount();
     builder.guide = "---\navoid:\n  - em-dash\n---\n";
