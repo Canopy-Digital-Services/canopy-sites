@@ -471,7 +471,6 @@ Layout: on `lg+` the Editor tab is a 520px editor column beside a 768px preview,
 
 `EditorFlow` ([editor-flow.tsx](src/components/forms/editor-flow.tsx)) shows the editor's sections **one at a time**: Header, Fields, Submission Settings, whose forward button goes to Publish. A stack of cards presented its full complexity before the first decision. Appearance is not a step (see Appearance mode below).
 
-- Section cards render with `variant="flow"` (always expanded, no chevron); nothing renders their `accordion` default.
 - **Advancing is animation-driven**: the forward button sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
 - **The buttons name where they go** (`STEP_TITLES` in [editor-steps.ts](src/components/forms/editor-steps.ts), which the cards' titles read too). A bare Continue under the Fields list read as "done with this field". Header's forward button says Fields whether or not it's filled (rule 25), and no "All set" card stands between the last step and Publish.
 - **Fields' forward button is disabled until the form has a field**, since a form can't be published without one (`docs/AGENT_CONTEXT.md` section 2, Data model). It carries no tooltip: the empty Fields list is the reason.
