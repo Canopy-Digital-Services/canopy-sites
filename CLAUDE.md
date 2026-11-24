@@ -138,6 +138,7 @@ After completing an epic or cutting a release, in order:
 3. An epic that shipped: write its completion report, copy its doc to the Nextcloud Epic Archive (`docs/epics/README.md` says where), then delete it from `docs/epics/`, its line from `docs/epics/README.md`, and its brief from the ROADMAP. Code comments and docs that cite it are reworded to say what they mean.
 4. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
 5. `prisma/schema.prisma`: a field marked `@ignore` is a retired column. Before the release PR, remove each one that `main`'s schema already marks `@ignore` (`git show origin/main:apps/portal/prisma/schema.prisma`), with its migration. One that this release is the first to ignore waits for the next (the Prisma rule, dropping a column).
+6. The editor demo on canopyds.com/websites: a release that changes what an owner sees in the Editor, Quick Edit, the Sites chrome, or the preview page is mirrored there (`.claude/rules/canopyds-demo.md`). Skip only if the release changes none of those.
 
 If a future change adds another file holding version-specific information, add it to this list at the same time.
 
