@@ -34,7 +34,7 @@ No step needs the client's password, a personal access token, a builder env var,
 
 | Not here | Why / where |
 |---|---|
-| Client 1's own migration: contract 0.5.0, an allowlist of owner-editable fields, `SITE_GUIDE.md` prose for Quick Edit in place of `Site.runbookOverlay`, a new `BASE_RUNBOOK` | Client 1's effort (E40) and ROADMAP E32 |
+| Client 1's own migration: contract 0.5.0, an allowlist of owner-editable fields, `SITE_GUIDE.md` prose for Quick Edit in place of `Site.runbookOverlay`, a new `BASE_RUNBOOK` | Client 1's effort (E40) |
 | Invites and member roles UI | PRD section 2 keeps them out of v1. A claim is the one owner of a site getting into an account Canopy made; nobody invites anybody |
 | More than one membership per user, an account switcher | Act-as (4.5) gives the operator a client's account without a membership |
 | Creating the repo, DNS, Coolify app, or Umami website from the portal | Michael builds and deploys in Claude Code; Coolify's API is reachable only from webber and its token stays out of the portal (Michael, 2026-11-05) |
@@ -136,7 +136,7 @@ A person added to the account since (PRD D63) gets the same picture and a plaine
 
 ### 4.5 Act as client
 
-Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing implements it (2026-11-05). Smaller than E32's version: for acceptance, support, and building a client a form, not for building the site (Michael, 2026-11-05).
+Never built: PRD section 6 and the Quick Edit brief named "edit as client", and nothing implemented it (2026-11-05). Smaller than that brief's version: for acceptance, support, and building a client a form, not for building the site (Michael, 2026-11-05).
 
 - **Act as client** on the operator site page (Global Admin only). It opens an `ActAs` row and points the operator's own session at it. The operator never holds the client's password or a membership in their account.
 - **While acting, the account is the client's.** `getCurrentAccountId` resolves the acted account when the session has an open `ActAs` and the user is still a Global Admin (re-read every request, as the role is). Everything that checks membership directly moves into `src/lib/data-access/memberships.ts` first and honors the same rule: `canPreviewSite` (`src/lib/site-tools/index.ts`, used by `/canvas` and `/preview`) and the form thumbnail route (`src/app/api/forms/[formId]/thumbnail/route.ts`), found by grep on 2026-11-05. `.claude/rules/auth.md` already says membership is resolved only there; those two break the rule.
@@ -191,7 +191,7 @@ At the end of a build in Claude Code, the link step runs without the browser.
 
 ### 4.10 Docs with the behavior
 
-Each change in section 10 lands in the commit that causes it (`.claude/rules/docs.md`, rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and E32's "edit as client" moved here) landed with the approval, 2026-11-05.
+Each change in section 10 lands in the commit that causes it (`.claude/rules/docs.md`, rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and the Quick Edit brief's "edit as client" moved here) landed with the approval, 2026-11-05.
 
 ## 5. Acceptance
 

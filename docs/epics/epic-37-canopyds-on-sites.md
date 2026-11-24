@@ -35,7 +35,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
 | Production on nginx, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys |
 | Contract changes beyond cards, credentials, and FAQs: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
-| Photos | E32's media pipeline |
+| Photos | E50's media pipeline |
 | Dated announcements on canopyds.com | The nightly rebuild (D42) moves the builder's `current`, which nothing serves for this site until E36; www rebuilds only on a push |
 | Eyebrows, buttons, SEO fields, nav and footer chrome | Unmarked (D35, D45) |
 | The demo marking its headings | The demo stays on contract 0.2.0, which 0.3.0 accepts unchanged; its own upgrade is a follow-up |

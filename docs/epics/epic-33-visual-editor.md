@@ -1,9 +1,9 @@
 # Epic 33: Visual Editor
 
 **Status:** In progress: sections 4.1 to 4.6 released in v5.5.0 (2026-10-18) for Michael's UAT on the demo
-**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of E31 and E32
+**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), built ahead of the tool layer and Quick Edit
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
-**Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
+**Successor:** E50, photos in Quick Edit and on the canvas, then E58, history and restore
 
 > **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (E33), `.claude/rules/quick-edit.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
@@ -20,7 +20,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 ### In
 
 - **Contract v0.2**: required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
-- **The draft** (PRD D38, from E31): `ChangeSet.version`, draft saves, per-field merging and conflicts, rebase on a branch move, sites resolved by id.
+- **The draft** (PRD D38): `ChangeSet.version`, draft saves, per-field merging and conflicts, rebase on a branch move, sites resolved by id.
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
 - **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.
 - **The canvas** (PRD D43): bridge script, marked fields in the demo site's templates, breakpoint switcher, address bar.
@@ -31,14 +31,14 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 | Not here | Why / where |
 |---|---|
-| Photos on the canvas | They stay unmarked until E32's media pipeline gives the popover an attach button (D41): a photo that opens a chat unable to replace it is the disappointment D35 exists to prevent |
+| Photos on the canvas | They stay unmarked until E50's media pipeline gives the popover an attach button (D41): a photo that opens a chat unable to replace it is the disappointment D35 exists to prevent |
 | Section headings, eyebrows, button labels | Not marked in this epic, which marked facts and prose first. Headings and card text are marked from E37 on (D35); eyebrows and button labels stay unmarked |
 | Tool tabs (Gallery, Calendar) | D39; not scheduled |
 | Client sites on the canvas | E37, with assets from each site's live address (D47) |
 | Demo switcher | D44 |
 | Marker styling beyond a working default | D35: decided later with Michael |
-| Restore UI | E31 remainder |
-| Quick edit's definitions module, `request_help`, AI budget, media | E32 remainder |
+| Restore UI | E58 |
+| Quick edit's definitions module, `request_help`, AI budget, media | `request_help` was built with Epic 40. The definitions module: PRD D30, with E34. The AI budget: the ROADMAP's "To decide before launch". Media: E50 |
 | MCP | E34 |
 | The real Client 2 site | Epic 46 |
 
@@ -72,7 +72,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 ### 4.3 Builder (`apps/builder`)
 
 - Content reads answer from the clone. The builder fetches when its copy is older than a short interval, after its own publish or reset, and when asked to refresh; never on every read.
-- The content read returns `SITE_GUIDE.md` (raw) beside the content, so the portal parses the front matter and E32 reads the prose from the same place.
+- The content read returns `SITE_GUIDE.md` (raw) beside the content, so the portal parses the front matter and Quick Edit reads the prose from the same place.
 - Newest-first: a queued preview for a site is dropped when a newer one for that site arrives (recorded as superseded, not failed). A running build finishes.
 - Build status reaches the Editor without the browser polling: the portal subscribes to the builder (long-poll or a short internal poll) and pushes to the page over server-sent events.
 - Nightly rebuild: at local midnight in each site's time zone, rebuild the branch's HEAD and point `current` at it, then rebuild the draft if there is one. The portal registers each site's slug, repo, branch, and time zone with the builder, which keeps the schedule.
@@ -122,7 +122,7 @@ Recorded as PRD D35 to D45 and not repeated here. The ones that shaped this doc'
 
 ### Agent calls inside scope
 
-- **E33's number.** The visual editor is E33's brief (it replaced page tiles), so it keeps that number and pulls forward from the contract's first release, E31, and E32, as E30 did.
+- **E33's number.** The visual editor is E33's brief (it replaced page tiles), so it keeps that number and pulls forward from the contract's first release and the tool layer and Quick Edit briefs, as E30 did.
 - **Photos and chrome unmarked** (section 2, Out).
 - **The nightly rebuild runs in the builder**, the one long-running process with a clock; the portal registers time zones with it.
 
