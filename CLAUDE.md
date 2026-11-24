@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repo is the unified Canopy portal (npm workspaces): the Next.js app serving Canopy Forms and the Canopy Sites portal is `apps/portal/`. For Canopy Sites work, also read [`docs/canopy-sites/PRD.md`](docs/canopy-sites/PRD.md) (what and why) and [`docs/canopy-sites/ROADMAP.md`](docs/canopy-sites/ROADMAP.md) (order and epic briefs).
 
+## Client information
+
+**This repo is public, and nothing in it identifies a client.** That covers files, code comments, tests, commit messages, branch names, and pull request titles and bodies, and it means a client's business name, the names of their people, their domains and repo names, what their site uses, and anything they told us (plans, dates, vendors). Canopy's own sites (canopyds.com, the demo) are fine to name.
+
+- Name a client site by its label: "the test site", "Client 1", "Client 2", "Client 3". The key, with each site's repo and domain, is the Nextcloud page "Client Sites" in the Canopy Sites collective, read with `nextcloud_read_file` at `/.Collectives/Canopy Sites/Client Sites/Readme.md`. Otherwise describe the capability ("a site that takes appointment requests").
+- Client-specific work (a site's onboarding epic, its evals, a client's decisions and dates) lives under that page, not here. Tests and examples use made-up businesses.
+- The git hooks in `scripts/git-hooks/` refuse a commit that adds a name from the private list at `~/.config/canopy/private-terms.txt` (the list's master copy is on "Client Sites"). A clone turns them on once with `git config core.hooksPath scripts/git-hooks`. When the check fires, rewrite the text; never bypass it.
+
 ## Common Commands
 
 Run from the repo root; they delegate to the portal workspace.

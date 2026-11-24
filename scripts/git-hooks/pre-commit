@@ -1,0 +1,10 @@
+#!/bin/sh
+# Checks the lines and paths this commit adds for client names.
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+git diff --cached -U0 --no-color --no-ext-diff --diff-filter=ACMR | awk '
+  /^\+\+\+ b\// { file = substr($0, 7); print "path: " file; next }
+  /^\+\+\+ / { next }
+  /^\+/ { print file ": " substr($0, 2) }
+' > "$tmp"
+exec "$(dirname "$0")/check-private-terms.sh" "$tmp" "this commit's added lines"
