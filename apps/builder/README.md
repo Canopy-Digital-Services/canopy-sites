@@ -1,6 +1,6 @@
 # Builder
 
-The site build worker (PRD section 4.2, Epic 30). An internal HTTP service for the portal: it keeps a working clone of each site's repo under `/srv/sites/<slug>/repo`, reads content, builds previews, and publishes.
+The site build worker (PRD section 4.2). An internal HTTP service for the portal: it keeps a working clone of each site's repo under `/srv/sites/<slug>/repo`, reads content, builds previews, and publishes.
 
 - `POST /v1/sites/:slug/content` returns the branch's content, commit, site guide (`SITE_GUIDE.md`, or null), and installed contract version. It reads git's objects in the clone, never the working tree, so it never waits behind a build, and fetches only when its copy is older than `FETCH_TTL_SECONDS` or the body says `refresh: true`.
 - `POST /v1/sites/:slug/previews` queues a build of HEAD plus a ChangeSet's ops; a failed build never moves `preview`. Newest wins: a queued preview that a newer one for the same site overtakes ends as `superseded` without running.

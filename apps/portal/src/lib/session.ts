@@ -1,5 +1,5 @@
 /**
- * Server-side sessions (Epic 28). The cookie carries a random 256-bit token;
+ * Server-side sessions (PRD D16). The cookie carries a random 256-bit token;
  * the database stores only its SHA-256 as the session id, so neither a
  * database read nor this source code yields a usable session, and there is
  * no signing secret to leak. Deleting a row signs that browser out.
@@ -155,7 +155,7 @@ export async function invalidateUserSessions(userId: string, keepSessionId?: str
 
 // ---------------------------------------------------------------------------
 // Handoff: a Sites account that signs in on the Forms host is passed to a
-// session on the Sites host without a second sign-in (PRD D22, E29 D8).
+// session on the Sites host without a second sign-in (PRD D22).
 
 /** Long enough to read the sign-in modal and press its button. */
 export const HANDOFF_TTL_MS = 2 * 60 * 1000;
@@ -219,7 +219,7 @@ export async function consumeSessionHandoff(
 const SECURE = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 export const SESSION_COOKIE = SECURE ? "__Host-canopy_session" : "canopy_session";
 
-/** NextAuth's cookies from before Epic 28; cleared on sign-in and sign-out. */
+/** NextAuth's cookies, from before the portal had its own sessions; cleared on sign-in and sign-out. */
 const LEGACY_COOKIES = [
   "authjs.session-token",
   "__Secure-authjs.session-token",

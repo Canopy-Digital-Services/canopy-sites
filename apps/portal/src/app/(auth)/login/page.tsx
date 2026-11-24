@@ -30,7 +30,7 @@ export default function LoginPage() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
   // Set when the account lives on the other product's host (PRD D22): a
-  // Forms account gets a link, a Sites account a one-time pass (E29 D8).
+  // Forms account gets a link, a Sites account a one-time pass (PRD D22).
   const [homeUrl, setHomeUrl] = useState("");
   const [handoff, setHandoff] = useState<{ action: string; token: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState("");

@@ -141,7 +141,7 @@ describe("revocation", () => {
   });
 });
 
-describe("session handoff (E29 D8)", () => {
+describe("session handoff (PRD D22)", () => {
   const SITES = "sites.example.com";
 
   it("stores only the token's hash and hands over once, on the host it names", async () => {

@@ -3,7 +3,7 @@ import { consumeSessionHandoff, createSession, setSessionCookie } from "@/lib/se
 import { formsOrigin, hostFromHeaders } from "@/lib/product";
 
 /**
- * Finishes a handoff (PRD D22, E29 D8). The sign-in modal on the Forms host
+ * Finishes a handoff (PRD D22). The sign-in modal on the Forms host
  * posts its one-time token here, on the Sites host, and the user lands home
  * with a session. Only a form on the configured Forms origin may post, so
  * another page cannot sign a visitor into an account of its choosing, and the

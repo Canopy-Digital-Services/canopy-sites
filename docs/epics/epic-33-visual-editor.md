@@ -5,7 +5,7 @@
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `docs/epics/epic-30-demo-slice.md` (sections 6 and 8), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
 ---
 

@@ -176,7 +176,7 @@ describe("updateSite", () => {
   });
 });
 
-describe("the Umami website a site reads (Epic 35, 4.7)", () => {
+describe("the Umami website a site reads", () => {
   const READABLE = client1.umamiWebsiteId;
   const OUTSIDE_TEAM = "9b2f6c1e-5a4d-4c3b-8e2f-0a1b2c3d4e5f";
   const fetchMock = vi.fn<typeof fetch>();

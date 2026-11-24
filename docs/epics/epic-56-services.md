@@ -5,7 +5,7 @@
 **Predecessor:** Epic 46 (Client 2 on Sites), whose templates put the home page's featured services and the menu on one list; Epic 33 (the visual editor) and Epic 54 (one editor at a time), which the tab stands on
 **Successor:** E57 (button and menu text on the canvas), which the action layer is built to carry; E50 (Gallery) and E51 (Events), which reuse the tab's list and form
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/UX_PATTERNS.md` section 1, `docs/canopy-sites/PRD.md` (D8, D9, D35 to D40, D48, D50, D54, D64, sections 4.4 to 4.6), `docs/epics/epic-33-visual-editor.md` (4.5, 4.6), `docs/epics/epic-38-link-and-claim.md` (4.8, the tabs), `docs/epics/epic-54-one-editor-at-a-time.md`, and `packages/site-contract/README.md`. In `apps/portal`: `src/app/(admin)/(sites)/editor/canvas-editor.tsx`, `src/lib/canvas-bridge.ts`, `src/lib/site-tools/index.ts` (`saveDraft`), `src/actions/site-editor.ts`, `src/components/sites/site-hold.tsx`.
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/UX_PATTERNS.md` section 1, `docs/canopy-sites/PRD.md` (D8, D9, D35 to D40, D48, D50, D54, D64, sections 4.4 to 4.6), `docs/epics/epic-33-visual-editor.md` (4.5, 4.6), `docs/epics/epic-38-link-and-claim.md` (4.8, the tabs), `src/lib/site-tools/hold.ts` (one editor at a time), and `packages/site-contract/README.md`. In `apps/portal`: `src/app/(admin)/(sites)/editor/canvas-editor.tsx`, `src/lib/canvas-bridge.ts`, `src/lib/site-tools/index.ts` (`saveDraft`), `src/actions/site-editor.ts`, `src/components/sites/site-hold.tsx`.
 
 ---
 

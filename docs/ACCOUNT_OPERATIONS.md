@@ -30,7 +30,7 @@ Deleting an Account cascades to its Memberships and Forms (and their Fields, Sub
 | `src/lib/data-access/memberships.ts` | Account resolution and account deletion |
 | `src/lib/data-access/accounts.ts` | Operator console queries (metadata only) |
 
-There is no auth library. Epic 28 replaced NextAuth with `src/lib/session.ts`; the reasons and the security assessment are in `docs/epics/epic-28-account-audit-membership.md`.
+There is no auth library (PRD D16): sessions are the portal's own rows, in `src/lib/session.ts`.
 
 ---
 

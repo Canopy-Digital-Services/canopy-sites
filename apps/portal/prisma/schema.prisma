@@ -9,7 +9,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// The tenant: forms, plan, and (from E29) sites belong to an Account. Users
+// The tenant: forms, plan, and sites belong to an Account. Users
 // reach it through Membership; nothing in the UI names the Account itself.
 model Account {
   id                     String        @id @default(cuid())
@@ -78,7 +78,7 @@ model User {
   // What the other people on the account, and Canopy, see this person called
   // (PRD D63); the email stands in without one. src/lib/person.ts.
   name      String?
-  // scrypt, or bcrypt from before Epic 28 (re-hashed on sign-in); src/lib/password.ts.
+  // scrypt, or an older bcrypt hash (re-hashed on sign-in); src/lib/password.ts.
   // Null until the owner of an account the operator linked claims it (PRD D49):
   // no password exists to guess, and sign-in treats null as a wrong password.
   password  String?
@@ -148,7 +148,7 @@ enum AccountStatus {
 // DNS, and Umami website are made by hand. Clients see only id, name, and
 // slug (getAccountSite); everything else is operator configuration.
 // An account that owns a site cannot be deleted (Restrict): the row will
-// drive the client's live hosting from E30 on.
+// drive the client's live hosting.
 model Site {
   id                  String   @id @default(cuid())
   accountId           String   @unique

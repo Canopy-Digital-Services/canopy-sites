@@ -1,5 +1,5 @@
 /**
- * Throttles for the credential endpoints (Epic 28 F5). Keys are a hashed
+ * Throttles for the credential endpoints. Keys are a hashed
  * client IP (see clientIPFromHeaders) and the normalized email or user id.
  * The per-email limit applies whether or not the email is registered, so it
  * reveals nothing about which accounts exist. A throttled attempt is refused

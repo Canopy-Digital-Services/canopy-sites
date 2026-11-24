@@ -20,7 +20,7 @@ describe("hashPassword / verifyPassword", () => {
     expect(await verifyPassword(prefix + "two", hash)).toBe(false);
   });
 
-  it("still verifies pre-Epic 28 bcrypt hashes", async () => {
+  it("still verifies older bcrypt hashes", async () => {
     const legacy = await bcrypt.hash("old style pass", 10);
     expect(await verifyPassword("old style pass", legacy)).toBe(true);
     expect(await verifyPassword("wrong", legacy)).toBe(false);

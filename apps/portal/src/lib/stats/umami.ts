@@ -1,7 +1,7 @@
 /**
  * Stats from Umami, read with the portal's own key: the view-only
  * `canopy-portal` user, a member of the Umami team that holds the client
- * websites, so the key reads them and can change nothing (Epic 35, 4.6).
+ * websites, so the key reads them and can change nothing.
  * Server only: the key never reaches the browser.
  *
  * The website id is always the site row's, never anything from a request.
