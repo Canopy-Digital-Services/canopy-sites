@@ -49,7 +49,7 @@ The builder keeps its records and queue in memory (`apps/builder/src/sites.ts`) 
 1. `BuilderError` carries the HTTP status the builder answered with.
 2. A 404 for the draft's latest build, of its current version, marks that build `FAILED` with the reason and starts a new build of the same version on the same base commit. The draft stays `DRAFT` and the next refresh follows the new build.
 3. Two refreshes at once start one new build, not two.
-4. A version whose build was already lost once isn't started a third time: its new build is marked `FAILED`, and the draft gets the plain line a failed build gets (`BUILDER_FAILED.build`), so a builder that keeps losing builds can't make the portal start one per poll.
+4. A version whose build was lost once already isn't started again: the draft gets the plain line a failed build gets (`BUILDER_FAILED.build`), so a builder that keeps losing builds can't make the portal start one per poll.
 5. Any other builder error is still no news: the next refresh asks again.
 
 ### 4.3 Publish runs the guardrails again

@@ -16,6 +16,8 @@ const builder = vi.hoisted(() => ({
   duringPublish: null as null | (() => Promise<unknown>),
   /** A push the portal hasn't read: the builder refuses the next publish. */
   moved: false,
+  /** The builder restarted: it answers 404 for every build it had (E47). */
+  buildGone: false,
 }));
 vi.mock("@/lib/builder-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
@@ -26,7 +28,10 @@ vi.mock("@/lib/builder-client", async () => {
       builder.previews.push({ buildId, ops, baseCommit });
       return { id: buildId, status: "queued" };
     }),
-    fetchBuild: vi.fn(async (_slug, id: string) => ({ id, status: builder.buildStatus, log: "", error: builder.buildStatus === "failed" ? "boom" : undefined })),
+    fetchBuild: vi.fn(async (_slug, id: string) => {
+      if (builder.buildGone) throw new actual.BuilderError("No such build", undefined, 404);
+      return { id, status: builder.buildStatus, log: "", error: builder.buildStatus === "failed" ? "boom" : undefined };
+    }),
     requestPublish: vi.fn(async (_site, args: { buildId: string; baseCommit: string; ops: unknown[] }) => {
       // The builder runs one job per site: a second publish of a build waits for the
       // first, then finds the branch moved (apps/builder/src/sites.ts, publish).
@@ -115,6 +120,7 @@ beforeEach(async () => {
   builder.publishing = null;
   builder.duringPublish = null;
   builder.moved = false;
+  builder.buildGone = false;
 });
 
 describe("the site's time zone", () => {
@@ -602,6 +608,45 @@ describe("refresh and publish", () => {
     expect(draft.baseCommit).toBe("b".repeat(40));
     expect(draft.ops).toEqual([{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }]);
     expect(builder.previews.at(-1)).toMatchObject({ baseCommit: "b".repeat(40), ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+  });
+
+  it("starts a build the builder lost in a restart again, once per version (E47)", async () => {
+    const { ctx, site } = await siteAccount();
+    const editor = { ...ctx, source: "EDITOR" as const };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const saved = await tools.saveDraft(editor, site.id, { ops: [PRICE_OP] });
+      const changeSetId = saved.changeSetId!;
+      builder.buildGone = true;
+      // Two refreshes at once start one new build, of the same version on the same commit.
+      const both = await Promise.all([tools.refreshChange(ctx.accountId, changeSetId), tools.refreshChange(ctx.accountId, changeSetId)]);
+      expect(both).toMatchObject([
+        { status: "DRAFT", buildStatus: "QUEUED", buildVersion: 1 },
+        { status: "DRAFT", buildStatus: "QUEUED", buildVersion: 1 },
+      ]);
+      const builds = await prisma.build.findMany({ where: { changeSetId }, orderBy: { createdAt: "asc" } });
+      expect(builds).toMatchObject([
+        { id: saved.buildId, status: "FAILED", error: "The builder restarted and lost this build.", draftVersion: 1 },
+        { status: "QUEUED", error: null, draftVersion: 1, baseCommit: builder.commit },
+      ]);
+      expect(builder.previews.map((p) => p.buildId)).toEqual([saved.buildId, builds[1].id]);
+      // The builder builds it, and the draft can be published.
+      builder.buildGone = false;
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "PREVIEWED", buildStatus: "SUCCEEDED" });
+
+      // A version lost twice isn't started a third time: the draft says so, as a failed build does.
+      const next = await tools.saveDraft(editor, site.id, { ops: [ANNOUNCE_OP] });
+      builder.buildGone = true;
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ buildStatus: "QUEUED", buildVersion: 2 });
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: BUILDER_FAILED.build });
+      expect(await prisma.build.count({ where: { changeSetId, draftVersion: 2 } })).toBe(2);
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ buildStatus: "FAILED" });
+      // Each version built twice: its own build, and the one started when it was lost.
+      expect(builder.previews.map((p) => p.buildId).slice(2, 3)).toEqual([next.buildId]);
+      expect(builder.previews).toHaveLength(4);
+    } finally {
+      logged.mockRestore();
+    }
   });
 
   it("discards only a pending change", async () => {

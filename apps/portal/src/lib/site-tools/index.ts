@@ -49,7 +49,7 @@ import {
   type SiteGuide,
 } from "@canopy/site-contract";
 import { z } from "zod";
-import { Prisma, type ChangeSetSource, type Site } from "@prisma/client";
+import { Prisma, type Build, type ChangeSetSource, type Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
@@ -886,7 +886,9 @@ const BUILD_STATUS = { queued: "QUEUED", running: "RUNNING", succeeded: "SUCCEED
  * becomes PREVIEWED when the build of its current version succeeds. A failed
  * build leaves the draft pending, so no edit is lost, with a plain line for
  * the owner; the builder's reason stays on the build, for the operator, and
- * goes to the log.
+ * goes to the log. A build the builder lost in a restart starts again
+ * (`rebuildLost`); any other builder failure is no news, and the next refresh
+ * asks again.
  */
 export async function refreshChange(accountId: string, changeSetId: string) {
   const changeSet = await ownedChange(accountId, changeSetId);
@@ -895,8 +897,13 @@ export async function refreshChange(accountId: string, changeSetId: string) {
   if (!PENDING.includes(changeSet.status as (typeof PENDING)[number]) || !build || (build.status !== "QUEUED" && build.status !== "RUNNING")) {
     return unchanged;
   }
-  const remote = await fetchBuild(changeSet.site.slug, build.id).catch(() => null);
-  if (!remote) return unchanged;
+  let remote: Awaited<ReturnType<typeof fetchBuild>>;
+  try {
+    remote = await fetchBuild(changeSet.site.slug, build.id);
+  } catch (err) {
+    if (err instanceof BuilderError && err.status === 404) return rebuildLost(changeSet, build);
+    return unchanged;
+  }
   const buildStatus = BUILD_STATUS[remote.status];
   const done = buildStatus !== "QUEUED" && buildStatus !== "RUNNING";
   await prisma.build.update({
@@ -918,6 +925,41 @@ export async function refreshChange(accountId: string, changeSetId: string) {
   const moved = await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version, status: { in: [...PENDING] } }, data });
   if (moved.count === 0) return { ...unchanged, buildStatus };
   return { status: data.status, buildStatus, buildVersion: build.draftVersion, error: data.error };
+}
+
+/** On a build the builder answered 404 for: it keeps its builds in memory, so it lost this one in a restart. */
+const LOST_BUILD = "The builder restarted and lost this build.";
+
+/**
+ * Starts a draft's lost build again, of the same version on the same base
+ * commit, and marks the lost one FAILED. Once per version: a version lost a
+ * second time gets the failed build's plain line instead, so a builder that
+ * keeps losing builds can't make every refresh start one.
+ */
+async function rebuildLost(changeSet: Awaited<ReturnType<typeof ownedChange>>, lost: Build) {
+  const baseCommit = lost.baseCommit ?? changeSet.baseCommit;
+  const next = await prisma.$transaction(async (tx) => {
+    const marked = await tx.build.updateMany({
+      where: { id: lost.id, status: { in: ["QUEUED", "RUNNING"] } },
+      data: { status: "FAILED", error: LOST_BUILD, finishedAt: new Date() },
+    });
+    if (marked.count === 0) return null; // Another refresh got here first.
+    const lostBefore = await tx.build.count({ where: { changeSetId: changeSet.id, draftVersion: lost.draftVersion, error: LOST_BUILD, id: { not: lost.id } } });
+    if (lostBefore > 0) return "again" as const;
+    return tx.build.create({ data: { siteId: changeSet.siteId, changeSetId: changeSet.id, baseCommit, draftVersion: lost.draftVersion } });
+  });
+  if (next === null) {
+    const now = await ownedChange(changeSet.site.accountId, changeSet.id);
+    return { status: now.status, buildStatus: now.builds[0]?.status ?? null, buildVersion: now.builds[0]?.draftVersion ?? null, error: now.error };
+  }
+  const error =
+    next === "again"
+      ? builderFailure("build", LOST_BUILD, { slug: changeSet.site.slug, buildId: lost.id })
+      : await startBuild(changeSet.site, next.id, asOps(changeSet.ops), baseCommit);
+  if (error) {
+    await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version, status: { in: [...PENDING] } }, data: { status: "DRAFT", error } });
+  }
+  return { status: changeSet.status, buildStatus: error ? ("FAILED" as const) : ("QUEUED" as const), buildVersion: lost.draftVersion, error: error ?? changeSet.error };
 }
 
 /**
