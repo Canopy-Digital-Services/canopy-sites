@@ -39,7 +39,7 @@ No step needs the client's password, a personal access token, a builder env var,
 | More than one membership per user, an account switcher | Act-as (4.5) gives the operator a client's account without a membership |
 | Creating the repo, DNS, Coolify app, or Umami website from the portal | Michael builds and deploys in Claude Code; Coolify's API is reachable only from webber and its token stays out of the portal (Michael, 2026-11-05) |
 | Linking by Coolify app | The repo is the site's lasting identity; sites stop deploying through Coolify at E36 (Michael, 2026-11-05) |
-| Sign-in without a password (an emailed sign-in link, passkeys) | Not needed: a client who'd rather not sign in texts Michael, which canopyds.com/websites already promises |
+| Passkeys | ROADMAP E62, after the MVP (PRD D69). A code emailed for every sign-in was rejected there |
 | The welcome video | Its own epic, E39 (Michael, 2026-11-05); 4.6 says what this epic leaves ready for it |
 | Per-site switches for Sites features | Tabs follow what the account and the site's build have (4.8); a feature sold as an add-on would be a plan entitlement (PRD D18, D20), not a per-site switch |
 
