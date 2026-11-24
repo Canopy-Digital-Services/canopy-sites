@@ -33,7 +33,7 @@ The site goes onto Sites as it reads today. the owner's copy moves word for word
 
 | Not here | Why / where |
 |---|---|
-| `tokens.json` | Neither Client 1 nor the test site has one, and the contract has no `tokens` collection. Not built; section 7, item 1 |
+| `tokens.json` | The `@theme` block in `src/styles/global.css` is the site's tokens (section 6) |
 | The Square booking links and the card-on-file lines | E55's first step (PRD D65). Here the four links become one value, `site.contact.bookingUrl`, still Square's address, and the three card-on-file lines move as the owner wrote them |
 | Copy and price changes | the owner's once the site is on Sites, or Canopy's through the Editor. The featured services' five strings (section 6) are the one place the conversion changes what a visitor reads |
 | A Services tab, and adding a service or changing a featured one on the canvas | Epic 56, which also marks the site's lists. Until then the owner edits a name, description, or price in place and asks Quick Edit for the rest |
@@ -149,7 +149,7 @@ Section 10, each in the commit that changes the behavior.
 
 - **The site goes on as it reads today.** the owner's copy moves word for word, by script, and every page's visible text is compared before and after.
 - **Booking stays as it is.** The Square link becomes `site.contact.bookingUrl`, and the card-on-file lines stay her words. Replacing them is E55.
-- **`tokens.json` is not built here**: no precedent on Client 1 or the test site. Section 7, item 1.
+- **No `tokens.json`** (Michael, 2026-11-23): the `@theme` block in `src/styles/global.css` is the site's tokens.
 - **Text that art is drawn against is locked and unmarked** (PRD D56), each one listed in the site guide.
 - **The contract at the version `main` runs**, and the demo's templates and content shape as the starting point, with the content from this repo.
 - **A stop before** merging to `main`, changing the Coolify app on either box, linking the site, or anything outside this doc's scope.
@@ -179,11 +179,10 @@ Section 10, each in the commit that changes the behavior.
 
 ## 7. Open
 
-For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and the ROADMAP.
+For Michael. Both change what 4.2 builds.
 
-1. **`tokens.json`.** The plan was a `tokens.json` generating the site's CSS custom properties, with fonts from Fontsource only. The fonts are already self-hosted from Fontsource. The file would generate the seven colors and two font stacks that `src/styles/global.css` already holds in one `@theme` block. Nothing reads a `tokens.json`: the contract has no `tokens` collection, no tool exposes design (D29), E41's site kit doesn't list it, and two sites went onto Sites without one. Recommended: drop it, treat the `@theme` block as the site's tokens, and take `tokens` out of PRD section 4.4 in the same commit. The alternative is a line in E41's brief, for the site kit to settle for every site at once.
-2. **The share image is missing.** `og:image` and `twitter:image` name `/images/the owner-hero.jpg`, which answers 404 on the live site (checked 2026-11-17): the photos live under `src/assets` and nothing is at that address. A link to the site shares with no picture, which the Site Build Checklist's first item exists to prevent. Recommended: fix it in 4.2, pointing both tags at a 1200 by 630 rendition of the hero photo. It is Canopy's (SEO, D45), nothing on the pages changes, and otherwise 4.4 proves a broken tag was carried over faithfully.
-3. **Three dashes in text that is Canopy's, not the owner's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
+1. **The share image is missing.** `og:image` and `twitter:image` name `/images/the owner-hero.jpg`, which answers 404 on the live site (checked 2026-11-17): the photos live under `src/assets` and nothing is at that address. A link to the site shares with no picture, which the Site Build Checklist's first item exists to prevent. Recommended: fix it in 4.2, pointing both tags at a 1200 by 630 rendition of the hero photo. It is Canopy's (SEO, D45), nothing on the pages changes, and otherwise 4.4 proves a broken tag was carried over faithfully.
+2. **Three dashes in text that is Canopy's, not the owner's**: the em dash before each review's author, the em dash in the share image's alt text, and the en dash between the opening and closing times. Canopy's rule is none. Recommended: keep them through this epic, so the before-and-after text comparison stays exact, and take them out in a later commit of their own. They would be the only dashes in files this epic writes.
 
 ## 8. Completion report
 
@@ -237,7 +236,7 @@ For Michael. Items 2 and 3 change what 4.2 builds; item 1 changes this doc and t
 
 Each lands with the change that causes it, never in a later pass.
 
-**This repo**: `docs/epics/README.md` (this epic); `docs/canopy-sites/ROADMAP.md` (E55's first step once `bookingUrl` exists); `docs/canopy-sites/PRD.md` section 4.4, if section 7's item 1 drops `tokens`.
+**This repo**: `docs/epics/README.md` (this epic); `docs/canopy-sites/ROADMAP.md` (E55's first step once `bookingUrl` exists).
 
 **client2**: `CLAUDE.md`, `README.md`, a new `SITE_GUIDE.md` (4.2 item 7, 4.3).
 
