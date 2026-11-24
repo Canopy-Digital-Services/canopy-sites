@@ -18,7 +18,7 @@ Privacy-first embedded forms for static websites. Users build forms in a visual 
 
 The same app is the portal for Canopy Sites clients (hand-built sites maintained for a monthly rate), who get an Editor and Stats alongside Forms. See "Products and chrome" in section 2.
 
-Next.js 16 · React 19 · Prisma 7 · TypeScript 5 · Tailwind v4 · Vitest 4 · Node 20. No auth library: sessions are ours (`src/lib/session.ts`, Epic 28).
+Next.js 16 · React 19 · Prisma 7 · TypeScript 5 · Tailwind v4 · Vitest 4 · Node 20. No auth library: sessions are ours (`src/lib/session.ts`, PRD D16).
 
 **Read the matching `docs/tools/*.md` before writing code against any of these.** All are recent majors with breaking changes from older patterns: `prisma-7.md`, `nextjs-16.md`, `react-19.md`, `tailwindcss-v4.md`, `docker.md`. Index: `docs/tools/README.md`.
 
