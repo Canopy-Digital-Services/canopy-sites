@@ -60,7 +60,7 @@
 }
 
 :root {
-  /* Brand colors (hex source of truth — mirrored as oklch tokens below) */
+  /* Brand colors, the hex source of truth: tokens below point at them with var(), never a hand-converted oklch value */
   --canopy-teal: #005f6a;   /* Main Teal — primary, dominant brand color */
   --canopy-green: #5fd48c;  /* Highlight Green — brand accent / success */
   --canopy-coral: #ff6b5a;  /* Pop Coral — brand accent / destructive */
@@ -188,7 +188,7 @@
  * editor flow cards, dialogs, and progressive-disclosure reveals. Entry rises
  * and settles with a slight overshoot; exit accelerates away. Reference these
  * from Tailwind via ease-[var(--ease-flow-in)] / duration-[var(--duration-flow-in)].
- * TODO: promote to docs/UX_PATTERNS.md as the canonical motion spec. */
+ * The values live here; when to use them is docs/UX_PATTERNS.md section 3. */
 :root {
   /* Deliberately just shy of a visible overshoot: the 1.12 control point peaks
    * ~2% past target, which at a 3rem rise is about a pixel. Reads as a decisive

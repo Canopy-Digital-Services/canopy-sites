@@ -314,17 +314,6 @@ Embed change not appearing: browser cache, or `npm run embed:build` was never ru
 
 **`docs/UX_PATTERNS.md` is the canonical UI reference. Read its section 1 before building or modifying any UI**: that section is the complete rule set, and the sections after it hold the detail per topic (color, motion, typography, copy, components, lists, layout, embed theming, brand assets). Do not introduce alternate UI systems, icon packs, or color patterns.
 
-Hard rules:
-
-- **Colors**: semantic tokens from `src/app/globals.css` (`bg-primary`, `text-destructive`, `text-success`). Brand is `--canopy-teal` `#005f6a`, `--canopy-green` `#5fd48c`, `--canopy-coral` `#ff6b5a`. Brand-carrying tokens reference the variable (`var(--canopy-teal)`). Never hand-convert a brand hex to oklch.
-- **Motion**: the four flow tokens only (`--ease-flow-in/out`, `--duration-flow-in/out`). No bespoke durations, no bounce, no rotation.
-- **Dialogs**: never `alert()`, `confirm()`, or `prompt()`. Use `toast` and `ConfirmDialog` (`src/components/confirm-dialog.tsx`).
-- **Reordering**: `SortableList` (`src/components/ui/sortable-list.tsx`) with drag and drop. Never Up/Down buttons.
-- **Icon buttons**: always wrapped in `Tooltip`. `GripVertical` drag, `Trash2` delete, `Pencil` edit.
-- **Typography**: three families. `font-heading` is Urbanist (all semantic headings), `font-sans` is Inter (body default, buttons, labels, tables), `font-mono` is Geist Mono (code, IDs, embed snippets). Headings are a single weight (600); hierarchy comes from size.
-- **Branding**: the `BrandMark` component (`src/components/brand-mark.tsx`), assets in `public/brand/`. Each product has the same asset pair, `<product>-logo-combined.svg` (icon and wordmark, nav and auth cards) and `<product>-logo-full.svg` (adds the "By Canopy" rule and tagline, login only), and `BrandMark` / `AuthBrandMark` pick by `product`. Auth card headers use `AuthBrandMark`, which brands by host.
-- **Validation**: admin and auth use inline touched/submitted with `noValidate`. The embed uses native popups. See section 2.
-
 ---
 
 ## 10. Release checklist

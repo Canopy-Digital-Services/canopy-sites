@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 /** One color on offer, with the names of what already uses it. */
 export type PickerColor = { value: string; names: string[] };
 
-/** A row of colors: the form's own, and on Sites a titled brand row above. */
+/** A row of colors, with an optional title. */
 export type PickerRow = { title?: string; colors: PickerColor[] };
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
