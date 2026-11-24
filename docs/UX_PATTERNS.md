@@ -342,7 +342,7 @@ const showError = (f: keyof typeof errors) => (touched[f] || submitted) && error
 
 Message style: `"Email is required"`, `"Enter a valid email address"`, `"Passwords do not match"`, and length errors that include the current count (`"Password must be at least 8 characters. (Your current entry is only 5)"`).
 
-For invalid **configuration** (as opposed to a form field), the same shape applies: plain `text-destructive` text on blur, placed immediately before the offending inputs, with the primary action disabled while invalid. No toast, no boxed alert. Reserve `Alert variant="destructive"` for severe or complex cases needing explanation.
+For invalid **configuration** (as opposed to a form field), the same shape applies: plain `text-destructive` text on blur, placed immediately before the offending inputs, with the primary action disabled while invalid. No toast, no boxed alert. A severe or complex case that needs explaining takes a destructive notice (section 2, Notices).
 
 **Keyboard shortcuts** (Enter to add an item) are off while the input is invalid (rule 51), so users can't compound errors.
 
