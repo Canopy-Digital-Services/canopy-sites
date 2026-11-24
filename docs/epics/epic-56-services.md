@@ -37,7 +37,7 @@ The list is built for any business with something to offer, not for a salon's me
 |---|---|
 | Wording of its own for a service where it is featured | A service reads the same wherever it shows: that is what makes it one list. An owner who wants a featured row to read differently renames the service |
 | Prices as amounts | A price stays display text ("$170", "From $150", "Consultation required"), as the contract has it. Amounts come when Booking or payments need them |
-| Adding, removing, or reordering categories and the sections and groups inside them | Templates place some by id (the test site' three cards). Renaming one is a text edit, here and on the canvas; the rest stays Quick Edit's where the list isn't fixed, and Canopy's where it is |
+| Adding, removing, or reordering categories and the sections and groups inside them | Templates place some by id (the test site's three cards). Renaming one is a text edit, here and on the canvas; the rest stays Quick Edit's where the list isn't fixed, and Canopy's where it is |
 | Editing the text of buttons and menu items | ROADMAP E57, an epic of its own straight after this one (Michael, 2026-11-17). The layer built here carries it: a pencil and a follow icon on anything that links. Opening those fields to owners changes the lane and every site's guide (PRD D50 keeps buttons and navigation labels Canopy's, and no site marks them), where this epic changes neither |
 | Products sold online (a cart, checkout, stock) | A runtime component (PRD D52), and a feature of its own. A price list of things a business sells fits this list as it is |
 | A form's choices taken from the list | E55's to build (its section 7, item 11): Client 2's request form asks which services a client wants, and it is the next place a second copy would appear. A request keeps the service's name as it read when sent, beside its id, since the list changes afterwards |
@@ -135,7 +135,7 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 - [ ] On the canvas, from a click on a service: the layer's featured action opens the featured list, and a swap made there lands in the draft; its add action adds a service to that list, which appears when the build lands; a description added from the service's form shows where the template renders one.
 - [ ] Marked text inside a link shows a pencil and a follow icon; the pencil edits it and follow moves the canvas to the link's page. An unmarked link follows on the click, as before.
 - [ ] A name edited in place on a featured row changes the menu's entry, as before.
-- [ ] the test site' three categories can't be added to, removed, or reordered; the services inside them can.
+- [ ] The test site's three categories can't be added to, removed, or reordered; the services inside them can.
 - [ ] With two people signed in, the second sees who is making edits on the tab and can't change anything until the first publishes or discards.
 - [ ] A change Quick Edit makes to a service shows in the tab without a reload of the portal.
 - [ ] A service saved with no price shows in the tab and in Preview with nothing where the price would be.
@@ -154,11 +154,11 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 
 ### Michael (2026-11-20)
 
-- **Built now**, ahead of E55's Forms parts: the owner's request form waits on a conversation with her around 2026-12-04. He means the list to serve that form, which is E55's to build (its section 7, item 11).
+- **Built now**, ahead of E55's Forms parts: Client 2's request form waits on a conversation with the client. He means the list to serve that form, which is E55's to build (its section 7, item 11).
 
 ### Michael (2026-11-23)
 
-- **The foundation is any business's**, not the owner's: an auto shop, a CPA, pest control. Not all of it is built now; what is built must not have to be rebuilt for them. Four things follow, in 4.1 to 4.3: a service needs no price, room is left for several, the form is read from the contract and the site's guide, and a list needs no categories.
+- **The foundation is any business's**, not one client's: an auto shop, a CPA, pest control. Not all of it is built now; what is built must not have to be rebuilt for them. Four things follow, in 4.1 to 4.3: a service needs no price, room is left for several, the form is read from the contract and the site's guide, and a list needs no categories.
 - **Which fields the form offers** follows from the third: name always, and every other field where the site's guide limits it.
 - **PRD D66**, approved as section 7 worded it.
 
@@ -177,7 +177,7 @@ Section 10, each in the commit that changes the behavior. A help page, "Your ser
 
 For Michael.
 
-1. **When.** Now, and the first tab built (section 6, 2026-11-20). Left open: whether it comes ahead of the Client 3 site in "The MVP", and so before or after the owner's claim. Until it ships the owner changes a price on the canvas and asks Quick Edit to add a service or change a favorite.
+1. **When.** Now, and the first tab built (section 6, 2026-11-20). Left open: whether it comes ahead of Client 3 in "The MVP", and so before or after Client 2's claim. Until it ships, Client 2's owner changes a price on the canvas and asks Quick Edit to add a service or change a favorite.
 2. **Which fields the form offers.** Name always, and every other field where the site's guide gives it a limit, read from the contract (section 6, 2026-11-23; 4.3).
 3. **PRD D66.** In the PRD since 2026-11-23, with the Tool tabs rows and D43's line on a marked link. D37's list of what goes through the popover and section 6's nav change with the build. D50 is E57's to revise.
 4. **The portal's shape.** With Services, the Forms tab opening on what came in (Epic 55), and later Gallery and Events, the nav grows past what fits a phone, and nothing says what an owner lands on. Michael is planning that in a session of its own (2026-11-23), and its answer may change where this tab sits and how its screens are laid out. Recommended: 4.1 and 4.3's write action are built ahead of it, since neither depends on layout, and the screens in 4.2 to 4.5 wait for it.
@@ -189,7 +189,7 @@ For Michael.
 - 2026-11-17: Drafted after Epic 46's read of Client 2 found its home page's four featured services typed apart from the menu. Checked in the code that day: the contract holds the list and featured ids, with a check that a featured id is on the menu; `saveDraft` takes structural ops by address; the canvas edits `text`, `paragraph`, and `price` in place and sends every other kind to the Quick Edit popover; the nav lists four tabs for every Sites account; no portal code names services.
 - 2026-11-17 (later): Michael's action layer (section 6) replaces the draft's plan to mark a list and click the space around its rows. 4.1 gains `list()`, and 4.5 is rewritten around the layer, with its link half for text already marked. Button and menu text was section 7's item 3 until Michael made it an epic of its own (ROADMAP E57).
 - 2026-11-18: Client 2's eval (Epic 46) found that the contract's lane refuses any change to a featured list: each entry of `serviceIds` is the `Id` type, flagged as Canopy's. 4.4 needs that fixed first: a reference type for the entries without the flag, with a lane test.
-- 2026-11-18 (later): Fixed in contract 0.7.1 on `dev`. Each `serviceIds` entry is a reference (the id format, kind `reference`, labelled "Featured service", no `canopy` flag), so `laneViolations` allows swapping, adding, removing, reordering, and clearing a featured list, while an entry's own id stays Canopy's and `validateContent` still refuses an id that isn't on the menu (`test/lane.test.ts`). Against 0.7.0 the same edits gave "ID is Canopy's to change" for a swap, a removal, and a reorder; an append alone got through. Client 2's own content and locks, with the full face wax swapped for `full-highlight-balayage` (H9), pass under 0.7.1. 4.4 no longer waits on it. Only the portal's tool layer checks the lane, so the fix reaches owners with a portal release; a site keeps 0.7.0 until it has another reason to upgrade. The release tarball is packed, not yet published.
+- 2026-11-18 (later): Fixed in contract 0.7.1 on `dev`. Each `serviceIds` entry is a reference (the id format, kind `reference`, labelled "Featured service", no `canopy` flag), so `laneViolations` allows swapping, adding, removing, reordering, and clearing a featured list, while an entry's own id stays Canopy's and `validateContent` still refuses an id that isn't on the menu (`test/lane.test.ts`). Against 0.7.0 the same edits gave "ID is Canopy's to change" for a swap, a removal, and a reorder; an append alone got through. Client 2's own content and locks, with one featured service swapped for another (H9), pass under 0.7.1. 4.4 no longer waits on it. Only the portal's tool layer checks the lane, so the fix reaches owners with a portal release; a site keeps 0.7.0 until it has another reason to upgrade. The release tarball is packed, not yet published.
 - 2026-11-18 (later): Released. Portal 5.23.0 (PR #66) carries 0.7.1, and production's portal has run it since 00:24 UTC on 2026-11-19. `site-contract-v0.7.1` is published, tagged on `main` at `74f71a3` as the earlier contract releases were; the downloaded asset matches the packed file. 4.1's 0.8.0 builds on it.
 - 2026-11-23: Michael asked that the list serve any business (an auto shop, a CPA, pest control). Read against contract 0.7.1: a service needs exactly one price, sits inside a category, and has 200 characters of description, while ids, featured references, and each site's own limits already carry over. 4.1 to 4.3 changed for the four things that would be costly later (section 6); the rest is in section 2's Out.
 - 2026-11-23 (later): Michael approved D66, which went into the PRD with the Tool tabs rows and D43's line. Section 7 gains item 4: the portal's shape is planned in a session of its own, and this epic's screens wait on it.
@@ -208,7 +208,7 @@ Each lands with the change that causes it, never in a later pass.
 - `packages/site-contract/README.md`, `CHANGELOG.md`, and `docs/epics/README.md` with the release.
 - `apps/portal/content/docs`: the new help page.
 
-**Site repos** (`canopy-demo-site`, `test-site`, `client2`): the marked lists, and each `SITE_GUIDE.md`'s counts and its line on where a service repeats, which goes once it is one value.
+**Site repos** (`canopy-demo-site`, the test site's repo, Client 2's repo): the marked lists, and each `SITE_GUIDE.md`'s counts and its line on where a service repeats, which goes once it is one value.
 
 **Nextcloud (Canopy Sites collective)**
 

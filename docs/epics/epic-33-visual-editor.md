@@ -40,7 +40,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 | Restore UI | E31 remainder |
 | Quick edit's definitions module, `request_help`, AI budget, media | E32 remainder |
 | MCP | E34 |
-| The real Client 2 (`client2`) | H1 to H3 |
+| The real Client 2 site | H1 to H3 |
 
 ## 3. Gating
 
