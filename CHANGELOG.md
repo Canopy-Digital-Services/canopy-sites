@@ -602,4 +602,4 @@ One codebase now serves Canopy Forms and the Canopy Sites client portal, and For
 
 ## Before 5.0
 
-Canopy Forms' history from 2.x to 4.14.1 is in git: `git show 6d26e16:CHANGELOG.md` prints the full changelog as it stood before these entries were shortened.
+Canopy Forms' history from 2.x to 4.14.1 is in git: `git show d7629ee:CHANGELOG.md` prints the full changelog as it stood before these entries were shortened.

@@ -12,7 +12,8 @@ This repo is the unified Canopy portal (npm workspaces): the Next.js app serving
 
 - Name a client site by its label: "the test site", "Client 1", "Client 2", "Client 3". The key, with each site's repo and domain, is the Nextcloud page "Client Sites" in the Canopy Sites collective, read with `nextcloud_read_file` at `/.Collectives/Canopy Sites/Client Sites/Readme.md`. Otherwise describe the capability ("a site that takes appointment requests").
 - Client-specific work (a site's onboarding epic, its evals, a client's decisions and dates) lives under that page, not here. Tests and examples use made-up businesses.
-- The git hooks in `scripts/git-hooks/` refuse a commit that adds a name from the private list at `~/.config/canopy/private-terms.txt` (the list's master copy is on "Client Sites"). A clone turns them on once with `git config core.hooksPath scripts/git-hooks`. When the check fires, rewrite the text; never bypass it.
+- The git hooks in `scripts/git-hooks/` refuse a commit that adds a name from the private list, and a push that would publish one, at `~/.config/canopy/private-terms.txt` (the list's master copy is on "Client Sites"). A clone turns them on once with `git config core.hooksPath scripts/git-hooks`. When the check fires, rewrite the text; never bypass it.
+- History was rewritten on 2026-11-23 to take client information out, so every commit ID before then changed (the old-to-new map is `~/backups/canopy-sites-commit-map-2026-11-23.txt`). A branch or worktree started before the rewrite still carries the old history: move its own commits onto `dev` with `git rebase --onto`, since the pre-push hook refuses any push that would publish old commits.
 
 ## Common Commands
 
