@@ -22,6 +22,7 @@ Phase 7  New client builds            [webber, this repo]  E43 → E44, E45     
 Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (Services now, then button and menu text; after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
 Phase 10 Keeping a site true          [this repo]          E58, E59, E60, E61         (order to decide)
+Phase 11 Passkeys                     [this repo]          E62                        (after the MVP)
 ```
 
 Every site on Sites deploys through its own Coolify app until E36: publish is a commit to `main`, which the app's GitHub App webhook deploys. Every edit is previewed on the canvas and the preview page (PRD D47). E36 makes publish a symlink swap.
@@ -59,7 +60,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 
 Restore is E58 and holds up no claim: Client 1, the first, is a free customer and a portfolio piece.
 
-**After the MVP:** E36 first, because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build; then E50, E51, E41, and E43 to E45. E56 is built now, ahead of E55's later steps, whose place is to decide. E52 waits for a client who needs it (PRD D55).
+**After the MVP:** E36 first, because the nightly rebuild, a draft's photo on the canvas, and a feed fetched at build all need the builder to be the one production build; then E50, E51, E41, and E43 to E45. E56 is built now, ahead of E55's later steps, whose place is to decide. E52 waits for a client who needs it (PRD D55). E62 is after the MVP too, its place among these to decide.
 
 **Fallback** (PRD D6): if the builder and nginx model is abandoned, Coolify keeps building each site from GitHub on push, the builder serves preview only, publish stays a commit to `main`, and only E36 is dropped. Record the choice in the PRD if taken.
 
@@ -290,6 +291,19 @@ An owner does from a phone what they came to do, and asks what happened on their
 ### E61 · Export
 
 A client who leaves takes their site with them, with none of Canopy's contract in it (PRD D58): the work is stripping out the contract, the marks, and the content loader. Plain code and WordPress are different exports; which are offered is open.
+
+---
+
+## Phase 11: Passkeys
+
+### E62 · Passkeys
+
+Goal: anyone on Forms or Sites can add a passkey beside their password and sign in with it from the browser's autofill, and a Global Admin signs in only with one (PRD D69).
+
+- A passkey belongs to `canopyds.com`, and the dev portal's to its own host. The server checks each sign-in's origin against the portal's own addresses, with a database test that one made on another `canopyds.com` page is refused. A passkey endpoint gets a throttle in `src/lib/auth-throttle.ts`
+- The email field offers a saved passkey in its autofill; after a password sign-in the browser saves one by itself where it can; a person sees and removes their passkeys on `/account`
+- A Global Admin: a password sign-in or a reset starts no session that reaches an operator page; one without a passkey yet is taken to saving one. The reset for one who has lost every passkey is a script Claude runs on the LAN, never a web page
+- Acceptance: a passkey saved on one host signs in on the other; a Global Admin's password alone reaches nothing but saving a passkey; a sign-in from another origin is refused
 
 ---
 
