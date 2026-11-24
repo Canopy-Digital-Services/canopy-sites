@@ -4,7 +4,7 @@ UI conventions for the portal's admin interface (Canopy Forms, and the Canopy Si
 
 **How to use this doc.** Section 1 is the complete rule set: every prohibition and every required choice, with no rationale. Read it before any UI work. The sections after it add detail, code, and the reasoning behind a rule, and are meant to be read by section, not front to back. If a rule and a code sample ever disagree, the rule wins and the sample is stale.
 
-**Editing this doc.** Follow `docs/DOC_MAINTENANCE.md`. In particular: a new prohibition goes in section 1 as well as its topic section, never add a summary or quick-reference table, and delete what a change supersedes rather than leaving both.
+**Editing this doc.** Follow `.claude/rules/docs.md`. In particular: a new prohibition goes in `.claude/rules/ui.md` as well as its topic section, never add a summary or quick-reference table, and delete what a change supersedes rather than leaving both.
 
 Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-react` icons, `class-variance-authority` variants, `cn()` from `tailwind-merge` + `clsx`, `@dnd-kit/*` drag and drop, `sonner` toasts. Components live in `src/components/ui/` (primitives), `src/components/patterns/` (layout), `src/components/` (features).
 
@@ -12,72 +12,7 @@ Stack: shadcn/ui over Radix (`radix-ui`, unified package), Tailwind v4, `lucide-
 
 ## 1. Hard rules
 
-**Never:**
-
-1. Browser native dialogs: `alert()`, `confirm()`, `prompt()`. Use `toast` and `ConfirmDialog`.
-2. Up/Down buttons for reordering. Use `SortableList`.
-3. Icon-only buttons without a `Tooltip`.
-4. Array indices as keys for sortable items. Items need stable `id`s.
-5. Wrapping `dragHandleProps` in a component. Apply them to the element directly or refs break.
-6. Omitting `stopPropagation` on `onClick` **and** `onPointerDown` for clickable elements inside a drag-anywhere row.
-7. Hover-reveal actions in a drag-and-drop list. Keep them always visible.
-8. Badge or `(required)` text for required fields. Use the red asterisk.
-9. Badge for prominent status. Use dot + text. Badge is for compact metadata rows.
-10. Badge for numeric counts in tables. Use plain muted text.
-11. Card-per-row styling for inventory lists. Use the high-density single-container layout.
-12. Native HTML5 validation in admin or auth forms, including `required`, `minLength`, `pattern`, `setCustomValidity()`, and `reportValidity()`. Those are embed-only.
-13. Custom inline validation in embed forms. Those are native-popup-only.
-14. A card's primary bottom action in `CardContent` when `CardFooter` exists.
-15. `text-destructive` for informational notices. Amber is for incomplete or needs-attention; destructive is for wrong.
-16. An "Add item" button above its list or in a header row beside the list's label. It goes below the list.
-17. Helper text next to a labelled Add button in an empty list. The button says it.
-18. A description that paraphrases its own title. Delete it.
-19. `position="item-aligned"` on `SelectContent`. The shared component defaults to `position="popper"` / `align="start"` deliberately; item-aligned overlays the trigger and makes long lists expand upward with scroll chevrons.
-20. A preselected default type in a type picker.
-21. A hand-converted oklch value for a brand color. Point the token at `var(--canopy-teal)` and friends.
-22. A decorative colored accent bar to signal importance (`border-l-4 border-l-primary` and similar).
-23. Bounce or rotation in motion. Increase travel distance or duration instead.
-24. Bespoke durations or easing curves for enter/leave. Use the four flow tokens.
-25. A navigation button whose label describes form state (a Continue button that becomes "No header"). Mark the section `(Optional)` instead.
-26. A larger radius to make something friendlier. Radius is not a design lever here.
-27. Hardcoded colors (`bg-[#005F6A]`, `style={{color:'#FF6B5A'}}`), hardcoded `green-600` for green text, or a new icon pack.
-28. Letting an editor or settings column span the full screen width. Constrain it (see section 10 for the editor's exact widths). Data tables and multi-column dashboards are the exception.
-29. A label, caption, hover tag, or instruction line naming what the user can already see or do. Let visual feedback (the preview's hover outline and marker boxes, a pressed button) carry it.
-30. A dropdown for a choice of two to four short options in a settings panel, or loose buttons or a tab strip for any exclusive choice (a setting, a view, a filter). Use `ToggleGroup` (section 6), which shows every option.
-31. A product's name, logo, or favicon chosen by route, or hardcoded where the account's product should decide it. Signed-in pages brand by `productFor(entitlements)`, signed-out pages by `getHostProduct()` (section 12).
-32. `default`, `outline`, or `ghost` buttons on a `bg-primary` bar. Use `inverse` and `inverse-outline` (section 6, On a filled bar).
-
-**Always:**
-
-33. Semantic color tokens from [globals.css](src/app/globals.css): `bg-primary`, `text-destructive`, `text-success`, `text-muted-foreground`.
-34. `text-success-strong` for green text and icons. `--success` is a fill and fails contrast as text.
-35. `font-heading` on every semantic heading (page, card, section, nav titles, and the row titles of the editor's Fields and Appearance lists, `ROW_TITLE`). Never on body, buttons, labels, table content, or toasts.
-36. `noValidate` on admin and auth forms, with the touched/submitted pattern.
-37. `Button variant="ghost" size="icon-sm"` for icon-only action buttons.
-38. `GripVertical` visible in a sortable row, even when the whole row drags.
-39. `PageHeader` for page titles. Never an inline `<h1>`.
-40. `PageContent` on admin pages, except the form editor.
-41. `aria-describedby={undefined}` on `DialogContent` when you remove its `DialogDescription`.
-42. A new flow animation added to the `prefers-reduced-motion` block, shortened to `1ms` rather than removed.
-43. `LocalTime` for a date or time shown without a zone. Never `toLocaleString` or its kin in a page or component without a `timeZone`, and never in an email without a `timeZone`, a locale, and the zone's name in the text (section 10, Dates and times).
-
-**Also never:**
-
-44. Bare `rounded`. It is Tailwind's fixed 4px and ignores `--radius`; use `rounded-md` (any sized class gives the 2px token) or `rounded-full` for a pill.
-45. A dialog that asks whether to go ahead titled as anything but that question, ending in "?" ("Delete field?"). A dialog that takes input before it acts is titled as its action, with no "?" (section 7).
-46. A filled `destructive` button beside a safer option. The dangerous choice is a `link` with `text-destructive` and the safe one is `default` (section 7, Footer hierarchy).
-47. `next/font/google`. Fonts are self-hosted through `next/font/local` (section 4).
-48. A pulsing (`animate-pulse`) status dot for any state but Live.
-49. The brand gradient (`--canopy-gradient`) as a UI background fill. It is for the logo and decorative swoops.
-50. A length limit that blocks typing. Text runs past the limit, the overage shows, and the save or submit waits until it fits (section 8).
-51. Enter-to-add, or any add shortcut, while the input is invalid.
-52. An App Router icon file (`src/app/**/icon.*`, `favicon.ico`). Favicons come from `productMetadata` (section 12).
-
-**Standard icons:** `GripVertical` drag, `Trash2` delete, `Pencil` edit, `Plus` add, `X` close, `Check` confirm, `AlertCircle` warn. Size `h-4 w-4`.
-
-**Light mode only.** Dark mode variables exist in `globals.css` but were never updated with brand colors. Don't advertise dark mode support; if you add it, re-check brand contrast and every interactive state.
-
----
+The rule set is `.claude/rules/ui.md`, which loads by itself with any `.tsx` file. The sections below hold the detail for each topic.
 
 ## 2. Color and surfaces
 
@@ -359,7 +294,7 @@ Reference: [signup](src/app/(auth)/signup/page.tsx), [login](src/app/(auth)/logi
 
 The split is deliberate: the admin UI is an environment we fully control, and configuration errors often need several visible at once with context intact. The embed is injected into third-party sites, where native popups are lightweight, consistent, and bring their own focus handling and announcements.
 
-Embed specifics, in `embed/src/form.ts` (the popups) and `embed/src/validation.ts` (the rules, which the server runs too; `docs/AGENT_CONTEXT.md` section 2):
+Embed specifics, in `embed/src/form.ts` (the popups) and `embed/src/validation.ts` (the rules, which the server runs too; `.claude/rules/embed.md`, Validation):
 
 - **One error at a time.** Popup on the first invalid field, focus it, user resubmits for the next. The status strip shows the total: "Please fix N field(s) to continue." The editor's preview runs the same checks on Submit and stops before sending.
 - Validation clears on typing: `input.addEventListener("input", () => input.setCustomValidity(""))`.
@@ -473,7 +408,7 @@ Layout: on `lg+` the Editor tab is a 520px editor column beside a 768px preview,
 
 - **Advancing is animation-driven**: the forward button sets an exit direction and the step index increments on `animationend`. The handler must check `event.target === event.currentTarget` and match the animation name, because child animations bubble.
 - **The buttons name where they go** (`STEP_TITLES` in [editor-steps.ts](src/components/forms/editor-steps.ts), which the cards' titles read too). A bare Continue under the Fields list read as "done with this field". Header's forward button says Fields whether or not it's filled (rule 25), and no "All set" card stands between the last step and Publish.
-- **Fields' forward button is disabled until the form has a field**, since a form can't be published without one (`docs/AGENT_CONTEXT.md` section 2, Data model). It carries no tooltip: the empty Fields list is the reason.
+- **Fields' forward button is disabled until the form has a field**, since a form can't be published without one (`.claude/rules/prisma.md`, Data model). It carries no tooltip: the empty Fields list is the reason.
 
 **Live preview stand-ins.** `FormPreview` fills an empty header and an empty field list with stand-ins (`HEADER_PLACEHOLDERS`, `FIELD_PLACEHOLDERS`) by the flow's step (`editorStep` in `FormContext`), so the user always edits something visible. Stand-ins are never saved, so they must not look saved: `.preview-placeholder` and `.preview-placeholder-field` in `globals.css` fade them.
 
@@ -600,7 +535,7 @@ Render SVG logos from `public/` with a plain `<img src="/brand/…" />` (no SVGR
 
 **Avoid spaces in filenames referenced by URL.** Browsers encode them as `%20`, which is easy to get wrong and hard to grep. Keep the spaced original for editing if a design tool produced it, and add a lowercase hyphenated copy in `public/brand/`.
 
-For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components/brand-mark.tsx)) rather than rebuilding it. It renders `public/brand/<product>-logo-combined.svg` and appears in the admin nav header, where `product` follows the account (see `docs/AGENT_CONTEXT.md` section 2). Auth card headers use `AuthBrandMark` ([auth-brand-mark.tsx](src/components/auth-brand-mark.tsx)), which brands by hostname; on login it renders the larger `<product>-logo-full.svg`. Every product has the same set of files with identical layouts, so a new product gets that set, not a code branch.
+For the app logo plus wordmark, use `BrandMark` ([brand-mark.tsx](src/components/brand-mark.tsx)) rather than rebuilding it. It renders `public/brand/<product>-logo-combined.svg` and appears in the admin nav header, where `product` follows the account (see CLAUDE.md, Products and chrome). Auth card headers use `AuthBrandMark` ([auth-brand-mark.tsx](src/components/auth-brand-mark.tsx)), which brands by hostname; on login it renders the larger `<product>-logo-full.svg`. Every product has the same set of files with identical layouts, so a new product gets that set, not a code branch.
 
 Accessibility: decorative images get `alt=""`, meaningful ones get a descriptive `alt`, and color is never the only carrier of meaning.
 

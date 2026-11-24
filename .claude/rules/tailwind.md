@@ -1,3 +1,9 @@
+---
+paths:
+  - "apps/portal/src/**/*.tsx"
+  - "apps/portal/src/**/*.css"
+---
+
 # Tailwind CSS v4
 
 `tailwindcss` and `@tailwindcss/postcss` 4.1.18 (root `package-lock.json`, 2026-11-23). The package ships no docs; its default theme values are in `/app/node_modules/tailwindcss/theme.css` in the dev container. To see what classes generate in this version with this repo's tokens, compile them in the container:

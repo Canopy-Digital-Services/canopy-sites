@@ -5,7 +5,7 @@
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on nginx), which canopyds.com may take first (section 7)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
 
 ---
 
@@ -45,7 +45,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 - **4.1 deploys before the site is registered with the builder (4.4).** Michael's decision of 2026-10-17; shipped in v5.6.0 ahead of the token.
 - 4.1 and 4.2 run in parallel. 4.2 goes live on www through the existing deploy on its own, before any Sites wiring.
-- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, AGENT_CONTEXT section 7).
+- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, `.claude/rules/env.md`).
 - After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link; 4.3 adds Preview and the canvas (section 7).
 
 Each section is about one session; 4.2 may take two.
@@ -100,7 +100,7 @@ Each section is about one session; 4.2 may take two.
 
 **The preview page (every site, the demo included)**
 
-- A route on the Sites host, outside `(admin)`, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as AGENT_CONTEXT section 2 requires of a signed-in layout outside `(admin)`.
+- A route on the Sites host, outside `(admin)`, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as `.claude/rules/auth.md` requires of a signed-in layout outside `(admin)`.
 - The site fills the tab: the page document from the route above, in a full-window sandboxed srcdoc frame, with no portal around it. The frame is what keeps the site's scripts away from the portal session while the bar below stays the portal's.
 - **The preview bar** along the bottom looks like `/demo`'s today: the teal bar reading "Previewing unpublished changes". It carries the only Publish (D47):
   - Publish names the build the page is showing, and the tool layer refuses it unless that is the latest succeeded build of the draft's current version (D38). So an edit made in another tab after the page loaded can't go live unseen.
@@ -115,7 +115,7 @@ Each section is about one session; 4.2 may take two.
 - The Sites chrome's draft status (`src/components/sites/draft-status.tsx`) keeps unpublished changes and Discard, and its Publish becomes Preview, which opens the preview page in a new tab.
 - Quick Edit's pending change (`quick-edit-workspace.tsx`) shows Preview and Discard; its Publish goes.
 - The Editor and the quick edit popover have no Publish.
-- Quick edit's model-facing text (`src/lib/quick-edit`: the `propose_change` result and `runbook.ts`) says the owner previews and publishes from the preview page, matching `QUICK_EDIT_GUIDANCE.md`.
+- Quick edit's model-facing text (`src/lib/quick-edit`: the `propose_change` result and `runbook.ts`) says the owner previews and publishes from the preview page, matching `.claude/rules/quick-edit.md`.
 - The operator's Build and publish stays, for a site's first build and the demo's reset.
 
 **Quick Edit**
@@ -126,7 +126,7 @@ Each section is about one session; 4.2 may take two.
 
 **Docs**
 
-- `docs/AGENT_CONTEXT.md`:
+- `CLAUDE.md` and `.claude/rules/`:
   - section 2: the canvas route's and the preview page's rules beside `/demo`'s, and `/demo` without its preview mode
   - section 3: `/editor` for every Sites account with a site, and the preview route
   - section 7: the development setting, if it is a variable
@@ -223,7 +223,7 @@ Asked whether the content schema had stayed coherent, the answer was no: the edi
 
 - `site.credentials`: `certifications`, each with an id, a full `name` (for structured data), an optional `shortName` (for a line of designations), an optional `number` (letters, digits, and hyphens, without a leading #), and an optional `verifyOn`; and `naics`, six-digit codes, each listed once.
 - `faqs`: a collection of questions and answers, in page order.
-- Additive: 0.3.0 content is valid 0.4.0 content. The portal's pin moves to `^0.4.0`. Field descriptions are in `QUICK_EDIT_GUIDANCE.md` section 3.
+- Additive: 0.3.0 content is valid 0.4.0 content. The portal's pin moves to `^0.4.0`. Field descriptions are in the contract's `.meta()`.
 - Released and deployed with the portal and builder before the site's commit reaches `main`, as 4.7 was.
 
 **The site (`canopy-website`)**

@@ -1,7 +1,7 @@
 // Fails when `npm ci` left out an optional package this machine should have.
 // Every `npm ci` in a container is followed by it: the Dockerfiles' RUN, the
 // entrypoint in Dockerfile.dev, and the dependency recipe in
-// docs/tools/docker.md.
+// .claude/rules/docker.md.
 //
 // npm skips an optional package that fails to install, whatever the reason (a
 // download that failed as much as a wrong platform), and exits 0. Every binary

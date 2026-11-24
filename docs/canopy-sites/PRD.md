@@ -2,7 +2,7 @@
 
 **Status:** Draft 1, 2026-10-15. Written from a planning session with Michael; every decision below traces to his input or to a recommendation he accepted. What has shipped is in `CHANGELOG.md`. Companion: `docs/canopy-sites/ROADMAP.md`. What each revision changed is in the git history.
 
-**For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `docs/AGENT_CONTEXT.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
+**For the agent reading this:** this repo (`canopy-sites` on GitHub, formerly `Canopy-Forms`) is the unified portal. Before starting any epic, read `CLAUDE.md` and `docs/canopy-sites/ROADMAP.md` (sequencing). The ROADMAP owns *order*; this doc owns *what and why*. If they disagree, fix the one that is wrong in the same session. Code wins over both.
 
 ---
 
@@ -88,7 +88,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D7 | **Quick Edit runs on a Claude Platform API key**, pay as you go: subscription credits don't cover shared production use (support.claude.com article 15036540, checked 2026-10-15) | R |
 | D8 | **Site-edit tools are one set**, shaped to be served as an MCP server. The chat and the canvas use them today, and a client's own LLM will when the MCP endpoint ships (D59) | M |
 | D9 | **Guardrails live in the tool layer**, not the guidance, which a client's LLM may ignore. Schema validation, locks, preflight, preview before publish, rate limits, and scoped keys are enforced server-side | R |
-| D10 | **Guidance is shared** (product-wide, prompt-cached, D30) **plus the site guide** (one business's rules, D31). Deterministic checks run in code before the model. Where each rule lives: `QUICK_EDIT_GUIDANCE.md` | M/R |
+| D10 | **Guidance is shared** (product-wide, prompt-cached, D30) **plus the site guide** (one business's rules, D31). Deterministic checks run in code before the model. Where each rule lives: `.claude/rules/quick-edit.md` | M/R |
 | D12 | **Billing is by hand**: the portal stores `planCode`, `status`, and a free-text `billingRef`, which the operator sets. No invoice UI | M/R |
 | D13 | **Sites are built with Astro 7.** The platform's tie to Astro is the builder's `dist/` output and `_astro/` fingerprint path; new code keeps it there | M |
 | D15 | **Stats is white-boxed Umami**, read through its API, for every Sites account | M |
@@ -231,7 +231,7 @@ Locked fields reject at validation regardless of source. The canvas and the prev
 ### 4.6 Quick edit
 
 - Claude API with tool use; tools are the same implementations the MCP endpoint exposes, called in-process (D30)
-- System prompt = core guidance + quick edit persona (cached, shared by every site) + the site guide's prose from the published commit (D31; its front matter is enforced in code, D40) + the contract's JSON Schema. Where each rule goes: `QUICK_EDIT_GUIDANCE.md`
+- System prompt = core guidance + quick edit persona (cached, shared by every site) + the site guide's prose from the published commit (D31; its front matter is enforced in code, D40) + the contract's JSON Schema. Where each rule goes: `.claude/rules/quick-edit.md`
 - Preflight runs before tool calls reach the LLM; the LLM handles judgment only (intent, which block, typos and site rules in the owner's copy, alt text, appropriateness). It never writes copy (D32)
 - Cheaper model for classification/moderation, stronger model for edits; configurable per deployment
 - Every conversation stores messages, tool calls, tokens in/out, model. Per-account monthly token budget; operator sees usage
@@ -250,7 +250,7 @@ After v1 (D59). Streamable HTTP at `sites.canopyds.com/mcp`. Per-account API key
 
 ## 5. Data model
 
-The schema is `apps/portal/prisma/schema.prisma`; what it doesn't show is the appendix of `docs/AGENT_CONTEXT.md`.
+The schema is `apps/portal/prisma/schema.prisma`; what it doesn't show is in `.claude/rules/prisma.md`.
 
 ---
 

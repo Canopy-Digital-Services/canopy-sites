@@ -1,3 +1,9 @@
+---
+paths:
+  - "apps/portal/src/**/*.tsx"
+  - "apps/portal/src/hooks/**"
+---
+
 # React 19
 
 `react` and `react-dom` 19.2.3, pinned exactly in `apps/portal/package.json` (2026-11-23). The packages ship no docs; react.dev documents the current release. The App Router renders with the React canary bundled inside `next`, which is why `<ViewTransition>` exists there and not in `react` 19.2.3.
@@ -30,4 +36,4 @@ None of these is the repo's form pattern (below), but each has a rule older trai
 ## In this repo
 
 - **The React Compiler is off** (no `reactCompiler` in `apps/portal/next.config.ts`, 2026-11-23), so nothing is memoized for you. Keep the existing `useMemo` and `useCallback`, and add them where a value or callback has to stay stable.
-- **Admin and auth forms** use the inline touched/submitted validation in `docs/AGENT_CONTEXT.md` section 2 ("Validation") and call server actions from their own submit handlers, tracking pending state themselves (mostly with `useTransition`). Extend that pattern; do not convert a form to `useActionState` or `<form action>`.
+- **Admin and auth forms** use the inline touched/submitted validation in `.claude/rules/embed.md` ("Validation") and call server actions from their own submit handlers, tracking pending state themselves (mostly with `useTransition`). Extend that pattern; do not convert a form to `useActionState` or `<form action>`.

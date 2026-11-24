@@ -1,3 +1,11 @@
+---
+paths:
+  - "apps/portal/src/app/**"
+  - "apps/portal/src/actions/**"
+  - "apps/portal/next.config.ts"
+  - "apps/portal/src/proxy.ts"
+---
+
 # Next.js 16
 
 `next` 16.4.5 (root `package-lock.json`, 2026-11-23). The package ships the docs for its own version. Read them in the container, at `/app/node_modules/next/dist/docs/` (the upgrade guide is `01-app/02-guides/upgrading/version-16.md`), not on the host, whose `node_modules` is a different install ([`docker.md`](./docker.md)). Check a claim there before trusting memory.
@@ -58,3 +66,11 @@ A catch-all route's `params` arrive decoded one time per segment: `%20` is a spa
 ### `asChild` and the Radix slot (root `overrides`)
 
 On the dev server from 16.4, the children an async server component passes to a client component can arrive as lazy elements. `@radix-ui/react-slot` before 1.2.4 renders nothing for a lazy `asChild` child, so the server sends an empty `TooltipTrigger asChild` (or `Button asChild`) and hydration fails on the page. A production build is not affected. The root `package.json` pins the slot to 1.2.4 through `overrides` for that reason (verified 2026-11-10: the forms list's view toggle). Delete the override when `radix-ui` depends on `@radix-ui/react-slot` 1.2.4 or later by itself (`radix-ui` 1.4.3 asks for 1.2.3, 2026-11-23).
+
+## Routes
+
+`/` redirects to the account's home or `/login`. Admin lives under `/forms`, `/account`, `/docs`, plus `/quick-edit`, `/editor`, and `/stats` for Sites accounts. `/editor` is the visual editor (Epic 33): the account's site on a canvas, marked fields edited in place or through the quick edit popover, saved to the site's draft (`saveCanvasEdits`); a site with no live address (no production hostname) sees an empty state. `/preview/[siteId]` is where a draft is previewed and published, and `/demo` is the public demo site (`.claude/rules/public-api.md`). Operator console is `/operator/accounts`, `/operator/sites`, and `/operator/requests` (what owners sent Canopy from Quick Edit, open first, `?site=` for one site; PRD D34); a site arrives by Link a site (PRD D49). `/claim` is where a linked site's owner sets their first password, and `/claim/image/[file]` draws the picture in its link preview, named by site and cached by Cloudflare (`src/lib/claim-image.tsx`); the claim email carries the same picture inline. Public form pages are `/f/[formId]`. **Home is per account: resolve it with `getHomePath(accountId)` or `homePathFor(entitlements)` (`/quick-edit` for Sites, `/forms` otherwise). Never hardcode `/forms` as home, and never link to `/`.** Client components that cannot resolve it (login, signup) navigate to `/` and let the server redirect. Links back to the forms list are still `/forms`.
+
+## Env vars in client components
+
+Client components cannot reliably read runtime env vars. Server component reads env, passes props (see the `apiUrl` prop in `src/app/(admin)/forms/[formId]/edit/page.tsx`). `NEXT_PUBLIC_*` is baked into the bundle at **build time** and cannot change without a rebuild. `validateOrigin()` uses `NEXT_PUBLIC_APP_URL` to identify the dashboard host.

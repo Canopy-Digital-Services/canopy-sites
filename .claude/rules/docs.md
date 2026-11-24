@@ -1,6 +1,16 @@
+---
+paths:
+  - "docs/**"
+  - "CLAUDE.md"
+  - "README.md"
+  - ".claude/rules/**"
+---
+
 # Doc Maintenance
 
-Rules for editing `CLAUDE.md` and everything under `docs/`: the engineering docs, `docs/tools/*.md`, and the Sites PRD, ROADMAP, and epic docs. The in-app help in `apps/portal/content/docs` is written for owners and isn't covered here.
+Rules for editing `CLAUDE.md`, the rules in `.claude/rules/`, and everything under `docs/` (the Sites PRD, ROADMAP, and epics included). The in-app help in `apps/portal/content/docs` is written for owners; its rule is `help-docs.md`.
+
+**Where a fact goes.** Name the moment an agent needs it and put it where that agent already is: `CLAUDE.md` when every task needs it; a rule in `.claude/rules/` whose `paths:` cover the files that work touches (it loads by itself when one of them is read or edited); a comment in a file when it governs that file alone; text keyed by the error message an agent would search for. A rule for a tool holds only what changes the code an agent writes: a breaking change as the rule plus the right pattern, or a fact about how this repo uses the tool. A rule's `paths:` never use parentheses (a route group like `(admin)`); match with `**` instead.
 
 These docs are read by coding agents and by Michael, not by people browsing. Their value is density and accuracy, not completeness or flow. Each rule below exists because the opposite happened and cost something real.
 
@@ -22,7 +32,7 @@ These docs are read by coding agents and by Michael, not by people browsing. The
 ## Structure
 
 10. **One index, no summaries.** Never add a table of contents, quick-reference table, or per-section recap. `UX_PATTERNS.md` had a Quick Reference that drifted from its own body and ended up asserting the wrong typeface, and a File References table that pointed at a deleted component. Markdown headings are already navigable.
-11. **Where a doc has a dedicated rule set, new rules go there.** In `UX_PATTERNS.md` that is section 1, which is meant to be complete on its own so a partial read is still safe. Put the detail in the topic section and the prohibition in the rule set, not one in place of the other.
+11. **Where a doc has a dedicated rule set, new rules go there.** For UI that is `.claude/rules/ui.md`, which is meant to be complete on its own so a partial read is still safe. Put the detail in the topic section and the prohibition in the rule set, not one in place of the other.
 12. **Renaming or renumbering a section means grepping for references to it.** `CLAUDE.md`, `VERIFICATION_CHECKLIST.md`, and the other docs cite sections by number.
 
 ## When behavior changes

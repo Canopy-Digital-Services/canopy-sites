@@ -1,8 +1,8 @@
 /**
  * The base runbook (PRD D10): product-wide instructions for quick edit, the
  * first and cached part of the system prompt. Which rules belong here, and
- * which in code, the contract, or the site's guide, is QUICK_EDIT_GUIDANCE's
- * first section. The site's guide
+ * which in code, the contract, or the site's guide, is the first section of
+ * .claude/rules/quick-edit.md. The site's guide
  * (SITE_GUIDE.md's prose, PRD D31) follows it. Guardrails do not live here
  * (D9, D50): the tool layer enforces them whatever the model writes, and
  * these are the judgment calls code can't make. A change here is checked

@@ -46,6 +46,7 @@ docker-compose.override.yml
 # Claude Code local session state (permissions, scheduler lock, worktrees); its skills are the repo's
 .claude/*
 !.claude/skills/
+!.claude/rules/
 
 # Allow tracked env template
 !.env.example

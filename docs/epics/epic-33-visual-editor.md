@@ -5,7 +5,7 @@
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `docs/canopy-sites/QUICK_EDIT_GUIDANCE.md` (sections 1, 2, 7), `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `.claude/rules/quick-edit.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
 ---
 
@@ -52,7 +52,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 - Required `id` on every list of objects: services (optional today), service groups and category sections (none today), socials (none today), and the lists that already have one. Hours and a section's `body` paragraphs are single fields, edited whole.
 - Addresses: collection, then each list entry's id and each object key on the way down (`site/hours`, `announcements/<id>/message`, `pages/home/sections/featured/heading`, `services/<category>/services/<service>/priceLabel`). `resolveAddress(content, address)` returns the JSON Pointer; `applyChanges` accepts ops by address. `serviceIndex` returns each service's address with it, so a template rendering a featured service marks the menu entry it came from.
-- Field metadata with Zod 4's `.meta()`: `kind` (short text, paragraph, date, time, price, image, link, reference), `label`, and `description` (wording from `QUICK_EDIT_GUIDANCE.md` section 3). `jsonSchemaFor` carries them to the model.
+- Field metadata with Zod 4's `.meta()`: `kind` (short text, paragraph, date, time, price, image, link, reference), `label`, and `description` (wording in the contract's `.meta()`). `jsonSchemaFor` carries them to the model.
 - `field(address)` returns the attributes a template spreads onto the element holding an editable value (`data-canopy-field`).
 - `parseSiteGuide(markdown)` returns `{ limits, formats, prose }`; `validateContent(raw, { limits })` applies limits by address pattern (`*` matches one id). A malformed front matter block is an error, never silently empty.
 - `migrate(content, fromVersion)` adds the missing ids (slugs of the entry's name, made unique within the list).
@@ -97,7 +97,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 - Every other marked field opens quick edit in the popover: the existing loop in `src/lib/quick-edit`, opened with the field's address and value in the first user turn, writing the same draft (PRD D37).
 - Undo within the session: back to the field's previous value, saved as a new edit.
 - Sites chrome: unpublished changes, Publish (enabled per section 4.2), Discard. The Quick Edit tab's pending change is the same draft. E37 moves Publish to the preview page, its only home (PRD D47).
-- Tool-result warnings (QUICK_EDIT_GUIDANCE section 2) arrive as data and show beside the field.
+- Tool-result warnings (planned in `.claude/rules/quick-edit.md`) arrive as data and show beside the field.
 
 ### 4.7 Tests
 

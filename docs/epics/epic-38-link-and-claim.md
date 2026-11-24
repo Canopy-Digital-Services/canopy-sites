@@ -5,7 +5,7 @@
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** T1, Client 1, the first client to be linked and to claim
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D15, D16, D19, D22, D24, D39, D47, D54, D63, section 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `docs/UX_PATTERNS.md` section 1, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `.claude/rules/auth.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D15, D16, D19, D22, D24, D39, D47, D54, D63, section 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `.claude/rules/ui.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
 
 ---
 
@@ -45,7 +45,7 @@ No step needs the client's password, a personal access token, a builder env var,
 
 ## 3. Order
 
-- 4.1 lands first, one migration per logical change (AGENT_CONTEXT section 5).
+- 4.1 lands first, one migration per logical change (`.claude/rules/prisma.md`).
 - 4.2 can run in parallel with everything in the portal. It deploys before 4.3, which reads the repo list from it; until then 4.3's repo field takes a URL.
 - 4.3, then 4.4 and 4.5 (independent of each other), then 4.7, which reads what 4.4 and 4.5 write. 4.6 is a check on the others, not work of its own. 4.8 any time.
 - 4.9 last.
@@ -64,7 +64,7 @@ Checked against `prisma/schema.prisma` on 2026-11-05: `User.password` is non-nul
 - **`ActAs`** (`id`, `operatorUserId`, `accountId`, `startedAt`, `endedAt?`), and **`Session.actAsId?`** pointing at the open one (4.5). Deleting an account cascades its `ActAs` rows; deleting the operator's user keeps them, with `operatorUserId` set to null (`onDelete: SetNull`, so the column is nullable).
 - The `Site.slug` comment stops saying it names `GIT_TOKEN_<SLUG>` once 4.2 retires the PATs.
 
-The AGENT_CONTEXT appendix and `docs/ACCOUNT_OPERATIONS.md` diagrams change with it (section 10).
+The Prisma rule's data model and the auth rule's diagrams change with it (section 10).
 
 ### 4.2 Repo access through a GitHub App (`apps/builder`)
 
@@ -99,7 +99,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 ### 4.4 Claim
 
-**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text, with **Email it** beside it: that emails the link shown and makes no new one, so the texted copy and the emailed one are the same link. Email claim link on the card does make a new one, and its toast says so when the earlier link still worked. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
+**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text, with **Email it** beside it: that emails the link shown and makes no new one, so the texted copy and the emailed one are the same link. Email claim link on the card does make a new one, and its toast says so when the earlier link still worked. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (`.claude/rules/auth.md`).
 
 **The email.** From `Canopy Sites <sites@canopyds.com>`, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2). It is the handoff of the owner's website, so the HTML opens with the link preview's picture (Canopy Boy holding the keys, the site's name on the tag), sent inline with the message:
 
@@ -139,7 +139,7 @@ A person added to the account since (PRD D63) gets the same picture and a plaine
 Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing implements it (2026-11-05). Smaller than E32's version: for acceptance, support, and building a client a form, not for building the site (Michael, 2026-11-05).
 
 - **Act as client** on the operator site page (Global Admin only). It opens an `ActAs` row and points the operator's own session at it. The operator never holds the client's password or a membership in their account.
-- **While acting, the account is the client's.** `getCurrentAccountId` resolves the acted account when the session has an open `ActAs` and the user is still a Global Admin (re-read every request, as the role is). Everything that checks membership directly moves into `src/lib/data-access/memberships.ts` first and honors the same rule: `canPreviewSite` (`src/lib/site-tools/index.ts`, used by `/canvas` and `/preview`) and the form thumbnail route (`src/app/api/forms/[formId]/thumbnail/route.ts`), found by grep on 2026-11-05. AGENT_CONTEXT section 2 already says membership is resolved only there; those two break the rule.
+- **While acting, the account is the client's.** `getCurrentAccountId` resolves the acted account when the session has an open `ActAs` and the user is still a Global Admin (re-read every request, as the role is). Everything that checks membership directly moves into `src/lib/data-access/memberships.ts` first and honors the same rule: `canPreviewSite` (`src/lib/site-tools/index.ts`, used by `/canvas` and `/preview`) and the form thumbnail route (`src/app/api/forms/[formId]/thumbnail/route.ts`), found by grep on 2026-11-05. `.claude/rules/auth.md` already says membership is resolved only there; those two break the rule.
 - **A banner on every page while acting**, the portal's chrome and the preview page's bar alike: "Acting as <business name> (<email>)" and **Stop**. Stop, sign-out, and the session's end close the `ActAs` row.
 - **The operator is the actor.** Sites writes already name the session user: a ChangeSet's `createdByUserId`, a Conversation's `userId`, the published commit's author. A form created while acting has the operator as `createdByUserId`. Forms edits record no actor for anyone today; the `ActAs` row (who, which account, from when to when) is their record, and this epic adds no per-row actor columns to Forms (section 7).
 - **Off limits while acting**, refused in the actions as well as hidden: changing the password or email, deleting the account, and signing out the owner's other sessions. Acting never sets the owner's `lastLoginAt`, and one helper says whether a session is acting, for anything that must happen only for the owner (4.6).
@@ -185,13 +185,13 @@ The layout computes the list once per request (one form count; the site row it a
 
 At the end of a build in Claude Code, the link step runs without the browser.
 
-- A server action can't serve: it needs a browser session, and its action id changes with every build (project memory, "server actions over curl"). A new HTTP route with an operator key would be a second way to authenticate a request (AGENT_CONTEXT section 2).
+- A server action can't serve: it needs a browser session, and its action id changes with every build (project memory, "server actions over curl"). A new HTTP route with an operator key would be a second way to authenticate a request (`.claude/rules/auth.md`).
 - So the CLI calls the same `linkSite` (4.3): `scripts/link-site.ts`, bundled into the production image at build time (the image runs Node 20, which can't run TypeScript), run as `ssh webber docker exec <portal container> node …/link-site.mjs` with the form's fields as JSON and `--actor <email>`, which must be a Global Admin. The trust boundary is a shell on webber, which already reaches everything. The container is found by its Coolify label, not its name, which changes every deploy.
 - The Sites Onboarding Runbook names it as the alternative to the form.
 
 ### 4.10 Docs with the behavior
 
-Each change in section 10 lands in the commit that causes it (DOC_MAINTENANCE rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and E32's "edit as client" moved here) landed with the approval, 2026-11-05.
+Each change in section 10 lands in the commit that causes it (`.claude/rules/docs.md`, rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and E32's "edit as client" moved here) landed with the approval, 2026-11-05.
 
 ## 5. Acceptance
 
@@ -273,14 +273,14 @@ Each lands with the change that causes it, never in a later pass.
 **This repo**
 
 - `docs/canopy-sites/PRD.md`: section 5's data model: the owner's nullable password, claim tokens, act-as. Section 6: the nav line and its table follow 4.8, and the Operator row's "edit as client" becomes act as client. D28 and D2's list of tabs: each tab shows when the account has what it works on (D49). D24: `Site.contractVersion` written on every content read (4.3).
-- `docs/AGENT_CONTEXT.md`: section 2, Auth & ownership (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (`SitesNav`'s tabs and when each shows); section 3 (`/claim`, the act-as banner's rule); section 7 (`SMTP_FROM_SITES`); the appendix's data model.
+- `.claude/rules/auth.md`, Rules (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (`SitesNav`'s tabs and when each shows); section 3 (`/claim`, the act-as banner's rule); section 7 (`SMTP_FROM_SITES`); the appendix's data model.
 - `.env.example`: `SMTP_FROM_SITES`.
-- `docs/ACCOUNT_OPERATIONS.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
+- `.claude/rules/auth.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
 - `docs/UX_PATTERNS.md`: the act-as banner (section 2's Notices), the claim page with the auth pages (section 8), the Sites tabs' rule (section 10, Page shell).
 - `apps/portal/prisma/schema.prisma`: `Site.slug`'s comment.
 - `apps/portal/src/actions/admin/members.ts`: its header comment (random password, Forgot password).
 - `apps/portal/content/docs/account.md`: signing in for the first time from a claim link, and Forgot password before claiming. Sites owners have no help pages of their own yet (as of 2026-11-05).
-- `docs/epics/README.md` and `CHANGELOG.md`: the release (AGENT_CONTEXT section 10).
+- `docs/epics/README.md` and `CHANGELOG.md`: the release (CLAUDE.md's release checklist).
 
 **Nextcloud**
 

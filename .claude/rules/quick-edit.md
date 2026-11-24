@@ -1,3 +1,10 @@
+---
+paths:
+  - "apps/portal/src/lib/quick-edit/**"
+  - "apps/portal/src/lib/site-tools/**"
+  - "packages/site-contract/src/**"
+---
+
 # Quick Edit Guidance
 
 Where a rule for Quick Edit (and later MCP clients) belongs, and the numbers planned for what isn't built yet. The wording the model runs on is `BASE_RUNBOOK` in `apps/portal/src/lib/quick-edit/runbook.ts`; change it there, then run the Quick Edit Eval Runbook (Nextcloud, Canopy Sites). A field's description, label, and kind are its `.meta()` in `packages/site-contract/src/schemas.ts`. The site guide's front matter syntax is in `packages/site-contract/README.md`; what every guide must cover is the Site Build Checklist (Nextcloud).
