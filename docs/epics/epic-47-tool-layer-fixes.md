@@ -30,7 +30,7 @@ Nothing about a site's past stops an owner's edit, a builder restart never leave
 
 ## 3. Requirements
 
-Each fix lands with a database test that fails without it. The tests for 4.2 and 4.3 started as `docs/canopy-sites/e47-repro.db.test.ts.txt`, written to pass while the defect was there; they move into `site-tools.db.test.ts` turned around, and the file goes.
+Each fix lands with a database test in `site-tools.db.test.ts` that fails without it. The tests for 4.2 and 4.3 started as a repro file written to pass while the defect was there, turned around here.
 
 ### 4.1 The guide checks what the edit changed
 

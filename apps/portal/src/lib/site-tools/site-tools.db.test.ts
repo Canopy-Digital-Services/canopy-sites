@@ -649,6 +649,48 @@ describe("refresh and publish", () => {
     }
   });
 
+  it("runs the guardrails again at publish, so a rule added since the draft was saved applies to it (E47)", async () => {
+    const { ctx, site } = await siteAccount();
+    const editor = { ...ctx, source: "EDITOR" as const };
+    const author = { name: "O", email: "o@test.invalid" };
+    const previewed = async (op: Record<string, unknown>) => {
+      const saved = await tools.saveDraft(editor, site.id, { ops: [op] });
+      await tools.refreshChange(ctx.accountId, saved.changeSetId!);
+      return { changeSetId: saved.changeSetId!, buildId: saved.buildId! };
+    };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      // A lock added after the draft was saved.
+      const named = await previewed({ op: "replace", address: "site/name", value: "Demo Salon & Spa" });
+      await prisma.site.update({ where: { id: site.id }, data: { lockedFields: { push: "site/name" } } });
+      await expect(tools.publishChange(ctx, named.changeSetId, named.buildId, author)).rejects.toMatchObject({
+        message: expect.stringMatching(/locked/),
+        outOfLane: true,
+      });
+      expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: named.changeSetId } })).toMatchObject({
+        status: "FAILED",
+        error: expect.stringMatching(/^This no longer fits the site's rules\. .*locked/),
+      });
+
+      // A guide limit added after: refused too, and nothing went to the builder.
+      const priced = await previewed(PRICE_OP);
+      builder.guide = "---\nlimits:\n  services/*/services/*/priceLabel: 2\n---\n";
+      await expect(tools.publishChange(ctx, priced.changeSetId, priced.buildId, author)).rejects.toThrow(/2 characters or fewer/);
+      expect(builder.publishes).toHaveLength(0);
+
+      // A read that fails is a plain try-again, and the draft stays ready to publish.
+      builder.guide = null;
+      const announced = await previewed(ANNOUNCE_OP);
+      const { BuilderError, fetchContent } = await import("@/lib/builder-client");
+      vi.mocked(fetchContent).mockRejectedValueOnce(new BuilderError("git fetch exited with 128"));
+      await expect(tools.publishChange(ctx, announced.changeSetId, announced.buildId, author)).rejects.toMatchObject({ message: BUILDER_FAILED.read });
+      expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: announced.changeSetId } })).toMatchObject({ status: "PREVIEWED" });
+      expect(await tools.publishChange(ctx, announced.changeSetId, announced.buildId, author)).toEqual({ commit: "b".repeat(40) });
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
   it("discards only a pending change", async () => {
     const { ctx } = await siteAccount();
     const { changeSetId } = await tools.proposeChange(ctx, { summary: "Haircut to $90", ops: PRICE });

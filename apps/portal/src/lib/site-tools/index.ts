@@ -979,6 +979,22 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
   }
   if (build.id !== buildId) throw new ToolError("The preview changed since this page loaded. Look it over again, then publish.");
   const sent = asOps(changeSet.ops);
+  // The site's rules as they are now: a lock, fixed list, or guide rule added
+  // since the draft was saved applies to it. A branch that has moved is the
+  // builder's to refuse ("changed since"), so only the draft's own base is checked.
+  const read = await readSite(changeSet.site);
+  if (read.commit === changeSet.baseCommit) {
+    try {
+      check(changeSet.site, read.published, sent, read.guide);
+    } catch (err) {
+      if (!(err instanceof ToolError)) throw err;
+      await prisma.changeSet.updateMany({
+        where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
+        data: { status: "FAILED", error: `This no longer fits the site's rules. ${err.message}` },
+      });
+      throw err;
+    }
+  }
   let commit: string | null;
   try {
     ({ commit } = await requestPublish(builderSite(changeSet.site), {
