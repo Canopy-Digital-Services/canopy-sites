@@ -15,7 +15,8 @@ import { revalidatePath } from "next/cache";
  * Change an account's plan. If the new plan's maxPublishedForms is below
  * the account's current published form count, all of that account's forms
  * are unpublished atomically and the account is flagged for resolution so
- * the user must pick which (up to new cap) forms stay live on next login.
+ * the user must pick which (up to new cap) forms stay live on the next
+ * portal page they open (the admin layout shows the resolution dialog).
  *
  * The flag is flipped on inside the same transaction that updates the plan
  * so the account is never in a half-state where limits disagree with data.

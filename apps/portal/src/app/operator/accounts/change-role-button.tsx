@@ -117,8 +117,7 @@ export function ChangeRoleButton({
         <DialogHeader>
           <DialogTitle>Change role</DialogTitle>
           <DialogDescription>
-            Change the role for <strong>{email}</strong>. The change takes
-            effect on the user&apos;s next login.
+            Change the role for <strong>{email}</strong>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

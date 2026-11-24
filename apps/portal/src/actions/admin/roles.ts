@@ -21,8 +21,8 @@ import { revalidatePath } from "next/cache";
  *      their own forms. Uncapped plans stay put, so promoting a Sites
  *      account keeps Sites. Demotion does NOT automatically revert the plan.
  *
- * The affected user's current session continues to reflect the old role
- * until they re-authenticate; the UI copy states this explicitly.
+ * The session reads the role on every request (`validateSessionToken`), so
+ * the change applies on the user's next page load.
  */
 export async function setUserRole(
   userId: string,
