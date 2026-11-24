@@ -8,14 +8,11 @@ import { cn } from "@/lib/utils";
 /** One color on offer, with the names of what already uses it. */
 export type PickerColor = { value: string; names: string[] };
 
-/** A row of colors, with an optional title. */
-export type PickerRow = { title?: string; colors: PickerColor[] };
-
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /**
- * A color as a swatch that opens rows of colors to pick from, so matching
- * one already in use is one click, and New color for the system picker
+ * A color as a swatch that opens the colors on offer, so matching one
+ * already in use is one click, and New color for the system picker
  * (which takes hex on every platform). With no colors to offer, the swatch
  * opens the system picker itself. `value` is the color shown now, set or not.
  */
@@ -24,7 +21,7 @@ export function ColorPicker({
   label,
   tooltip = false,
   value,
-  rows,
+  colors,
   onChange,
 }: {
   id: string;
@@ -33,11 +30,11 @@ export function ColorPicker({
   /** Name the swatch in a tooltip, where no visible label does (a toolbar). */
   tooltip?: boolean;
   value: string;
-  rows: PickerRow[];
+  colors: PickerColor[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const empty = rows.every((row) => row.colors.length === 0);
+  const empty = colors.length === 0;
   const customRef = useRef<HTMLInputElement>(null);
   // Closing for Custom leaves focus alone: moving it back to the swatch can
   // dismiss the system picker as it opens.
@@ -113,34 +110,29 @@ export function ColorPicker({
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
           )}
         >
-          {rows.map((row, i) => (
-            <div key={row.title ?? i} className="space-y-1.5">
-              {row.title && <p className="text-xs text-muted-foreground">{row.title}</p>}
-              <div className="flex flex-wrap gap-1.5">
-                {row.colors.map((color) => (
-                  <Tooltip key={color.value} delayDuration={300}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={color.names.join(", ")}
-                        aria-pressed={same(color.value, value)}
-                        onClick={() => {
-                          onChange(color.value);
-                          setOpen(false);
-                        }}
-                        className={cn(
-                          "size-7 rounded-sm border border-black/10 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                          "aria-pressed:ring-2 aria-pressed:ring-ring aria-pressed:ring-offset-2 aria-pressed:ring-offset-popover"
-                        )}
-                        style={{ background: color.value }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{color.names.join(", ")}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="flex flex-wrap gap-1.5">
+            {colors.map((color) => (
+              <Tooltip key={color.value} delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={color.names.join(", ")}
+                    aria-pressed={same(color.value, value)}
+                    onClick={() => {
+                      onChange(color.value);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "size-7 rounded-sm border border-black/10 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      "aria-pressed:ring-2 aria-pressed:ring-ring aria-pressed:ring-offset-2 aria-pressed:ring-offset-popover"
+                    )}
+                    style={{ background: color.value }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>{color.names.join(", ")}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
           <button
             type="button"
             onClick={openCustom}

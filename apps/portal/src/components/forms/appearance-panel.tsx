@@ -472,7 +472,6 @@ export function AppearancePanel() {
     if (found) found.names.push(name);
     else formColors.push({ value: hex, names: [name] });
   }
-  const colorRows = [{ colors: formColors }];
   // Unset, a color shows as what it renders with: the title and labels as
   // the text color, the rest as their defaults.
   const textColor = toColorInputValue(text, "#18181b");
@@ -485,7 +484,7 @@ export function AppearancePanel() {
       label={label}
       tooltip={tooltip}
       value={toColorInputValue(str(key), fallback)}
-      rows={colorRows}
+      colors={formColors}
       onChange={(v) => set(key, v)}
     />
   );
