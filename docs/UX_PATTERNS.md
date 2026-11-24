@@ -2,7 +2,7 @@
 
 UI conventions for the portal's admin interface (Canopy Forms, and the Canopy Sites chrome around it), plus the embed theming system. Code paths here are relative to `apps/portal/`.
 
-**How to use this doc.** Section 1 is the complete rule set: every prohibition and every required choice, with no rationale. Read it before any UI work. The sections after it add detail, code, and the reasoning behind a rule, and are meant to be read by section, not front to back. If a rule and a code sample ever disagree, the rule wins and the sample is stale.
+**How to use this doc.** The rule set is `.claude/rules/ui.md`, which loads by itself with any `.tsx` file: every prohibition and every required choice, with no rationale. The sections here add detail, code, and the reasoning behind a rule, and are meant to be read by section, not front to back. If a rule and a code sample ever disagree, the rule wins and the sample is stale.
 
 **Editing this doc.** Follow `.claude/rules/docs.md`. In particular: a new prohibition goes in `.claude/rules/ui.md` as well as its topic section, never add a summary or quick-reference table, and delete what a change supersedes rather than leaving both.
 
