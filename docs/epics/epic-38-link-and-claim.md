@@ -3,9 +3,9 @@
 **Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Client 1)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
-**Successor:** T1, Client 1, the first client to be linked and to claim
+**Successor:** E40, Client 1, the first client to be linked and to claim
 
-> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `.claude/rules/auth.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D15, D16, D19, D22, D24, D39, D47, D54, D63, section 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `.claude/rules/ui.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `.claude/rules/auth.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D15, D16, D19, D22, D24, D39, D47, D54, D63, section 6), `docs/canopy-sites/ROADMAP.md` (E36, E40), `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `.claude/rules/ui.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
 
 ---
 
@@ -195,7 +195,7 @@ Each change in section 10 lands in the commit that causes it (`.claude/rules/doc
 
 ## 5. Acceptance
 
-With Client 1 as the first client, once its repo builds on the contract (T1):
+With Client 1 as the first client, once its repo builds on the contract (E40):
 
 - [ ] The demo and canopyds.com build and publish through the Canopy Sites App; `GIT_TOKEN_DEMO` and `GIT_TOKEN_CANOPYDS` are gone from `canopy-builder` and revoked on GitHub; the Expirables Register has the App's key in place of both
 - [ ] Link a site lists Client 1's repo among the org's repos and none already linked; linking it with its email, business name, domain and `www`, and the Umami id creates the account, the unclaimed owner, and the site, and the first build publishes

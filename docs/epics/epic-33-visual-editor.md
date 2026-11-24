@@ -5,7 +5,7 @@
 **Predecessor:** Epic 30 (Builder, preview, and the demo slice)
 **Successor:** E32, starting with photos in quick edit and on the canvas (the fast follow), then E31's remainder (restore)
 
-> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (C3, E31, E32, E33), `.claude/rules/quick-edit.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D9, D19, D28 to D45, sections 4.4 to 4.6), `docs/canopy-sites/ROADMAP.md` (E33), `.claude/rules/quick-edit.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud (Canopy Sites collective): **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines**.
 
 ---
 
@@ -19,7 +19,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 ### In
 
-- **C3, contract v0.2**: required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
+- **Contract v0.2**: required ids, addresses, field metadata, `field()`, `parseSiteGuide`, the v0.1 migration, released per PRD D26.
 - **The draft** (PRD D38, from E31): `ChangeSet.version`, draft saves, per-field merging and conflicts, rebase on a branch move, sites resolved by id.
 - **Builder speed and schedule**: content reads from the clone, newest-first builds, build status the portal can push, the nightly rebuild (PRD D42) with `Site.timeZone`.
 - **Site guide front matter** (PRD D40): the builder returns `SITE_GUIDE.md` with content; the tool layer enforces its limits. A site without a guide gets the contract's caps only.
@@ -40,7 +40,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 | Restore UI | E31 remainder |
 | Quick edit's definitions module, `request_help`, AI budget, media | E32 remainder |
 | MCP | E34 |
-| The real Client 2 site | H1 to H3 |
+| The real Client 2 site | Epic 46 |
 
 ## 3. Gating
 
@@ -79,7 +79,7 @@ The plan was settled with Michael on 2026-10-17 and is recorded as PRD D35 to D4
 
 ### 4.4 Demo site (`canopy-demo-site`)
 
-- No site guide in this epic (Michael, 2026-10-17): the demo will share Client 2's, written in H2, and until then the contract's caps are the limits. Tests use a fixture guide.
+- No site guide in this epic (Michael, 2026-10-17): the demo will share Client 2's, written in Epic 46, and until then the contract's caps are the limits. Tests use a fixture guide.
 - Retag `demo-baseline` after the content migration and the template markers land, per the demo repo's `CLAUDE.md`.
 
 ### 4.5 The canvas
@@ -122,7 +122,7 @@ Recorded as PRD D35 to D45 and not repeated here. The ones that shaped this doc'
 
 ### Agent calls inside scope
 
-- **E33's number.** The visual editor is E33's brief (it replaced page tiles), so it keeps that number and pulls forward from C1, E31, and E32, as E30 did.
+- **E33's number.** The visual editor is E33's brief (it replaced page tiles), so it keeps that number and pulls forward from the contract's first release, E31, and E32, as E30 did.
 - **Photos and chrome unmarked** (section 2, Out).
 - **The nightly rebuild runs in the builder**, the one long-running process with a clock; the portal registers time zones with it.
 

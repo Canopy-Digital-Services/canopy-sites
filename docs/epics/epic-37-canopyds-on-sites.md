@@ -5,7 +5,7 @@
 **Predecessor:** Epic 33 (Visual editor)
 **Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on nginx), which canopyds.com may take first (section 7)
 
-> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (E33, E36, E41), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
 
 ---
 
@@ -63,7 +63,7 @@ Each section is about one session; 4.2 may take two.
 **Port**
 
 - Astro 7 on the demo's line (`^7.4`), static output to `dist/`, base `/`, Node 24. It builds with `npm ci --ignore-scripts`, as the builder installs, and the Dockerfile uses the same flags and lockfile, so the builder's build and the production image of one commit name their `_astro/` files alike. The canvas depends on that (D47).
-- Components become `.astro` files with plain `<script>` for behavior, like the demo and the client sites, so the site can feed the template (C2). A component whose behavior doesn't port cleanly may stay React as an island (`@astrojs/react`, `client:visible`); nothing inside an island is a marked field, since hydration owns that DOM. CSS modules and Tailwind v4 (`@tailwindcss/vite`) carry over.
+- Components become `.astro` files with plain `<script>` for behavior, like the demo and the client sites, so the site can feed the starter (E41). A component whose behavior doesn't port cleanly may stay React as an island (`@astrojs/react`, `client:visible`); nothing inside an island is a marked field, since hydration owns that DOM. CSS modules and Tailwind v4 (`@tailwindcss/vite`) carry over.
 - Next-only features: `next/font/google` becomes Fontsource packages (no external font requests, as on Client 1); `next/image` becomes `astro:assets` for images moved to `src/assets` (PDFs, SVG art, and the OG card stay in `public/`); `next/link` becomes `<a>`; the Metadata API becomes the layout's head (title template, description, Open Graph, canonical); `robots.ts` and `sitemap.ts` become static output. The JSON-LD is unchanged apart from reading its facts from content.
 - `/services` → `/websites` and `/cookie-settings` → `/cookie-policy` become Cloudflare redirect rules (301) beside the apex → www rule, so they outlive the Coolify app (E36). Create them before the Astro build goes live.
 - Umami loads with `data-domains="www.canopyds.com"`, so canvas and preview views aren't counted.
