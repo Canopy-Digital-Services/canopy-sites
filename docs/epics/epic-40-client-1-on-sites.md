@@ -43,7 +43,7 @@ Four platform pieces come first: contract 0.5.0 gives the gym's classes, their s
 | Photo uploads, a coach's new headshot | E32's media pipeline. A coach without a photo keeps the initials tile; a new photo is a request to Canopy (4.3) |
 | The Sites tabs (Forms hidden without a form) | Epic 38, 4.8 |
 | The welcome video | E39 |
-| Production on Caddy | E36. Publish stays a push to `main`, which Client 1's Coolify app deploys (Epic 38's progress log, checked 2026-11-05) |
+| Production on nginx | E36. Publish stays a push to `main`, which Client 1's Coolify app deploys (Epic 38's progress log, checked 2026-11-05) |
 
 ## 3. Order
 

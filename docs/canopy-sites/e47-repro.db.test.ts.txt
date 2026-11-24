@@ -1,4 +1,5 @@
-// Temporary: reproduces review findings F3 and F5 (docs/canopy-sites/REVIEW_FINDINGS.md), then deleted.
+// Temporary: reproduces two of E47's defects (ROADMAP E47: a builder restart strands the draft's build;
+// publish doesn't run the guardrails again), then deleted.
 // Each test passes when the defect is present.
 import { beforeEach, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db";

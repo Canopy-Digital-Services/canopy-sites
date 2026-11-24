@@ -3,9 +3,9 @@
 **Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; Michael's first edit published and deployed (2026-10-20); 4.7 (headings and cards on the canvas) released in v5.7.0 and live on www (2026-10-21 UTC); 4.8 (the modeling rule, credentials and FAQs) released in v5.8.0 and live on www (2026-10-26); the remaining acceptance items are checks in Michael's signed-in browser
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
-**Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
+**Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on nginx), which canopyds.com may take first (section 7)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-30-demo-slice.md` (section 6), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
+> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
 
 ---
 
@@ -33,7 +33,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 |---|---|
 | Preview hostnames | None, by D47: the canvas and the preview page cover them |
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
-| Production on Caddy, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys (ROADMAP Phase 3 fallback) |
+| Production on nginx, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys |
 | Contract changes beyond cards, credentials, and FAQs: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
 | Photos | E32's media pipeline |
 | Dated announcements on canopyds.com | The nightly rebuild (D42) moves the builder's `current`, which nothing serves for this site until E36; www rebuilds only on a push |
@@ -304,7 +304,7 @@ Asked whether the content schema had stayed coherent, the answer was no: the edi
 
 - **Dogfood before 4.3?** After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link, and a publish reaches www after the Coolify build. Michael's call.
 - **Sites before launch.** The canvas needs a live address to load assets from, so a new client site needs a production hostname from its first draft. The likely answer is a `<slug>.canopyds.com` name until its domain moves (D25's one-level limit). Decide with the first new client.
-- **canopyds.com first on Caddy (E36)** in place of Client 2, as the lower-stakes site. Michael's call when E36 starts.
+- **canopyds.com first on nginx (E36)** in place of Client 2, as the lower-stakes site. Michael's call when E36 starts.
 - **Contract additions the site wants** (team, long-form text, `linkedin`), for a later contract release.
 
 ## 8. Completion report
