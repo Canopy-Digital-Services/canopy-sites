@@ -55,7 +55,7 @@ After running `npm run db:migrate -- --name ...`:
 
 - Confirm a new directory was created under `prisma/migrations/`.
 - Confirm the migration SQL matches your intent (read the generated `.sql` file).
-- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`docs/tools/prisma-7.md`, "Migration Workflow for This Project").
+- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`docs/AGENT_CONTEXT.md` section 5).
 
 ### 4. Embed build (embed changes only)
 
@@ -199,25 +199,7 @@ Some things the agent can't verify reliably. When these apply, tell the user **e
 
 ## Documentation impact check
 
-Before committing, scan this table. If your changes match a trigger, check the listed doc and update it if needed.
-
-| What you changed | Doc to check | What might need updating |
-|-----------------|-------------|------------------------|
-| `prisma/schema.prisma` (model shape) | `docs/AGENT_CONTEXT.md` appendix | Data model summary |
-| `prisma/schema.prisma` (any enum) | `docs/AGENT_CONTEXT.md` appendix | Enum lists |
-| New/changed UI component or pattern | `docs/UX_PATTERNS.md` | The section 1 rule set, plus the relevant detail section |
-| Embed theme or appearance behavior | `docs/UX_PATTERNS.md` section 11 | Theme defaults, hosted-only tokens, appearance editor |
-| Embed validation behavior | `docs/UX_PATTERNS.md` section 8 | The two dialects, embed specifics |
-| New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 4 | Commands (only if the script is non-obvious) |
-| New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
-| Dockerfile or `start.sh` | `docs/PRISMA_MIGRATIONS.md` | How migrations run on deploy |
-| Coolify config (apps, domains, env, watch paths) | `docs/AGENT_CONTEXT.md` section 6 | Deployment |
-| New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 2 (Public API contracts) | Gate order, response codes |
-| Auth or session logic | `docs/AGENT_CONTEXT.md` section 2 (Auth & ownership) | Auth rules |
-| New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 7 | Env variable table |
-| Epic completion or version bump | Follow section 10 checklist | Root `package.json`, `CHANGELOG.md`, epic report, epic table |
-
-If none of the triggers match, no doc update is needed. If your change introduces a new doc maintenance trigger not listed here, add it to this table.
+Which doc each kind of change updates is in `CLAUDE.md`, "Documentation Maintenance". Check it before committing.
 
 ---
 

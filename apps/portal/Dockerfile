@@ -68,7 +68,8 @@ COPY --from=builder /app/apps/portal/public ./apps/portal/public
 COPY --from=builder /app/apps/portal/prisma ./apps/portal/prisma
 COPY --from=builder /app/apps/portal/prisma.config.ts ./apps/portal/prisma.config.ts
 
-# Copy FULL node_modules
+# The full node_modules: start.sh runs the Prisma CLI and its engines from here,
+# with prisma/ and prisma.config.ts above, before the app starts.
 COPY --from=deps /app/node_modules ./node_modules
 # Workspace packages, which node_modules links to (built in the builder stage)
 COPY --from=builder /app/packages/site-contract ./packages/site-contract

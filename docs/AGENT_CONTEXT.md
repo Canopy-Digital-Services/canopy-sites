@@ -139,8 +139,8 @@ Routes: `/` redirects to the account's home or `/login`. Admin lives under `/for
 | `docs/tools/*.md` | Before writing code against Prisma, Next.js, React, Tailwind, or Docker. |
 | `docs/UX_PATTERNS.md` | Before building or modifying any UI. |
 | `docs/ACCOUNT_OPERATIONS.md` | Touching auth flows, account lifecycle, sessions, or deletion. |
-| `docs/PRISMA_MIGRATIONS.md` | Deployment, migration failures, or Dockerfile changes. |
-| `docs/epics/README.md` | What shipped in which version. |
+| `docs/canopy-sites/ROADMAP.md` | Picking up Sites work: the order, each epic's brief, and the known gaps. |
+| `CHANGELOG.md` | What shipped in which version. |
 
 When writing a plan, task list, or subagent brief, include the line "Before starting, read `docs/AGENT_CONTEXT.md`" so the agent picking it up gets this context.
 
@@ -180,7 +180,7 @@ Migrations apply via `prisma migrate deploy` in `scripts/start.sh` at container 
 Procedure:
 
 1. Edit `prisma/schema.prisma`.
-2. Run `npm run db:migrate -- --name descriptive_name`. Its `postdb:migrate` hook regenerates the client, which Prisma 7's `migrate dev` no longer does; `prisma migrate dev` called directly skips the hook.
+2. Run `docker exec canopy-portal npm run db:migrate -- --name descriptive_name` (`DATABASE_URL` exists only in the container). Its `postdb:migrate` hook regenerates the client, which Prisma 7's `migrate dev` no longer does; `prisma migrate dev` called directly skips the hook. Then `docker restart canopy-portal`: the dev server loads a client only when it starts.
 3. **Read the generated SQL** and confirm it does what you intended, not just that it exists.
 4. Commit schema and migration together.
 5. Tell the user to check the Coolify logs for `Applied migration: <name>` followed by `Migrations complete. Starting application...`.
@@ -247,7 +247,7 @@ GitHub's merge commit lands on `main` only, so the branches diverge by exactly o
 | Dev | `https://forms-dev.canopyds.com`, `https://sites-dev.canopyds.com` | `dev` | `wogw0skcsgck80cs4gscs0c0` |
 | Prod | `https://forms.canopyds.com`, `https://sites.canopyds.com` | `main` | `j80s80ow8ss4444kk40cscsc` |
 
-Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds `apps/portal/Dockerfile` with the repo root as context and runs `scripts/start.sh` (migrations, then `node server.js`). Details in `docs/PRISMA_MIGRATIONS.md`; Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
+Deployment is Coolify's, not this repo's: no deploy commands here. On push it builds `apps/portal/Dockerfile` with the repo root as context and runs `scripts/start.sh` (migrations, then `node server.js`; why there is in its header comment). Coolify's own API and behavior are documented in the Nextcloud Engineering collective (see `CLAUDE.md`).
 
 - `NEXT_PUBLIC_APP_URL` must be set as a Coolify **build arg**, since it is baked into the bundle.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` must be set as a Coolify **build arg** on each app (base64 of 32 random bytes, one key per environment, never changed without a reason). Next salts every server action's id with it. Without it each build makes a new key, so a page open across a deploy can't call the server until it is reloaded: on 2026-11-13 a release restarted the portal under an open Editor and its saves were refused. With the key fixed, an action keeps its id while its file and export name stay the same (checked: two builds with one key gave the same 56 ids; a build without it gave different ones). A page from before a deploy still fails on an action that deploy renamed, moved or removed, which is why the Editor keeps unsent edits (`src/lib/unsaved-edits.ts`).
@@ -279,7 +279,7 @@ Deployment is Coolify's, not this repo's: no deploy commands here. On push it bu
 | `UMAMI_URL` / `UMAMI_API_KEY` | Stats (Epic 35): Umami's address (`https://analytics.canopyds.com`) and the key of its `canopy-portal` user, view-only in the Umami team holding the client websites, so it reads them and changes nothing. A site's own `umamiWebsiteId` is the only id `src/lib/stats/umami.ts` asks about. Unset, or Umami unreachable, means a site with an Umami id shows "Stats can't load right now" and the log has `stats_unavailable`. The operator's site page checks the site's website with the same key (`src/lib/stats/health.ts`), and Link a site and the site settings refuse a website it can't read. No test reaches Umami: `test/db-env.ts` clears both for database tests, and a test that needs Umami stubs them and `fetch`. |
 | `ANTHROPIC_API_KEY` | Quick edit (PRD D7, a Claude Platform key). Unset means quick edit says it isn't set up. |
 | `QUICK_EDIT_MODEL` | Optional, default `claude-opus-5-5`. Costs per model are estimated in `src/lib/quick-edit/index.ts`. |
-| `MEDIA_DIR` | Optional. The directory that holds welcome videos (ROADMAP E39). Unset means no site has one. Locally `/srv/media`, the `portal_media` volume in `docker-compose.dev.yml`. On a deployed app `/app/media`, its Coolify volume (`docs/PRISMA_MIGRATIONS.md`, Coolify settings, which also says which apps have it). |
+| `MEDIA_DIR` | Optional. The directory that holds welcome videos (ROADMAP E39). Unset means no site has one. Locally `/srv/media`, the `portal_media` volume in `docker-compose.dev.yml`. On a deployed app `/app/media`, a Coolify volume on both the dev and prod apps (since 5.23.1), outside the backups by decision: a lost video is uploaded again from its original. |
 
 `.env` and `.env.local` are git-ignored. `.env.example` is tracked and holds placeholders only.
 
@@ -304,7 +304,7 @@ node -e 'console.log({NEXTAUTH_URL:process.env.NEXTAUTH_URL,NEXT_PUBLIC_APP_URL:
 
 **A deploy that fails in the install step with `npm ci left out ... optional packages`** lost a package in `npm ci`: redeploy, and the install runs again. npm skips an optional package that fails to install, a failed download as much as a wrong platform, and exits 0; npm 10.8.2 reports it only at `--loglevel verbose`, as `failed optional dependency` (checked 2026-11-15 with one package's tarball URL broken: the install exited 0, its `added N packages` line one short). Every binary built for the platform is an optional package (Next's compiler, Tailwind's, lightningcss, esbuild, sharp), and an install without one is a layer Docker caches as good, so every plain redeploy builds on it: on 2026-11-15 the dev app lost `@next/swc-linux-x64-musl` on the first build after `apps/portal/package.json` changed, and failed in `next build` with `... was not installed` until a redeploy without the cache (what failed for that package is not known). So `apps/portal/Dockerfile` and `Dockerfile.dev` run `scripts/check-optional-packages.mjs` in the same `RUN` as `npm ci`, and Docker caches no layer whose `RUN` failed (checked 2026-11-15 on a local build of the image with one package's download broken: it stopped there twice, installing both times). The script wants every package that `package-lock.json` marks `optional` with an `os` or `cpu` and that npm's own test accepts for the machine; the lockfile records no `libc`, so on Alpine that is the glibc build of each beside the musl one. An optional package that names no platform is not checked: whether npm installs it depends on what else was skipped. The old container serves throughout.
 
-Migration failures and `P2022` in production: the migration did not run. Confirm the file exists under `prisma/migrations/` and that `start.sh` runs before `node server.js`. Troubleshooting details in `docs/PRISMA_MIGRATIONS.md`.
+Migration failures and `P2022` in production: the migration did not run. Confirm the file exists under `prisma/migrations/` and that `start.sh` runs before `node server.js`. Recovering from a failed migration: `docs/tools/prisma-7.md`, "When a migration fails on deploy".
 
 Embed change not appearing: browser cache, or `npm run embed:build` was never run and `public/embed.js` is stale. Embed 403s: check `form.allowedOrigins`, or test from localhost.
 
@@ -333,10 +333,9 @@ After completing an epic or cutting a release, in order:
 
 1. Root `package.json`: bump `version`.
 2. `CHANGELOG.md`: new entry at the top with date and changes.
-3. `docs/epics/epic-N-name.md`: completion report.
-4. `docs/epics/README.md`: table row with version, date, link.
-5. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
-6. `prisma/schema.prisma`: a field marked `@ignore` is a retired column. Before the release PR, remove each one that `main`'s schema already marks `@ignore` (`git show origin/main:apps/portal/prisma/schema.prisma`), with its migration. One that this release is the first to ignore waits for the next (section 5, dropping a column).
+3. An epic that shipped: write its completion report, copy its doc to the Nextcloud Epic Archive (`docs/epics/README.md` says where), then delete it from `docs/epics/`, its line from `docs/epics/README.md`, and its brief from the ROADMAP. Code comments and docs that cite it are reworded to say what they mean.
+4. `content/docs/*.md`: update every help page the release invalidates. New features need a page or a new section, renamed menu items need relabeling, removed flows need their steps deleted, screenshots of changed areas need refreshing. Register new pages in `content/docs/meta.ts`. Skip only if the release is purely internal.
+5. `prisma/schema.prisma`: a field marked `@ignore` is a retired column. Before the release PR, remove each one that `main`'s schema already marks `@ignore` (`git show origin/main:apps/portal/prisma/schema.prisma`), with its migration. One that this release is the first to ignore waits for the next (section 5, dropping a column).
 
 If a future change adds another file holding version-specific information, add it to this list at the same time.
 
@@ -344,79 +343,14 @@ If a future change adds another file holding version-specific information, add i
 
 ## Appendix. Data model
 
-Canonical source: `prisma/schema.prisma`.
+Models, fields, relations, and enums are in `apps/portal/prisma/schema.prisma`; read it there. What it doesn't show:
 
-```
-Plan (code PK, displayName, description?, maxPublishedForms?, sitesEnabled, isPublic,
-      sortOrder)
-Role (code PK, displayName, description?, isPublic, sortOrder)
+- **One draft per site**: the pending `ChangeSet` is the site's draft (PRD D38), held to one per site by a partial unique index that only its migration states (`20261114180000_one_pending_change_per_site`).
+- **`FormType` is locked at creation.** Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
+- **`PasswordTokenPurpose`**: a `CLAIM` token sets an unclaimed owner's first password (PRD D49); `/reset-password` accepts only `RESET`.
+- **`AccountStatus`** is operator-set billing state with a free-text `billingRef` (PRD D12); it gates nothing yet.
+- **A `WelcomeView` row** means the tab's video has opened by itself for that person.
 
-Account (id, createdAt, planCode→Plan.code, requiresPlanResolution,
-         status:AccountStatus, billingRef?, timeZone)
-  └─ Membership (userId→User, role:MembershipRole),
-  │              @@unique([userId, accountId])
-  └─ ActAs (operatorUserId?→User, startedAt, endedAt?), a Global Admin acting
-  │        as the account (PRD D49); deleting the operator keeps the row
-  └─ Form (name, title?, description?, slug, type:FormType, allowedOrigins[],
-  │        notifyEmails[], emailNotificationsEnabled, emailIncludeResponses,
-  │        honeypotField?, successMessage?, redirectUrl?, defaultTheme?,
-  │        stopAt?, maxSubmissions?, published, thumbnail?, createdByUserId?)
-  │    └─ Field (name, type:FieldType, label, order, required, options?,
-  │    │         validation?, helpText?)
-  │    └─ Submission (data:Json, meta:Json, isSpam, status:SubmissionStatus)
-  └─ Notification (formId, type:NotificationType, count, updatedAt)
-  └─ Site? (slug unique, name, repoUrl?, defaultBranch, productionHostnames[],
-           contractVersion?, umamiWebsiteId?, lockedFields[],
-           fixedLists[], maxBuildsRetained, isDemo), one per
-           account, onDelete Restrict; lockedFields and fixedLists are address
-           patterns (site/contact/phone, classes), PRD D50
-       └─ ChangeSet (source:ChangeSetSource, createdByUserId?, updatedByUserId?
-       │             (who last changed it), publishedByUserId?, conversationId?,
-       │             summary, ops:Json, baseCommit, status:ChangeSetStatus,
-       │             version, error?, publishedCommit?, publishedAt?); the pending
-       │             one is the site's draft (PRD D38), one per site by a partial
-       │             unique index that only its migration states
-       └─ Build (changeSetId?, status:BuildStatus, draftVersion?, baseCommit?,
-       │         error?, log?, startedAt?, finishedAt?)
-       └─ Conversation (userId?, model, messages:Json, input/output/cacheRead/
-       │                cacheWriteTokens, costUsd)
-       └─ HelpRequest (conversationId?, createdByUserId?, actAsId?, message,
-       │               summary, address?, refused, status:HelpRequestStatus (DRAFT, OPEN,
-       │               DONE, DECLINED, DISMISSED), sentAt?, note?, closedByUserId?,
-       │               closedAt?), PRD D34
-       └─ SiteHold? (userId, takenAt, expiresAt), who is editing the site now
-       │            (PRD D64); deleting the user frees it
-       └─ WelcomeVideo (tab, key), @@unique([siteId, tab]): the site's welcome
-           │           video for one tab of its portal (ROADMAP E39); key names
-           │           its two files under MEDIA_DIR
-           └─ WelcomeView (membershipId→Membership, shownAt, watchedSeconds?,
-                          videoSeconds?), @@id([videoId, membershipId]): one
-                          person's viewing of it; the row means it has opened
-                          by itself for them
-
-User (email, name? (what others see them called, PRD D63),
-      password? (null until they claim, PRD D49),
-      roleCode→Role.code, passwordChangedAt?, lastLoginAt?,
-      failedLoginCount, lastFailedLoginAt?)
-  └─ Session (id = SHA-256 of the cookie token, rememberMe, expiresAt,
-  │           absoluteExpiresAt, actAsId?→ActAs)
-  └─ SessionHandoff (id = SHA-256 of a one-time token, rememberMe, targetHost,
-  │                  expiresAt), Forms-host sign-in to a Sites-host session
-  └─ PasswordToken (purpose:PasswordTokenPurpose, tokenHash, expiresAt, usedAt?,
-                    createdByUserId?→User, emailedAt?), table password_reset_tokens
-```
-
-Enums:
-
-- `FieldType`: `TEXT | EMAIL | TEXTAREA | CHOOSE_ONE | APPROVAL | CHOOSE_SEVERAL | PHONE | DATE | NAME | NUMBER | ADDRESS | DATE_OF_BIRTH | WEBSITE`. Display labels in `src/lib/field-types.ts`.
-- `FormType`: `HOSTED | EMBEDDED`, locked at creation. Drives editor branching (Appearance Page subsection, the "Inherit from host page" font option, preview mode), publish surfaces (Share Link vs Allowed Origins plus Embed Code), and the public endpoints (the embed and submit APIs take a HOSTED form only from its hosted page, section 2 "403 codes"; `/f/[formId]` rejects EMBEDDED with Form Not Available).
-- `SubmissionStatus`: `NEW | READ | ARCHIVED`.
-- `NotificationType`: `NEW_SUBMISSION | LIMIT_MAX_REACHED | LIMIT_DEADLINE_REACHED`.
-- `MembershipRole`: `OWNER | MEMBER`. Account-level; the platform role is `User.roleCode`.
-- `PasswordTokenPurpose`: `RESET | CLAIM`. A claim link sets an unclaimed owner's first password (PRD D49); `/reset-password` accepts only `RESET`.
-- `ChangeSetSource`: `QUICK_EDIT | OPERATOR | EDITOR`. `ChangeSetStatus`: `DRAFT | PREVIEWED | PUBLISHED | DISCARDED | FAILED`. `BuildStatus`: `QUEUED | RUNNING | SUCCEEDED | FAILED | SUPERSEDED`.
-- `AccountStatus`: `ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`. Operator-set billing state with free-text `billingRef` (PRD D12); gates nothing yet.
-
-Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan; `HOSTING` and `UNLOCKED` were retired for that reason in v5.2.1.
+Seeded plans, one per entitlement level: `FREE` (maxPublishedForms 1, the signup default), `PAID` (null, shown as "Unlimited"), `SITES` (null, `sitesEnabled`, `isPublic: false`). `PAID` and `SITES` are operator-assigned until billing ships. Whether an account pays, is comped, or is a sandbox is its billing state (`status`, `billingRef`), never a plan.
 
 Seeded roles: `USER` (default), `GLOBAL_ADMIN` (`isPublic: false`, admin-granted only). Operator console access is gated on `GLOBAL_ADMIN`, and promotion moves an account on a capped plan to `PAID` (an uncapped plan such as `SITES` stays).

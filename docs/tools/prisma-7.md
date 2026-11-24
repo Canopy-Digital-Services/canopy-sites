@@ -1,220 +1,58 @@
 # Prisma 7
 
-**Installed version:** `prisma`, `@prisma/client`, and `@prisma/adapter-pg` in `apps/portal/package.json`, resolved in the root `package-lock.json` (7.3.0 as of 2026-11-14).  
-**Official Docs:** https://www.prisma.io/docs
+**Installed version:** `prisma`, `@prisma/client`, and `@prisma/adapter-pg` in `apps/portal/package.json`, resolved in the root `package-lock.json` (7.3.0 as of 2026-11-14). Upgrade guide: https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7
 
-## Overview
+What Prisma 7 changed that older habits get wrong, and how this repo uses it. The procedure for a schema change is `docs/AGENT_CONTEXT.md` section 5.
 
-Prisma 7 replaced the Rust query engine with a TypeScript client that reaches the database through a driver adapter, and moved connection settings out of the schema into `prisma.config.ts`.
+## The client
 
-The statements below were checked on 2026-11-15 against the official upgrade guide, the 7.3.0 release notes, and the installed CLI and packages.
-
-## Critical Changes from Prisma 6
-
-### Architecture Shift
-
-- **Rust-free**: The client is TypeScript; there is no query engine binary
-- **ESM**: Prisma 7 ships as an ES module and its upgrade guide says to set `"type": "module"`. `apps/portal/package.json` has no such line and must not get one: the `prisma-client-js` generator this repo is on still emits CommonJS (`node_modules/.prisma/client/default.js`, read 2026-11-15)
-- **New generator**: `prisma-client` replaces deprecated `prisma-client-js`
-- **Configuration separation**: Database URLs now in `prisma.config.ts`, not schema file
-- **Adapter-based**: A driver adapter is required for every database (`@prisma/adapter-pg` here)
-- **No `.env` loading**: The CLI reads only the process environment. `prisma.config.ts` takes `process.env.DATABASE_URL` as is, which only the container has
-
-### Minimum Requirements
-
-- **Node.js**: 20.19.0+ (22.x recommended)
-- **TypeScript**: 5.4.0+ (5.9.x recommended)
-
-## Schema Configuration
-
-### Generator Block (Breaking Change)
-
-**Old (Prisma 6):**
-```prisma
-generator client {
-  provider = "prisma-client-js"
-  engineType = "binary"
-}
-```
-
-**New (Prisma 7):**
-```prisma
-generator client {
-  provider = "prisma-client"  // Required: prisma-client-js is deprecated
-  output = "./generated/prisma"  // Required: no longer generates to node_modules
-  compilerBuild = "fast"  // Optional, since 7.3.0: "fast" (default, built for speed) or "small" (built for size)
-}
-```
-
-**This repo has not switched generators.** `apps/portal/prisma/schema.prisma` keeps `provider = "prisma-client-js"` with no `output`, which Prisma 7.3.0 still accepts: the client generates into `node_modules/.prisma/client` and every import is from `@prisma/client` (verified 2026-11-14). Do not paste the block above into the schema: switching generators moves the client and breaks those imports.
-
-### Datasource Block (Breaking Change)
-
-**Old (Prisma 6):**
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")  // ❌ Removed in v7
-  directUrl = env("DIRECT_URL")   // ❌ Removed in v7
-}
-```
-
-**New (Prisma 7):**
-```prisma
-datasource db {
-  provider = "postgresql"
-  // Connection URLs moved to prisma.config.ts
-}
-```
-
-## Configuration File: prisma.config.ts
-
-The database URL and the seed command live in `apps/portal/prisma.config.ts`, not in the schema or `package.json`. It calls `defineConfig` from `prisma/config` with `schema`, `migrations.seed`, and `datasource.url`. The only other datasource key Prisma 7.3.0 accepts is `shadowDatabaseUrl`: there is no `databaseUrl` or `directUrl`. What fails when the file is missing is in `docs/PRISMA_MIGRATIONS.md`.
-
-## Database Adapters (Required)
-
-`new PrismaClient()` without an adapter no longer works. The portal uses `@prisma/adapter-pg` over a `pg` pool, created once in `apps/portal/src/lib/db.ts`: import `prisma` from there, and never construct a second client.
-
-**The pool is node-postgres's, with its defaults.** `db.ts` passes only the connection string, so (read from the installed `pg` 8.17.2, 2026-11-15):
-- Pool size (`max`): 10
-- Connection timeout: none, where Prisma 6 used 5 seconds (per the upgrade guide). A request waits for a connection for as long as it takes
-- Idle timeout: 10 seconds
-- Connection lifetime: unlimited
-
-## Import Paths (Breaking Change)
-
-After generating with the new `output` path, update imports:
-
-**Old (Prisma 6):**
-```typescript
-import { PrismaClient } from '@prisma/client';
-```
-
-**New (Prisma 7):**
-```typescript
-// If output = "./generated/prisma"
-import { PrismaClient } from './generated/prisma';
-// or
-import { PrismaClient } from '../generated/prisma';  // depending on file location
-```
-
-**Note:** This repo is on `prisma-client-js` (see Generator Block above), so its imports stay `@prisma/client`. A move to `prisma-client` means updating every one.
-
-## Removed or Deprecated in Prisma 7
-
-- **Client middleware (`prisma.$use`)**: removed. Client Extensions (`$extends`) replace it. The portal uses neither (as of 2026-11-15).
-- **Metrics**: removed.
-- **MongoDB**: not supported in Prisma 7.
-- **`prisma-client-js`**: deprecated, to be removed in a later release. This repo is still on it; moving to `prisma-client` is its own piece of work (see Generator Block above), not something to do in passing.
-
-Since 7.3.0, `$queryRaw` and `$executeRaw` skip the query compiler and go straight to the driver adapter. No code change is involved.
-
-## CLI Changes in Prisma 7
-
-- **`migrate dev` and `db push` no longer run `prisma generate`**, and their `--skip-generate` flag is gone. Here `npm run db:migrate` regenerates through its `postdb:migrate` hook (Migration Workflow below).
-- **Nothing seeds automatically** after `migrate dev` or `migrate reset`, and `--skip-seed` is gone. Run `docker exec canopy-portal npm run db:seed`.
-- **`migrate diff` lost its URL flags** (`--from-url`, `--to-url`, `--from-schema-datasource`, `--to-schema-datasource`, `--shadow-database-url`). The database side is now `--from-config-datasource` or `--to-config-datasource`, which reads `prisma.config.ts`.
-
-### `migrate diff`: `--to-schema-datamodel` renamed to `--to-schema`
-
-The `--to-schema-datamodel` and `--from-schema-datamodel` flags were renamed (the installed CLI's `migrate diff --help` lists only the new names):
-
-| Old (Prisma 6) | New (Prisma 7) |
-|-----------------|----------------|
-| `--to-schema-datamodel` | `--to-schema` |
-| `--from-schema-datamodel` | `--from-schema` |
-
-Example, generating baseline SQL from the current schema:
-```bash
-# Old (Prisma 6):
-npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script
-
-# New (Prisma 7):
-npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script
-```
-
----
-
-## Project-Specific Notes
-
-- The client is created once in `apps/portal/src/lib/db.ts`: a `pg` pool, the `@prisma/adapter-pg` adapter, and one `PrismaClient` kept on `globalThis` outside production.
+- **This repo stays on the `prisma-client-js` generator, with no `output`.** Prisma 7's docs show `provider = "prisma-client"` with an `output` path; 7.3.0 still accepts the old generator, which generates into `node_modules/.prisma/client`, so every import is from `@prisma/client` (verified 2026-11-14). Don't paste the new block into the schema: it moves the client and breaks every import. Switching is its own piece of work.
+- **No `"type": "module"`** in `apps/portal/package.json`, though the upgrade guide says to add one: `prisma-client-js` still emits CommonJS (read 2026-11-15).
+- **A driver adapter is required.** The one client is created in `apps/portal/src/lib/db.ts` (`@prisma/adapter-pg` over a `pg` pool, kept on `globalThis` outside production): import `prisma` from there and never construct a second. The pool has node-postgres's defaults, since `db.ts` passes only the connection string: 10 connections, no connection timeout (Prisma 6 had 5 seconds), so a request waits for a connection as long as it takes (read from `pg` 8.17.2, 2026-11-15).
+- **Client middleware (`prisma.$use`) is gone**; `$extends` replaces it. The portal uses neither (as of 2026-11-15).
 - A query without `select` names every column the schema declares, and a `create` inserts every `@default`. Retiring or dropping a column follows `docs/AGENT_CONTEXT.md` section 5 ("Dropping a column takes two production releases").
 
-### Migration Workflow for This Project
+## Configuration
 
-All migration commands run **inside the Docker container** (DATABASE_URL is only available there). See `docs/PRISMA_MIGRATIONS.md` for the full deployment strategy.
+The schema's `datasource` has a `provider` and no `url`. The database URL and the seed command live in `apps/portal/prisma.config.ts` (`defineConfig` from `prisma/config`, with `schema`, `migrations.seed`, and `datasource.url`); the only other datasource key 7.3.0 accepts is `shadowDatabaseUrl`. The CLI loads no `.env`: `DATABASE_URL` exists only in the container, so every Prisma command runs through `docker exec canopy-portal`.
 
-#### Creating Migrations (Development)
+## The CLI
 
-```bash
-# 1. Edit schema
-#    apps/portal/prisma/schema.prisma
+- **`migrate dev` and `db push` no longer run `prisma generate`.** `npm run db:migrate` regenerates through its `postdb:migrate` hook; `npx prisma migrate dev` called directly skips it.
+- **Nothing seeds automatically** after `migrate dev` or `migrate reset`: run `docker exec canopy-portal npm run db:seed`.
+- **`migrate diff` flags changed**: `--to-schema` and `--from-schema` replace `--to-schema-datamodel` and `--from-schema-datamodel`, and the URL flags are gone; the database side is `--from-config-datasource` or `--to-config-datasource`, which reads `prisma.config.ts`.
 
-# 2. Create the migration inside the container. The script's `postdb:migrate`
-#    hook then regenerates the client (verified 2026-11-14): in Prisma 7,
-#    migrate dev no longer runs generate (2026-10-18: tests failed with
-#    PrismaClientValidationError on the new column until it ran).
-#    `npx prisma migrate dev` called directly skips the hook.
-docker exec canopy-portal npm run db:migrate -- --name your_migration_name
+## Hand-written migration
 
-# 3. Restart the dev server: it loads a client only when it starts
-docker restart canopy-portal
-```
+Write the migration by hand when `migrate dev` can't make it:
 
-#### Hand-Written Migration
-
-Write the migration by hand when `migrate dev` cannot make it:
-
-| Case | Why |
-|------|-----|
-| A change that loses data (dropping a column or table that holds values) | `migrate dev` asks for confirmation and `docker exec` gives it no TTY to ask on, so it stops with `Prisma Migrate has detected that the environment is non-interactive`. A change that loses nothing runs through `docker exec` as usual (both verified 2026-11-14 on 7.3.0: adding a nullable column, then dropping a column that held values) |
-| An enum value rename | Prisma generates a drop and recreate, which fails while values are in use. The SQL wanted is `ALTER TYPE ... RENAME VALUE` |
-| The exact SQL matters | For example a change that has to keep or rewrite existing data |
+- A change that loses data (dropping a column or table that holds values): `migrate dev` asks for confirmation, `docker exec` gives it no TTY, and it stops with `Prisma Migrate has detected that the environment is non-interactive` (verified 2026-11-14).
+- An enum value rename: Prisma generates a drop and recreate, which fails while values are in use. The SQL wanted is `ALTER TYPE ... RENAME VALUE`.
+- SQL that has to be exact, such as a change that keeps or rewrites existing data.
 
 ```bash
-# Host paths below are from the repo root; `docker exec canopy-portal` runs in apps/portal.
-
+# From the repo root; `docker exec canopy-portal` runs in apps/portal.
 # 1. Edit apps/portal/prisma/schema.prisma
-
-# 2. Create the migration directory. Its name must sort after every existing
-#    migration, and `migrate dev` names them in UTC: keep the -u.
+# 2. Name the directory in UTC (-u), so it sorts after every existing migration
 DIR=apps/portal/prisma/migrations/$(date -u +%Y%m%d%H%M%S)_your_migration_name
 mkdir -p "$DIR"
-
 # 3. Write the SQL in "$DIR/migration.sql"
-
-# 4. Apply the file to the dev database and record it, as production will
+# 4. Apply it to the dev database and record it, as production will
 docker exec canopy-portal npx prisma migrate deploy
-
-# 5. Confirm nothing is pending
 docker exec canopy-portal npx prisma migrate status
-
-# 6. Restart the dev server: its start regenerates the client and loads it
+# 5. Restart: the start regenerates the client and the dev server loads it
 docker restart canopy-portal
 ```
 
-- **The name's place in the order matters on every database built from scratch**: the shadow database `migrate dev` replays history in, the `*_test` database, a new environment. Migrations apply in name order there. A hand-written migration named earlier than one it depends on applies cleanly to the dev database, and the next `migrate dev` then fails with `P3006` (verified 2026-11-15 on 7.3.0). Plain `date` on a host clock behind UTC (this machine's is Pacific) gives such a name whenever a migration was made in the last few hours.
-- If the SQL has already been run by hand, record it instead of applying it twice: `docker exec canopy-portal npx prisma migrate resolve --applied <directory name>`. `psql` is in the db container only (Accessing Database Directly, below).
-- Production applies the file through `prisma migrate deploy` in `scripts/start.sh` (`docs/PRISMA_MIGRATIONS.md`).
+- **The name's order matters on every database built from scratch** (the shadow database, the `*_test` database, a new environment), where migrations apply in name order. One named earlier than a migration it depends on applies cleanly to dev, and the next `migrate dev` fails with `P3006` (verified 2026-11-15). Plain `date` on this machine's Pacific clock gives such a name.
+- If the SQL has already been run by hand, record it instead: `docker exec canopy-portal npx prisma migrate resolve --applied <directory name>`.
+- `psql` is in the db container only: `docker exec -it canopy-portal-db psql -U user -d canopy-forms`.
 
-#### Accessing Database Directly
+## When a migration fails on deploy
 
-```bash
-# Connect to PostgreSQL shell
-docker exec -it canopy-portal-db psql -U user -d canopy-forms
+`apps/portal/scripts/start.sh` runs `prisma migrate deploy` at container start, after Coolify has swapped containers, so a failed migration leaves the portal down until it is fixed. The container's log shows `Applied migration: <name>` and then `Migrations complete. Starting application...` when it worked.
 
-# Execute SQL file
-docker exec -i canopy-portal-db psql -U user -d canopy-forms < file.sql
-
-# View logs
-docker logs canopy-portal -f
-docker logs canopy-portal-db -f
-```
-
-## Resources
-
-- **Official Documentation**: https://www.prisma.io/docs
-- **Upgrade Guide**: https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7
-- **Config Reference**: https://www.prisma.io/docs/orm/reference/prisma-config-reference
-- **Connection Management**: https://www.prisma.io/docs/guides/performance-and-optimization/connection-management
-- **Changelog**: https://www.prisma.io/changelog
+- **`P3018`, then `P3009` on every restart**: the first attempt's real error is `P3018`; after it, each restart logs "found failed migrations" and applies nothing. Read the first attempt with `docker logs <container> 2>&1 | head -60`. Postgres runs a migration file as one transaction, so nothing is half-applied; confirm in the database. Then, after a `pg_dump`: make the database what the migration expects (never edit the migration file, which every other environment has applied); mark the attempt rolled back with `prisma migrate resolve --rolled-back <name>`, or `UPDATE "_prisma_migrations" SET "rolled_back_at" = now() WHERE "migration_name" = '<name>' AND "finished_at" IS NULL` when the container restarts too fast to exec into; then `docker restart <container>`. Production's database predates the `0_baseline` squash, and some of its uniques are constraints where the baseline has indexes (this failed the v5.1.0 deploy), so check a migration that drops an old index against a copy of production first.
+- **`P2022: The column does not exist`** in a running app: the migration didn't run, or doesn't exist. Check that the migration directory is committed and that the Dockerfile's `CMD` is `start.sh`. `SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY started_at` shows what the database has applied.
+- **`Error: The datasource.url property is required`**: the container lacks `prisma.config.ts` or `DATABASE_URL`.
+- **`npm warn exec ... will be installed: prisma@X.Y.Z`**: the runner image has no Prisma CLI, and `npx` is downloading one; the Dockerfile must copy the full root `node_modules`.

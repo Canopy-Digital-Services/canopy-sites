@@ -45,4 +45,4 @@ These docs are read by coding agents and by Michael, not by people browsing. The
 
 ## Related
 
-`CLAUDE.md` lists which doc to update for which kind of change. `VERIFICATION_CHECKLIST.md` has the pre-commit doc-impact table.
+`CLAUDE.md` ("Documentation Maintenance") lists which doc to update for which kind of change.

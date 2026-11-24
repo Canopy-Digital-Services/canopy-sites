@@ -58,11 +58,13 @@ Runs on Coolify on **`webber`** (`ssh webber`, via Cloudflare Zero Trust). Both 
 
 After completing substantive work, check whether your changes affect documentation. **`docs/DOC_MAINTENANCE.md` defines how to write these docs** (no duplicated facts, no summary tables, delete what a change supersedes). Read it before editing any doc under `docs/`.
 
-- **Schema changes** → update the `docs/AGENT_CONTEXT.md` appendix if the model shape or an enum changed.
-- **New/changed UI patterns** → update `docs/UX_PATTERNS.md` if you introduced or modified a component pattern, validation approach, or layout convention.
-- **Embed theme/behavior changes** → update `docs/UX_PATTERNS.md` section 11 (embed theming) or section 8 (embed validation).
-- **New npm scripts or dependencies** → update `docs/AGENT_CONTEXT.md` section 4 (only if the script is non-obvious; the table is not a mirror of `package.json`).
-- **Coolify/Docker/infra changes** → update `docs/AGENT_CONTEXT.md` section 6 for the deploy setup, and `docs/PRISMA_MIGRATIONS.md` when the change touches the Dockerfile, `start.sh`, or how migrations run.
+- **Schema changes** → the `docs/AGENT_CONTEXT.md` appendix, only for what the schema can't show (an index only a migration states, seeded rows, a rule about a value).
+- **New/changed UI patterns** → `docs/UX_PATTERNS.md`: the section 1 rule set, plus the topic section.
+- **Embed theme/behavior changes** → `docs/UX_PATTERNS.md` section 11 (embed theming) or section 8 (embed validation).
+- **API routes, auth, or sessions** → `docs/AGENT_CONTEXT.md` section 2 (Public API contracts; Auth & ownership), and `docs/ACCOUNT_OPERATIONS.md` for auth flows and sessions.
+- **Env vars** → `docs/AGENT_CONTEXT.md` section 7.
+- **New npm scripts or dependencies** → `docs/AGENT_CONTEXT.md` section 4 (only a non-obvious script; the table is not a mirror of `package.json`); a new dependency or a major version bump → its `docs/tools/*.md`.
+- **Coolify/Docker/infra changes** → `docs/AGENT_CONTEXT.md` section 6. `apps/portal/Dockerfile` and `scripts/start.sh` carry their own rules as comments.
 - **User-visible feature or flow changes** → review `apps/portal/content/docs/*.md` (served at `/docs` as the in-app help) and update any page whose screenshots, steps, menu labels, or copy no longer match reality. Add a new page via `apps/portal/content/docs/meta.ts` if the feature has no existing home.
 - **Epic completion or version bump** → follow the release checklist in `docs/AGENT_CONTEXT.md` section 10.
 - **Any doc claim the live system contradicts** → fix that doc in the same session you observed it. State claims (versions, counts, "X exists / isn't possible yet") follow `docs/DOC_MAINTENANCE.md` section on staleness.
