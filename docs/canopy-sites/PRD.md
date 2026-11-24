@@ -46,8 +46,8 @@ The MVP, the part of v1 that launches first, is D51; its order is ROADMAP's "The
 - Visual editor for content (D35 to D43); publish and restore UI
 - Stats: white-boxed Umami dashboard for all accounts
 - Operator: accounts, sites (linked live, D49), build log, token usage, acting as a client (D49)
-- Client 1 on Sites, the first client site, following canopyds.com's path (ROADMAP T1)
-- Client 2 on Sites, converted the way Client 1 was (D51, ROADMAP E46), and its request form in place of Square's booking (D65, ROADMAP E55's first step)
+- The first client sites on Sites, following canopyds.com's path (ROADMAP Phases 1 and 5)
+- A client site's appointment request form in place of an outside booking service (D65, ROADMAP E55's first step)
 - A demo site at `sites.canopyds.com/demo` on its own account, for sales calls and partner sandboxes (D23)
 - canopyds.com on Sites under Michael's account, the first site that isn't the demo (D46)
 
@@ -67,7 +67,7 @@ The MVP, the part of v1 that launches first, is D51; its order is ROADMAP's "The
 | Creating a site's repo, DNS, Coolify app, or Umami website from the portal | Michael creates them; the operator links the live site (D49) |
 | DNS / domain automation | Cloudflare by hand, per `deploy-to-webber.md` pattern |
 | The public MCP endpoint | After v1; it would mostly serve Michael (D59) |
-| Booking with a calendar, members, newsletters | Runtime components, each built when a client needs it (D52, D55). Client 2's requests for appointments are a form (D65) |
+| Booking with a calendar, members, newsletters | Runtime components, each built when a client needs it (D52, D55). Requests for appointments are a form (D65) |
 | Database failover for the portal | Not in the MVP (D51); designed before Booking carries a client's revenue |
 | Forms sold as a public product | Later (D67). Until then nothing in Sites waits on it |
 
@@ -96,7 +96,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D19 | **One site per account** (a unique `Site.accountId`), on a plan with `sitesEnabled`. An account that owns a site can't be deleted | M |
 | D21 | **A column lands with its first reader** when its values would otherwise be guesses | M/R |
 | D22 | **Each account has a home host**, the one its emails use: Sites accounts `sites.canopyds.com`, every other account `forms.canopyds.com`. A signed-in page on the other host redirects home (sessions are per host). A Sites customer signing in on the Forms host gets a **Go to Canopy Sites** button that signs them in there through a one-time handoff; a Forms customer on the Sites host is told where to sign in. Signup is on the Forms host. No cross-subdomain cookies: client sites run on other `canopyds.com` names | M/R |
-| D23 | **The demo is its own site on its own account**, so publishing on a call never changes a client's live site: a Sites account (partners join it as members) with a private repo, served at `sites.canopyds.com/demo`. Its content and design are a copy of Client 2's until a demo of its own replaces them; it never touches Client 2's repo, analytics, or search presence. `Site.isDemo` turns on sample stats and reset | M/R |
+| D23 | **The demo is its own site on its own account**, so publishing on a call never changes a client's live site: a Sites account (partners join it as members) with a private repo, served at `sites.canopyds.com/demo`. Its content and design are a copy of a client site's, with the client's agreement, until a demo of its own replaces them; it never touches that client's repo, analytics, or search presence. `Site.isDemo` turns on sample stats and reset | M/R |
 | D24 | **No `canopy.json`.** The `Site` row owns the slug and the site's locks (guardrails are server-side, D9). The repo owns its contract version, as the `@canopy/site-contract` it installs, which the builder reports on every content read into `Site.contractVersion` | R |
 | D25 | **A `canopyds.com` name a site uses sits one level under the zone** (`<slug>.canopyds.com`): Universal SSL covers the apex and one level only | R |
 | D26 | **`site-contract` ships from this repo** as a tarball on a GitHub release `site-contract-vX.Y.Z`, which site repos install by URL; the portal and builder use the workspace copy | R |
@@ -123,10 +123,10 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D48 | **Content is modeled by what it is, not where it shows** (section 4.4): a fact is a structured value, a thing the business has is a collection of its own, page copy is `pages` sections, and cards are only for groupings that mean nothing outside their section. Every request to make something editable is placed by this rule, not by the most convenient shape | M |
 | D49 | **Link, then claim.** Canopy builds a client's site and deploys it before the client has an account. The operator links the live site by its GitHub repo, which creates the account, an owner who hasn't claimed it, and the site, and runs its first build. The operator checks the site acting as the client, then sends a single-use claim link (texted, or emailed by the portal from `sites@canopyds.com`) that lasts a week and can be re-sent; the client sets a password on a page showing their site and email, which the browser offers to make and save, and can add a passkey (D69). Before claiming, Forgot password sends the claim. The operator acts as a client for acceptance, support, and building forms, never with the client's password, with a banner and the operator recorded as the actor. The Sites tabs follow what the account and its site's build have, never a per-site switch. Anyone else on the account is added by the operator and claims the same way (D63). Repo access is an org-owned GitHub App, installed per site repo, in Canopy's org or the client's (D61). A welcome video per client follows in E39 (Epic 38) | M/R |
 | D50 | **The lane is code.** What no owner changes on any site (ids, page paths, navigation labels, SEO fields, eyebrows, buttons) is marked as Canopy's in the contract. A site's own locks (address patterns, each covering a value and everything under it) and fixed lists (no adding, removing, or reordering entries) sit on its `Site` row; `pages` and their `sections` are fixed everywhere. The tool layer refuses an owner edit past any of them, on every surface, offering the request to Michael (D34), and a proposal reports every field it changed. Text fields are one line of plain text | M/R |
-| D51 | **The MVP is what launches first, and nothing has launched.** It is the owners of sites the size of today's claiming their portal, editing, previewing, and publishing safely, with several people on one account (D63, D64) and Client 2's request form (D65). Gallery, other Forms work on those sites, the MCP endpoint, Booking, and database failover for the portal are not in it. Its sites and order are ROADMAP's "The MVP" | M |
+| D51 | **The MVP is what launches first, and nothing has launched.** It is the owners of sites the size of today's claiming their portal, editing, previewing, and publishing safely, with several people on one account (D63, D64) and an appointment request form (D65). Gallery, other Forms work on those sites, the MCP endpoint, Booking, and database failover for the portal are not in it. Its sites and order are ROADMAP's "The MVP" | M |
 | D52 | **What visitors write to is a runtime component; what only the owner writes is content.** Forms is the first; Booking (D55), members (a light CRM), and newsletters come as a client needs each. A runtime component belongs to the account and can stand alone, as Forms does. Lock-in is accepted to the extent it makes the product better | M/R |
-| D53 | **Each runtime capability is a named slot in the site's template with a provider behind it**: Canopy's by default, an outside platform when the client uses one (the Client 3 site's form goes to an outside CRM). Leaving Canopy, or choosing another tool, changes the provider, never the site | R |
-| D54 | **Gallery, Events, and later editors are Sites features, never products or repos**, so `Plan.sitesEnabled` stays one boolean. Each is built in this order: its collection (and for photos the pipeline, D41), then its tab for manual editing, then Quick Edit filling the tab's form, since owners want a dashboard's control beside the chat. Gallery pulls from Instagram first, for Client 1 | M |
+| D53 | **Each runtime capability is a named slot in the site's template with a provider behind it**: Canopy's by default, an outside platform when the client uses one (a client's form can go to the CRM it already uses). Leaving Canopy, or choosing another tool, changes the provider, never the site | R |
+| D54 | **Gallery, Events, and later editors are Sites features, never products or repos**, so `Plan.sitesEnabled` stays one boolean. Each is built in this order: its collection (and for photos the pipeline, D41), then its tab for manual editing, then Quick Edit filling the tab's form, since owners want a dashboard's control beside the chat. Gallery pulls from Instagram first | M |
 | D55 | **Booking starts as requests the provider confirms**: one provider, a confirmed booking emailed as a calendar invite, and availability read from the provider's own calendar (Google's review of a calendar-reading app is started before the work). No staff, buffers, deposits, or reminders at first. It waits for a client who needs it | M |
 | D56 | **Text that art is drawn against is Canopy's**: locked on the `Site` row, unmarked on the canvas, refused by Quick Edit with the request to Michael (D34), and listed in the site guide | M |
 | D57 | **Client sites keep both boxes, and moving to the builder never risks a live site.** Webber and Fox both serve every client site, with Cloudflare routing between them. When the builder becomes the production build (E36), its output is served from both, and no site leaves Fox | M |
@@ -137,7 +137,7 @@ Source column: **M** = Michael stated it; **R** = Claude recommended, Michael ac
 | D62 | **A site may have a server; the builder takes its prerendered pages.** Such a site is Astro with an adapter, and every page with editable copy is prerendered, with what depends on the request kept to server islands, form routes, and the few pages that are all request. The builder takes `dist/client/` as it takes `dist/` and never runs the site's server code, so the canvas, Preview, and Publish work unchanged. The site keeps its own app on both boxes, and publish is commit and push, which that app deploys | M/R |
 | D63 | **An account takes several people.** The operator adds each by name and email, and each claims a login of their own (D49); removing one ends their sessions. Everyone on the account edits, previews, and publishes; only the owner can close the account. A person belongs to one account. An owner inviting their own people, and roles, come after v1 | M/R |
 | D64 | **One person edits a site at a time, and a draft is its author's.** The site becomes a person's when they start an edit (opening a field, sending a Quick Edit message, publishing, or discarding), never by being on a page, and stays theirs across their own tabs and devices while they are active. Everyone else is told who is making edits and can look at the preview, but can't change, publish, or discard. Once its author has stopped, nobody else adds to the draft: anyone publishes or discards it, told whose it is and what it changes, before editing themselves. There is no asking for control. The tool layer enforces the hold and the draft's author on every write (D9). Locks on single fields were rejected: the draft and Publish are the site's | M/R |
-| D65 | **Client 2's booking is a request form that the owner answers herself.** She is leaving Square, so nothing of Square's stays. A new client asks through a form (who they are, the services they want, photos of their hair, her policy agreed to, the times that suit) and she books the time herself; from then on she books in person, so a client fills it once. That is Forms' work, not Booking's (D55): a photo field, an Approval that keeps the text agreed to, and a Sites account's Forms tab opening on what came in, findable by name, since a request is her only record of a client. ROADMAP E55 | M/R |
+| D65 | **An appointment can be a request the owner answers personally.** A new client asks through a form (who they are, the services they want, photos, the owner's policy agreed to, the times that suit), and the owner books the time in their own calendar; returning clients book in person, so a client fills it once. That is Forms' work, not Booking's (D55): a photo field, an Approval that keeps the text agreed to, and a Sites account's Forms tab opening on what came in, findable by name, since a request may be the owner's only record of a client. ROADMAP E55 | M/R |
 | D66 | **A site's services are one list with a tab of its own.** Every place a service shows renders the list's entry, never wording of its own. The list is any business's: a service may have no price, a list no categories, and the tab's form is read from the contract and the site's guide. The canvas opens the tab's own forms, so nothing about a service changes in one place and not the other. ROADMAP E56 | M/R |
 | D67 | **In Sites a form is Canopy's to build and its owner's to read; Forms is a product of its own.** Canopy builds a site's forms with the site, and Services, Booking, and members work with what they take in. Forms is to be sold publicly, not yet. The two stay one codebase, database, and login, parting in what each is sold as and in its chrome. What Sites builds on a site's forms is built for Sites and doesn't wait to be a general Forms feature | M/R |
 | D68 | **A site's form is part of the site, with no embed.** It is written with the site's pages and drawn at build, so it shows while the portal is down and a choice can list the site's services. Only the sending reaches the portal, on Forms' submit route and through its checks, and the portal holds the form's fields so answers are checked and labeled. What runs in the visitor's browser is one package a site builds in. The embed stays Forms', for pages Canopy doesn't build. ROADMAP E45 | M/R |
@@ -163,7 +163,7 @@ Unchanged: Cloudflare, tunnel, Traefik, webber, Umami, Postgres, Coolify as the 
 | Service | Role |
 |---|---|
 | `portal` | Next.js app (this repo). Admin UI, operator, quick edit, MCP endpoint |
-| `builder` | Node worker. Holds a working clone per site, applies ChangeSets, validates against the contract, runs preflight and `astro build`, writes `/srv/sites/<slug>/builds/<id>/`, flips symlinks, commits + pushes on publish. One queue per site. Pinned Node image (removes the nixpacks Node drift that broke Client 1) |
+| `builder` | Node worker. Holds a working clone per site, applies ChangeSets, validates against the contract, runs preflight and `astro build`, writes `/srv/sites/<slug>/builds/<id>/`, flips symlinks, commits + pushes on publish. One queue per site. Pinned Node image (no nixpacks Node drift) |
 | `nginx` | Static file server on each box, with one fixed config: a hostname is a link to its site's `current` (D60) |
 | `postgres` | Existing Forms DB, extended |
 
@@ -175,8 +175,8 @@ Shared volume `/srv/sites` between builder and nginx.
 |---|---|
 | `canopy-sites` (formerly `Canopy-Forms`) | **The unified codebase**: `apps/portal`, `apps/builder`, `packages/site-contract`. **Public**: security comes from server-side enforcement (D9) rather than secrecy, and client data never enters it |
 | `canopy-site-template` (new) | Astro 7 starter implementing the contract; new client sites start here |
-| `client2`, `client1`, future client repos | One per client; depend on `site-contract` by release tarball (D26) |
-| `canopy-demo-site` (private) | The demo site (D23): Client 2's content and design until a dedicated demo site replaces them |
+| Client site repos | One per client; depend on `site-contract` by release tarball (D26) |
+| `canopy-demo-site` (private) | The demo site (D23): a client site's content and design until a dedicated demo site replaces them |
 
 
 ### 4.4 Content contract (`packages/site-contract`)
@@ -193,21 +193,21 @@ Zod schemas → TypeScript types (sites), JSON Schema (MCP tool inputs), validat
 
 A collection or field lands with the first site that renders it, named for what it is, and holds only what that site renders; another site's needs are a later minor version.
 
-Collections (v1), from what Client 2 and Client 1 actually contain:
+Collections (v1), from what the first client sites actually contain:
 
 | Collection | Shape | Notes |
 |---|---|---|
 | `site` | singleton: name, tagline, contact (phone, email, address, geo), hours (structured **or** freeform string; optional from 0.6.0), socials, credentials (certifications with full and short names, number, where to verify; NAICS codes) | Contact fields **locked by default**. Credentials from canopyds.com (contract 0.4.0) |
 | `pages` | per page: slug, title, hero (image, headline, sub), sections (heading, paragraphs, quote, button, cards), meta | Drives the canvas's address bar (D43). A card is a step, reason, or value (D48): eyebrow, title, text, button |
-| `services` | nested categories → sections → groups → items, with price labels | Client 2 `services.json` is the reference shape |
-| `schedule` | recurring weekly sessions joined to `classes` by slug | Client 1 `sessions`; distinct from events |
+| `services` | nested categories → sections → groups → items, with price labels | Client 2's `services.json` was the reference shape |
+| `schedule` | recurring weekly sessions joined to `classes` by slug | distinct from events |
 | `events` | dated, one-off | |
 | `announcements` | short, dated, optional expiry | |
 | `gallery` | images with alt, width, height, order | |
-| `team` | people, role, photo optional, bio; a short note shown with the role, and the group a person is shown in (Canopy's), both optional (0.7.0) | Client 1 `coaches`; the note and group from the Client 3 site's board and team |
-| `reviews` | quote, attribution, source | Client 2 reviews section |
+| `team` | people, role, photo optional, bio; a short note shown with the role, and the group a person is shown in (Canopy's), both optional (0.7.0) | the note and group from a site with a board and a team |
+| `reviews` | quote, attribution, source | |
 | `faqs` | question, answer, in page order; an optional link shown after the answer, Canopy's like a button (0.7.0) | canopyds.com's contact page (contract 0.4.0); a page's section gives them a heading |
-| `text` | long-form markdown pages | Client 2 policies, bios |
+| `text` | long-form markdown pages | policies, bios |
 
 What ships in each contract version is in `packages/site-contract`; collections land with the first site that renders them. Adding one is a minor version, and its field descriptions (`.meta()`) carry its guidance. Every list entry has a stable id and every field a kind and label (D36); a version that changes the shape of existing content ships a migration the builder runs when a site upgrades. The contract's length caps are absolute; each site's tighter limits come from its site guide (D40).
 
@@ -276,7 +276,7 @@ Unpublished changes and Preview sit in the Sites chrome, whichever tab made the 
 
 | Area | Requirement |
 |---|---|
-| Preview latency | Target < 60 s from "send" to viewable preview for sites the size of Client 2/Client 1 |
+| Preview latency | Target < 60 s from "send" to viewable preview for sites the size of today's client sites |
 | Publish latency | Commit and push, then the symlink swap: seconds (D60). A push that fails publishes nothing |
 | Restore | Seconds: a rebuild of a published version's content (§4.5). Builds retained: last N (default 5) |
 | Editor responsiveness | Visitor performance is Canopy's by design (D29); the target is the editor's own speed. A text edit shows on the canvas with no server round trip; saving the draft is at most one; no editor read waits on GitHub (the builder answers from its clone); build status is pushed to the page, not polled (it is polled every 1 to 2 seconds as of 2026-11-09) |
@@ -285,7 +285,7 @@ Unpublished changes and Preview sit in the Sites chrome, whichever tab made the 
 | Alerting | Michael is told when the portal or the builder is down, and when a nightly rebuild or a publish fails (Michael, 2026-11-10). Nothing does this as of that date (ROADMAP E49) |
 | Security | The canvas and the preview page behind the portal session and sandboxed. API keys hashed. Locked fields enforced at validation. Rate limits on chat and MCP. No client input reaches a shell |
 | Cost visibility | Tokens and estimated cost per account, per month, visible to operator from day one |
-| Accessibility | Portal UI follows Forms patterns; site template inherits Client 1's documented invariants (DESIGN.md / CLAUDE.md there) |
+| Accessibility | Portal UI follows Forms patterns; site template inherits Client 1's documented invariants (its DESIGN.md and CLAUDE.md) |
 
 ---
 

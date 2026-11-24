@@ -13,10 +13,10 @@ Epic numbers continue the Forms sequence; epics in other repos are prefixed. Sec
 Phases 0 and 2 have shipped, and so has the contract's first release.
 
 ```
-Phase 1  Client 2               [Client 2]                E46                        (its claim is in the MVP)
+Phase 1  Client 2                     [its repo]           E46                        (its claim is in the MVP)
 Phase 3  Editor                       [this repo]         E33, E38, E39              (closing out; E34 after v1)
 Phase 4  Production on nginx          [webber]             E36                        (after the MVP; both boxes keep serving, PRD D57)
-Phase 5  Client 1 migration             [client1]              T1, E42                    (claims in the MVP)
+Phase 5  Client 1 and the test site   [their repos]        E40, E42                   (claims in the MVP)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
 Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
@@ -29,25 +29,25 @@ Every site on Sites deploys through its own Coolify app until E36: publish is a 
 
 ### The MVP
 
-Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site, Client 2, and the Client 3 site claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
+Nothing has launched (PRD D51). The MVP is the owners of today's client sites (the test site and Clients 1 to 3; the key is the Nextcloud page "Client Sites") claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
 
-1. **the test site' claim** (Epic 42), with the owner as the owner: the claim's test before a client's.
+1. **The test site's claim** (Epic 42): the claim's test before a client's.
 2. **E47, tool layer fixes.**
-3. **E39, the welcome video**: before the Client 3 site's claim links go out, tried first on the test site.
+3. **E39, the welcome video**: before Client 3's claim links go out, tried first on the test site.
 4. **E48, deploys and checks.**
 5. **E49, alerting and records.**
 6. **Mail that can carry a launch**, before claim links go to clients. The portal sends through the mail account that carries Canopy's own mailboxes and a client's, under one small daily ceiling (the private page). Past it, the portal's mail stops almost silently: the operator sees "Copy the link instead" for a claim link, a request to Michael waits in the operator console with no email, and a submission notification fails in the container's output only. The candidate is Cloudflare Email Sending over SMTP, which the portal can move to by changing four variables on each app; sending from Canopy's own server was ruled out (the private page). A cap on notification mail and confirmed recipients come with Forms opening to the public, not with this.
 7. **The Editor and Quick Edit for a first owner**:
    - A mark that shows on text a template wraps word by word. The dotted `text-decoration` underline (`src/lib/canvas-bridge.ts`) doesn't reach inline-block children, so canopyds.com's headline shows dots between its words; an outline or a background on the marked element doesn't depend on it.
    - The canvas's Quick Edit box (`ScopedQuickEdit`, a 224 px scroll area) scrolls to the end of a tall request card, with the reply that explains it out of view. Keep the reply in view.
-   - Text that art is drawn against is Canopy's (PRD D56). On each site: lock the field's address on the `Site` row, take its mark out of the template, and keep the guide's list of them so Quick Edit offers the request to Michael. canopyds.com's hero headline is the known one, and its `Marked.astro` on marked text goes; Client 1's and the test site' guides list theirs.
+   - Text that art is drawn against is Canopy's (PRD D56). On each site: lock the field's address on the `Site` row, take its mark out of the template, and keep the guide's list of them so Quick Edit offers the request to Michael. canopyds.com's hero headline is the known one, and its `Marked.astro` on marked text goes; Client 1's and the test site's guides list theirs.
    - New photos become a request card, which can't carry a photo. Until E50, the reply says how to get the photo to Michael.
 8. **Epics 33, 37, and 38 closed**: their unticked acceptance boxes, mostly Michael's own checks.
 9. **Client 1's claim** (Epic 40, 4.7): the first client owner.
 10. **Client 2's claim** (Epic 46).
-11. **The Client 3 site onto Sites**, through the Sites Onboarding Runbook, its form going to an outside CRM (PRD D53). What is left is in its repo (the contract, its copy into content files, the site guide) and the link, which can happen on a `canopyds.com` name before its domain is live; the operator edits the hostnames at launch.
+11. **Client 3 onto Sites**, through the Sites Onboarding Runbook, its form going to an outside provider (PRD D53). What is left is in its repo (the contract, its copy into content files, the site guide) and the link, which can happen on a `canopyds.com` name before its domain is live; the operator edits the hostnames at launch.
 
-**Client 2's request form** (E55's first step) is in the MVP with no place in the order. Her booking buttons read `site.contact.bookingUrl`, still Square's address, and three lines of her copy require a card on file (checked 2026-11-19); the buttons stop working the day her Square account closes, a date Canopy doesn't have yet. It is worked once she gives that date and settles her policy's wording. Michael takes that up with her around 2026-12-04, and Services (E56) is built first. This paragraph goes when the form is live on her site.
+**Client 2's request form** (E55's first step) is in the MVP with no place in the order: the site's booking buttons stop working on a date the client sets, which Canopy doesn't have yet. When, and what the form asks, are on the Nextcloud page "Client Sites". Services (E56) is built first. This paragraph goes when the form is live.
 
 **To decide before launch:**
 
@@ -55,7 +55,7 @@ Nothing has launched (PRD D51). The MVP is the owners of Client 1, the test site
 - Quick Edit's conversation surviving a reload or a tab switch. `quick-edit-workspace.tsx` keeps it in component state, so a reload empties the chat, and an unsent request card stays `DRAFT` with nothing listing it. It weighs more if phones get Quick Edit only.
 - Dated notices on client sites. Only the demo has `announcements`, so "we're closed Friday" is a request to Michael, and nothing rebuilds a client site at midnight before E36; a nightly redeploy of the site's app would cover it until then.
 - Quick Edit spend the operator can see. Cost is recorded per conversation and shown nowhere; the only bound is 60 messages an hour per account. An owner turn cost 1 to 7 cents (2026-11-09).
-- Quick Edit changing a look-alike when the owner names text that lives in a template (on the Client 3 site, a menu's descriptions), since it reads the content files, never the rendered page. Parked by Michael (2026-11-13): the fix needs nuance, and mustn't refuse an ordinary request that mentions the menu.
+- Quick Edit changing a look-alike when the owner names text that lives in a template (on one client site, a menu's descriptions), since it reads the content files, never the rendered page. Parked by Michael (2026-11-13): the fix needs nuance, and mustn't refuse an ordinary request that mentions the menu.
 - Pages other than the Editor failing quietly when the server can't be reached: the Sites chrome's status poll, Publish on the preview page, Quick Edit's send, and Discard. One wrapper that says to reload the page, or leave it.
 
 Restore is E58 and holds up no claim: Client 1, the first, is a free customer and a portfolio piece.
@@ -68,9 +68,9 @@ Restore is E58 and holds up no claim: Client 1, the first, is a free customer an
 
 ## Phase 1: Client 2
 
-### E46 · Client 2 on Sites (`client2`)
+### E46 · Client 2 on Sites
 
-`docs/epics/epic-46-client2-on-sites.md`. Linked and accepted; its claim is left, through the Sites Onboarding Runbook. Its links to Square's booking page and its card-on-file lines are E55's.
+On the Nextcloud page "Client Sites". Linked and accepted; its claim is left, through the Sites Onboarding Runbook. Its booking links are E55's.
 
 ---
 
@@ -121,15 +121,15 @@ Acceptance: a publish is live in seconds on both boxes; with either box stopped 
 
 ---
 
-## Phase 5: Client 1 migration
+## Phase 5: Client 1 and the test site
 
-### T1 · Client 1 onto the template (`client1`)
+### E40 · Client 1 on Sites
 
-`docs/epics/epic-40-client1-on-sites.md`. On Sites; its claim is the MVP's item 9.
+On the Nextcloud page "Client Sites". On Sites; its claim is the MVP's item 9.
 
-### E42 · the test site on Sites (`test-site`)
+### E42 · The test site on Sites
 
-`docs/epics/epic-42-test-site-on-sites.md`. On Sites; its second claim is the MVP's item 1.
+On the Nextcloud page "Client Sites". On Sites; its second claim is the MVP's item 1.
 
 ---
 
@@ -137,10 +137,10 @@ Acceptance: a publish is live in seconds on both boxes; with either box stopped 
 
 ### E41 · `@canopy/site-kit` and a starter
 
-Goal: the code every Sites repo copies today lives in one versioned package, so a fix reaches every site with a version bump, and a new site starts from a starter rather than from another site's repo. Before the next client site: a starter alone would copy the plumbing again, and a fix would never reach the sites already made from it. Extracted from canopyds.com (`canopy-website`) and Client 1 (`client1`), whose versions are the reference.
+Goal: the code every Sites repo copies today lives in one versioned package, so a fix reaches every site with a version bump, and a new site starts from a starter rather than from another site's repo. Before the next client site: a starter alone would copy the plumbing again, and a fix would never reach the sites already made from it. Extracted from canopyds.com (`canopy-website`) and Client 1's site, whose versions are the reference.
 
 - The package, released like the contract (a tarball on this repo's releases, `packages/site-kit`):
-  - **Content**: a loader that validates `src/content` against the contract at build and fails with every issue, typed collections, page, section, and card lookups, navigation from `pages`, phone forms for display and links, socials by network. Client 1's `content.ts` and canopyds.com's `content.ts` are the two copies it replaces.
+  - **Content**: a loader that validates `src/content` against the contract at build and fails with every issue, typed collections, page, section, and card lookups, navigation from `pages`, phone forms for display and links, socials by network. Client 1's `content.ts` and canopyds.com's are the two copies it replaces.
   - **Images**: a contract `AssetPath` resolved to `astro:assets` (Client 1's `images.ts`).
   - **Portal flags**: `inEditor` and `inPreview`, the editor-at-rest CSS (reveals shown, transitions off), and a helper that opens anything hiding marked text.
   - **Schedule views** for any site with `classes`: week board blocks by part of day, day and time formatting, a class's times, appointment windows, and the structured data's opening hours (Client 1's `schedule.ts`, made general).
@@ -148,7 +148,7 @@ Goal: the code every Sites repo copies today lives in one versioned package, so 
   - **Measure**: the guide's limits as a command that renders the built site at 360 and 1440 px and writes or checks `SITE_GUIDE.md`'s `limits` (each field at most one line past today's copy, or the longest in its list), plus renders at the counts. Run when a template's layout changes; a check fails when the guide no longer matches the layout.
   - **Build parity**: a check that the builder-style build and the production image name the same `_astro` files.
 - The starter (`canopy-site-template`): an Astro 7 repo wired to the kit and the contract, with the Dockerfile (`npm ci --ignore-scripts`), `nginx.conf` with CORS, Tailwind reading `src/` only, Umami with `data-domains`, and a `SITE_GUIDE.md` skeleton. The Sites Onboarding Runbook's section 2 starts from it.
-- canopyds.com, Client 1, the test site, and Client 2 move onto the kit; the demo with its contract upgrade.
+- canopyds.com and every client site move onto the kit; the demo with its contract upgrade.
 - Open for the epic doc: whether fixed lists move from the `Site` row into the guide's front matter, beside counts, since both are facts of the design; and a job that bumps the contract or kit on every site, builds, compares, and pushes, since a bump across 50 sites is otherwise 50 repo changes.
 - Acceptance: a new site from the starter passes the runbook's section 2 with no code copied from another site; a fix in the kit reaches canopyds.com and Client 1 by a version bump; the measure command reproduces Client 1's limits and catches a layout change that makes one stale.
 
@@ -187,7 +187,7 @@ Goal: a site's form is part of the site (PRD D68): written with its pages, in it
 - **The portal learns a site's forms from the site**, at Link a site and at each publish, so the owner's Forms tab names them and answers are checked and labeled. Nobody builds a site's form in the Forms builder.
 - **Sending goes to the portal**, on the route Forms' own forms post to and through the same checks. A form is named within its site (`contact`), so the template is written once, before any account exists, and the origins it accepts are the site's hostnames.
 - **What runs in the visitor's browser is a package the site builds in**, written once for every site.
-- the test site first, then canopyds.com. Both embed a form by id today, and the embed by id is owed nothing once they have moved.
+- The test site first, then canopyds.com. Both embed a form by id today, and the embed by id is owed nothing once they have moved.
 - Open for the epic doc: where the definition sits (in the contract, its labels marked for the owner as other text is, or a file beside it); the sending route as a versioned agreement, since a site carries the package it was built with until its next build; what a visitor without JavaScript gets; a site with a server (D62), whose form is D53's slot with another provider; whether Forms' embed is drawn by the same package.
 - Acceptance: a site from the starter with a form definition, once linked, serves a working form whose submissions land in the client's account, with no commit after linking and no request to the portal until a visitor sends.
 
@@ -251,11 +251,11 @@ Goal: an owner adds an event with its date, time, and place, and it leaves the s
 
 ### E52 · Booking
 
-PRD D55. Waits for a client who needs it; Client 2's requests for appointments are E55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
+PRD D55. Waits for a client who needs it; requests for appointments are E55. Open for the epic doc: where a bookable service's length lives (the contract's `services`, or the booking component), and whether availability is read from the calendar's private address or through Google sign-in.
 
-### E55 · Requests (Client 2's appointment form)
+### E55 · Requests (an appointment form)
 
-`docs/epics/epic-55-requests.md`. Step 1, the form from today's field types built in her account, is in the MVP; then a Photos field type, an Approval with a document, and a Sites account's Forms tab opening on what came in.
+On the Nextcloud page "Client Sites". Step 1, Client 2's form from today's field types, built in its account, is in the MVP; then a Photos field type, an Approval with a document, and a Sites account's Forms tab opening on what came in.
 
 ### E56 · Services
 
@@ -266,9 +266,9 @@ PRD D55. Waits for a client who needs it; Client 2's requests for appointments a
 Goal: an owner changes the words on a button or a menu item where they see it, and can still follow it: a click on anything that links gives a pencil and a follow icon, and the owner picks. Straight after E56, which builds that layer for text that is already marked (its 4.5).
 
 - The lane: a button's label and a menu item's label become the owner's on every site, while where each goes stays Canopy's. Revises PRD D50 and the runbook's rule that neither is marked
-- The contract: a page's button is one field today, Canopy's whole, so its label and its link are flagged apart; and a menu item that goes to a place on a page (Client 2's Gallery, About, and Connect) gets a field, which the contract lacks
+- The contract: a page's button is one field today, Canopy's whole, so its label and its link are flagged apart; and a menu item that goes to a place on a page (a gallery, an about section) gets a field, which the contract lacks
 - Each site: its buttons' and menu items' labels move from the templates into content and are marked, and its guide gets a limit for each, measured at 360 and 1440 px, since a menu label that wraps breaks a header
-- Open for the epic doc: whether eyebrows follow; an analytics event named by a button's label, which must keep its name when the label changes; a label that names where it goes ("Book on Square")
+- Open for the epic doc: whether eyebrows follow; an analytics event named by a button's label, which must keep its name when the label changes; a label that names where it goes ("Book on <provider>")
 
 ---
 
