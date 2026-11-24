@@ -194,12 +194,7 @@ The MVP's own work (PRD D51).
 
 ### E47 · Tool layer fixes
 
-Each fix lands with a test that fails without it. The second's and third's are written, and pass while the defect is present: `docs/canopy-sites/e47-repro.db.test.ts.txt`. Copy each into `apps/portal/src/lib/site-tools/`, turn its expectations around, and delete the file with the last. The builder is stood in there, so the builder's half of the second is read, not run.
-
-- **A guide rule the site already breaks refuses every edit.** `check` (`apps/portal/src/lib/site-tools/index.ts`) runs the guide's limits, counts, and refused phrases (`validateContent`, `refusalIssues` in the contract) over the whole site, so once published content breaks one, every owner edit is refused naming a field the owner didn't touch, and a refused phrase becomes a request to Michael about text the owner never wrote. Report only on fields the edit changed, as `avoidWarnings` does, and show the operator where published content and the guide disagree.
-- **A builder restart strands the draft's build.** The builder keeps its records and queue in memory (`apps/builder/src/sites.ts`) and answers 404 for a build it was running; `refreshChange` treats any builder error as no news, so the `Build` stays `QUEUED` or `RUNNING` until another edit. A 404 for a build the portal started marks it `FAILED`, or starts it again.
-- **Publish doesn't run the guardrails again**, so a lock or fixed list added on the `Site` row after a draft was saved doesn't apply to that draft. Run `check` in `publishChange`.
-- Acceptance: those tests turned around and passing; the suite passes
+`docs/epics/epic-47-tool-layer-fixes.md`, in progress.
 
 ### E48 · Deploys and checks
 
