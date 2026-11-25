@@ -353,7 +353,9 @@
   .editor-swoop-in,
   .editor-swoop-out-left,
   .editor-swoop-out-right,
-  .editor-reveal,
+  .editor-reveal {
+    animation-duration: 1ms;
+  }
 
   .canopy-root .preview-placeholder {
     animation: none;
