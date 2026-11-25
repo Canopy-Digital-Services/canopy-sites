@@ -12,10 +12,12 @@
  * - every other click behaves as on the live site (menus, accordions).
  *
  * In "edit" mode (the canvas) it also marks every element carrying
- * `data-canopy-field`, reports a click on one as a selection, and edits its
- * text in place when the Editor asks, copying each keystroke to the field's
- * other appearances on the page and marking any text past the limit the
- * Editor sends. In
+ * `data-canopy-field`, reports a click on one, selects the field the Editor
+ * names, and edits its text in place when the Editor asks, copying each
+ * keystroke to the field's other appearances on the page and marking any
+ * text past the limit the Editor sends. A click on another field while one is
+ * being edited is reported too: the Editor finishes the open one as Done
+ * would, or leaves it open while Done can't. In
  * "view" mode (the preview page) nothing is marked or selectable.
  *
  * Nothing the page sends can write: the portal saves and publishes through
@@ -66,7 +68,14 @@ export function canvasBridge(mode: "edit" | "view"): string {
     fieldsAt(e.address).forEach(function (o) { o.textContent = text; });
   }
 
-  // A marked field selects; a link asks the Editor to navigate; anything else is the site's own.
+  // A press on another field keeps the caret in the one being edited, for when the Editor keeps it open.
+  document.addEventListener("mousedown", function (e) {
+    var t = e.target instanceof Element ? e.target : null;
+    if (VIEW || !editing || !t || editing.el.contains(t)) return;
+    if (t.closest(FIELD)) e.preventDefault();
+  }, true);
+
+  // A marked field asks the Editor to select it; a link asks it to navigate; anything else is the site's own.
   document.addEventListener("click", function (e) {
     var t = e.target instanceof Element ? e.target : null;
     if (!t) return;
@@ -75,8 +84,6 @@ export function canvasBridge(mode: "edit" | "view"): string {
     if (field) {
       e.preventDefault();
       e.stopPropagation();
-      if (editing) return;
-      select(field);
       var address = field.getAttribute("data-canopy-field");
       var index = Array.prototype.indexOf.call(fieldsAt(address), field);
       post({ type: "select", address: address, index: index, value: field.textContent, rect: rectOf(field) });
@@ -191,6 +198,9 @@ export function canvasBridge(mode: "edit" | "view"): string {
       var sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
+    } else if (m.type === "select" && !VIEW && typeof m.address === "string") {
+      var those = fieldsAt(m.address);
+      select(those[m.index || 0] || those[0] || null);
     } else if (m.type === "finish") {
       finish(m.value);
     } else if (m.type === "patch" && typeof m.value === "string") {

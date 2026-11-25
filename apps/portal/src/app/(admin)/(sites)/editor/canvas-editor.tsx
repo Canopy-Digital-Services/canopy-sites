@@ -382,9 +382,10 @@ export function CanvasEditor({
     [announcements],
   );
 
+  /** Saves and closes the field being edited; false while Done is off (or nothing is being edited). */
   const done = useCallback(() => {
     const s = selectedRef.current;
-    if (!s || s.mode !== "edit" || problemOf(s)) return;
+    if (!s || s.mode !== "edit" || problemOf(s)) return false;
     const text = oneLine(s.value);
     const edits: Edit[] = [];
     if (text !== oneLine(s.original)) edits.push({ address: s.address, value: text });
@@ -400,6 +401,7 @@ export function CanvasEditor({
     post({ type: "finish", value: text });
     close(false);
     if (edits.length) save(edits, () => post({ type: "patch", address: s.address, value: s.original }));
+    return true;
   }, [announcementOf, close, dates, post, save]);
 
   const doneRef = useRef(done);
@@ -415,6 +417,7 @@ export function CanvasEditor({
       setSelected({ address, index, original: value, value, rect, info, limit, mode: inPlace ? "edit" : "ask" });
       const announcement = announcementOf(address);
       setDates(announcement ? { startsOn: announcement.startsOn, endsOn: announcement.endsOn } : null);
+      post({ type: "select", address, index });
       if (inPlace) post({ type: "edit", address, limit });
     },
     [announcementOf, begin, limits, post],
@@ -444,6 +447,8 @@ export function CanvasEditor({
           hashRef.current = null;
           break;
         case "select":
+          // Another field clicked while one is being edited: that one finishes as Done would, or stays open while Done is off.
+          if (selectedRef.current?.mode === "edit" && !doneRef.current()) break;
           select(String(m.address), Number(m.index) || 0, String(m.value ?? ""), m.rect as Rect);
           break;
         case "scroll":
