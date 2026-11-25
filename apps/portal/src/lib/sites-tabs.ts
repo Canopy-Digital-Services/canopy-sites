@@ -1,6 +1,6 @@
 /**
  * The tabs of the Canopy Sites portal, in the order the nav shows them. An
- * id is also what a welcome video is stored and named by (ROADMAP E39), so
+ * id is also what a welcome video is stored and named by, so
  * it never changes once a site has a video for the tab.
  */
 export const SITES_TABS = [

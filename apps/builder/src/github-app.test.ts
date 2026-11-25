@@ -75,24 +75,24 @@ describe("repoToken", () => {
   it("finds the repo's installation, asks for Contents write on the one repo, and reuses the token until near its expiry", async () => {
     const cfg = appConfig(ENV)!;
     const now = Date.now();
-    const fetchImpl = github({ "org/client1": 456 }, now);
+    const fetchImpl = github({ "org/thistle": 456 }, now);
 
-    expect(await repoToken(cfg, "org", "client1", fetchImpl, now)).toBe("ghs_456_client1");
-    expect(await repoToken(cfg, "org", "client1", fetchImpl, now + 30 * 60 * 1000)).toBe("ghs_456_client1");
-    expect(calls(fetchImpl)).toEqual(["/app", "/repos/org/client1/installation", "/app/installations/456/access_tokens"]);
+    expect(await repoToken(cfg, "org", "thistle", fetchImpl, now)).toBe("ghs_456_thistle");
+    expect(await repoToken(cfg, "org", "thistle", fetchImpl, now + 30 * 60 * 1000)).toBe("ghs_456_thistle");
+    expect(calls(fetchImpl)).toEqual(["/app", "/repos/org/thistle/installation", "/app/installations/456/access_tokens"]);
     const init = fetchImpl.mock.calls[2][1] as RequestInit;
-    expect(JSON.parse(String(init.body))).toEqual({ repositories: ["client1"], permissions: { contents: "write", metadata: "read" } });
+    expect(JSON.parse(String(init.body))).toEqual({ repositories: ["thistle"], permissions: { contents: "write", metadata: "read" } });
 
     // A new token near the hour's end, from the installation it already knows.
-    await repoToken(cfg, "org", "client1", fetchImpl, now + 56 * 60 * 1000);
+    await repoToken(cfg, "org", "thistle", fetchImpl, now + 56 * 60 * 1000);
     expect(calls(fetchImpl).slice(3)).toEqual(["/app/installations/456/access_tokens"]);
   });
 
   it("reaches a repo in a client's own org through that org's installation", async () => {
     const cfg = appConfig(ENV)!;
-    const fetchImpl = github({ "canopy/client1": 1, "client-org/their-site": 2 });
+    const fetchImpl = github({ "canopy/thistle": 1, "client-org/their-site": 2 });
 
-    expect(await repoToken(cfg, "canopy", "client1", fetchImpl)).toBe("ghs_1_client1");
+    expect(await repoToken(cfg, "canopy", "thistle", fetchImpl)).toBe("ghs_1_thistle");
     expect(await repoToken(cfg, "client-org", "their-site", fetchImpl)).toBe("ghs_2_their-site");
   });
 
@@ -108,7 +108,7 @@ describe("repoToken", () => {
 
   it("builds only for the App's owner and the accounts it is set up for, though anyone can install a public App", async () => {
     const cfg = appConfig(ENV)!;
-    const fetchImpl = github({ "stranger/their-site": 9, "org/client1": 456 });
+    const fetchImpl = github({ "stranger/their-site": 9, "org/thistle": 456 });
 
     await expect(repoToken(cfg, "stranger", "their-site", fetchImpl)).rejects.toThrow("The builder doesn't build for stranger");
     // It never asked GitHub for the stranger's installation, let alone a token.
@@ -116,7 +116,7 @@ describe("repoToken", () => {
 
     // With no accounts named, only the App's own owner counts.
     const alone = appConfig({ ...ENV, GITHUB_APP_OWNERS: "" })!;
-    expect(await repoToken(alone, "org", "client1", fetchImpl)).toBe("ghs_456_client1");
+    expect(await repoToken(alone, "org", "thistle", fetchImpl)).toBe("ghs_456_thistle");
     await expect(repoToken(alone, "client-org", "their-site", github({ "client-org/their-site": 2 }))).rejects.toBeInstanceOf(AppAccessError);
   });
 
@@ -129,13 +129,13 @@ describe("repoToken", () => {
   it("asks for the installation again when the one it remembered is gone", async () => {
     const cfg = appConfig(ENV)!;
     const now = Date.now();
-    expect(await repoToken(cfg, "org", "client1", github({ "org/client1": 456 }, now), now)).toBe("ghs_456_client1");
+    expect(await repoToken(cfg, "org", "thistle", github({ "org/thistle": 456 }, now), now)).toBe("ghs_456_thistle");
 
     // The App was removed and installed again: a new installation id.
     const later = now + 2 * HOUR;
-    const fetchImpl = github({ "org/client1": 789 }, later);
-    expect(await repoToken(cfg, "org", "client1", fetchImpl, later)).toBe("ghs_789_client1");
-    expect(calls(fetchImpl)).toEqual(["/app/installations/456/access_tokens", "/repos/org/client1/installation", "/app/installations/789/access_tokens"]);
+    const fetchImpl = github({ "org/thistle": 789 }, later);
+    expect(await repoToken(cfg, "org", "thistle", fetchImpl, later)).toBe("ghs_789_thistle");
+    expect(calls(fetchImpl)).toEqual(["/app/installations/456/access_tokens", "/repos/org/thistle/installation", "/app/installations/789/access_tokens"]);
     // (No second /app: who owns the App is asked once.)
   });
 });
@@ -152,17 +152,17 @@ describe("appRepos", () => {
       .mockResolvedValueOnce(reply(200, [{ id: 456, account: { login: "org" } }]))
       .mockResolvedValueOnce(token("ghs_list"))
       .mockResolvedValueOnce(page(Array.from({ length: 100 }, (_, i) => `org/site-${String(i).padStart(3, "0")}`), 101))
-      .mockResolvedValueOnce(page(["org/client1"], 101));
+      .mockResolvedValueOnce(page(["org/thistle"], 101));
 
     const repos = await appRepos(cfg, fetchImpl);
 
     expect(repos).toHaveLength(101);
-    expect(repos.at(-1)).toEqual({ fullName: "org/client1", url: "https://github.com/org/client1", private: true, defaultBranch: "main" });
+    expect(repos.at(-1)).toEqual({ fullName: "org/thistle", url: "https://github.com/org/thistle", private: true, defaultBranch: "main" });
   });
 
   it("lists the repos of Canopy's installation and each client's it is set up for, and leaves out a stranger's and a suspended one", async () => {
     const cfg = appConfig(ENV)!;
-    const byInstallation: Record<string, string[]> = { "1": ["canopy/client1", "canopy/demo"], "3": ["client-org/their-site"], "4": ["stranger/their-site"] };
+    const byInstallation: Record<string, string[]> = { "1": ["canopy/thistle", "canopy/demo"], "3": ["client-org/their-site"], "4": ["stranger/their-site"] };
     const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/app")) return reply(200, { owner: { login: "org" } });
@@ -180,7 +180,7 @@ describe("appRepos", () => {
       return page(byInstallation[who] ?? [], (byInstallation[who] ?? []).length);
     });
 
-    expect((await appRepos(cfg, fetchImpl)).map((r) => r.fullName)).toEqual(["canopy/demo", "canopy/client1", "client-org/their-site"]);
+    expect((await appRepos(cfg, fetchImpl)).map((r) => r.fullName)).toEqual(["canopy/demo", "canopy/thistle", "client-org/their-site"]);
     expect(calls(fetchImpl).some((u) => u.includes("/installations/2/") || u.includes("/installations/4/"))).toBe(false);
   });
 });
@@ -188,12 +188,12 @@ describe("appRepos", () => {
 describe("resolveRepo", () => {
   it("reaches a site's repo with the App's token for that repo, whichever org owns it", async () => {
     for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v);
-    vi.stubGlobal("fetch", github({ "org/client1": 456, "client-org/their-site": 7 }));
+    vi.stubGlobal("fetch", github({ "org/thistle": 456, "client-org/their-site": 7 }));
 
-    expect(await resolveRepo("client1", "https://github.com/org/client1", "main")).toEqual({
-      remote: "https://github.com/org/client1.git",
+    expect(await resolveRepo("thistle", "https://github.com/org/thistle", "main")).toEqual({
+      remote: "https://github.com/org/thistle.git",
       branch: "main",
-      token: "ghs_456_client1",
+      token: "ghs_456_thistle",
     });
     expect(await resolveRepo("theirs", "https://github.com/client-org/their-site", "main")).toEqual({
       remote: "https://github.com/client-org/their-site.git",
@@ -208,7 +208,7 @@ describe("resolveRepo", () => {
     vi.stubEnv("GIT_TOKEN_CANOPYDS", "github_pat_x");
 
     expect(await resolveRepo("canopyds", "https://github.com/org/canopy-website", "main")).toMatchObject({ token: "github_pat_x" });
-    await expect(resolveRepo("client1", "https://github.com/org/client1", "main")).rejects.toThrow("isn't installed on org/client1");
+    await expect(resolveRepo("thistle", "https://github.com/org/thistle", "main")).rejects.toThrow("isn't installed on org/thistle");
   });
 
   it("falls back to the site's token when the App's key can't be read", async () => {
@@ -222,6 +222,6 @@ describe("resolveRepo", () => {
     vi.stubEnv("GITHUB_APP_ID", "");
     vi.stubEnv("GIT_TOKEN_DEMO", "github_pat_demo");
     expect(await resolveRepo("demo", "https://github.com/org/canopy-demo-site", "main")).toMatchObject({ token: "github_pat_demo" });
-    await expect(resolveRepo("client1", "https://github.com/org/client1", "main")).rejects.toThrow("No access to org/client1: install the Canopy Sites GitHub App on it");
+    await expect(resolveRepo("thistle", "https://github.com/org/thistle", "main")).rejects.toThrow("No access to org/thistle: install the Canopy Sites GitHub App on it");
   });
 });

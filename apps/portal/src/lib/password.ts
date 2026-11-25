@@ -1,8 +1,8 @@
 /**
- * Password hashing (Epic 28 F8). New hashes are scrypt with OWASP's
+ * Password hashing. New hashes are scrypt with OWASP's
  * N=2^15, r=8, p=3 (32 MiB, about 140 ms in the container): memory-hard, no
- * input truncation, and in Node's standard library. Hashes made before
- * Epic 28 are bcrypt; they still verify, and signInAction re-hashes them on
+ * input truncation, and in Node's standard library. Older hashes are
+ * bcrypt; they still verify, and signInAction re-hashes them on
  * the next successful sign-in.
  *
  * Format: scrypt$<log2 N>$<r>$<p>$<salt b64>$<key b64>. The parameters

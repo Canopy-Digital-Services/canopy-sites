@@ -1,0 +1,6 @@
+#!/bin/sh
+# Checks the commit message for client names.
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+grep -v '^#' "$1" > "$tmp"
+"$(dirname "$0")/check-private-terms.sh" "$tmp" "the commit message"

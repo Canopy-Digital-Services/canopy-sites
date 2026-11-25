@@ -8,20 +8,20 @@ const CLASSES: Cls[] = [
   {
     id: "fundamentals",
     name: "Boxing Fundamentals",
-    description: "Where most people start.",
+    description: "The class to start with.",
     sessions: [{ id: "weeknights", days: ["monday", "friday"], starts: "19:00", ends: "20:00" }],
   },
-  { id: "conditioning", name: "Conditioning", description: "No fighting required." },
+  { id: "conditioning", name: "Conditioning", description: "No sparring required." },
 ];
 
 describe("changedFields", () => {
   it("names each changed field under the entry it belongs to", () => {
     const after = structuredClone(CLASSES);
     after[0].sessions![0].starts = "19:30";
-    after[1].description = "Get in shape.";
+    after[1].description = "Build your engine.";
     expect(changedFields({ classes: CLASSES }, { classes: after }).map((c) => c.text)).toEqual([
       'Boxing Fundamentals (Mon, Fri 19:00 to 20:00): Starts: "19:00" to "19:30"',
-      'Conditioning: Description: "No fighting required." to "Get in shape."',
+      'Conditioning: Description: "No sparring required." to "Build your engine."',
     ]);
   });
 
@@ -37,8 +37,8 @@ describe("changedFields", () => {
   });
 
   it("tells a field set from one cleared, and treats a list of plain values as one value", () => {
-    const before = { site: { name: "Client 1", description: "A gym.", tagline: "Fernhollow." } };
-    const after = { site: { name: "Client 1", description: "A gym.", hours: { kind: "freeform", text: "Open 7 days a week" } } };
+    const before = { site: { name: "Thistle Boxing Club", description: "A gym.", tagline: "Fernhollow." } };
+    const after = { site: { name: "Thistle Boxing Club", description: "A gym.", hours: { kind: "freeform", text: "Open 7 days a week" } } };
     expect(changedFields(before, after).map((c) => [c.kind, c.text])).toEqual([
       ["cleared", 'Tagline: cleared (was "Fernhollow.")'],
       ["set", 'Hours: set to "{"kind":"freeform","text":"Open 7 days a week"}"'],

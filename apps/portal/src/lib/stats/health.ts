@@ -1,5 +1,5 @@
 /**
- * Whether a site's Stats can work, for the operator (Epic 35, 4.7). Stats
+ * Whether a site's Stats can work, for the operator. Stats
  * fail where the owner sees them and nobody else does: a website left out of
  * the Umami team the portal's key reads ("can't load"), a website id pasted
  * from another client (their numbers on this owner's page), or a tracker whose

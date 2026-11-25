@@ -56,7 +56,7 @@ async function conflicts(slug: string, repoUrl: string, hostnames: string[]): Pr
   if (await prisma.site.findUnique({ where: { slug }, select: { id: true } })) {
     return { slug: "Another site uses this slug" };
   }
-  // A hostname routes to one site's build (Caddy, E36); a second claim would
+  // A hostname routes to one site's build (nginx, E36); a second claim would
   // serve one client's domain from another client's site.
   const holder = await prisma.site.findFirst({
     where: { productionHostnames: { hasSome: hostnames } },

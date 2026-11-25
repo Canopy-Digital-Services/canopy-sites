@@ -1,11 +1,11 @@
 # Epic 38: Link and claim
 
-**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
+**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Client 1)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
-**Successor:** T1, Client 1 (login `client1@example.com`), the first client to be linked and to claim
+**Successor:** E40, Client 1, the first client to be linked and to claim
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/ACCOUNT_OPERATIONS.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D11, D15, D16, D18, D19, D22, D24, D39, D47, sections 5 and 6), `docs/canopy-sites/ROADMAP.md` (E32's "edit as client", E36, T1), `docs/epics/epic-28-account-audit-membership.md` (sessions, tokens, the security assessment), `docs/epics/epic-29-plan-site-model-operator-sites.md`, `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `docs/UX_PATTERNS.md` section 1, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `.claude/rules/auth.md` (all of it: this epic changes account creation, reset, and the operator's reach), `docs/canopy-sites/PRD.md` (D3, D4, D15, D16, D19, D22, D24, D39, D47, D54, D63, section 6), `docs/canopy-sites/ROADMAP.md` (E36, E40), `docs/epics/epic-37-canopyds-on-sites.md` (sections 4.4 and 4.5), `.claude/rules/ui.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In Nextcloud: **Sites Onboarding Runbook** (Canopy Sites), **GitHub**, **Coolify**, **Migadu** and **Expirables Register** (Engineering).
 
 ---
 
@@ -34,18 +34,18 @@ No step needs the client's password, a personal access token, a builder env var,
 
 | Not here | Why / where |
 |---|---|
-| Client 1's own migration: contract 0.5.0, an allowlist of owner-editable fields, `SITE_GUIDE.md` prose for Quick Edit in place of `Site.runbookOverlay`, a new `BASE_RUNBOOK` | The Client 1 effort (T1) and ROADMAP E32 |
+| Client 1's own migration: contract 0.5.0, an allowlist of owner-editable fields, `SITE_GUIDE.md` prose for Quick Edit in place of `Site.runbookOverlay`, a new `BASE_RUNBOOK` | Client 1's effort (E40) |
 | Invites and member roles UI | PRD section 2 keeps them out of v1. A claim is the one owner of a site getting into an account Canopy made; nobody invites anybody |
 | More than one membership per user, an account switcher | Act-as (4.5) gives the operator a client's account without a membership |
 | Creating the repo, DNS, Coolify app, or Umami website from the portal | Michael builds and deploys in Claude Code; Coolify's API is reachable only from webber and its token stays out of the portal (Michael, 2026-11-05) |
 | Linking by Coolify app | The repo is the site's lasting identity; sites stop deploying through Coolify at E36 (Michael, 2026-11-05) |
-| Sign-in without a password (an emailed sign-in link, passkeys) | Not needed: a client who'd rather not sign in texts Michael, which canopyds.com/websites already promises |
+| Passkeys | ROADMAP E62, after the MVP (PRD D69). A code emailed for every sign-in was rejected there |
 | The welcome video | Its own epic, E39 (Michael, 2026-11-05); 4.6 says what this epic leaves ready for it |
 | Per-site switches for Sites features | Tabs follow what the account and the site's build have (4.8); a feature sold as an add-on would be a plan entitlement (PRD D18, D20), not a per-site switch |
 
 ## 3. Order
 
-- 4.1 lands first, one migration per logical change (AGENT_CONTEXT section 5).
+- 4.1 lands first, one migration per logical change (`.claude/rules/prisma.md`).
 - 4.2 can run in parallel with everything in the portal. It deploys before 4.3, which reads the repo list from it; until then 4.3's repo field takes a URL.
 - 4.3, then 4.4 and 4.5 (independent of each other), then 4.7, which reads what 4.4 and 4.5 write. 4.6 is a check on the others, not work of its own. 4.8 any time.
 - 4.9 last.
@@ -64,7 +64,7 @@ Checked against `prisma/schema.prisma` on 2026-11-05: `User.password` is non-nul
 - **`ActAs`** (`id`, `operatorUserId`, `accountId`, `startedAt`, `endedAt?`), and **`Session.actAsId?`** pointing at the open one (4.5). Deleting an account cascades its `ActAs` rows; deleting the operator's user keeps them, with `operatorUserId` set to null (`onDelete: SetNull`, so the column is nullable).
 - The `Site.slug` comment stops saying it names `GIT_TOKEN_<SLUG>` once 4.2 retires the PATs.
 
-The AGENT_CONTEXT appendix and `docs/ACCOUNT_OPERATIONS.md` diagrams change with it (section 10).
+The Prisma rule's data model and the auth rule's diagrams change with it (section 10).
 
 ### 4.2 Repo access through a GitHub App (`apps/builder`)
 
@@ -99,7 +99,7 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 
 ### 4.4 Claim
 
-**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text, with **Email it** beside it: that emails the link shown and makes no new one, so the texted copy and the emailed one are the same link. Email claim link on the card does make a new one, and its toast says so when the earlier link still worked. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (AGENT_CONTEXT section 2).
+**The link.** On the operator site page, the owner card has **Copy claim link** and **Email claim link**, and after a send, **Send a new link**. Each mints a claim token (retiring the last), so a link copied and lost is replaced, never recovered: the database keeps only the hash. Copy shows the URL once, ready to paste into a text, with **Email it** beside it: that emails the link shown and makes no new one, so the texted copy and the emailed one are the same link. Email claim link on the card does make a new one, and its toast says so when the earlier link still worked. The URL is the account's home host (`appUrlFor`, so `SITES_URL` for a Sites account) plus `/claim?token=…`, never the request's host (`.claude/rules/auth.md`).
 
 **The email.** From `Canopy Sites <sites@canopyds.com>`, in the product's name (`productNameFor`), no em dashes (Copy Guidelines bucket 2). It is the handoff of the owner's website, so the HTML opens with the link preview's picture (Canopy Boy holding the keys, the site's name on the tag), sent inline with the message:
 
@@ -113,9 +113,9 @@ Checked 2026-11-05: the org's GitHub Apps are `canopyds-github` (Coolify's: all 
 >
 > The link works once and expires on November 12.
 
-A person added to the account since (PRD D63) gets the same picture and a plainer message: the subject "You've been added to the Client 1 website", the heading "You're in!", then "You've been added as a user on the Client 1 website in Canopy Sites. Click the button below to set your password and log in.", and **Set my password**.
+A person added to the account since (PRD D63) gets the same picture and a plainer message: the subject "You've been added to the <business name> website", the heading "You're in!", then "You've been added as a user on the <business name> website in Canopy Sites. Click the button below to set your password and log in.", and **Set my password**.
 
-**The preview.** Pasted into a messaging app, the link shows the same picture and the email's words (`claimWords`): "Your Canopy Site is ready!" over "Set your password and start managing Client 1." for the owner, "You're in!" over the added sentence for anyone else. Never the person's email.
+**The preview.** Pasted into a messaging app, the link shows the same picture and the email's words (`claimWords`): "Your Canopy Site is ready!" over "Set your password and start managing <business name>." for the owner, "You're in!" over the added sentence for anyone else. Never the person's email.
 
 **The sender.** Today every email goes out as `Forms@CanopyDS.com` (`SMTP_FROM`, production env, checked 2026-11-05). `sites@canopyds.com` is a send-as identity on the same Migadu mailbox (`forms@`, the portal's SMTP login), and mail sent to it reaches `clients@` through an alias of the same name (both created 2026-11-05). So the portal picks the From by product, beside the link host (`appUrlFor`): a new `SMTP_FROM_SITES` (`Canopy Sites <sites@canopyds.com>`) for every email to a Sites account, the claim, reset, and submission notifications alike, with `SMTP_FROM` for the rest. Same login, no new secret. All of it shares Migadu's 20 a day outgoing limit for the whole account (Engineering → Migadu), which is one reason a copied link, which sends nothing, is the usual way to hand over a claim.
 
@@ -136,11 +136,11 @@ A person added to the account since (PRD D63) gets the same picture and a plaine
 
 ### 4.5 Act as client
 
-Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing implements it (2026-11-05). Smaller than E32's version: for acceptance, support, and building a client a form, not for building the site (Michael, 2026-11-05).
+Never built: PRD section 6 and the Quick Edit brief named "edit as client", and nothing implemented it (2026-11-05). Smaller than that brief's version: for acceptance, support, and building a client a form, not for building the site (Michael, 2026-11-05).
 
 - **Act as client** on the operator site page (Global Admin only). It opens an `ActAs` row and points the operator's own session at it. The operator never holds the client's password or a membership in their account.
-- **While acting, the account is the client's.** `getCurrentAccountId` resolves the acted account when the session has an open `ActAs` and the user is still a Global Admin (re-read every request, as the role is). Everything that checks membership directly moves into `src/lib/data-access/memberships.ts` first and honors the same rule: `canPreviewSite` (`src/lib/site-tools/index.ts`, used by `/canvas` and `/preview`) and the form thumbnail route (`src/app/api/forms/[formId]/thumbnail/route.ts`), found by grep on 2026-11-05. AGENT_CONTEXT section 2 already says membership is resolved only there; those two break the rule.
-- **A banner on every page while acting**, the portal's chrome and the preview page's bar alike: "Acting as Client 1 (client1@example.com)" and **Stop**. Stop, sign-out, and the session's end close the `ActAs` row.
+- **While acting, the account is the client's.** `getCurrentAccountId` resolves the acted account when the session has an open `ActAs` and the user is still a Global Admin (re-read every request, as the role is). Everything that checks membership directly moves into `src/lib/data-access/memberships.ts` first and honors the same rule: `canPreviewSite` (`src/lib/site-tools/index.ts`, used by `/canvas` and `/preview`) and the form thumbnail route (`src/app/api/forms/[formId]/thumbnail/route.ts`), found by grep on 2026-11-05. `.claude/rules/auth.md` already says membership is resolved only there; those two break the rule.
+- **A banner on every page while acting**, the portal's chrome and the preview page's bar alike: "Acting as <business name> (<email>)" and **Stop**. Stop, sign-out, and the session's end close the `ActAs` row.
 - **The operator is the actor.** Sites writes already name the session user: a ChangeSet's `createdByUserId`, a Conversation's `userId`, the published commit's author. A form created while acting has the operator as `createdByUserId`. Forms edits record no actor for anyone today; the `ActAs` row (who, which account, from when to when) is their record, and this epic adds no per-row actor columns to Forms (section 7).
 - **Off limits while acting**, refused in the actions as well as hidden: changing the password or email, deleting the account, and signing out the owner's other sessions. Acting never sets the owner's `lastLoginAt`, and one helper says whether a session is acting, for anything that must happen only for the owner (4.6).
 - Sites accounts only in this epic: the operator's own account is on the Sites host, and acting on a Forms-only account would send the session to the other host (D22).
@@ -148,7 +148,7 @@ Never built: PRD section 6 and ROADMAP E32 name "edit as client", and nothing im
 
 ### 4.6 Room for the welcome video (E39)
 
-The welcome video is its own epic (ROADMAP E39, Michael 2026-11-05). This one adds nothing of it, no column, volume, or route, and leaves these for it to build on:
+The welcome video is its own epic (E39, Michael 2026-11-05). This one adds nothing of it, no column, volume, or route, and leaves these for it to build on:
 
 - **The owner's own sessions are told apart from the operator's.** A session acting as the client carries its `ActAs` (4.5), and one helper answers "is this the operator acting?", so E39 opens the video by itself, and records how much was watched, only for the people on the account (each of them, since PRD D63).
 - **The claim's session is the owner's first** (4.4): it lands on home with no state of its own to clear, and E39 keys "shown once" off each person's membership and the tab (a video for each tab since 2026-11-15).
@@ -169,7 +169,7 @@ The Sites list gets one status column: Not sent, Link sent, Claimed, Signed in r
 
 ### 4.8 The Sites tabs
 
-`SitesNav` (`src/components/sites/sites-nav.tsx`) lists Quick Edit, Editor, Forms, and Stats for every Sites account. Client 1 has no form, and an owner should see the tabs their site has, no more.
+`SitesNav` (`src/components/sites/sites-nav.tsx`) lists Quick Edit, Editor, Forms, and Stats for every Sites account. Client 1's site has no form, and an owner should see the tabs their site has, no more.
 
 **A tab shows when the account has what it works on**, read from the account and the site, never from a switch the operator sets. A switch would be a second record of what the build already says, free to disagree with it: a Gallery tab switched on for a site whose templates render no gallery edits nothing the owner can see. The build decides which tools a site has (PRD D39), and a site's repo holds a collection only when its templates render it, so the collection's presence in the published content is the signal. A feature sold as an add-on would be a plan entitlement (D18, D20), not a per-site switch.
 
@@ -185,22 +185,22 @@ The layout computes the list once per request (one form count; the site row it a
 
 At the end of a build in Claude Code, the link step runs without the browser.
 
-- A server action can't serve: it needs a browser session, and its action id changes with every build (project memory, "server actions over curl"). A new HTTP route with an operator key would be a second way to authenticate a request (AGENT_CONTEXT section 2).
+- A server action can't serve: it needs a browser session, and its action id changes with every build (project memory, "server actions over curl"). A new HTTP route with an operator key would be a second way to authenticate a request (`.claude/rules/auth.md`).
 - So the CLI calls the same `linkSite` (4.3): `scripts/link-site.ts`, bundled into the production image at build time (the image runs Node 20, which can't run TypeScript), run as `ssh webber docker exec <portal container> node …/link-site.mjs` with the form's fields as JSON and `--actor <email>`, which must be a Global Admin. The trust boundary is a shell on webber, which already reaches everything. The container is found by its Coolify label, not its name, which changes every deploy.
 - The Sites Onboarding Runbook names it as the alternative to the form.
 
 ### 4.10 Docs with the behavior
 
-Each change in section 10 lands in the commit that causes it (DOC_MAINTENANCE rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and E32's "edit as client" moved here) landed with the approval, 2026-11-05.
+Each change in section 10 lands in the commit that causes it (`.claude/rules/docs.md`, rule 15). PRD D49, the PRD's out-of-v1 row on creating a site's repo and services, and the ROADMAP's E38 and E39 entries (with Phase 5 needing E38, and the Quick Edit brief's "edit as client" moved here) landed with the approval, 2026-11-05.
 
 ## 5. Acceptance
 
-With Client 1 as the first client, once its repo builds on the contract (T1):
+With Client 1 as the first client, once its repo builds on the contract (E40):
 
 - [ ] The demo and canopyds.com build and publish through the Canopy Sites App; `GIT_TOKEN_DEMO` and `GIT_TOKEN_CANOPYDS` are gone from `canopy-builder` and revoked on GitHub; the Expirables Register has the App's key in place of both
-- [ ] Link a site lists `client1` among the org's repos and none already linked; linking it with `client1@example.com`, "Client 1", `client1.example` and `www`, and the Umami id creates the account, the unclaimed owner, and the site, and the first build publishes
+- [ ] Link a site lists Client 1's repo among the org's repos and none already linked; linking it with its email, business name, domain and `www`, and the Umami id creates the account, the unclaimed owner, and the site, and the first build publishes
 - [ ] Acting as Client 1, every item of the runbook's acceptance passes, under the banner. A publish while acting commits with Michael as author. The Forms tab shows while acting and not after Stop
-- [ ] Copy claim link gives a link on `sites.canopyds.com`; texted to the owner, its preview leaves it working; on the owner's phone the claim page shows "Client 1" and the email; the password manager offers to save the new password; Set password lands on Quick Edit
+- [ ] Copy claim link gives a link on `sites.canopyds.com`; texted to the owner, its preview leaves it working; on the owner's phone the claim page shows the business name and the email; the password manager offers to save the new password; Set password lands on Quick Edit
 - [ ] The operator page shows link sent, claimed, and last sign-in, each as it happened
 - [ ] Before claiming: sign-in fails as a wrong password does; Forgot password sends the claim email, not a reset. After: Forgot password sends a reset. A second use of a claim link, an expired one, and one replaced by a newer send each refuse
 - [ ] Signed in as the owner, the nav is Quick Edit · Editor · Stats with no Forms, and the operator page lists the same tabs; on the demo, all four show
@@ -226,7 +226,7 @@ With Client 1 as the first client, once its repo builds on the contract (T1):
 
 ### Michael (2026-11-05, approval)
 
-- **Approved**, with the welcome video moved to its own epic (ROADMAP E39): this one is designed to support it and builds none of it (4.6).
+- **Approved**, with the welcome video moved to its own epic (E39): this one is designed to support it and builds none of it (4.6).
 - **Sites tabs follow what the account and the build have** (4.8), not operator switches.
 
 ### Agent calls inside scope
@@ -251,20 +251,20 @@ Not started.
 
 - 2026-11-05: Drafted from Michael's brief, after checking it against the code, the docs, Nextcloud, and production (read only):
   - Production has two sites, the demo and canopyds.com, each on a `SITES` account with one owner; no user has more than one membership; no Client 1 user exists.
-  - Client 1's Coolify app deploys `client1` `main` through Coolify's GitHub App webhook (a webhook deploy on 2026-10-08) with its health check on, so Client 1 can publish by push as canopyds.com does, without E36. ROADMAP and PRD corrected the same day.
-  - `client1`'s `.dockerignore` drops `*.md` and its Tailwind import scans the whole project, so its production image and the builder would build different CSS. The Sites Onboarding Runbook's build-parity step now says to limit Tailwind's sources to `src/`.
+  - Client 1's Coolify app deploys Client 1's repo's `main` through Coolify's GitHub App webhook (a webhook deploy on 2026-10-08) with its health check on, so Client 1 can publish by push as canopyds.com does, without E36. ROADMAP and PRD corrected the same day.
+  - Client 1's repo's `.dockerignore` drops `*.md` and its Tailwind import scans the whole project, so its production image and the builder would build different CSS. The Sites Onboarding Runbook's build-parity step now says to limit Tailwind's sources to `src/`.
   - Site repo access: the org's Coolify App is read-only, so a push needs a new App (4.2).
 - 2026-11-05 (later): Michael's answers on the first draft (section 6). Created in Migadu: `sites@canopyds.com` as a send-only identity named "Canopy Sites" on the `forms` mailbox, and an alias `sites@` → `clients@` for replies; the Migadu page says so. The portal has no volume and runs as uid 1001 (prod and dev, checked), so 4.6 adds one. Deleted the superseded Pillars & Product Architecture page from Nextcloud and fixed Monthly Reports, its one inbound link, which also cited the July plan's PRD sections.
 - 2026-11-05 (later): Approved, with the welcome video (and the volume above) moved to E39, whose ROADMAP brief carries its design. D49 and the E38 and E39 ROADMAP entries landed.
-- 2026-11-05 (later): 4.1 on `dev` (`c6466b2`, `f216ad0`, `d2073c2`, docs `6c2c262`), built in a worktree against its own database. Three migrations, each read: `users.password` nullable; `password_reset_tokens` gains `purpose` (existing rows `RESET`), `createdByUserId` and `emailedAt`, with the model renamed `PasswordToken`; `act_as` and `sessions.actAsId`. Code that reads them: sign-in treats a null password as wrong, changing a password refuses a user with none, and reset accepts only a `RESET` token. Database tests cover each, and the claim-link and no-password tests fail with their guards removed. Lint, 37 test files, and the production build pass on the tree rebased onto 5.10.0. Applied to the shared dev database, with the shared Prisma client regenerated. Note for 4.4 and 4.7: retiring older tokens sets their `usedAt`, so "claimed" reads from a claim token only where it can't have been retired (the owner's password being set is the plain signal).
-- 2026-11-05 (later): 4.3 on `dev` (`102a8fe`, `aa6809a`). Link a site replaces New site: `parseLinkSite` in `src/lib/sites.ts`, `createLinkedSite` in `src/lib/site-link.ts` (no session; the `linkSite` action checks `requireGlobalAdmin`), and the dialog, which runs the first Build and publish after the rows exist. The repo is a GitHub URL until 4.2's picker; hostnames are required, Umami optional. Calls made inside scope: a repo another site already builds from is refused at link (D24's shared repo stays possible through the settings form); `buildAndPublish` moved to `src/lib/repo-publish.ts` and now writes its Build row before reading the repo, so a failure the builder never saw (no access to the repo) shows on the site page, which now shows the latest build; the operator form's contract version field went, since every content read records it. Database tests cover the link and each refusal, and the email, slug, hostname, and repo refusals fail with their guards removed. Checked in headless Chromium on a worktree dev server against its own database: validation, the slug from the repo, linking with no builder configured (the toast and the site page both report the failed build), and a second link of the same email refused on the email field. Lint, 37 test files, and the build pass. The Sites Onboarding Runbook's section 1 and step 4.3 change when this reaches production, not before.
-- 2026-11-05 (later): 4.4 and 4.5 on `dev` (`606f81d`, `897a281`).
+- 2026-11-05 (later): 4.1 on `dev` (`0ea3567`, `98797eb`, `f2f2f5a`, docs `66b3967`), built in a worktree against its own database. Three migrations, each read: `users.password` nullable; `password_reset_tokens` gains `purpose` (existing rows `RESET`), `createdByUserId` and `emailedAt`, with the model renamed `PasswordToken`; `act_as` and `sessions.actAsId`. Code that reads them: sign-in treats a null password as wrong, changing a password refuses a user with none, and reset accepts only a `RESET` token. Database tests cover each, and the claim-link and no-password tests fail with their guards removed. Lint, 37 test files, and the production build pass on the tree rebased onto 5.10.0. Applied to the shared dev database, with the shared Prisma client regenerated. Note for 4.4 and 4.7: retiring older tokens sets their `usedAt`, so "claimed" reads from a claim token only where it can't have been retired (the owner's password being set is the plain signal).
+- 2026-11-05 (later): 4.3 on `dev` (`b462012`, `1c3d1a0`). Link a site replaces New site: `parseLinkSite` in `src/lib/sites.ts`, `createLinkedSite` in `src/lib/site-link.ts` (no session; the `linkSite` action checks `requireGlobalAdmin`), and the dialog, which runs the first Build and publish after the rows exist. The repo is a GitHub URL until 4.2's picker; hostnames are required, Umami optional. Calls made inside scope: a repo another site already builds from is refused at link (D24's shared repo stays possible through the settings form); `buildAndPublish` moved to `src/lib/repo-publish.ts` and now writes its Build row before reading the repo, so a failure the builder never saw (no access to the repo) shows on the site page, which now shows the latest build; the operator form's contract version field went, since every content read records it. Database tests cover the link and each refusal, and the email, slug, hostname, and repo refusals fail with their guards removed. Checked in headless Chromium on a worktree dev server against its own database: validation, the slug from the repo, linking with no builder configured (the toast and the site page both report the failed build), and a second link of the same email refused on the email field. Lint, 37 test files, and the build pass. The Sites Onboarding Runbook's section 1 and step 4.3 change when this reaches production, not before.
+- 2026-11-05 (later): 4.4 and 4.5 on `dev` (`8272af3`, `632e5d3`).
   - The claim: `src/lib/claim.ts`, `/claim`, the operator's Owner card (Copy claim link, Email claim link), Forgot password sending the claim to an unclaimed owner, an expired link offering a new one, and a claim throttle. Calls inside scope: one password field with the show toggle, not two (the hidden username lets the phone's manager save it); an owner who claims stays signed in; issuing any link retires older ones by moving their expiry, not by setting `usedAt`, so `usedAt` on a claim token means claimed and the operator page can say when (this supersedes the 4.1 entry's note); `addAccountMember` makes an unclaimed member and hands back a claim link. Every email to a Sites account comes from `SMTP_FROM_SITES` when set; production needs it set to `Canopy Sites <sites@canopyds.com>` when this ships.
   - Acting as a client: `src/lib/act-as.ts`, `Session.actingAs` resolved in `validateSessionToken`, `soleMembership` (as a MEMBER), and `sessionAccountId`/`sessionCanUseAccount` in `memberships.ts`, which now hold the preview and thumbnail checks. The banner on the admin chrome, the operator console, and the preview page; Stop, sign-out, and expiry end the record; password change and deletion refused while acting.
   - The Owner card is the first part of 4.7: email, claimed (with when), the claim link (copied or emailed, when, by whom), last sign-in. The Sites list's status column is still to come.
-  - Tests: 11 claim and 8 act-as database tests, plus the preview checks for an acting operator; the claim-purpose and Forgot password guards fail with their guards removed. Checked in headless Chromium against the worktree's own database: copy a claim link, act as the client (banner, account page without password or deletion, Stop back to the site page), then claim on a 390 px signed-out browser, landing on Quick Edit, and the Owner card shows the claim. Lint, 39 test files, and the build pass on the tree rebased onto `025261e`.
-- 2026-11-05 (later): Released in 5.11.0 (PR #43, merge `44267ca`), with the other sessions' Forms changes. `SMTP_FROM_SITES` set to `Canopy Sites <sites@canopyds.com>` on the production portal app only (dev logs in as `forms-dev@`, which can't send as `sites@`). Verified on production: the portal and builder deployed; the six new migrations applied, `users.password` nullable, the two existing reset tokens `RESET`, no `act_as` rows; the variable inside the container; `/claim` and `/login` 200 on sites.canopyds.com, `/operator/sites` sends a signed-out request to sign-in. Not verified: an email actually sent as `sites@` (none yet), and the flow signed in on production. Nextcloud: the Sites Onboarding Runbook's sections 1, 4, 5, and 6 rewritten for link, act-as, and claim (through the Canopy MCP connector; the `nextcloud` server was down), and the Migadu page's `sites@` line.
-- 2026-11-05 (later): 4.2 released in 5.12.0 (PR #45, merge `9ac4b9b`). The builder reaches repos as the Canopy Sites App (`src/github-app.ts`; its first unit tests), `GET /v1/repos` lists them, and Link a site picks from them; an unreadable key or a repo the App can't reach falls back to `GIT_TOKEN_<SLUG>`. The App was made through GitHub's manifest flow in Michael's Chrome after he approved GitHub's passkey prompt: "Canopy Sites", ID 5634894, owned by the org, Contents read and write and Metadata read, no webhook; installed (179082939) on `canopy-demo-site`, `canopy-website`, and `client1` only. Its ID, installation ID, and key (base64) went straight from the API exchange into `canopy-builder`'s Coolify env. Verified on production: `/v1/repos` lists exactly those three; fresh content reads of the demo and canopyds.com with no fallback in the builder's log; and `git push --dry-run` to both repos with the App's token and no PAT in reach. Removing `GIT_TOKEN_DEMO` and `GIT_TOKEN_CANOPYDS` from the builder was refused by the session's safety check (writing a secret store), so those two variables stay as unused fallbacks until Michael removes them and revokes the two PATs. Nextcloud: the runbook's section 4 (the repo on the App, in place of a PAT and a builder variable), GitHub, and the Expirables Register.
+  - Tests: 11 claim and 8 act-as database tests, plus the preview checks for an acting operator; the claim-purpose and Forgot password guards fail with their guards removed. Checked in headless Chromium against the worktree's own database: copy a claim link, act as the client (banner, account page without password or deletion, Stop back to the site page), then claim on a 390 px signed-out browser, landing on Quick Edit, and the Owner card shows the claim. Lint, 39 test files, and the build pass on the tree rebased onto `c51427f`.
+- 2026-11-05 (later): Released in 5.11.0 (PR #43, merge `70a675e`), with the other sessions' Forms changes. `SMTP_FROM_SITES` set to `Canopy Sites <sites@canopyds.com>` on the production portal app only (dev logs in as `forms-dev@`, which can't send as `sites@`). Verified on production: the portal and builder deployed; the six new migrations applied, `users.password` nullable, the two existing reset tokens `RESET`, no `act_as` rows; the variable inside the container; `/claim` and `/login` 200 on sites.canopyds.com, `/operator/sites` sends a signed-out request to sign-in. Not verified: an email actually sent as `sites@` (none yet), and the flow signed in on production. Nextcloud: the Sites Onboarding Runbook's sections 1, 4, 5, and 6 rewritten for link, act-as, and claim (through the Canopy MCP connector; the `nextcloud` server was down), and the Migadu page's `sites@` line.
+- 2026-11-05 (later): 4.2 released in 5.12.0 (PR #45, merge `a2150be`). The builder reaches repos as the Canopy Sites App (`src/github-app.ts`; its first unit tests), `GET /v1/repos` lists them, and Link a site picks from them; an unreadable key or a repo the App can't reach falls back to `GIT_TOKEN_<SLUG>`. The App was made through GitHub's manifest flow in Michael's Chrome after he approved GitHub's passkey prompt: "Canopy Sites", ID 5634894, owned by the org, Contents read and write and Metadata read, no webhook; installed (179082939) on `canopy-demo-site`, `canopy-website`, and Client 1's repo only. Its ID, installation ID, and key (base64) went straight from the API exchange into `canopy-builder`'s Coolify env. Verified on production: `/v1/repos` lists exactly those three; fresh content reads of the demo and canopyds.com with no fallback in the builder's log; and `git push --dry-run` to both repos with the App's token and no PAT in reach. Removing `GIT_TOKEN_DEMO` and `GIT_TOKEN_CANOPYDS` from the builder was refused by the session's safety check (writing a secret store), so those two variables stay as unused fallbacks until Michael removes them and revokes the two PATs. Nextcloud: the runbook's section 4 (the repo on the App, in place of a PAT and a builder variable), GitHub, and the Expirables Register.
 
 ## 10. Docs this makes stale
 
@@ -273,14 +273,14 @@ Each lands with the change that causes it, never in a later pass.
 **This repo**
 
 - `docs/canopy-sites/PRD.md`: section 5's data model: the owner's nullable password, claim tokens, act-as. Section 6: the nav line and its table follow 4.8, and the Operator row's "edit as client" becomes act as client. D28 and D2's list of tabs: each tab shows when the account has what it works on (D49). D24: `Site.contractVersion` written on every content read (4.3).
-- `docs/AGENT_CONTEXT.md`: section 2, Auth & ownership (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (`SitesNav`'s tabs and when each shows); section 3 (`/claim`, the act-as banner's rule); section 7 (`SMTP_FROM_SITES`); the appendix's data model.
+- `.claude/rules/auth.md`, Rules (an owner with no password, claim tokens, act-as resolved in `getCurrentAccountId` and nowhere else, and that membership checks live only in `memberships.ts`); Products and chrome (`SitesNav`'s tabs and when each shows); section 3 (`/claim`, the act-as banner's rule); section 7 (`SMTP_FROM_SITES`); the appendix's data model.
 - `.env.example`: `SMTP_FROM_SITES`.
-- `docs/ACCOUNT_OPERATIONS.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
+- `.claude/rules/auth.md`: Account Creation (the operator's link beside signup), a Claim section, Password Reset (the claim path for an unclaimed owner), Operator Account Management (act-as, its limits and its record), the model diagram.
 - `docs/UX_PATTERNS.md`: the act-as banner (section 2's Notices), the claim page with the auth pages (section 8), the Sites tabs' rule (section 10, Page shell).
 - `apps/portal/prisma/schema.prisma`: `Site.slug`'s comment.
 - `apps/portal/src/actions/admin/members.ts`: its header comment (random password, Forgot password).
 - `apps/portal/content/docs/account.md`: signing in for the first time from a claim link, and Forgot password before claiming. Sites owners have no help pages of their own yet (as of 2026-11-05).
-- `docs/epics/README.md` and `CHANGELOG.md`: the release (AGENT_CONTEXT section 10).
+- `docs/epics/README.md` and `CHANGELOG.md`: the release (CLAUDE.md's release checklist).
 
 **Nextcloud**
 

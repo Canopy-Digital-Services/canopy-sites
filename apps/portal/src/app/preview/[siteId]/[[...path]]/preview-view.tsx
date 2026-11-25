@@ -296,16 +296,15 @@ export function PreviewView({
         {!published ? (
           <span className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="inverse-outline"
               size="sm"
-              className="hover:bg-primary-foreground/15 hover:text-primary-foreground"
               onClick={cancel}
               disabled={isPublishing}
             >
               Cancel
             </Button>
             {pending && !hold.by ? (
-              <Button variant="outline" size="sm" className="text-foreground" onClick={publish} disabled={!ready || isPublishing}>
+              <Button variant="inverse" size="sm" onClick={publish} disabled={!ready || isPublishing}>
                 Publish
               </Button>
             ) : null}
@@ -315,7 +314,7 @@ export function PreviewView({
           cantClose ? (
             <span className="font-normal opacity-90">You can close this tab.</span>
           ) : (
-            <Button variant="outline" size="sm" className="text-foreground" onClick={closeWindow}>
+            <Button variant="inverse" size="sm" onClick={closeWindow}>
               Close this window
             </Button>
           )

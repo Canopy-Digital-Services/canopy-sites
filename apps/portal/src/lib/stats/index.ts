@@ -1,7 +1,7 @@
 /**
  * Site stats for the Stats page. The page asks getSiteStats and renders
  * whatever comes back: demo sites get deterministic sample data, a site with
- * an Umami website id gets its numbers from Umami (Epic 35), and any other
+ * an Umami website id gets its numbers from Umami, and any other
  * site has none yet.
  */
 

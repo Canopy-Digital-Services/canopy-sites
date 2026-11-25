@@ -4,9 +4,9 @@ import { BASE_RUNBOOK, INJECTION_REPLY } from "./runbook";
 
 describe("the system prompt", () => {
   it("is the base runbook, then the site's guide and its collections, then the date", () => {
-    const [base, site, today] = systemPrompt({ name: "Client 1", guide: "## Exact names\n\n- Coach Rennie" }, ["site", "classes"], "2026-11-06");
+    const [base, site, today] = systemPrompt({ name: "Thistle Boxing Club", guide: "## Exact names\n\n- Coach Rennie" }, ["site", "classes"], "2026-11-06");
     expect(base.text).toBe(BASE_RUNBOOK);
-    expect(site.text.startsWith("# This site: Client 1\n\n## Exact names\n\n- Coach Rennie\n\n# Collections\n\n## site (Business details)\n")).toBe(true);
+    expect(site.text.startsWith("# This site: Thistle Boxing Club\n\n## Exact names\n\n- Coach Rennie\n\n# Collections\n\n## site (Business details)\n")).toBe(true);
     expect(site.text).toContain("## classes (Classes)\n");
     expect(site.cache_control).toEqual({ type: "ephemeral" });
     expect(today.text).toBe("Today is 2026-11-06.");
@@ -21,7 +21,7 @@ describe("the system prompt", () => {
     expect(BASE_RUNBOOK).toContain("Never write copy.");
     expect(BASE_RUNBOOK).toContain("request_help");
     expect(BASE_RUNBOOK).toContain("refused set to true");
-    // Client 1's first eval: "the card above" (it's below) and "add details before you send it" (it can't be edited).
+    // An eval's replies said "the card above" (it's below) and "add details before you send it" (it can't be edited).
     expect(BASE_RUNBOOK).toContain('Call it "the card", never where it is on the screen.');
     expect(BASE_RUNBOOK).not.toContain("\u2014");
     expect(OUT_OF_LANE).toContain("request_help");

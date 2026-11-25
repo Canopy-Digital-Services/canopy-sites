@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { domainMatchesSite, getStatsHealth, QUIET_DAYS, umamiIdRefusal } from "./health";
 
-const WEBSITE = "00000000-0000-4000-8000-000000000003";
-const SITE = { umamiWebsiteId: WEBSITE, productionHostnames: ["test-site.example"] };
+const WEBSITE = "5b1e2c3d-8f4a-4c6b-9d2e-7a0f1b3c5d7e";
+const SITE = { umamiWebsiteId: WEBSITE, productionHostnames: ["bramblebakery.example"] };
 const NOW = new Date("2026-11-17T21:00:00Z");
 
 /** Umami 3.4's answers for a website and its date range (shapes checked live 2026-11-17). */
@@ -21,7 +21,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation(
     umami(
-      { id: WEBSITE, name: "the test site", domain: "test-site.example" },
+      { id: WEBSITE, name: "Bramble Bakery", domain: "bramblebakery.example" },
       { startDate: "2026-11-06T18:38:47.377Z", endDate: "2026-11-16T23:43:30.331Z" },
     ),
   );
@@ -38,8 +38,8 @@ describe("getStatsHealth", () => {
     expect(await getStatsHealth(SITE, NOW)).toEqual({
       status: "readable",
       website: {
-        name: "the test site",
-        domain: "test-site.example",
+        name: "Bramble Bakery",
+        domain: "bramblebakery.example",
         firstEvent: new Date("2026-11-06T18:38:47.377Z"),
         lastEvent: new Date("2026-11-16T23:43:30.331Z"),
       },
@@ -53,10 +53,10 @@ describe("getStatsHealth", () => {
 
   it("is quiet when nothing was recorded in the last week, or ever", async () => {
     const lastWeek = new Date(NOW.getTime() - (QUIET_DAYS * 86_400_000 + 60_000)).toISOString();
-    fetchMock.mockImplementation(umami({ name: "the test site", domain: "test-site.example" }, { startDate: lastWeek, endDate: lastWeek }));
+    fetchMock.mockImplementation(umami({ name: "Bramble Bakery", domain: "bramblebakery.example" }, { startDate: lastWeek, endDate: lastWeek }));
     expect(await getStatsHealth(SITE, NOW)).toMatchObject({ status: "readable", quiet: true });
 
-    fetchMock.mockImplementation(umami({ name: "New site", domain: "test-site.example" }, { startDate: null, endDate: null }));
+    fetchMock.mockImplementation(umami({ name: "New site", domain: "bramblebakery.example" }, { startDate: null, endDate: null }));
     expect(await getStatsHealth(SITE, NOW)).toMatchObject({
       status: "readable",
       quiet: true,
@@ -65,7 +65,7 @@ describe("getStatsHealth", () => {
   });
 
   it("flags a website whose Umami domain is none of the site's hostnames, such as another client's", async () => {
-    fetchMock.mockImplementation(umami({ name: "Client 1", domain: "client1.example" }, { startDate: null, endDate: null }));
+    fetchMock.mockImplementation(umami({ name: "Thistle Boxing Club", domain: "thistleboxing.example" }, { startDate: null, endDate: null }));
     expect(await getStatsHealth(SITE, NOW)).toMatchObject({ status: "readable", domainMatches: false });
   });
 
@@ -105,12 +105,12 @@ describe("umamiIdRefusal", () => {
 describe("domainMatchesSite", () => {
   it.each([
     ["canopyds.com", ["www.canopyds.com"], true],
-    ["client3.example", ["client3.example", "client3.org"], true],
-    ["www.client1.example", ["client1.example"], true],
-    ["https://client2.example/", ["client2.example"], true],
-    ["client1.example", ["test-site.example"], false],
-    ["client3.example", ["client3-prelaunch.canopyds.com"], false],
-    [null, ["test-site.example"], false],
+    ["northgatecyclery.example", ["northgatecyclery.example", "ngcycles.example"], true],
+    ["www.thistleboxing.example", ["thistleboxing.example"], true],
+    ["https://bramblebakery.example/", ["bramblebakery.example"], true],
+    ["thistleboxing.example", ["bramblebakery.example"], false],
+    ["northgatecyclery.example", ["northgate-prelaunch.canopyds.com"], false],
+    [null, ["bramblebakery.example"], false],
   ] as const)("%s against %j is %s", (domain, hostnames, matches) => {
     expect(domainMatchesSite(domain, [...hostnames])).toBe(matches);
   });

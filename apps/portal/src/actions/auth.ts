@@ -117,7 +117,7 @@ const UNKNOWN_USER_HASH = "scrypt$15$8$3$0rTeU8SSUAwkT3DlGs5OfQ==$bfAUa1aKd6eHfa
 type SignInResult =
   | { success: true }
   | { error: string; homeUrl?: string }
-  /** A Sites account on the Forms host: the login page offers a button that posts `token` to `action` (E29 D8). */
+  /** A Sites account on the Forms host: the login page offers a button that posts `token` to `action` (PRD D22). */
   | { handoff: { action: string; token: string } };
 
 export async function signInAction(input: {
@@ -161,7 +161,7 @@ export async function signInAction(input: {
   // The password is right, but the account lives on its other product's
   // host (PRD D22), and sessions are per host, so none starts here. A Sites
   // customer on the Forms host gets a one-time pass to a session there
-  // (E29 D8); a Forms customer on the Sites host is told where to sign in.
+  // (PRD D22); a Forms customer on the Sites host is told where to sign in.
   const membership = await getSoleMembership(user.id);
   const entitlements = membership ? await getAccountEntitlements(membership.accountId) : null;
   const homeUrl = entitlements && (await signInElsewhere(entitlements));
@@ -176,7 +176,7 @@ export async function signInAction(input: {
       lastLoginAt: new Date(),
       failedLoginCount: 0,
       lastFailedLoginAt: null,
-      // Upgrade a pre-Epic 28 bcrypt hash while the plain password is in hand.
+      // Upgrade an older bcrypt hash while the plain password is in hand.
       ...(needsRehash(stored) ? { password: await hashPassword(password) } : {}),
     },
   });

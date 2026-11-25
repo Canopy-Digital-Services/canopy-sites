@@ -48,6 +48,20 @@ function recipientFor(kind: ContactKind): string | undefined {
   return process.env.FEEDBACK_RECIPIENT_EMAIL;
 }
 
+/**
+ * What the help bubble's Contact support and Give feedback send (ContactDialog).
+ * The message arrives with the page, query, form, and submission it was sent
+ * from, and Reply-To sends replies to the user rather than the SMTP identity.
+ *
+ * Nothing from the dialog is trusted. `kind` is re-read, since it crosses the
+ * client boundary. The reply address is user-supplied and lands in an SMTP
+ * header, so it is re-validated with `isValidEmail`, whose refusal of CR/LF is
+ * what blocks header injection (as `pickReplyTo` in submission-email.ts does);
+ * when it differs from the account email the body names both. Support goes to
+ * SUPPORT_RECIPIENT_EMAIL, else FEEDBACK_RECIPIENT_EMAIL; feedback to
+ * FEEDBACK_RECIPIENT_EMAIL. One message per user per minute per kind, so
+ * feedback never blocks an urgent support request.
+ */
 export async function submitContactMessage(
   payload: ContactPayload
 ): Promise<ContactResult> {

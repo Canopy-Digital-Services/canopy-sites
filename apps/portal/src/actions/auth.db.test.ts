@@ -188,7 +188,7 @@ describe("signInAction", () => {
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toMatchObject({ failedLoginCount: 1 });
   });
 
-  it("upgrades a pre-Epic 28 bcrypt hash on sign-in, and the password keeps working", async () => {
+  it("upgrades an older bcrypt hash on sign-in, and the password keeps working", async () => {
     const { user } = await createAccount();
     const bcrypt = await import("bcrypt");
     await prisma.user.update({ where: { id: user.id }, data: { password: await bcrypt.hash("old style pass", 10) } });

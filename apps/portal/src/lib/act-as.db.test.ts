@@ -13,7 +13,7 @@ vi.mock("@/lib/builder-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
   const content = {
     site: {
-      name: "Client 1",
+      name: "Thistle Boxing Club",
       description: "A gym.",
       contact: { phone: "555-0100", email: "hi@example.com" },
       hours: { kind: "weekly", days: [{ day: "tuesday", opens: "12:00", closes: "17:00" }] },
@@ -49,7 +49,7 @@ async function expectRedirect(promise: Promise<unknown>, to: string) {
 async function acting() {
   const { account: client, user: owner } = await createAccount({ planCode: "SITES" });
   const site = await createSite(client.id);
-  await prisma.site.update({ where: { id: site.id }, data: { repoUrl: "https://github.com/example/client1", productionHostnames: ["client1.example.com"] } });
+  await prisma.site.update({ where: { id: site.id }, data: { repoUrl: "https://github.com/example/thistle", productionHostnames: ["thistle.example.com"] } });
   const { account: own, user: operator } = await createAccount({ planCode: "SITES", roleCode: "GLOBAL_ADMIN" });
   const { token, session } = await signInAs(operator.id);
   await expectRedirect(actAsClient(site.id), "/");

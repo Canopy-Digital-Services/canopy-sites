@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSiteStats } from "./index";
 import { DIRECT_SOURCE } from "./sources";
 
-const WEBSITE = "00000000-0000-4000-8000-000000000004";
+const WEBSITE = "a7c3e9f1-2b4d-4e6f-8a1c-3d5e7f9b0c2d";
 const SITE = {
-  id: "cmsiteclient30000000000001",
+  id: "cmsitebike0000000000001",
   isDemo: false,
   umamiWebsiteId: WEBSITE,
-  productionHostnames: ["client3.example", "client3.org"],
+  productionHostnames: ["northgatecyclery.example", "ngcycles.example"],
 };
 const LA = "America/Los_Angeles";
 // 09:40 on Saturday the 14th in Los Angeles.
@@ -39,7 +39,7 @@ function answer(url: URL): unknown {
     case "referrer":
       return [
         { x: "facebook.com", y: 6 },
-        { x: "client3.example", y: 4 },
+        { x: "northgatecyclery.example", y: 4 },
         { x: "l.facebook.com", y: 2 },
         { x: "linkedin.com", y: 3 },
       ];

@@ -2,10 +2,9 @@
 
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 //
-// Experimental progressive-disclosure editor flow: instead of stacking all
-// section cards in an accordion, show one card at a time. Cards swoop in
-// from below and swoop out sideways when the user moves on (left = forward,
-// right = back). Keyframes live in globals.css (editor-swoop-*).
+// The editor's sections, one card at a time. Cards swoop in from below and
+// swoop out sideways when the user moves on (left = forward, right = back).
+// Keyframes live in globals.css (editor-swoop-*).
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -47,7 +46,7 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
 
   const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
     // Only advance when the wrapper's own exit animation finishes — child
-    // animations (collapsibles, pulsing icons) bubble up here too.
+    // animations (menus, pulsing icons) bubble up here too.
     if (event.target !== event.currentTarget || !exiting) return;
     if (!event.animationName.startsWith("editor-swoop-out")) return;
     setStep((s) => (exiting === "forward" ? s + 1 : s - 1));
@@ -91,10 +90,10 @@ export function EditorFlow({ formId, ownerEmail }: EditorFlowProps) {
           !exiting && "editor-swoop-in"
         )}
       >
-        {current === "header" && <HeaderSection variant="flow" />}
-        {current === "fields" && <FieldsSection formId={formId} variant="flow" />}
+        {current === "header" && <HeaderSection />}
+        {current === "fields" && <FieldsSection formId={formId} />}
         {current === "settings" && (
-          <AfterSubmissionSection ownerEmail={ownerEmail} variant="flow" />
+          <AfterSubmissionSection ownerEmail={ownerEmail} />
         )}
       </div>
 

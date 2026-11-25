@@ -25,6 +25,8 @@ import {
   addressAt,
   applyChanges,
   avoidWarnings,
+  countIssues,
+  limitIssues,
   refusalIssues,
   COLLECTION_NAMES,
   fieldInfo,
@@ -47,7 +49,7 @@ import {
   type SiteGuide,
 } from "@canopy/site-contract";
 import { z } from "zod";
-import { Prisma, type ChangeSetSource, type Site } from "@prisma/client";
+import { Prisma, type Build, type ChangeSetSource, type Site } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { BuilderError, builderConfigured, fetchBuild, fetchContent, requestPreview, requestPublish, type BuilderSite } from "@/lib/builder-client";
@@ -385,32 +387,60 @@ function check(site: Site, published: RawContent, ops: ChangeOp[], guide: SiteGu
   if (lane.length) {
     throw new ToolError(`${lane.map((v) => v.message).join("; ")}.`, lane.map((v) => laneIssue(v, published, after)), { outOfLane: true });
   }
-  const result = validateContent(after, { limits: guide.limits, counts: guide.counts });
-  if (!result.ok) {
-    const issues: ToolIssue[] = result.issues.map((i) => {
-      try {
-        return { ...i, address: addressAt(after as Record<string, unknown>, i.collection, i.path) };
-      } catch {
-        return i;
-      }
-    });
-    throw new ToolError(`That change doesn't fit the site: ${result.issues.map((i) => `${i.collection}${i.path}: ${i.message}`).join("; ")}`, issues);
-  }
-  // Checked once the content is valid, and apart from the contract: a refused
-  // phrase is Canopy's call, not a mistake to fix.
-  const refused = refusalIssues(after, guide.refuse);
-  if (refused.length) {
-    const issues: ToolIssue[] = refused.map((i) => {
-      const issue = { ...i, collection: i.collection as ToolIssue["collection"] };
-      try {
-        return { ...issue, address: addressAt(after as Record<string, unknown>, issue.collection, i.path) };
-      } catch {
-        return issue;
-      }
-    });
-    throw new ToolError(`${refused.map((i) => i.message).join("; ")}.`, issues, { outOfLane: true });
-  }
+  // The contract runs over the whole draft: content that breaks it can't build.
+  const result = validateContent(after);
+  if (!result.ok) throw new ToolError(doesntFit(result.issues), located(after, result.issues));
+  const { fit, refused } = guideIssues(published, after, result.content as RawContent, guide);
+  if (fit.length) throw new ToolError(doesntFit(fit), fit);
+  // Apart from the rest: a refused phrase is Canopy's call, not a mistake to fix.
+  if (refused.length) throw new ToolError(`${refused.map((i) => i.message).join("; ")}.`, refused, { outOfLane: true });
   return after;
+}
+
+const doesntFit = (issues: Array<{ collection: string; path: string; message: string }>) =>
+  `That change doesn't fit the site: ${issues.map((i) => `${i.collection}${i.path}: ${i.message}`).join("; ")}`;
+
+/** Issues with the address of the field each is about, where the content has it. */
+function located(content: RawContent, issues: Array<{ collection: string; path: string; message: string }>): ToolIssue[] {
+  return issues.map((i) => {
+    const issue = { ...i, collection: i.collection as ToolIssue["collection"] };
+    try {
+      return { ...issue, address: addressAt(content as Record<string, unknown>, i.collection, i.path) };
+    } catch {
+      return issue;
+    }
+  });
+}
+
+function valueAt(content: RawContent, address: string): unknown {
+  try {
+    return resolveAddress(content, address).node;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The guide's rules this edit breaks (PRD D40): a limit or a refused phrase
+ * on a field whose value it changed or added, a count on a list it made
+ * longer. Fields and lists are compared by address, as `avoidWarnings` does,
+ * so a field that kept its value is never reported, however its list moved.
+ * A rule the published site already breaks never refuses an owner's edit
+ * elsewhere: the operator's site page lists those (`publishedGuideIssues`).
+ * `parsed` is `after` as the contract read it, which is what the rules see.
+ */
+function guideIssues(published: RawContent, after: RawContent, parsed: RawContent, guide: SiteGuide): { fit: ToolIssue[]; refused: ToolIssue[] } {
+  const changed = (i: ToolIssue) => !i.address || JSON.stringify(valueAt(published, i.address)) !== JSON.stringify(valueAt(after, i.address));
+  const grew = (i: ToolIssue) => {
+    if (!i.address) return true;
+    const was = valueAt(published, i.address);
+    const now = valueAt(after, i.address);
+    return !Array.isArray(was) || (Array.isArray(now) && now.length > was.length);
+  };
+  return {
+    fit: [...located(parsed, limitIssues(parsed, guide.limits)).filter(changed), ...located(parsed, countIssues(parsed, guide.counts)).filter(grew)],
+    refused: located(parsed, refusalIssues(parsed, guide.refuse)).filter(changed),
+  };
 }
 
 /** Marks a change's unfinished builds as replaced by the one about to start. */
@@ -762,6 +792,32 @@ export async function getDraftView(accountId: string, siteId: string) {
   return draftView(await ownedSite(accountId, siteId));
 }
 
+export type PublishedGuideIssues =
+  | { status: "no-repo" | "unconfigured" | "unreachable" }
+  | { status: "read"; issues: Array<{ address: string; message: string }> };
+
+/**
+ * Where a site's published content breaks the contract or its guide, for
+ * the operator's site page, behind `requireGlobalAdmin`. Owner edits are
+ * checked only on what they change (`guideIssues`), so this is where the
+ * operator sees copy a Canopy push or a tightened guide left past a rule.
+ */
+export async function publishedGuideIssues(siteId: string): Promise<PublishedGuideIssues> {
+  const site = await prisma.site.findUnique({ where: { id: String(siteId) }, include: withZone });
+  if (!site?.repoUrl) return { status: "no-repo" };
+  if (!builderConfigured()) return { status: "unconfigured" };
+  let read: SiteRead;
+  try {
+    read = await readSite(site);
+  } catch (err) {
+    if (err instanceof ToolError) return { status: "unreachable" };
+    throw err;
+  }
+  const { limits, counts, refuse } = read.guide;
+  const { issues } = validateContent(read.published, { limits, counts, refuse });
+  return { status: "read", issues: located(read.published, issues).map((i) => ({ address: i.address ?? `${i.collection}${i.path}`, message: i.message })) };
+}
+
 /**
  * Proposes a change (quick edit, later MCP). The model writes JSON Pointer ops
  * against the draft as it read it; they are rewritten as address ops and
@@ -830,7 +886,9 @@ const BUILD_STATUS = { queued: "QUEUED", running: "RUNNING", succeeded: "SUCCEED
  * becomes PREVIEWED when the build of its current version succeeds. A failed
  * build leaves the draft pending, so no edit is lost, with a plain line for
  * the owner; the builder's reason stays on the build, for the operator, and
- * goes to the log.
+ * goes to the log. A build the builder lost in a restart starts again
+ * (`rebuildLost`); any other builder failure is no news, and the next refresh
+ * asks again.
  */
 export async function refreshChange(accountId: string, changeSetId: string) {
   const changeSet = await ownedChange(accountId, changeSetId);
@@ -839,8 +897,13 @@ export async function refreshChange(accountId: string, changeSetId: string) {
   if (!PENDING.includes(changeSet.status as (typeof PENDING)[number]) || !build || (build.status !== "QUEUED" && build.status !== "RUNNING")) {
     return unchanged;
   }
-  const remote = await fetchBuild(changeSet.site.slug, build.id).catch(() => null);
-  if (!remote) return unchanged;
+  let remote: Awaited<ReturnType<typeof fetchBuild>>;
+  try {
+    remote = await fetchBuild(changeSet.site.slug, build.id);
+  } catch (err) {
+    if (err instanceof BuilderError && err.status === 404) return rebuildLost(changeSet, build);
+    return unchanged;
+  }
   const buildStatus = BUILD_STATUS[remote.status];
   const done = buildStatus !== "QUEUED" && buildStatus !== "RUNNING";
   await prisma.build.update({
@@ -864,6 +927,41 @@ export async function refreshChange(accountId: string, changeSetId: string) {
   return { status: data.status, buildStatus, buildVersion: build.draftVersion, error: data.error };
 }
 
+/** On a build the builder answered 404 for: it keeps its builds in memory, so it lost this one in a restart. */
+const LOST_BUILD = "The builder restarted and lost this build.";
+
+/**
+ * Starts a draft's lost build again, of the same version on the same base
+ * commit, and marks the lost one FAILED. Once per version: a version lost a
+ * second time gets the failed build's plain line instead, so a builder that
+ * keeps losing builds can't make every refresh start one.
+ */
+async function rebuildLost(changeSet: Awaited<ReturnType<typeof ownedChange>>, lost: Build) {
+  const baseCommit = lost.baseCommit ?? changeSet.baseCommit;
+  const next = await prisma.$transaction(async (tx) => {
+    const marked = await tx.build.updateMany({
+      where: { id: lost.id, status: { in: ["QUEUED", "RUNNING"] } },
+      data: { status: "FAILED", error: LOST_BUILD, finishedAt: new Date() },
+    });
+    if (marked.count === 0) return null; // Another refresh got here first.
+    const lostBefore = await tx.build.count({ where: { changeSetId: changeSet.id, draftVersion: lost.draftVersion, error: LOST_BUILD, id: { not: lost.id } } });
+    if (lostBefore > 0) return "again" as const;
+    return tx.build.create({ data: { siteId: changeSet.siteId, changeSetId: changeSet.id, baseCommit, draftVersion: lost.draftVersion } });
+  });
+  if (next === null) {
+    const now = await ownedChange(changeSet.site.accountId, changeSet.id);
+    return { status: now.status, buildStatus: now.builds[0]?.status ?? null, buildVersion: now.builds[0]?.draftVersion ?? null, error: now.error };
+  }
+  const error =
+    next === "again"
+      ? builderFailure("build", LOST_BUILD, { slug: changeSet.site.slug, buildId: lost.id })
+      : await startBuild(changeSet.site, next.id, asOps(changeSet.ops), baseCommit);
+  if (error) {
+    await prisma.changeSet.updateMany({ where: { id: changeSet.id, version: changeSet.version, status: { in: [...PENDING] } }, data: { status: "DRAFT", error } });
+  }
+  return { status: changeSet.status, buildStatus: error ? ("FAILED" as const) : ("QUEUED" as const), buildVersion: lost.draftVersion, error: error ?? changeSet.error };
+}
+
 /**
  * Publishes a previewed change from the preview page, the only place Publish
  * lives (PRD D3, D47). `buildId` is the build the page showed: only that
@@ -881,6 +979,22 @@ export async function publishChange(ctx: ToolContext, changeSetId: string, build
   }
   if (build.id !== buildId) throw new ToolError("The preview changed since this page loaded. Look it over again, then publish.");
   const sent = asOps(changeSet.ops);
+  // The site's rules as they are now: a lock, fixed list, or guide rule added
+  // since the draft was saved applies to it. A branch that has moved is the
+  // builder's to refuse ("changed since"), so only the draft's own base is checked.
+  const read = await readSite(changeSet.site);
+  if (read.commit === changeSet.baseCommit) {
+    try {
+      check(changeSet.site, read.published, sent, read.guide);
+    } catch (err) {
+      if (!(err instanceof ToolError)) throw err;
+      await prisma.changeSet.updateMany({
+        where: { id: changeSet.id, version: changeSet.version, status: "PREVIEWED" },
+        data: { status: "FAILED", error: `This no longer fits the site's rules. ${err.message}` },
+      });
+      throw err;
+    }
+  }
   let commit: string | null;
   try {
     ({ commit } = await requestPublish(builderSite(changeSet.site), {

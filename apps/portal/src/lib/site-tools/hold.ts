@@ -1,5 +1,5 @@
 /**
- * Who is editing a site (PRD D64, Epic 54). One person holds a site at a
+ * Who is editing a site (PRD D64). One person holds a site at a
  * time. A hold starts with an edit: the tool layer takes it for the caller on
  * every write and refuses anyone else's, and the Editor takes it when its
  * person opens a field. Being on a page takes nothing. The editing pages keep

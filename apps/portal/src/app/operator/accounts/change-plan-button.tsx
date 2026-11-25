@@ -63,7 +63,7 @@ export function ChangePlanButton({
         const result = await setAccountPlan(accountId, selectedCode);
         if (result.resolutionRequired) {
           toast.success(
-            `Plan changed. ${result.unpublishedCount} form${result.unpublishedCount === 1 ? "" : "s"} unpublished; user will be prompted to resolve on next login.`
+            `Plan changed. ${result.unpublishedCount} form${result.unpublishedCount === 1 ? "" : "s"} unpublished; they choose which to keep published when they next open the portal.`
           );
         } else {
           toast.success("Plan changed.");
@@ -120,8 +120,8 @@ export function ChangePlanButton({
               {currentPublishedFormsCount} published form
               {currentPublishedFormsCount === 1 ? "" : "s"}, which is over the
               selected plan&apos;s cap of {selectedPlan?.maxPublishedForms}.
-              All of their forms will be unpublished and they will be prompted
-              to choose which to keep published on their next login.
+              All of their forms will be unpublished, and they choose which to
+              keep published when they next open the portal.
             </div>
           )}
         </div>

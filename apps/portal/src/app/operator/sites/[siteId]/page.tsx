@@ -14,6 +14,7 @@ import { SiteBuildsCard } from "./site-builds-card";
 import { PeopleCard, type PersonRow } from "./people-card";
 import { WelcomeVideoCard } from "./welcome-video-card";
 import { StatsCard, StatsCardShell } from "./stats-card";
+import { SiteGuideCard, SiteGuideCardShell } from "./site-guide-card";
 import { listPeopleAccess } from "@/lib/claim";
 import { countOpenHelpRequests } from "@/lib/site-tools/help-requests";
 import { SITES_TABS } from "@/lib/sites-tabs";
@@ -118,6 +119,19 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             }
           }
         />
+
+        <Suspense
+          fallback={
+            <SiteGuideCardShell>
+              <p className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Reading the site…
+              </p>
+            </SiteGuideCardShell>
+          }
+        >
+          <SiteGuideCard siteId={site.id} />
+        </Suspense>
 
         <Suspense
           fallback={

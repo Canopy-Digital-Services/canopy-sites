@@ -27,9 +27,12 @@ export interface BuilderBuild {
 
 export class BuilderError extends Error {
   issues?: ContentIssue[];
-  constructor(message: string, issues?: ContentIssue[]) {
+  /** The HTTP status the builder answered with; unset when it didn't answer. A 404 for a build is one it lost in a restart. */
+  status?: number;
+  constructor(message: string, issues?: ContentIssue[], status?: number) {
     super(message);
     this.issues = issues;
+    this.status = status;
   }
 }
 
@@ -71,7 +74,7 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     throw new BuilderError(`The site builder didn't respond (${(err as Error).name}).`);
   }
   const body = (await res.json().catch(() => ({}))) as T & { error?: string; issues?: ContentIssue[] };
-  if (!res.ok) throw new BuilderError(body.error ?? `The site builder returned ${res.status}.`, body.issues);
+  if (!res.ok) throw new BuilderError(body.error ?? `The site builder returned ${res.status}.`, body.issues, res.status);
   return body;
 }
 

@@ -275,7 +275,7 @@ export type PersonAccess = {
   /** The newest claim link: when it was made, whether the portal emailed it, and by whom. */
   link: { createdAt: Date; emailedAt: Date | null; by: string | null } | null;
   lastLoginAt: Date | null;
-  /** How far they have played each of the site's welcome videos (ROADMAP E39), in seconds of its length; a tab's is listed once they play it. */
+  /** How far they have played each of the site's welcome videos, in seconds of its length; a tab's is listed once they play it. */
   watched: { tab: string; seconds: number; of: number }[];
 };
 

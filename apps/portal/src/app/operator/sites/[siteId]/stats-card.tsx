@@ -1,7 +1,7 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 // The site's Stats as the operator needs to see them: whether the owner's
 // Stats can load, which Umami website they read, and whether it is still
-// recording (Epic 35, 4.7). Rendered on the server; the page streams it in so
+// recording. Rendered on the server; the page streams it in so
 // a slow Umami never holds up the rest of the page.
 import type { ReactNode } from "react";
 import { AlertCircle } from "lucide-react";

@@ -1,0 +1,308 @@
+---
+paths:
+  - "apps/portal/src/lib/session.ts"
+  - "apps/portal/src/lib/auth*.ts"
+  - "apps/portal/src/lib/password.ts"
+  - "apps/portal/src/lib/claim*.ts"
+  - "apps/portal/src/lib/act-as.ts"
+  - "apps/portal/src/lib/person.ts"
+  - "apps/portal/src/lib/product.ts"
+  - "apps/portal/src/lib/data-access/memberships.ts"
+  - "apps/portal/src/actions/auth.ts"
+  - "apps/portal/src/actions/accounts.ts"
+  - "apps/portal/src/actions/claim.ts"
+  - "apps/portal/src/actions/admin/**"
+  - "apps/portal/src/app/**/login/**"
+  - "apps/portal/src/app/**/signup/**"
+  - "apps/portal/src/app/**/claim/**"
+  - "apps/portal/src/app/**/forgot-password/**"
+  - "apps/portal/src/app/**/reset-password/**"
+  - "apps/portal/src/app/auth/**"
+  - "apps/portal/src/app/operator/**"
+---
+
+# Accounts, auth, and sessions
+
+Code paths are relative to `apps/portal/`.
+
+## Rules
+
+- Email and password sign-in, self-service signup, server-side sessions in the `sessions` table (`src/lib/session.ts`; behavior below). Get the session through `requireAuth`, `getCurrentAccountId`, or `requireGlobalAdmin`, or `getSession` where signed-out is a normal answer. Never read the cookie or query `sessions` anywhere else, and never add a second way to authenticate a request without a database test for it. Credential endpoints (sign-in, signup, reset request, password change, claim) are throttled in `src/lib/auth-throttle.ts`; a new one gets a throttle there. A user's password is null until they claim it (PRD D49, `src/lib/claim.ts`): the owner of an account the operator linked, or a person the operator added to one (PRD D63). Sign-in treats null as a wrong password.
+- Account is the tenant and is never surfaced in the UI. Users reach it through `Membership` (`OWNER | MEMBER`). A user has exactly one; an account has one `OWNER` and any number of `MEMBER`s, added and removed by the operator only (PRD D63, `src/actions/admin/members.ts`, behavior below). A member does everything but delete the account, so never write a check that assumes the session's user is the account's only one. Whatever names a person to someone else calls `personName` (`src/lib/person.ts`): the name the operator typed, else the email. Resolve a user's account only through `src/lib/data-access/memberships.ts` (`getCurrentAccountId` for the session user; `sessionAccountId` and `sessionCanUseAccount` where signed-out or another account is a normal answer), and delete accounts only through `deleteAccountAndSoleMembers`: an Account delete does not cascade to Users. Never query `memberships` for a session anywhere else: a Global Admin acting as a client (PRD D49, `session.actingAs`) resolves to the client's account only through those, and a direct query would miss it. Anything only the owner may do checks `isActing` (`src/lib/act-as.ts`); behavior below.
+- Sessions are per host: auth cookies are host-only, so signing in on `forms.` does not sign you in on `sites.`.
+- **Each account has a home host**, the one its emails use (`appUrlFor`): Sites accounts on `SITES_URL`, every other account on `NEXTAUTH_URL` (PRD D22). `requireHomeHost` (`src/lib/product.ts`) in the admin and operator layouts sends a signed-in account on the other configured host home, so a new signed-in layout outside `(admin)` calls it too; `signInAction` on the other host checks the password and starts no session there: a Forms account gets `homeUrl` (the login page links to it), a Sites account gets a one-time handoff (`createSessionHandoff` in `src/lib/session.ts`) that the login page's "Go to Canopy Sites" modal posts to `/auth/handoff` on the Sites host, which accepts only the configured Forms origin. Signup lives on the Forms host. With `SITES_URL` unset or equal to `NEXTAUTH_URL` nothing routes.
+- **Every other redirect after sign-in, sign-out, and account deletion is a relative path** (`/`, `/login`). The home-host redirect is the only absolute one, and its destination comes from configuration. Never build a redirect or a post-auth destination from the request's `Host`.
+- **Links emailed to an account come from `appUrlFor(entitlements)`** (`src/lib/product.ts`): `SITES_URL` for Sites accounts, `NEXTAUTH_URL` otherwise, with `productNameFor` for the product name in the copy. Never build an emailed link from request headers: a reset link built from `Host` would hand a victim's token to whatever domain the requester sent.
+
+### Account Model
+
+The Account is the tenant boundary: forms, submissions, and fields belong to it. Users reach an account through a **Membership** (`OWNER` or `MEMBER`, Epic 28). A user has exactly one: `getSoleMembership` in `src/lib/data-access/memberships.ts` throws for more than one, and `getCurrentAccountId()` resolves through it. An account has one `OWNER`, from signup or Link a site, and any number of `MEMBER`s, each added by the operator (People on an account, below). A member does everything the owner does except delete the account.
+
+```
+Account (id, createdAt, planCode, ...)
+  ├── Memberships[] (role) ──→ User (email, password?, roleCode, ...)
+  │                               └── PasswordTokens[] (reset or claim)
+  └── Forms[]
+        ├── Fields[]
+        └── Submissions[]
+```
+
+Deleting an Account cascades to its Memberships and Forms (and their Fields, Submissions, Notifications). It does **not** cascade to Users, so deletion goes through `deleteAccountAndSoleMembers`, which also deletes the users whose only membership it was.
+
+#### Key files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/session.ts` | Sessions: token generation, database validation and rolling, revocation, the cookie |
+| `src/lib/auth-utils.ts` | `requireAuth()`, `getCurrentAccountId()`, `requireGlobalAdmin()`, password hashing |
+| `src/actions/auth.ts` | Server actions: signup, sign-in, password change/reset, sign-out |
+| `src/actions/accounts.ts` | Server actions: account deletion (self-service and operator) |
+| `src/lib/data-access/memberships.ts` | Account resolution and account deletion |
+| `src/lib/data-access/accounts.ts` | Operator console queries (metadata only) |
+
+There is no auth library (PRD D16): sessions are the portal's own rows, in `src/lib/session.ts`.
+
+---
+
+### Account Creation (Signup)
+
+**Route:** `/signup`
+**Action:** `signUp()` in `src/actions/auth.ts`
+
+Flow:
+1. Validate email format and password length (`passwordProblem` in `src/lib/password-policy.ts`: 8 to 128 characters)
+2. Refuse if throttled; check for an existing user with the same email and reject if found
+3. Hash the password (see Password storage)
+4. Create User, Account, and an `OWNER` Membership in one write. The account's `timeZone` is the browser's, which the signup form sends; anything that isn't a zone leaves it on `UTC`
+5. Create a session and set the cookie
+
+#### Operator link (PRD D49)
+
+A Sites client's account is made by the operator, not by signup: Operator → Sites → Link a site (`linkSite` in `src/actions/admin/sites.ts`, over `createLinkedSite` in `src/lib/site-link.ts`, which has no session of its own). One transaction creates the User with no password, an Account on `SITES` in Pacific time (the operator's browser isn't the client's), its `OWNER` Membership, and the Site; the first Build and publish follows outside it, so a failed build leaves the account. An email that already has a user is refused, unless its account is on `SITES` with no site, which the form offers to link to instead. The owner sets a first password by claiming the account (below).
+
+#### People on an account (PRD D63)
+
+**Code:** `src/actions/admin/members.ts`, Global Admin only; `listPeopleAccess()` in `src/lib/claim.ts`
+
+An organization's other people get logins of their own on the site's account. The operator adds each from the site's People card (Operator → Sites → the site), or from Add person on Operator → Accounts for an account with no site: a name and an email no user has yet (`addAccountMember`), which makes a user with no password and a `MEMBER` membership and returns a claim link to pass on. Nothing is emailed from there. The card lists everyone on the account, owner first, with where each stands on claiming, and renames a person (`setPersonName`).
+
+`removeAccountMember` takes anyone but the owner off the account: the membership goes, and the user with it when it was their only one, so their sessions end by cascade. What they published and sent keeps its row with the user column null. It refuses the owner, the operator themselves, and another Global Admin, and every one of these actions refuses a person who isn't on the account it names.
+
+A person's name (`User.name`, optional) is what the portal calls them to anyone else; `personName` in `src/lib/person.ts` falls back to the email. The operator types it at Link a site, at Add person, or by renaming.
+
+#### Claim (PRD D49)
+
+**Route:** `/claim?token=...` on the account's home host
+**Code:** `src/lib/claim.ts`; actions `claimAccount()` and `resendClaimLink()` in `src/actions/claim.ts`, and the operator's `sendClaimLink()` and `emailShownClaimLink()` in `src/actions/admin/claims.ts`
+
+A person with no password, the owner of a linked site or anyone added to its account since, gets in through a claim link: a 32-byte token stored only as its SHA-256 in `password_reset_tokens` with `purpose = CLAIM`, good once for 7 days. The operator copies one from the person's row on the site's People card to text it, or has the portal email it (`emailedAt`); the dialog that shows a link can email that same link (`emailShownClaimLink`), so one link serves both. Forgot password for someone who hasn't claimed emails one too (no `createdByUserId`). The link's host is `appUrlFor` on the account, never the request's. Any new link of either purpose retires the user's earlier unused ones by moving their expiry to now, so `usedAt` on a claim token always means the owner claimed with it.
+
+Opening the page reads the token and consumes nothing, so a messaging app's link preview can't use it up. Setting the password consumes it with one conditional update (a claim token, unused, unexpired) and sets the password only where it is still null, in one transaction; then a "keep me signed in" session starts and `lastLoginAt` is set. An expired link offers to email a new one to the same address (`resendClaimLink`, under the reset throttle); a used one points to sign-in.
+
+#### Password storage
+
+`src/lib/password.ts`. New hashes are scrypt, N=2^15, r=8, p=3 (OWASP's 32 MiB option, about 140 ms), stored as `scrypt$15$8$3$<salt>$<key>` so the parameters can be raised later. Hashes from before Epic 28 are bcrypt; they still verify, and a successful sign-in re-hashes them (`needsRehash`). scrypt does not truncate, unlike bcrypt's 72 bytes. Client components import the length limits from `password-policy.ts`, never `password.ts` (Node-only).
+
+---
+
+### Authentication (Sign-in)
+
+**Route:** `/login`
+**Action:** `signInAction()` in `src/actions/auth.ts`, called from the login page
+
+Flow:
+1. Refuse if throttled (below), before any lookup or password check
+2. Look up the User by normalized email
+3. Verify the password. An unknown email, and an owner who hasn't claimed their account (`password` null, PRD D49), are verified against a dummy hash so the response takes as long as for a real account
+4. On failure (wrong password, unknown email, an unclaimed owner, or a user with no membership): increment `failedLoginCount`, set `lastFailedLoginAt`, return one generic error
+5. On success: reset the failed count and the email's throttle, set `lastLoginAt`, create a new session, set the cookie
+6. The client navigates to `/`, which resolves the account's home
+
+#### Throttling
+
+`src/lib/auth-throttle.ts`, in memory (one container per environment; counts reset on deploy). Keys are the hashed client IP (`clientIPFromHeaders`: Cloudflare's `CF-Connecting-IP` first) and the normalized email or user id. The per-email limit applies to unregistered emails too, so it reveals nothing.
+
+| Endpoint | Limit | When over |
+|----------|-------|-----------|
+| Sign-in | 5 failures per email, 20 attempts per IP, per 15 min | "Too many attempts" error, no password check |
+| Signup | 5 per IP per hour | Same error |
+| Reset request | 3 per email, 10 per IP, per hour | The usual generic success, and no email sent |
+| Password change | 5 per user per 15 min | Same error |
+| Claim (setting a first password) | 10 per IP per 15 min | Same error |
+
+A throttle lets anyone lock an email out of sign-in for 15 minutes; that is the accepted cost of stopping password guessing.
+
+Sign-in and sign-out are our own server actions with relative redirects. Sign-in on the host that is not the account's home (PRD D22; Rules, above) creates no session there. A Forms account gets `homeUrl`, which the login page links to. A Sites account gets a handoff: a random token whose SHA-256 is stored in `session_handoffs` with the target host, good once for two minutes. The login page's modal posts it (a native form POST, so the browser sends the Forms origin) to `/auth/handoff` on the Sites host, which refuses any other origin (no login CSRF), consumes the token with a conditional delete, and starts the session. Password change and reset drop pending handoffs along with sessions. Next rejects a server action whose `Origin` does not match the host, which is the CSRF defence for both.
+
+---
+
+### Session Management
+
+Sessions are rows in the `sessions` table (`Session` model). The cookie holds a random 32-byte token; the row's id is the token's SHA-256, so the database never holds a usable token and there is no signing secret. The cookie is `HttpOnly`, `SameSite=Lax`, and on HTTPS `Secure` with the `__Host-` prefix (`__Host-canopy_session`; `canopy_session` on plain-HTTP local dev).
+
+#### Timeout policy
+
+| Scenario | Idle timeout | Absolute timeout | Cookie |
+|----------|-------------|-----------------|--------|
+| Default session | 4 hours | 7 days | Ends when the browser closes |
+| "Keep me signed in" | 7 days | 30 days | Expires at the absolute timeout |
+
+- **Idle timeout** lives in the row (`expiresAt`) and rolls forward on each request, written at most once a minute and never past `absoluteExpiresAt`
+- **Absolute timeout** (`absoluteExpiresAt`) never moves
+- An expired row is deleted the next time its token is presented
+
+#### Per-request validation
+
+`getSession()` (memoized per request with React `cache`) reads the cookie and runs one query: the session row with its user's id, email, current `roleCode`, and memberships. No row, or an expired one, means signed out. `requireAuth()`, `getCurrentAccountId()`, and `requireGlobalAdmin()` all read from it, so role changes and account changes apply on the next request.
+
+#### Revocation
+
+Deleting rows is how sessions end, immediately and everywhere:
+
+| Event | Sessions ended |
+|-------|----------------|
+| Sign-out | This browser's (and its acting as a client). The user's holds on sites they were editing are released too (PRD D64) |
+| Password change | Every other session; this browser stays signed in |
+| Password reset | All of the user's |
+| User or account deletion | All, by cascade |
+
+---
+
+### Time Zone
+
+**Route:** `/account`
+**Action:** `setAccountTimeZone()` in `src/actions/accounts.ts`
+
+Any member of the account, or an operator acting as it, picks the account's zone; choosing saves. The action stores only a zone the runtime knows, spelled as the runtime spells it (`canonicalTimeZone`), and for an account with a site asks the builder for the site's content, which is how the builder learns a zone (`sendSiteTimeZone`). A builder that can't be reached doesn't fail the save: it learns the zone at the site's next read.
+
+### Password Change
+
+**Route:** `/account`
+**Action:** `changePassword()` in `src/actions/auth.ts`
+
+Flow:
+1. Verify the current password. A user with none (an unclaimed owner, PRD D49) is refused: a first password comes from the claim
+2. Hash and store the new one (`passwordChangedAt = now`)
+3. Delete every other session of the user; this one stays
+4. The client shows a success toast and clears the form
+
+---
+
+### Password Reset
+
+**Route:** `/forgot-password` → `/reset-password?token=...`
+**Actions:** `requestPasswordReset()`, `validateResetToken()`, `resetPassword()` in `src/actions/auth.ts`
+
+Flow:
+1. User submits email on `/forgot-password`
+2. Server looks up User by email and always returns generic success message (prevents email enumeration)
+3. Unless throttled, if the user exists: an owner who hasn't claimed (no password) gets the claim email instead (Claim, above). Otherwise generate a 32-byte token, store only its SHA-256 (`tokenHash`) with a 1-hour expiry, and retire the user's earlier unused tokens by moving their expiry to now, so only the newest link works (`issuePasswordToken` in `src/lib/claim.ts`)
+4. Send reset email with link to `/reset-password?token=...`, from the account's sender (`senderFor`), in the card the claim email uses (`src/lib/email-card.ts`)
+5. User sets new password → server consumes the token with one conditional update (a reset token, unused and unexpired; a claim link, PRD D49, is refused here), so a link works once even if submitted twice; then sets the password and deletes all of the user's sessions, in the same transaction
+6. Redirect to `/login?reset=success`
+
+#### Important: no account-level guard
+
+The password reset flow checks the User record but does NOT check Account state. With hard-delete this is fine: deleted users have no User record, so `findUnique` returns null and no email is sent.
+
+---
+
+### Account Deletion
+
+**Self-service:** `deleteSelfAccount()` in `src/actions/accounts.ts`
+**Operator:** `deleteAccount()` in `src/actions/accounts.ts`
+
+#### Strategy: hard delete
+
+Both paths call `deleteAccountAndSoleMembers(accountId)` (`src/lib/data-access/memberships.ts`), one transaction:
+
+```
+prisma.account.delete()
+  → Memberships, Forms → Fields, Submissions, Notifications, ActAs records (cascade)
+prisma.user.deleteMany()   // users whose only membership was this account
+  → PasswordTokens (cascade)
+```
+
+A user who also belongs to another account keeps their login. No tombstones.
+
+A tombstone was tried first and caused trouble: the leftover user blocked signing up again with the same email, and every sign-in path had to check for it.
+
+#### Self-service flow
+
+1. User clicks "Delete Account" on `/account` dashboard
+2. `ConfirmDialog` shows destructive warning
+3. `deleteSelfAccount()` server action: `requireAuth()` → the user's membership, which must be `OWNER` → `deleteAccountAndSoleMembers()`
+   The user's sessions go with the user (cascade); the action also clears this browser's cookie
+4. Client navigates to the relative `/login?deleted=1`, so it stays on the current host
+5. Login page shows "Your account has been deleted." banner
+
+#### Operator flow
+
+1. Operator clicks delete on account in `/operator/accounts`
+2. `ConfirmDialog` with account email in the warning
+3. `deleteAccount(accountId)` server action: `requireGlobalAdmin()` → refuses the operator's own account and any deletion that would remove the last Global Admin → `deleteAccountAndSoleMembers()`
+4. `revalidatePath("/operator/accounts")` refreshes the list
+
+The operator cannot delete their own account (guard in server action).
+
+---
+
+### Operator Account Management
+
+**Route:** `/operator/accounts`
+**Guard:** `requireGlobalAdmin()` checks `session.user.role === "GLOBAL_ADMIN"`
+
+The operator console shows metadata only:
+- Owner email, created date, last login, form count, submission count, plan, billing status and reference, role
+- No form content, submission data, or field definitions are ever exposed
+
+Non-admins are silently redirected to their home (`getHomePath`: `/quick-edit` for a Sites account, `/forms` for the rest).
+
+#### Acting as a client (PRD D49)
+
+A Global Admin opens a Sites client's account from the site's People card (Act as client), for acceptance, support, or building a form, never with the client's password. `startActAs` (`src/lib/act-as.ts`) records an `ActAs` row (operator, account, start) and points the operator's own session at it (`Session.actAsId`). On every request `validateSessionToken` puts it on the session as `actingAs`, only while the row is open and the user is still a Global Admin; otherwise it ends the row and clears the pointer. Account lookups then answer with the client's account: `soleMembership` in `src/lib/auth-utils.ts` (as a `MEMBER`, so owner-only actions stay the owner's), and `sessionAccountId` and `sessionCanUseAccount` in `src/lib/data-access/memberships.ts`.
+
+A banner on every page (the admin chrome, the operator console, the preview page) names the client and has Stop, which ends the row and returns to the site's operator page. Sign-out and the session's expiry end it too. While acting, changing a password and deleting the account are refused (`isActing`), the account page shows the owner's email without either section (the time zone stays, and is how the operator sets a client's), switching on a form's notifications fills in the owner's email as the first recipient (never the operator's), and nothing sets the owner's `lastLoginAt`. Writes made meanwhile name the operator wherever a row names its author: a ChangeSet's `createdByUserId`, a form's creator, a published commit's author, a help request's sender (with its `actAsId`, and no email goes out for it, sent or closed). The `ActAs` row is the record for the rest.
+
+#### Role system
+
+User roles live in the `roles` catalog table. `User.roleCode` is a
+FK to `Role.code`. Two roles ship today:
+
+| code           | purpose |
+|----------------|---------|
+| `USER`         | Default for every signup. No operator access. |
+| `GLOBAL_ADMIN` | Full operator-console access. Promotion moves an account on a capped plan to `PAID` (Unlimited); an uncapped plan (`PAID`, `SITES`) stays. |
+
+Role changes are made via the operator console (`Change Role` action). The
+acting admin cannot change their own role, and the system refuses to demote
+or delete the last remaining Global Admin.
+
+A role change takes effect on the affected user's **next request**: the
+session lookup reads `roleCode` from the database every time.
+
+#### `ADMIN_EMAIL` is bootstrap-only
+
+`ADMIN_EMAIL` is no longer consulted at auth-check time. It is used in two
+places:
+
+1. `prisma/seed.ts`: the seed script creates the initial admin user with
+   `roleCode = "GLOBAL_ADMIN"` and `planCode = "PAID"`.
+2. `scripts/backfill-global-admin.mjs`: runs on every container boot after
+   `prisma migrate deploy`. Idempotently promotes the user matching
+   `ADMIN_EMAIL` (if one exists) to `GLOBAL_ADMIN`, by the same plan rule as
+   promotion in the console, so an admin's `SITES` account survives every boot.
+   If `ADMIN_EMAIL` is unset or no user matches, logs a notice and exits
+   cleanly.
+
+Once at least one Global Admin exists in the database, `ADMIN_EMAIL` can be
+removed from the deployment env with no functional impact. It stays
+documented as optional.
+
+---
+
+### Billing
+
+Billing happens outside the portal, by hand (PRD D12). The account stores `status` (`ACTIVE | PAST_DUE | CANCELLED`, default `ACTIVE`) and a free-text `billingRef` pointing at the billing system. An operator sets both with **Billing** on `/operator/accounts` (`setAccountBilling` in `src/actions/admin/billing.ts`, validated by `parseBillingInput` in `src/lib/billing.ts` and logged as a `setAccountBilling` JSON event). Status gates nothing yet.
+
+Hard delete stays compatible: the billing system is the audit trail, so deleting an account loses no billing history. If in-app billing records are ever needed, soft delete is a migration away (a `deletedAt` column plus guards in the auth flows).

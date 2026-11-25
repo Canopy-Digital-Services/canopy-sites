@@ -3,9 +3,9 @@
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["faster-whisper==1.2.1", "numpy"]
 # ///
-"""Turns a screen recording into the two files of a welcome video (ROADMAP E39).
+"""Turns a screen recording into the two files of a welcome video.
 
-    uv run apps/portal/scripts/prepare-welcome-video.py <recording> [--words "the test site, Jane"]
+    uv run apps/portal/scripts/prepare-welcome-video.py <recording> [--words "Bramble Bakery, Marisol"]
 
 Writes <recording>-welcome.mp4 and <recording>-welcome.vtt beside it, the pair
 the operator's Welcome videos card takes, and lists the captions holding a word
@@ -17,8 +17,8 @@ Whisper spells them as it likes.
 - The sound is brought to -16 LUFS in two passes, so a quiet recording plays
   at the level of a phone's own videos, and made mono.
 - The picture is made small: H.264 at CRF 28, at most 1920 wide and 30 frames
-  a second, which keeps a screen's text sharp (Jane's 1:54 went from 17 MB to
-  under 4).
+  a second, which keeps a screen's text sharp (a recording of 1:54 went from
+  17 MB to under 4).
 - The captions are transcribed on this machine by Whisper, cut at sentences
   into cues of two lines at most. The portal's own words (Quick Edit, Canopy
   Sites) are given to it, and `--words` adds the client's: names, a web address.
@@ -227,7 +227,7 @@ def write_vtt(cues: list[list[dict]], words: list[str], target: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Make a welcome video's MP4 and captions from a recording.")
     parser.add_argument("recording", type=Path)
-    parser.add_argument("--words", default="", help='the client\'s words, comma-separated: "the test site, Jane"')
+    parser.add_argument("--words", default="", help='the client\'s words, comma-separated: "Bramble Bakery, Marisol"')
     parser.add_argument("--model", default="medium.en", help="Whisper model (small.en is faster and hears less)")
     args = parser.parse_args()
 

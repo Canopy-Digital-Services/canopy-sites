@@ -99,7 +99,7 @@ describe("normalizeGitHubRepo and suggestSlugFromRepo", () => {
   it("keep one form of a GitHub repo URL, and suggest its name as the slug", () => {
     expect(normalizeGitHubRepo(" https://github.com/Org/My.Site.git/ ")).toBe("https://github.com/Org/My.Site");
     expect(normalizeGitHubRepo("https://github.com/org/repo/tree/main")).toBeNull();
-    expect(suggestSlugFromRepo("https://github.com/Canopy-Digital-Services/client1")).toBe("client1");
+    expect(suggestSlugFromRepo("https://github.com/Canopy-Digital-Services/thistle")).toBe("thistle");
     expect(suggestSlugFromRepo("https://github.com/org/My.Site")).toBe("my-site");
     expect(suggestSlugFromRepo("https://github.com/org")).toBe("");
   });

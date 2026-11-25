@@ -2,7 +2,7 @@
 
 **For coding agents. Run the applicable checks before committing. Escalate to the user what you can't verify yourself.**
 
-`npm test` (Vitest) covers decisions that have tests; this checklist is the quality gate for everything else. What must be tested is in `docs/AGENT_CONTEXT.md` section 4.
+`npm test` (Vitest) covers decisions that have tests; this checklist is the quality gate for everything else. What must be tested is in `.claude/rules/tests.md`.
 
 **Local dev:** The app runs on **port 3006** (e.g. `http://localhost:3006`). Use this base URL for browser verification, API smoke tests, and embed testing below.
 
@@ -55,7 +55,7 @@ After running `npm run db:migrate -- --name ...`:
 
 - Confirm a new directory was created under `prisma/migrations/`.
 - Confirm the migration SQL matches your intent (read the generated `.sql` file).
-- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`docs/tools/prisma-7.md`, "Migration Workflow for This Project").
+- Confirm the Prisma client reflects the new schema: `docker restart canopy-portal`. The start regenerates the client and is the only time the dev server loads one, so it follows `npm run db:migrate` and a hand-written migration alike (`.claude/rules/prisma.md`).
 
 ### 4. Embed build (embed changes only)
 
@@ -89,7 +89,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 1. Navigate to `http://localhost:3006/login`.
 2. Confirm the login page renders without errors.
 3. If you changed login/signup/reset logic, test the flow end-to-end.
-4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006`. An account stays on its home host throughout (a Forms account on `localhost:3006`, a Sites account on `sites.localhost:3006`), and on the other host sign-in links home and signed-in pages redirect there (`docs/AGENT_CONTEXT.md` section 2).
+4. If you changed redirects, sign-in, or sign-out, repeat on `http://sites.localhost:3006`. An account stays on its home host throughout (a Forms account on `localhost:3006`, a Sites account on `sites.localhost:3006`), and on the other host sign-in links home and signed-in pages redirect there (`.claude/rules/auth.md`).
 
 **Admin flow** (changes to admin UI):
 1. Navigate to `http://localhost:3006` and log in.
@@ -115,7 +115,7 @@ Use the browser tools to verify UI changes. The checks below are scoped by what 
 
 If you added, renamed, or changed how an environment variable is used:
 
-1. Confirm it's documented in `docs/AGENT_CONTEXT.md` section 7.
+1. Confirm it's documented in `.claude/rules/env.md`.
 2. Confirm `.env.example` includes it with a placeholder.
 3. If it's a `NEXT_PUBLIC_*` variable, confirm it's handled as build-time (not runtime).
 4. Check that the code has a reasonable fallback or clear error if the variable is missing.
@@ -132,7 +132,7 @@ Should show no pending migrations and no drift.
 
 ### 9. Release smoke (every release, whatever changed)
 
-Before merging a release PR (`docs/AGENT_CONTEXT.md` section 6), once dev has deployed the release's commits, drive a browser through these flows on dev. The scoped browser checks above follow what a change touched, and a change rarely looks like it touches these: Sign Out broke in 5.13.0 from a dropdown animation change. Use a headless browser, so the run and Michael's own clicks don't move each other's pages. Keep generated credentials in a scratchpad file, never in chat; signup allows 5 per IP per hour.
+Before merging a release PR (CLAUDE.md, Git and deployment), once dev has deployed the release's commits, drive a browser through these flows on dev. The scoped browser checks above follow what a change touched, and a change rarely looks like it touches these: Sign Out broke in 5.13.0 from a dropdown animation change. Use a headless browser, so the run and Michael's own clicks don't move each other's pages. Keep generated credentials in a scratchpad file, never in chat; signup allows 5 per IP per hour.
 
 1. **Forms account:** sign up at `https://forms-dev.canopyds.com/signup`, sign out from the user menu (lands on `/login`), sign in again.
 2. **A form, end to end:** create a form, add a field, publish, submit the hosted `/f/<id>` link as a signed-out visitor, and see the submission in the form's Submissions.
@@ -199,24 +199,7 @@ Some things the agent can't verify reliably. When these apply, tell the user **e
 
 ## Documentation impact check
 
-Before committing, scan this table. If your changes match a trigger, check the listed doc and update it if needed.
-
-| What you changed | Doc to check | What might need updating |
-|-----------------|-------------|------------------------|
-| `prisma/schema.prisma` (model shape) | `docs/AGENT_CONTEXT.md` appendix | Data model summary |
-| `prisma/schema.prisma` (any enum) | `docs/AGENT_CONTEXT.md` appendix | Enum lists |
-| New/changed UI component or pattern | `docs/UX_PATTERNS.md` | The section 1 rule set, plus the relevant detail section |
-| Embed theme or appearance behavior | `docs/UX_PATTERNS.md` section 11 | Theme defaults, hosted-only tokens, appearance editor |
-| Embed validation behavior | `docs/UX_PATTERNS.md` section 8 | The two dialects, embed specifics |
-| New npm script or changed existing one | `docs/AGENT_CONTEXT.md` section 4 | Commands (only if the script is non-obvious) |
-| New dependency or major version bump | `docs/tools/*.md` | Relevant tool doc |
-| Dockerfile, `start.sh`, or Coolify config | `docs/PRISMA_MIGRATIONS.md` | Build/deploy docs |
-| New API route or changed API behavior | `docs/AGENT_CONTEXT.md` section 2 (Public API contracts) | Gate order, response codes |
-| Auth or session logic | `docs/AGENT_CONTEXT.md` section 2 (Auth & ownership) | Auth rules |
-| New env variable or changed env usage | `docs/AGENT_CONTEXT.md` section 7 | Env variable table |
-| Epic completion or version bump | Follow section 10 checklist | Root `package.json`, `CHANGELOG.md`, epic report, epic table |
-
-If none of the triggers match, no doc update is needed. If your change introduces a new doc maintenance trigger not listed here, add it to this table.
+Which doc each kind of change updates is in `CLAUDE.md`, "Documentation Maintenance". Check it before committing.
 
 ---
 
@@ -241,4 +224,4 @@ If there are unstaged changes (`M` files), determine whether they're needed. Coo
 | Embed change | + `npm run embed:build` + confirm `public/embed.js` updated |
 | UI change | + browser check on the affected page |
 | API change | + curl the endpoint |
-| Epic/version bump | + follow `docs/AGENT_CONTEXT.md` section 10 release checklist |
+| Epic/version bump | + follow CLAUDE.md's release checklist |

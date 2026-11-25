@@ -1,11 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { SaveIndicator } from "@/components/forms/save-indicator";
 import {
   Tooltip,
@@ -26,17 +21,8 @@ import { STEP_TITLES } from "@/components/forms/editor-steps";
 const MAX_NOTIFY_EMAILS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type AfterSubmissionSectionProps = {
-  ownerEmail: string;
-  /** "accordion" renders the collapsible card; "flow" renders it always expanded with no collapse chrome. */
-  variant?: "accordion" | "flow";
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-};
-
-export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open = false, onOpenChange }: AfterSubmissionSectionProps) {
+export function AfterSubmissionSection({ ownerEmail }: { ownerEmail: string }) {
   const { state, saveStatus, updateSubmissionSettings } = useFormContext();
-  const isFlow = variant === "flow";
 
   // UI-only state
   const [afterSubmissionType, setAfterSubmissionType] = useState<"message" | "redirect">(
@@ -112,218 +98,193 @@ export function AfterSubmissionSection({ ownerEmail, variant = "accordion", open
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const headerInner = (
-    <div className="flex items-start justify-between">
-      <div>
-        <CardTitle>{STEP_TITLES.settings}</CardTitle>
-        <CardDescription>Control responses, notifications, and limits</CardDescription>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <SaveIndicator status={saveStatus} />
-        {!isFlow &&
-          (open ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          ))}
-      </div>
-    </div>
-  );
-
-  const body = (
-    <CardContent className="space-y-6">
-            {/* After Submission */}
-            <div className="space-y-3">
-              <Label>After submission</Label>
-              <RadioGroup
-                value={afterSubmissionType}
-                onValueChange={(v) => handleAfterSubmissionTypeChange(v as "message" | "redirect")}
-                className="space-y-3"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="message" id="afterSubmission-message" />
-                    <Label htmlFor="afterSubmission-message" className="font-normal cursor-pointer">
-                      Show a message
-                    </Label>
-                  </div>
-                  {afterSubmissionType === "message" && (
-                    <Textarea
-                      id="successMessage"
-                      value={state.successMessage ?? ""}
-                      onChange={(e) => updateSubmissionSettings({ successMessage: e.target.value || null })}
-                      rows={2}
-                      className="resize-none ml-6"
-                      placeholder="Thank you for your submission!"
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="redirect" id="afterSubmission-redirect" />
-                    <Label htmlFor="afterSubmission-redirect" className="font-normal cursor-pointer">
-                      Redirect to a URL
-                    </Label>
-                  </div>
-                  {afterSubmissionType === "redirect" && (
-                    <div className="ml-6">
-                      <Input
-                        id="redirectUrl"
-                        value={state.redirectUrl ?? ""}
-                        onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
-                        placeholder="https://example.com/thanks"
-                      />
-                    </div>
-                  )}
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="border-t" />
-
-            {/* Notifications */}
-            <div className="space-y-3">
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>{STEP_TITLES.settings}</CardTitle>
+            <CardDescription>Control responses, notifications, and limits</CardDescription>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <SaveIndicator status={saveStatus} />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* After Submission */}
+        <div className="space-y-3">
+          <Label>After submission</Label>
+          <RadioGroup
+            value={afterSubmissionType}
+            onValueChange={(v) => handleAfterSubmissionTypeChange(v as "message" | "redirect")}
+            className="space-y-3"
+          >
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Checkbox
-                  id="emailNotifications"
-                  checked={state.emailNotificationsEnabled}
-                  onCheckedChange={(checked) => handleToggleNotifications(checked === true)}
-                />
-                <Label htmlFor="emailNotifications" className="cursor-pointer font-normal">
-                  Email notifications
+                <RadioGroupItem value="message" id="afterSubmission-message" />
+                <Label htmlFor="afterSubmission-message" className="font-normal cursor-pointer">
+                  Show a message
                 </Label>
               </div>
-
-              {state.emailNotificationsEnabled && (
-                <div className="space-y-3">
-                  {/* Email list */}
-                  {state.notifyEmails.length > 0 && (
-                    <div className="space-y-2">
-                      {state.notifyEmails.map((email, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm flex-1 truncate">{email}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleRemoveEmail(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Remove recipient</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Add email input */}
-                  {state.notifyEmails.length < MAX_NOTIFY_EMAILS && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={newEmailInput}
-                          onChange={(e) => setNewEmailInput(e.target.value)}
-                          onBlur={() => setEmailInputTouched(true)}
-                          onKeyDown={handleEmailInputKeyDown}
-                          placeholder="recipient@example.com"
-                          type="email"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleAddEmail}
-                          disabled={!canAddEmail}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      {newEmailError && (
-                        <p className="text-sm text-destructive">{newEmailError}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Include responses */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="emailIncludeResponses"
-                        checked={state.emailIncludeResponses}
-                        onCheckedChange={(checked) =>
-                          updateSubmissionSettings({ emailIncludeResponses: checked === true })
-                        }
-                      />
-                      <Label htmlFor="emailIncludeResponses" className="cursor-pointer font-normal">
-                        Include responses in the email
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-6">
-                      Recipients see every submitted value, and replies go to the
-                      submitter when the form collects an email address.
-                    </p>
-                  </div>
-                </div>
+              {afterSubmissionType === "message" && (
+                <Textarea
+                  id="successMessage"
+                  value={state.successMessage ?? ""}
+                  onChange={(e) => updateSubmissionSettings({ successMessage: e.target.value || null })}
+                  rows={2}
+                  className="resize-none ml-6"
+                  placeholder="Thank you for your submission!"
+                />
               )}
             </div>
 
-            <div className="border-t pt-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="stopAt">Stop accepting submissions after</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="redirect" id="afterSubmission-redirect" />
+                <Label htmlFor="afterSubmission-redirect" className="font-normal cursor-pointer">
+                  Redirect to a URL
+                </Label>
+              </div>
+              {afterSubmissionType === "redirect" && (
+                <div className="ml-6">
                   <Input
-                    id="stopAt"
-                    type="datetime-local"
-                    value={formatDatetimeLocal(state.stopAt)}
-                    onChange={(e) => updateSubmissionSettings({ stopAt: e.target.value ? new Date(e.target.value) : null })}
+                    id="redirectUrl"
+                    value={state.redirectUrl ?? ""}
+                    onChange={(e) => updateSubmissionSettings({ redirectUrl: e.target.value || null })}
+                    placeholder="https://example.com/thanks"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to accept submissions indefinitely
-                  </p>
                 </div>
+              )}
+            </div>
+          </RadioGroup>
+        </div>
 
+        <div className="border-t" />
+
+        {/* Notifications */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="emailNotifications"
+              checked={state.emailNotificationsEnabled}
+              onCheckedChange={(checked) => handleToggleNotifications(checked === true)}
+            />
+            <Label htmlFor="emailNotifications" className="cursor-pointer font-normal">
+              Email notifications
+            </Label>
+          </div>
+
+          {state.emailNotificationsEnabled && (
+            <div className="space-y-3">
+              {/* Email list */}
+              {state.notifyEmails.length > 0 && (
                 <div className="space-y-2">
-                  <Label htmlFor="maxSubmissions">Maximum number of submissions</Label>
-                  <Input
-                    id="maxSubmissions"
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    value={state.maxSubmissions?.toString() ?? ""}
-                    onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    placeholder="Unlimited"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty for no limit. Spam submissions are not counted.
-                  </p>
+                  {state.notifyEmails.map((email, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-sm flex-1 truncate">{email}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleRemoveEmail(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove recipient</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              {/* Add email input */}
+              {state.notifyEmails.length < MAX_NOTIFY_EMAILS && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newEmailInput}
+                      onChange={(e) => setNewEmailInput(e.target.value)}
+                      onBlur={() => setEmailInputTouched(true)}
+                      onKeyDown={handleEmailInputKeyDown}
+                      placeholder="recipient@example.com"
+                      type="email"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddEmail}
+                      disabled={!canAddEmail}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {newEmailError && (
+                    <p className="text-sm text-destructive">{newEmailError}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Include responses */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="emailIncludeResponses"
+                    checked={state.emailIncludeResponses}
+                    onCheckedChange={(checked) =>
+                      updateSubmissionSettings({ emailIncludeResponses: checked === true })
+                    }
+                  />
+                  <Label htmlFor="emailIncludeResponses" className="cursor-pointer font-normal">
+                    Include responses in the email
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  Recipients see every submitted value, and replies go to the
+                  submitter when the form collects an email address.
+                </p>
               </div>
             </div>
-          </CardContent>
-  );
+          )}
+        </div>
 
-  if (isFlow) {
-    return (
-      <Card>
-        <CardHeader>{headerInner}</CardHeader>
-        {body}
-      </Card>
-    );
-  }
+        <div className="border-t pt-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="stopAt">Stop accepting submissions after</Label>
+              <Input
+                id="stopAt"
+                type="datetime-local"
+                value={formatDatetimeLocal(state.stopAt)}
+                onChange={(e) => updateSubmissionSettings({ stopAt: e.target.value ? new Date(e.target.value) : null })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to accept submissions indefinitely
+              </p>
+            </div>
 
-  return (
-    <Card>
-      <Collapsible open={open} onOpenChange={onOpenChange}>
-        <CardHeader className="cursor-pointer hover:bg-transparent" onClick={() => onOpenChange?.(!open)}>
-          <CollapsibleTrigger asChild>{headerInner}</CollapsibleTrigger>
-        </CardHeader>
-        <CollapsibleContent>{body}</CollapsibleContent>
-      </Collapsible>
+            <div className="space-y-2">
+              <Label htmlFor="maxSubmissions">Maximum number of submissions</Label>
+              <Input
+                id="maxSubmissions"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                value={state.maxSubmissions?.toString() ?? ""}
+                onChange={(e) => updateSubmissionSettings({ maxSubmissions: e.target.value ? parseInt(e.target.value, 10) : null })}
+                placeholder="Unlimited"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no limit. Spam submissions are not counted.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }

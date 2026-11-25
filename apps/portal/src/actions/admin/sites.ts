@@ -81,7 +81,7 @@ export async function updateSite(
     if (refusal) return { error: INVALID, fieldErrors: { umamiWebsiteId: refusal } };
   }
 
-  // Caddy will route each hostname to one site's build; a second claim would
+  // nginx will route each hostname to one site's build (E36); a second claim would
   // serve one client's domain from another client's site.
   if (settings.productionHostnames.length > 0) {
     const other = await prisma.site.findFirst({

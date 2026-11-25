@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuses a push that would publish client information: a new commit's added
+# lines, paths, or message, or old history (from before the 2026-11-23 rewrite)
+# brought back by a branch or merge that started from it. CLAUDE.md, "Client
+# information".
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    set -- "$remote_sha..$local_sha"
+  else
+    set -- "$local_sha" --not --remotes
+  fi
+  git log --format=%B "$@" >> "$tmp"
+  git log -p --no-color --no-ext-diff --format= "$@" | grep -E '^\+' >> "$tmp"
+done
+exec "$(dirname "$0")/check-private-terms.sh" "$tmp" "the commits this push would publish"

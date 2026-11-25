@@ -24,21 +24,21 @@ const CLASSES = [
     id: "fundamentals",
     name: "Boxing Fundamentals",
     level: "Beginner",
-    description: "Stance, strikes, and clinch, drilled from the ground up.",
+    description: "Stance, footwork, and combinations, drilled from the ground up.",
     sessions: [{ id: "weeknights", days: ["monday", "tuesday", "wednesday", "thursday", "friday"], starts: "19:00", ends: "20:00" }],
   },
   {
     id: "personal",
-    name: "1-on-1 Personal Training",
-    shortName: "1-on-1 Personals",
-    description: "Private coaching, by appointment.",
+    name: "Private Lessons",
+    shortName: "Privates",
+    description: "One coach, one athlete, by appointment.",
     lengths: ["30 min", "45 min", "60 min"],
     sessions: [{ id: "mornings", days: ["monday", "friday"], starts: "07:00", ends: "10:00", note: "By appointment" }],
   },
 ];
 const TEAM = [
-  { id: "rennie", name: "Coach Rennie", role: "Head Coach", bio: "regional champion.", photo: "images/staff/coach-rennie.jpg" },
-  { id: "theo", name: "Coach Theo Lindqvist", role: "Brazilian Jiu-Jitsu" },
+  { id: "rennie", name: "Coach Rennie", role: "Head Coach", bio: "USA Boxing champion.", photo: "images/staff/coach-rennie.jpg" },
+  { id: "theo", name: "Coach Theo Lindqvist", role: "Strength and Conditioning" },
 ];
 
 const load = async () => {
@@ -70,7 +70,7 @@ describe("classes and team", () => {
 
   it("accept a person's note and group, and an FAQ's link, each optional", async () => {
     const c = await load();
-    c.team[0].note = "regional champion";
+    c.team[0].note = "USA Boxing champion";
     c.team[0].group = "Coaches";
     c.faqs = [
       { id: "cost", question: "Is it free?", answer: "Yes, for members.", link: { label: "Join", href: "/join" } },
@@ -125,7 +125,7 @@ describe("laneViolations", () => {
   it("allows the owner's content: copy, sessions, coaches", async () => {
     const c = await load();
     const after = edit(c, (d) => {
-      d.classes[0].description = "Where most people start.";
+      d.classes[0].description = "The class to start with.";
       d.classes[0].sessions.push({ id: "saturday", days: ["saturday"], starts: "09:00", ends: "10:00" });
       d.team.splice(1, 1);
       d.team.push({ id: "maria", name: "Coach Maria", role: "Youth" });
@@ -136,13 +136,13 @@ describe("laneViolations", () => {
 
   it("lets the owner write a person's note, and keeps their group and an FAQ's link Canopy's", async () => {
     const c = await load();
-    c.team[0].note = "regional champion";
+    c.team[0].note = "USA Boxing champion";
     c.team[0].group = "Coaches";
     c.faqs = [{ id: "cost", question: "Is it free?", answer: "Yes, for members.", link: { label: "Join", href: "/join" } }];
 
     const owners = edit(c, (d) => {
-      d.team[0].note = "Two-time regional champion";
-      d.team[1].note = "Black belt";
+      d.team[0].note = "Two-time USA Boxing champion";
+      d.team[1].note = "Certified strength coach";
       d.team.push({ id: "maria", name: "Coach Maria", role: "Youth", note: "Former national team" });
       d.faqs[0].answer = "Yes. Joining is free too.";
       d.faqs.push({ id: "when", question: "When do you meet?", answer: "Every month." });
@@ -186,8 +186,8 @@ describe("laneViolations", () => {
   });
 
   it("lets the owner choose a page's featured services, while an entry's own id stays Canopy's", async () => {
-    // Found by Client 2's Quick Edit eval (H9, 2026-11-18): each featured
-    // entry was the Id type, so any change to the list was "ID is Canopy's to change".
+    // Each featured entry was once the Id type, so any change to the list was
+    // "ID is Canopy's to change".
     expect(fieldInfo("pages/home/sections/featured/serviceIds/0")).toEqual({
       kind: "reference",
       label: "Featured service",
@@ -249,7 +249,7 @@ describe("laneViolations", () => {
     const newClass = edit(c, (d) => d.classes.push({ id: "kickboxing", name: "Kickboxing", description: "New." }));
     expect(reasons(laneViolations(c, newClass, { fixed: ["classes"] }))).toEqual(["fixed classes"]);
     expect(laneViolations(c, newClass)).toEqual([]);
-    const editClass = edit(c, (d) => (d.classes[1].description = "Private coaching with Coach Rennie."));
+    const editClass = edit(c, (d) => (d.classes[1].description = "Private lessons with Coach Rennie."));
     expect(laneViolations(c, editClass, { fixed: ["classes"] })).toEqual([]);
     // A new id is a new entry: the old one leaves and a new one arrives, which a fixed list refuses.
     const renameClass = edit(c, (d) => (d.classes[0].id = "basics"));
@@ -329,7 +329,7 @@ Prose.
     c.team[0].bio = "Old bio — with a dash nobody touched.";
     const after = structuredClone(c);
     after.classes[0].description = "OPEN NOW for everyone 💪";
-    after.classes[1].description = "regional champion, see you there!";
+    after.classes[1].description = "USA Boxing champion, see you there!";
     after.team[1].bio = "A special offer — ask Theo™.";
     expect(avoidWarnings(c, after, avoid).map((w) => `${w.address}: ${w.message}`)).toEqual([
       "classes/fundamentals/description: Description has an emoji and words in capitals, which this site's copy avoids",

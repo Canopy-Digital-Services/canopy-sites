@@ -38,7 +38,7 @@ From there you can:
 
 After that the site is yours to edit. This keeps one person's unfinished changes from going live along with someone else's.
 
-Text typed into a field but not confirmed with **Done** or Enter isn't part of anyone's changes. It can't be published until it's confirmed.
+Text typed into a field but not confirmed with **Done**, Enter, or a click on another field isn't part of anyone's changes. It can't be published until it's confirmed.
 
 ## If your text wasn't saved
 

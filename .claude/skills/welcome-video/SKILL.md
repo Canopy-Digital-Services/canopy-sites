@@ -1,12 +1,12 @@
 ---
 name: welcome-video
-description: Make a client's welcome video for one tab of their Canopy Sites portal from Michael's screen recording, correct its captions, and upload it on the operator's site page (ROADMAP E39). Use when Michael hands over a recording for a site's Quick Edit, Editor, Forms or Stats tab, or asks to fix a welcome video's captions.
+description: Make a client's welcome video for one tab of their Canopy Sites portal from Michael's screen recording, correct its captions, and upload it on the operator's site page. Use when Michael hands over a recording for a site's Quick Edit, Editor, Forms or Stats tab, or asks to fix a welcome video's captions.
 argument-hint: <recording> <site> <tab>
 ---
 
 # Welcome video
 
-A recording becomes a tab's welcome video in four steps: the client's words, the prepare command, the captions read through, the upload. What the video is and how it plays is ROADMAP E39. The prepare command's own options are in its docstring, `apps/portal/scripts/prepare-welcome-video.py`.
+A recording becomes a tab's welcome video in four steps: the client's words, the prepare command, the captions read through, the upload. What the video is and how it plays is the `/welcome` entry in `.claude/rules/public-api.md`. The prepare command's own options are in its docstring, `apps/portal/scripts/prepare-welcome-video.py`.
 
 You need the recording's path, the site, and the tab (Quick Edit, Editor, Forms or Stats; the ids are in `apps/portal/src/lib/sites-tabs.ts`). Ask for whichever is missing. The portal is production (`https://sites.canopyds.com`) unless Michael names dev (`https://sites-dev.canopyds.com`) or local (`http://sites.localhost:3006`). Open the operator pages on that Sites host, not the Forms one: Act as client keeps the session on the host it starts from, and the two hosts don't share a sign-in. A recording is client media: never commit one. Inside this repo it goes in `temp/`, which git ignores.
 

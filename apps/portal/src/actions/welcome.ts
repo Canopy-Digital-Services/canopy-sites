@@ -1,6 +1,6 @@
 "use server";
 
-/** The welcome videos (ROADMAP E39): what the signed-in person's own viewing records. */
+/** The welcome videos: what the signed-in person's own viewing records. */
 
 import { getCurrentAccountId, requireAuth } from "@/lib/auth-utils";
 import { isSitesTab, type SitesTabId } from "@/lib/sites-tabs";

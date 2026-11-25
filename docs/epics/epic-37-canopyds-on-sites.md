@@ -1,11 +1,11 @@
 # Epic 37: canopyds.com on Sites
 
 **Status:** In progress: 4.1 to 4.4 done (v5.6.0 released, www on Astro, the site on Michael's account, 2026-10-19); 4.5's runbook published in Nextcloud; Michael's first edit published and deployed (2026-10-20); 4.7 (headings and cards on the canvas) released in v5.7.0 and live on www (2026-10-21 UTC); 4.8 (the modeling rule, credentials and FAQs) released in v5.8.0 and live on www (2026-10-26); the remaining acceptance items are checks in Michael's signed-in browser
-**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`, "canopyds.com on Sites"): the first site that isn't the demo
+**Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`): the first site that isn't the demo
 **Predecessor:** Epic 33 (Visual editor)
-**Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on Caddy), which canopyds.com may take first (section 7)
+**Successor:** E35 (Stats, which picks up the site's Umami website), then E36 (production on nginx), which canopyds.com may take first (section 7)
 
-> **Before starting, read `CLAUDE.md` and trace through `docs/AGENT_CONTEXT.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (C2, E33, E35, E36), `docs/epics/epic-30-demo-slice.md` (section 6), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the `docs/tools/*.md` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
+> **Before starting, read `CLAUDE.md` and any referenced docs relevant to the work**, plus `docs/canopy-sites/PRD.md` (D3, D4, D9, D13, D22, D29, D31, D32, D35 to D48, sections 4.4, 4.5, 4.8), `docs/canopy-sites/ROADMAP.md` (E33, E36, E41), `docs/epics/epic-33-visual-editor.md`, `packages/site-contract/README.md`, `apps/builder/README.md`, and the rules in `.claude/rules/` for whatever you touch. In `canopy-website`: its `CLAUDE.md` and `docs/`. In Nextcloud: **Invisible CMS (LLM-Native Content Layer)**, **Site Build Checklist**, **Copy Guidelines** (Canopy Sites collective), **Voice & Messaging** (Brand collective).
 
 ---
 
@@ -33,9 +33,9 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 |---|---|
 | Preview hostnames | None, by D47: the canvas and the preview page cover them |
 | Stats | E35. The site row carries the Umami website id, so E35 needs no wiring for it |
-| Production on Caddy, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys (ROADMAP Phase 3 fallback) |
+| Production on nginx, publish by swap | E36. Publish stays a commit to `main`, which the Coolify app builds and deploys |
 | Contract changes beyond cards, credentials, and FAQs: team, long-form text, a `linkedin` social network | Each waits for a contract release; those parts stay in templates (section 7) |
-| Photos | E32's media pipeline |
+| Photos | E50's media pipeline |
 | Dated announcements on canopyds.com | The nightly rebuild (D42) moves the builder's `current`, which nothing serves for this site until E36; www rebuilds only on a push |
 | Eyebrows, buttons, SEO fields, nav and footer chrome | Unmarked (D35, D45) |
 | The demo marking its headings | The demo stays on contract 0.2.0, which 0.3.0 accepts unchanged; its own upgrade is a follow-up |
@@ -45,7 +45,7 @@ It is the first site on Sites that isn't the demo, so the canvas is built for cl
 
 - **4.1 deploys before the site is registered with the builder (4.4).** Michael's decision of 2026-10-17; shipped in v5.6.0 ahead of the token.
 - 4.1 and 4.2 run in parallel. 4.2 goes live on www through the existing deploy on its own, before any Sites wiring.
-- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, AGENT_CONTEXT section 7).
+- 4.3 needs a client site to test against locally: 4.2's branch through a local bare remote, with a static server of its build as the asset origin (`SITE_ASSET_ORIGIN_<SLUG>`, `.claude/rules/env.md`).
 - After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link; 4.3 adds Preview and the canvas (section 7).
 
 Each section is about one session; 4.2 may take two.
@@ -63,8 +63,8 @@ Each section is about one session; 4.2 may take two.
 **Port**
 
 - Astro 7 on the demo's line (`^7.4`), static output to `dist/`, base `/`, Node 24. It builds with `npm ci --ignore-scripts`, as the builder installs, and the Dockerfile uses the same flags and lockfile, so the builder's build and the production image of one commit name their `_astro/` files alike. The canvas depends on that (D47).
-- Components become `.astro` files with plain `<script>` for behavior, like the demo, Client 2, and Client 1, so the site can feed the template (C2). A component whose behavior doesn't port cleanly may stay React as an island (`@astrojs/react`, `client:visible`); nothing inside an island is a marked field, since hydration owns that DOM. CSS modules and Tailwind v4 (`@tailwindcss/vite`) carry over.
-- Next-only features: `next/font/google` becomes Fontsource packages (no external font requests, ROADMAP H3); `next/image` becomes `astro:assets` for images moved to `src/assets` (PDFs, SVG art, and the OG card stay in `public/`); `next/link` becomes `<a>`; the Metadata API becomes the layout's head (title template, description, Open Graph, canonical); `robots.ts` and `sitemap.ts` become static output. The JSON-LD is unchanged apart from reading its facts from content.
+- Components become `.astro` files with plain `<script>` for behavior, like the demo and the client sites, so the site can feed the starter (E41). A component whose behavior doesn't port cleanly may stay React as an island (`@astrojs/react`, `client:visible`); nothing inside an island is a marked field, since hydration owns that DOM. CSS modules and Tailwind v4 (`@tailwindcss/vite`) carry over.
+- Next-only features: `next/font/google` becomes Fontsource packages (no external font requests, as on Client 1); `next/image` becomes `astro:assets` for images moved to `src/assets` (PDFs, SVG art, and the OG card stay in `public/`); `next/link` becomes `<a>`; the Metadata API becomes the layout's head (title template, description, Open Graph, canonical); `robots.ts` and `sitemap.ts` become static output. The JSON-LD is unchanged apart from reading its facts from content.
 - `/services` → `/websites` and `/cookie-settings` → `/cookie-policy` become Cloudflare redirect rules (301) beside the apex → www rule, so they outlive the Coolify app (E36). Create them before the Astro build goes live.
 - Umami loads with `data-domains="www.canopyds.com"`, so canvas and preview views aren't counted.
 - The canvas sets `data-canopy-editor` on `<html>` (E33 section 4.5) and the preview page sets `data-canopy-preview` (4.3). Under either, the contact form renders a placeholder: the Forms embed refuses a sandboxed page's `null` origin. Under the editor flag, intro animations are skipped.
@@ -100,7 +100,7 @@ Each section is about one session; 4.2 may take two.
 
 **The preview page (every site, the demo included)**
 
-- A route on the Sites host, outside `(admin)`, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as AGENT_CONTEXT section 2 requires of a signed-in layout outside `(admin)`.
+- A route on the Sites host, outside `(admin)`, addressed by site id with an ownership check (D44) and the page's path. It requires a signed-in member (`canPreviewSite`) and calls `requireHomeHost`, as `.claude/rules/auth.md` requires of a signed-in layout outside `(admin)`.
 - The site fills the tab: the page document from the route above, in a full-window sandboxed srcdoc frame, with no portal around it. The frame is what keeps the site's scripts away from the portal session while the bar below stays the portal's.
 - **The preview bar** along the bottom looks like `/demo`'s today: the teal bar reading "Previewing unpublished changes". It carries the only Publish (D47):
   - Publish names the build the page is showing, and the tool layer refuses it unless that is the latest succeeded build of the draft's current version (D38). So an edit made in another tab after the page loaded can't go live unseen.
@@ -115,7 +115,7 @@ Each section is about one session; 4.2 may take two.
 - The Sites chrome's draft status (`src/components/sites/draft-status.tsx`) keeps unpublished changes and Discard, and its Publish becomes Preview, which opens the preview page in a new tab.
 - Quick Edit's pending change (`quick-edit-workspace.tsx`) shows Preview and Discard; its Publish goes.
 - The Editor and the quick edit popover have no Publish.
-- Quick edit's model-facing text (`src/lib/quick-edit`: the `propose_change` result and `runbook.ts`) says the owner previews and publishes from the preview page, matching `QUICK_EDIT_GUIDANCE.md`.
+- Quick edit's model-facing text (`src/lib/quick-edit`: the `propose_change` result and `runbook.ts`) says the owner previews and publishes from the preview page, matching `.claude/rules/quick-edit.md`.
 - The operator's Build and publish stays, for a site's first build and the demo's reset.
 
 **Quick Edit**
@@ -126,7 +126,7 @@ Each section is about one session; 4.2 may take two.
 
 **Docs**
 
-- `docs/AGENT_CONTEXT.md`:
+- `CLAUDE.md` and `.claude/rules/`:
   - section 2: the canvas route's and the preview page's rules beside `/demo`'s, and `/demo` without its preview mode
   - section 3: `/editor` for every Sites account with a site, and the preview route
   - section 7: the development setting, if it is a variable
@@ -223,7 +223,7 @@ Asked whether the content schema had stayed coherent, the answer was no: the edi
 
 - `site.credentials`: `certifications`, each with an id, a full `name` (for structured data), an optional `shortName` (for a line of designations), an optional `number` (letters, digits, and hyphens, without a leading #), and an optional `verifyOn`; and `naics`, six-digit codes, each listed once.
 - `faqs`: a collection of questions and answers, in page order.
-- Additive: 0.3.0 content is valid 0.4.0 content. The portal's pin moves to `^0.4.0`. Field descriptions are in `QUICK_EDIT_GUIDANCE.md` section 3.
+- Additive: 0.3.0 content is valid 0.4.0 content. The portal's pin moves to `^0.4.0`. Field descriptions are in the contract's `.meta()`.
 - Released and deployed with the portal and builder before the site's commit reaches `main`, as 4.7 was.
 
 **The site (`canopy-website`)**
@@ -304,7 +304,7 @@ Asked whether the content schema had stayed coherent, the answer was no: the edi
 
 - **Dogfood before 4.3?** After 4.1, 4.2, and 4.4, Quick Edit works on canopyds.com without a Preview link, and a publish reaches www after the Coolify build. Michael's call.
 - **Sites before launch.** The canvas needs a live address to load assets from, so a new client site needs a production hostname from its first draft. The likely answer is a `<slug>.canopyds.com` name until its domain moves (D25's one-level limit). Decide with the first new client.
-- **canopyds.com first on Caddy (E36)** in place of Client 2, as the lower-stakes site. Michael's call when E36 starts.
+- **canopyds.com first on nginx (E36)** in place of Client 2, as the lower-stakes site. Michael's call when E36 starts.
 - **Contract additions the site wants** (team, long-form text, `linkedin`), for a later contract release.
 
 ## 8. Completion report
@@ -321,7 +321,7 @@ Not started.
 - 2026-10-19 (later): Michael: Preview opens a page of its own in a new tab, without the Sites chrome, never the Editor (D47 revised); this run produces the onboarding runbook (4.5). Nextcloud checked: no page covers putting a site onto Sites.
 - 2026-10-19 (later): Michael: the demo previews through the same page; Publish moves to the preview bar and off Quick Edit, the Sites chrome, and the Editor (D38, D47 revised). "No Sites chrome" means not embedded in the portal; the bottom bar stays.
 - 2026-10-19 (later): Built on branch `epic-37` (worktree `~/repos/canopy-sites-e37`, its own local stack on port 3016).
-  - 4.1 (`7e2d862`): checked with a deliberately hostile site build: every check in the project memory passed, a `dist` symlink failed the build with the preview left where it was, a symlink inside the output served 404, and the demo built and published (a commit pushed to the local remote).
+  - 4.1 (`0ef7d43`): checked with a deliberately hostile site build: every check in the project memory passed, a `dist` symlink failed the build with the preview left where it was, a symlink inside the output served 404, and the demo built and published (a commit pushed to the local remote).
   - 4.3: end to end on the local demo with headless Chromium. The canvas loaded the demo with 24 marked fields; an in-place edit saved; Quick Edit and the Sites chrome showed Preview and no Publish; the preview page opened in a new tab with the bar reading "Previewing unpublished changes", the edit visible, and no marks; Publish there made the change live at `/demo`.
 - 2026-10-19 (later): 4.2 built by a subagent on `canopy-website` branch `feat/astro`:
   - The port: no React islands. A clean `npm ci --ignore-scripts && npm run build` passes, and two separate builds name every `dist/_astro/` file alike. A contract violation fails the build.
@@ -331,28 +331,28 @@ Not started.
 - 2026-10-19 (later): canopyds.com end to end on the local stack, from a local remote of `feat/astro`, its image serving assets through `SITE_ASSET_ORIGIN_CANOPYDS`:
   - The canvas showed the site styled with its own fonts. An in-place edit showed in the preview, and the site's links moved between pages there, with Back working.
   - Publish reported "live on www.canopyds.com in a few minutes" and pushed a commit authored by the publisher.
-  - Two preview bugs fixed on the way (`e401bd0`).
+  - Two preview bugs fixed on the way (`438a93d`).
 - 2026-10-19 (later): `feat/astro` pushed. dev.canopyds.com repointed to it (port 80, health check on) and deployed. It served 502 until the Traefik port in its stored labels went from 3000 to 80 as well; then every page answered 200, a missing path 404, assets with CORS and immutable caching, and no console errors at 1440 or 390 px.
 - 2026-10-19 (later): Michael reviewed dev.canopyds.com and approved the launch and the release.
   - www launch: the two Cloudflare redirect rules (301, query strings kept); port 80, the Traefik label, and the health check on webber's app and on Fox's copy; `feat/astro` fast-forwarded into `main` (`5d01c42`), which deployed webber; Fox's copy deployed by hand. Verified: every page 200, a missing path 404, both redirects 301, the apex redirect, CORS and immutable caching on assets, Umami's `data-domains`, and Fox serving the same `_astro/` names.
-  - v5.6.0 (PR #36, merge `0f6e828`), with the other session's Forms work on `dev` (Michael's call). The portal and builder both deployed. Verified on production: the builder runs as root under tini; a no-op demo build ran as uid 20001 and replaced the old clone with the new layout (`git/` and `builds/` root 0700, no `.git` in `repo/`); `/demo` 200; `/canvas` 404 to a signed-out request, with the sandbox CSP; `/preview` sends a signed-out request to sign-in.
+  - v5.6.0 (PR #36, merge `92f671a`), with the other session's Forms work on `dev` (Michael's call). The portal and builder both deployed. Verified on production: the builder runs as root under tini; a no-op demo build ran as uid 20001 and replaced the old clone with the new layout (`git/` and `builds/` root 0700, no `.git` in `repo/`); `/demo` 200; `/canvas` 404 to a signed-out request, with the sandbox CSP; `/preview` sends a signed-out request to sign-in.
 - 2026-10-19 (later): Michael added `GIT_TOKEN_CANOPYDS` to `canopy-builder` (runtime only). Wiring:
   - The builder was redeployed and holds the token.
   - The site row was created on Michael's account by a script in the production portal container, with the operator form's fields: slug `canopyds`, the repo, branch `main`, `www.canopyds.com`, the Umami website id, and the three locked contact fields. (I can't sign in to the operator UI as Michael.)
   - First build and publish of the repo as it is, the operator action's steps. The content read found contract 0.2.0, `site` and `pages`, and the site guide. The build ran as uid 20002 and names its `_astro/` files exactly as www does.
   - Signed out, `/canvas` and `/preview` for the site refuse.
   - A browser check as a temporary member of Michael's account was blocked by the session's permission check (creating users on production), so the canvas, preview, and first publish on production are Michael's own first edit.
-- 2026-10-20: Michael asked for headings and card content on the canvas (4.7). Built: contract 0.3.0 on `dev` (`2b3c269`), and `canopy-website` branch `feat/editable-headings` (`9457d7f`). Checked:
+- 2026-10-20: Michael asked for headings and card content on the canvas (4.7). Built: contract 0.3.0 on `dev` (`be290ca`), and `canopy-website` branch `feat/editable-headings` (`9457d7f`). Checked:
   - Every marked element's text equals its content value (115 fields); the visible text of all six pages matches `main`; screenshots at 1440 and 390 px differ only by anti-aliasing.
   - The site's content fits all 62 guide limits.
   - On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017, the branch through a local remote): the canvas marks the headings and cards with their labels and limits; in-place edits of a heading, a card title, and a card text saved and built; the preview showed them with the dial still on "together". FAQ answers stay open on the canvas; a door's title selects instead of following its link.
 - 2026-10-20: Michael's first edit: four homepage paragraphs edited on the canvas and published from the preview bar, committed to `main` as `fe3e4ff` authored by him, and deployed by the webhook two seconds later.
-- 2026-10-21 (UTC): 4.7 released. `site-contract-v0.3.0` published (the asset matches the packed tarball byte for byte); v5.7.0 (PR #37, merge `6dc0e27`) deployed the portal and the builder, whose contract reports 0.3.0. `feat/editable-headings`, rebased onto Michael's edit with his four values kept, fast-forwarded `main` to `01fdaa0`, which deployed healthy. Verified on production:
+- 2026-10-21 (UTC): 4.7 released. `site-contract-v0.3.0` published (the asset matches the packed tarball byte for byte); v5.7.0 (PR #37, merge `ddf2e78`) deployed the portal and the builder, whose contract reports 0.3.0. `feat/editable-headings`, rebased onto Michael's edit with his four values kept, fast-forwarded `main` to `01fdaa0`, which deployed healthy. Verified on production:
   - www: every page 200, a missing path 404; each of the 115 marked elements holds exactly its content value; the text matches the branch build; the `_astro/` names match a clean build's.
   - The builder reads `01fdaa0` with contract 0.3.0 and no issues; no draft is pending.
   - The deployed portal carries the card field labels; signed out, `/canvas` 404s and `/preview` sends to sign-in.
   - Not checked: the Editor signed in as Michael (no session I can use). The operator list shows the site's contract as 0.2.0 until the next operator Build and publish sets it.
 - 2026-10-21: Michael made the bid facts editable (4.7). `canopy-website@97e079e`, on top of three more edits of his published from Sites (the /government headline, an /about heading and paragraph). Pixel for pixel the same at 1440 and 390 px; deployed healthy; on www all 118 marked elements hold their content values; the production builder reads the commit with no issues.
-- 2026-10-26: 4.8 built. Contract 0.4.0 and D48 on `dev` (`203df03`); `canopy-website` branch `feat/credentials-faqs` (`4b4684c`). Checked against `main`'s build: the built HTML of the home, /websites, /about, and /work pages is identical apart from structured data, which lists DVBE before SB as the page does; /government and /contact read the same, with /government one kerning pixel off at "on Cal"; all 125 marked elements hold their content values; the content fits the guide's 65 limits. On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017): the canvas labels the new fields ("Where to verify", "NAICS code", "Question") with their limits; an invalid NAICS code was refused with "Six digits, like 541511" and put back; a valid code, a "where to verify", and a question saved, built, and showed in the preview; Publish pushed a commit changing one line each in `site.json` and `faqs.json`. Lint, 219 portal and 34 contract tests, and the build pass.
-- 2026-10-26: 4.8 released. `site-contract-v0.4.0` published (the asset matches the packed tarball byte for byte); v5.8.0 (PR #39, merge `b6affc0`, on top of the other session's v5.7.1) deployed the portal and the builder, whose contract reports 0.4.0 with the `faqs` collection. `feat/credentials-faqs`, with no publishes or drafts since it branched, fast-forwarded `main` to `168427a`, which deployed healthy; a clean build from the release tarball matched the tested one byte for byte. Verified on production: every page 200 and a missing path 404; all 125 marked elements hold their content values; the text, structured data, and /government and /contact pixels match the tested build; the builder reads `168427a` with `site`, `pages`, and `faqs` and no issues. The canvas refusing an invalid NAICS code was checked on the local stack, not signed in on production.
+- 2026-10-26: 4.8 built. Contract 0.4.0 and D48 on `dev` (`f4cd439`); `canopy-website` branch `feat/credentials-faqs` (`4b4684c`). Checked against `main`'s build: the built HTML of the home, /websites, /about, and /work pages is identical apart from structured data, which lists DVBE before SB as the page does; /government and /contact read the same, with /government one kerning pixel off at "on Cal"; all 125 marked elements hold their content values; the content fits the guide's 65 limits. On a local stack (worktree `~/repos/canopy-sites-cards`, port 3017): the canvas labels the new fields ("Where to verify", "NAICS code", "Question") with their limits; an invalid NAICS code was refused with "Six digits, like 541511" and put back; a valid code, a "where to verify", and a question saved, built, and showed in the preview; Publish pushed a commit changing one line each in `site.json` and `faqs.json`. Lint, 219 portal and 34 contract tests, and the build pass.
+- 2026-10-26: 4.8 released. `site-contract-v0.4.0` published (the asset matches the packed tarball byte for byte); v5.8.0 (PR #39, merge `3ea9c05`, on top of the other session's v5.7.1) deployed the portal and the builder, whose contract reports 0.4.0 with the `faqs` collection. `feat/credentials-faqs`, with no publishes or drafts since it branched, fast-forwarded `main` to `168427a`, which deployed healthy; a clean build from the release tarball matched the tested one byte for byte. Verified on production: every page 200 and a missing path 404; all 125 marked elements hold their content values; the text, structured data, and /government and /contact pixels match the tested build; the builder reads `168427a` with `site`, `pages`, and `faqs` and no issues. The canvas refusing an invalid NAICS code was checked on the local stack, not signed in on production.
 

@@ -33,7 +33,7 @@ type HelpBubbleProps = {
   /** Passed from the admin layout's session; prefills the support reply address. */
   accountEmail: string;
   /**
-   * The site's welcome videos (ROADMAP E39), one for each tab that has one:
+   * The site's welcome videos, one for each tab that has one:
    * an item here on that tab's pages, and open by itself the first time the
    * person visits the tab.
    */

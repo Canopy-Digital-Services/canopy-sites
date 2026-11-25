@@ -1,50 +1,10 @@
-Epics from 27 on are Canopy Sites work, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md).
+The Canopy Sites epics in progress, briefed in [`docs/canopy-sites/ROADMAP.md`](../canopy-sites/ROADMAP.md). When an epic ships, its doc moves to the Epic Archive in the Nextcloud Canopy Sites collective (`/.Collectives/Canopy Sites/Epic Archive/`) and leaves this list. What each release shipped is in [CHANGELOG.md](../../CHANGELOG.md); Forms epics 0 to 26 are in the git history.
 
 ## In progress
 
-Each epic's Status line says what has been released and what is left. Move an epic to the table below when it ships.
+Each epic's Status line says what has been released and what is left. Each client site's epic (40, 46, and 55) is on the Nextcloud page "Client Sites" instead, with the key to the labels this repo uses for client sites.
 
 - [Epic 33: Visual Editor](epic-33-visual-editor.md)
 - [Epic 37: canopyds.com on Sites](epic-37-canopyds-on-sites.md)
 - [Epic 38: Link and claim](epic-38-link-and-claim.md)
-- [Epic 40: Client 1 on Sites](epic-40-client1-on-sites.md)
-- [Epic 42: the test site on Sites](epic-42-test-site-on-sites.md)
-- [Epic 46: Client 2 on Sites](epic-46-client2-on-sites.md)
-- [Epic 55: Requests](epic-55-requests.md)
 - [Epic 56: Services](epic-56-services.md)
-
-## Completed Epics
-
-| Epic | Version | Date | Status |
-|------|---------|------|--------|
-| [Epic 0: Email Infrastructure](epic-0-email-infrastructure.md) | v2.1.0 | 2026-01-24 | ✅ Complete |
-| [Epic 1: Account & Authentication](epic-1-account-and-authentication.md) | v2.2.0 | 2026-01-24 | ✅ Complete |
-| [Epic 2: Form Ownership & Metadata](epic-2-form-ownership.md) | v2.3.0 | 2026-01-24 | ✅ Complete |
-| [Epic 3: Submission Ingestion (White-Box)](epic-3-submission-ingestion.md) | v2.4.0 | 2026-01-24 | ✅ Complete |
-| [Epic 4: Submission Events & Notifications](epic-4-submission-events-email-notifications.md) | v2.5.0 | 2026-01-24 | ✅ Complete |
-| [Epic 5: Submission Review & Export](epic-5-submission-review-export.md) | v2.6.0 | 2026-01-24 | ✅ Complete |
-| [Epic 6: Admin Console (Operator Only)](epic-6-admin-console.md) | v3.0.0 | 2026-01-24 | ✅ Complete |
-| [Epic 7: Multi-Recipient Email Notifications](epic-7-multi-recipient-email-notifications.md) | v4.1.0 | 2026-02-16 | ✅ Complete |
-| [Epic 8: Submission Settings Reorganization](epic-8-submission-settings-section) | v4.1.5 | 2026-02-17 | ✅ Complete |
-| [Epic 9: Form Title & Description](epic-9-form-title-and-description.md) | v4.1.6 | 2026-02-17 | ✅ Complete |
-| [Epic 10: Typography Refactor](epic-10-typography-refactor.md) | v4.2.0 | 2026-02-18 | ✅ Complete |
-| [Epic 11: Enhanced Appearance Controls](epic-11-enhanced-appearance-controls.md) | v4.3.0 | 2026-02-18 | ✅ Complete |
-| [Epic 12: Session Management](epic-12-session-management.md) | v4.4.0 | 2026-02-19 | ✅ Complete |
-| [Epic 13: Account Dashboard Scaffold](epic-13-account-dashboard-scaffold.md) | v4.5.0 | 2026-02-20 | ✅ Complete |
-| [Epic 14: Self-Serve Account Deletion](epic-14-self-serve-account-deletion.md) | v4.6.0 | 2026-02-20 | ✅ Complete |
-| [Epic 15: Checkboxes (Multi-Select) + Yes / No Rename](epic-15-multi-select-checkbox.md) | v4.7.0 | 2026-02-27 | ✅ Complete |
-| [Epic 18: Hosted Forms](epic-18-hosted-forms.md) | v4.8.0 | 2026-03-04 | ✅ Complete |
-| [Epic 19: Appearance Editor Refactor](epic-19-appearance-editor-refactor.md) | v4.9.0 | 2026-03-04 | ✅ Complete |
-| [Epic 22: Notification Bell (MVP)](epic-22-notification-bell.md) | v4.10.0 | 2026-04-20 | ✅ Complete |
-| [Epic 23: Account Plans & Entitlements](epic-23-account-plans-and-entitlements.md) | v4.11.0 | 2026-04-21 | ✅ Complete |
-| [Epic 25: Form Type Selection (Hosted vs Embedded)](epic-25-form-type-selection.md) | v4.12.0 | 2026-04-29 | ✅ Complete |
-| [Epic 26: Full-Response Email Notifications](epic-26-full-response-email-notifications.md) | v4.13.0 | 2026-07-24 | ✅ Complete |
-| [Epic 27: Restructure In Place; Product-Based Chrome](epic-27-restructure-product-chrome.md) | v5.0.0 | 2026-10-15 | ✅ Complete |
-| [Epic 28: Account Audit and Membership Model](epic-28-account-audit-membership.md) | v5.1.0 | 2026-10-16 | ✅ Complete |
-| [Epic 29: Plan Extension, Site Model, Operator Sites](epic-29-plan-site-model-operator-sites.md) | v5.2.0 | 2026-10-16 | ✅ Complete |
-| [Epic 30: Builder, Preview, and the Demo Slice](epic-30-demo-slice.md) | v5.3.0 | 2026-10-16 | ✅ Complete |
-| [Epic 35: Stats](epic-35-stats.md) | v5.20.0 | 2026-11-14 | ✅ Complete |
-| [Epic 53: People on an Account](epic-53-people-on-an-account.md) | v5.21.0 | 2026-11-17 | ✅ Complete |
-| [Epic 54: One Editor at a Time](epic-54-one-editor-at-a-time.md) | v5.21.0 | 2026-11-17 | ✅ Complete |
-
-See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.

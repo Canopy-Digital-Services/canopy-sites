@@ -5,7 +5,7 @@ import { parseRange } from "@/lib/byte-range";
 import { welcomeFile } from "@/lib/welcome-video";
 
 /**
- * A site's welcome video and its captions (ROADMAP E39), for the people on
+ * A site's welcome video and its captions, for the people on
  * the site's account and an operator acting as it; a 404 for anyone else, a
  * name that isn't the site's current key, and a signed-out request.
  *

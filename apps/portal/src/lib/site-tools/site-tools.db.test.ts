@@ -16,6 +16,8 @@ const builder = vi.hoisted(() => ({
   duringPublish: null as null | (() => Promise<unknown>),
   /** A push the portal hasn't read: the builder refuses the next publish. */
   moved: false,
+  /** The builder restarted: it answers 404 for every build it had. */
+  buildGone: false,
 }));
 vi.mock("@/lib/builder-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/builder-client")>("@/lib/builder-client");
@@ -26,7 +28,10 @@ vi.mock("@/lib/builder-client", async () => {
       builder.previews.push({ buildId, ops, baseCommit });
       return { id: buildId, status: "queued" };
     }),
-    fetchBuild: vi.fn(async (_slug, id: string) => ({ id, status: builder.buildStatus, log: "", error: builder.buildStatus === "failed" ? "boom" : undefined })),
+    fetchBuild: vi.fn(async (_slug, id: string) => {
+      if (builder.buildGone) throw new actual.BuilderError("No such build", undefined, 404);
+      return { id, status: builder.buildStatus, log: "", error: builder.buildStatus === "failed" ? "boom" : undefined };
+    }),
     requestPublish: vi.fn(async (_site, args: { buildId: string; baseCommit: string; ops: unknown[] }) => {
       // The builder runs one job per site: a second publish of a build waits for the
       // first, then finds the branch moved (apps/builder/src/sites.ts, publish).
@@ -115,6 +120,7 @@ beforeEach(async () => {
   builder.publishing = null;
   builder.duringPublish = null;
   builder.moved = false;
+  builder.buildGone = false;
 });
 
 describe("the site's time zone", () => {
@@ -306,6 +312,49 @@ describe("the lane (PRD D50)", () => {
         ops: [{ collection: "announcements", op: "add", path: "/-", value: { id: "trial", message: "Free trial this week." } }],
       }),
     ).rejects.toMatchObject({ message: expect.stringMatching(/doesn't say "Free trial"/), outOfLane: true });
+  });
+
+  it("checks the guide only on what an edit changes, and shows the operator what the published site breaks", async () => {
+    const { ctx, site } = await siteAccount();
+    // Published copy past the guide, as a Canopy push or a tightened guide leaves it.
+    const menu = builder.content.services as Menu;
+    menu[0].services[0].name = "Haircut and blow-dry";
+    menu[0].services.push({ id: "trim", name: "Trim", priceLabel: "$40" });
+    (builder.content.site as Record<string, unknown>).description = "A salon with a free trial.";
+    builder.guide = "---\nlimits:\n  services/*/services/*/name: 10\ncounts:\n  services/*/services: 1\nrefuse:\n  - free trial\n---\n";
+    const editor = { ...ctx, source: "EDITOR" as const };
+
+    // An edit elsewhere goes through, beside a list it doesn't lengthen.
+    expect((await tools.saveDraft(editor, site.id, { ops: [PRICE_OP] })).changeSetId).toBeTruthy();
+    expect((await tools.saveDraft(editor, site.id, { ops: [{ op: "replace", address: "services/haircuts/services/trim/priceLabel", value: "$45" }] })).version).toBe(2);
+    // The rules still hold for what the owner changes.
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "replace", address: "services/haircuts/services/haircut/name", value: "Haircut and style" }] }),
+    ).rejects.toThrow(/10 characters or fewer/);
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "add", address: "services/haircuts/services", value: { id: "gloss", name: "Gloss", priceLabel: "$60" } }] }),
+    ).rejects.toThrow(/at most 1 on this site/);
+    await expect(
+      tools.saveDraft(editor, site.id, { ops: [{ op: "add", address: "announcements", value: { id: "trial", message: "Free trial this week." } }] }),
+    ).rejects.toMatchObject({ outOfLane: true });
+
+    vi.stubEnv("BUILDER_URL", "http://builder.test.invalid:4100");
+    vi.stubEnv("BUILDER_TOKEN", "test-token");
+    try {
+      expect(await tools.publishedGuideIssues(site.id)).toEqual({
+        status: "read",
+        issues: [
+          { address: "services/haircuts/services/haircut/name", message: "Must be 10 characters or fewer on this site" },
+          { address: "services/haircuts/services", message: expect.stringMatching(/at most 1 on this site/) },
+          { address: "site/description", message: `This site doesn't say "free trial": that's Canopy's call` },
+        ],
+      });
+      builder.content = structuredClone(CONTENT);
+      builder.guide = null;
+      expect(await tools.publishedGuideIssues(site.id)).toEqual({ status: "read", issues: [] });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("says what each write changed, against the draft it started from, with what the copy avoids", async () => {
@@ -559,6 +608,87 @@ describe("refresh and publish", () => {
     expect(draft.baseCommit).toBe("b".repeat(40));
     expect(draft.ops).toEqual([{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }]);
     expect(builder.previews.at(-1)).toMatchObject({ baseCommit: "b".repeat(40), ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
+  });
+
+  it("starts a build the builder lost in a restart again, once per version", async () => {
+    const { ctx, site } = await siteAccount();
+    const editor = { ...ctx, source: "EDITOR" as const };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const saved = await tools.saveDraft(editor, site.id, { ops: [PRICE_OP] });
+      const changeSetId = saved.changeSetId!;
+      builder.buildGone = true;
+      // Two refreshes at once start one new build, of the same version on the same commit.
+      const both = await Promise.all([tools.refreshChange(ctx.accountId, changeSetId), tools.refreshChange(ctx.accountId, changeSetId)]);
+      expect(both).toMatchObject([
+        { status: "DRAFT", buildStatus: "QUEUED", buildVersion: 1 },
+        { status: "DRAFT", buildStatus: "QUEUED", buildVersion: 1 },
+      ]);
+      const builds = await prisma.build.findMany({ where: { changeSetId }, orderBy: { createdAt: "asc" } });
+      expect(builds).toMatchObject([
+        { id: saved.buildId, status: "FAILED", error: "The builder restarted and lost this build.", draftVersion: 1 },
+        { status: "QUEUED", error: null, draftVersion: 1, baseCommit: builder.commit },
+      ]);
+      expect(builder.previews.map((p) => p.buildId)).toEqual([saved.buildId, builds[1].id]);
+      // The builder builds it, and the draft can be published.
+      builder.buildGone = false;
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "PREVIEWED", buildStatus: "SUCCEEDED" });
+
+      // A version lost twice isn't started a third time: the draft says so, as a failed build does.
+      const next = await tools.saveDraft(editor, site.id, { ops: [ANNOUNCE_OP] });
+      builder.buildGone = true;
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ buildStatus: "QUEUED", buildVersion: 2 });
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ status: "DRAFT", buildStatus: "FAILED", error: BUILDER_FAILED.build });
+      expect(await prisma.build.count({ where: { changeSetId, draftVersion: 2 } })).toBe(2);
+      expect(await tools.refreshChange(ctx.accountId, changeSetId)).toMatchObject({ buildStatus: "FAILED" });
+      // Each version built twice: its own build, and the one started when it was lost.
+      expect(builder.previews.map((p) => p.buildId).slice(2, 3)).toEqual([next.buildId]);
+      expect(builder.previews).toHaveLength(4);
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  it("runs the guardrails again at publish, so a rule added since the draft was saved applies to it", async () => {
+    const { ctx, site } = await siteAccount();
+    const editor = { ...ctx, source: "EDITOR" as const };
+    const author = { name: "O", email: "o@test.invalid" };
+    const previewed = async (op: Record<string, unknown>) => {
+      const saved = await tools.saveDraft(editor, site.id, { ops: [op] });
+      await tools.refreshChange(ctx.accountId, saved.changeSetId!);
+      return { changeSetId: saved.changeSetId!, buildId: saved.buildId! };
+    };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      // A lock added after the draft was saved.
+      const named = await previewed({ op: "replace", address: "site/name", value: "Demo Salon & Spa" });
+      await prisma.site.update({ where: { id: site.id }, data: { lockedFields: { push: "site/name" } } });
+      await expect(tools.publishChange(ctx, named.changeSetId, named.buildId, author)).rejects.toMatchObject({
+        message: expect.stringMatching(/locked/),
+        outOfLane: true,
+      });
+      expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: named.changeSetId } })).toMatchObject({
+        status: "FAILED",
+        error: expect.stringMatching(/^This no longer fits the site's rules\. .*locked/),
+      });
+
+      // A guide limit added after: refused too, and nothing went to the builder.
+      const priced = await previewed(PRICE_OP);
+      builder.guide = "---\nlimits:\n  services/*/services/*/priceLabel: 2\n---\n";
+      await expect(tools.publishChange(ctx, priced.changeSetId, priced.buildId, author)).rejects.toThrow(/2 characters or fewer/);
+      expect(builder.publishes).toHaveLength(0);
+
+      // A read that fails is a plain try-again, and the draft stays ready to publish.
+      builder.guide = null;
+      const announced = await previewed(ANNOUNCE_OP);
+      const { BuilderError, fetchContent } = await import("@/lib/builder-client");
+      vi.mocked(fetchContent).mockRejectedValueOnce(new BuilderError("git fetch exited with 128"));
+      await expect(tools.publishChange(ctx, announced.changeSetId, announced.buildId, author)).rejects.toMatchObject({ message: BUILDER_FAILED.read });
+      expect(await prisma.changeSet.findUniqueOrThrow({ where: { id: announced.changeSetId } })).toMatchObject({ status: "PREVIEWED" });
+      expect(await tools.publishChange(ctx, announced.changeSetId, announced.buildId, author)).toEqual({ commit: "b".repeat(40) });
+    } finally {
+      logged.mockRestore();
+    }
   });
 
   it("discards only a pending change", async () => {

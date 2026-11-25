@@ -10,12 +10,12 @@ describe("a builder failure (Epic 46, H6)", () => {
   afterEach(() => logged.mockRestore());
 
   it("becomes a plain sentence for the owner, with the builder's message in one log line with the site", () => {
-    const said = builderFailure("read", new BuilderError("git fetch exited with 128"), { slug: "client2" });
+    const said = builderFailure("read", new BuilderError("git fetch exited with 128"), { slug: "bramble-bakery" });
     expect(said).toBe("Your site couldn't be loaded just now. Try again in a moment.");
     expect(logged).toHaveBeenCalledTimes(1);
     expect(JSON.parse(String(logged.mock.calls[0][0]))).toEqual({
       event: "builder_read_failed",
-      slug: "client2",
+      slug: "bramble-bakery",
       message: "git fetch exited with 128",
     });
   });
