@@ -59,7 +59,7 @@ Notices are **borderless tinted blocks** at the workhorse radius. The tint carri
 
 ## 3. Motion
 
-Motion has one job: make it clear content **arrived** or **left**, so a state change doesn't read as a jump cut. Not for delight, emphasis, or personality.
+Motion has one job: make it clear content **arrived** or **left**, so a state change doesn't read as a jump cut. Not for delight, emphasis, or personality. The one exception is a refusal: a panel that can't close yet shakes no (`.refuse-shake` in [globals.css](src/app/globals.css)), and nothing else shakes.
 
 The four flow tokens in [globals.css](src/app/globals.css) (`--ease-flow-in/out`, `--duration-flow-in/out`) time every deliberate transition; from Tailwind, `duration-[var(--duration-flow-in)] ease-[var(--ease-flow-in)]`. Entry rises from below and decelerates; exit accelerates away, faster, because a departing element doesn't need to be read. **Energy comes from distance, not springiness**: when motion feels too subtle, increase travel or duration (the comments on the tokens say why there's no bounce).
 
@@ -69,6 +69,7 @@ The four flow tokens in [globals.css](src/app/globals.css) (`--ease-flow-in/out`
 | `DialogContent` | Rise in with `slide-in-from-bottom-12`; drop away on close |
 | Progressive reveals | `.editor-reveal` grows the container to fit |
 | Dropdown menus | Fade and zoom in; close at once, with no exit animation |
+| The Editor's field panel | Shakes when the owner tries to leave a field while Done is off (a click on another field, or Enter) |
 
 `DialogContent` carries this globally. Don't override per dialog.
 

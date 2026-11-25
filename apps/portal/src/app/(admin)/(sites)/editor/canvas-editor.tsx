@@ -407,6 +407,16 @@ export function CanvasEditor({
   const doneRef = useRef(done);
   doneRef.current = done;
 
+  // The field panel, which shakes when the owner tries to leave a field Done can't save yet.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const refuse = useCallback(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    el.classList.remove("refuse-shake");
+    void el.offsetWidth; // restarts the animation when it's still running
+    el.classList.add("refuse-shake");
+  }, []);
+
   const select = useCallback(
     (address: string, index: number, value: string, rect: Rect) => {
       // Opening a field is where an edit starts: the site is this person's from here (PRD D64).
@@ -448,7 +458,10 @@ export function CanvasEditor({
           break;
         case "select":
           // Another field clicked while one is being edited: that one finishes as Done would, or stays open while Done is off.
-          if (selectedRef.current?.mode === "edit" && !doneRef.current()) break;
+          if (selectedRef.current?.mode === "edit" && !doneRef.current()) {
+            refuse();
+            break;
+          }
           select(String(m.address), Number(m.index) || 0, String(m.value ?? ""), m.rect as Rect);
           break;
         case "scroll":
@@ -461,7 +474,7 @@ export function CanvasEditor({
           setSelected((s) => (s ? { ...s, rect: m.rect as Rect } : s));
           break;
         case "commit":
-          doneRef.current();
+          if (selectedRef.current?.mode === "edit" && !doneRef.current()) refuse();
           break;
         case "cancel":
         case "deselect":
@@ -477,7 +490,7 @@ export function CanvasEditor({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [close, navigate, post, select]);
+  }, [close, navigate, post, refuse, select]);
 
   useEffect(() => {
     const refresh = () => refreshInPlace();
@@ -630,6 +643,7 @@ export function CanvasEditor({
         {selected && panelStyle ? (
           <FieldPanel
             key={selected.address}
+            ref={panelRef}
             style={panelStyle}
             selected={selected}
             dates={dates}
@@ -649,6 +663,7 @@ export function CanvasEditor({
 }
 
 function FieldPanel({
+  ref,
   style,
   selected,
   dates,
@@ -658,6 +673,7 @@ function FieldPanel({
   onAsk,
   onChanged,
 }: {
+  ref: React.Ref<HTMLDivElement>;
   style: React.CSSProperties;
   selected: Selected;
   dates: { startsOn: string; endsOn: string } | null;
@@ -672,7 +688,14 @@ function FieldPanel({
   const problem = problemOf(selected);
   const note = problem ?? (selected.limit && length >= selected.limit - COUNT_FROM ? `${length} of ${selected.limit} characters` : null);
   return (
-    <div className="absolute z-10 space-y-3 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg" style={{ ...style, width: PANEL_WIDTH }}>
+    <div
+      ref={ref}
+      className="absolute z-10 space-y-3 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg"
+      style={{ ...style, width: PANEL_WIDTH }}
+      onAnimationEnd={(e) => {
+        if (e.animationName === "refuse-shake") e.currentTarget.classList.remove("refuse-shake");
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-heading text-sm">{label}</h3>
         <Tooltip>

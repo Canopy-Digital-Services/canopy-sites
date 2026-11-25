@@ -276,6 +276,33 @@
   animation: editor-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* A refusal: a panel that can't close yet shakes no (UX_PATTERNS section 3).
+ * The Editor's field panel, when Done is off and the owner clicks another field
+ * or presses Enter. `translate`, not `transform`, so it leaves alone the
+ * translateY a panel above its field carries. */
+@keyframes refuse-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20% {
+    translate: -8px 0;
+  }
+  40% {
+    translate: 7px 0;
+  }
+  60% {
+    translate: -5px 0;
+  }
+  80% {
+    translate: 3px 0;
+  }
+}
+
+.refuse-shake {
+  animation: refuse-shake var(--duration-flow-in) ease-in-out;
+}
+
 /* Live preview stand-ins: placeholders shown in place of an empty title,
  * description or field list (src/components/forms/form-preview.tsx). Faded text
  * with a skeleton shimmer running through it, so it reads as "goes here",
@@ -353,7 +380,8 @@
   .editor-swoop-in,
   .editor-swoop-out-left,
   .editor-swoop-out-right,
-  .editor-reveal {
+  .editor-reveal,
+  .refuse-shake {
     animation-duration: 1ms;
   }
 
