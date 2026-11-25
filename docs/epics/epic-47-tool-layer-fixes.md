@@ -1,6 +1,6 @@
 # Epic 47: Tool layer fixes
 
-**Status:** Built (2026-11-24), not released. Drafted from the ROADMAP brief when Michael moved on to it as the MVP's next item, and built in the same session. Left: Michael's look at the Site guide card, then the release, then the completion report.
+**Status:** Built (2026-11-24), not released. Drafted from the ROADMAP brief when Michael moved on to it as the MVP's next item, and built in the same session. Left: the release, then the completion report.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`, E47)
 **Successor:** E48 (deploys and checks), next in the MVP
 
@@ -87,6 +87,7 @@ None.
 
 - 2026-11-24: Drafted from the ROADMAP brief and a read of the tool layer, the builder client, and the builder's build route.
 - 2026-11-24: Built. Each fix has a test in `site-tools.db.test.ts`, and each test was run with its fix taken out and failed. Lint, the build, and the suite (585 tests) pass in the dev container. The Site guide card was checked headless on `localhost:3006` as a throwaway operator: the local canopyds site reads "Published content fits the guide.", and the list was looked at with two sample problems put in by hand and taken out again. Nothing pushed.
+- 2026-11-24: The card checked again in Chrome (Claude in Chrome) on `localhost:3006` as a throwaway operator, deleted afterwards: the canopyds and demo sites both read "Published content fits the guide.", with no console errors.
 
 ## 9. Docs this makes stale
 
