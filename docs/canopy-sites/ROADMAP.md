@@ -14,12 +14,12 @@ Phases 0 and 2 have shipped, and so has the contract's first release.
 
 ```
 Phase 1  Client 2                     [its repo]           E46                        (its claim is in the MVP)
-Phase 3  Editor                       [this repo]         E33, E38, E39              (closing out; E34 after v1)
+Phase 3  Editor                       [this repo]         E33, E38                   (closing out; E34 after v1)
 Phase 4  Production on nginx          [webber]             E36                        (after the MVP; both boxes keep serving, PRD D57)
 Phase 5  Client 1                     [its repo]           E40                        (its claim is in the MVP)
 Phase 6  Site kit                     [site-kit, starter]  E41                        (before the next client site)
 Phase 7  New client builds            [webber, this repo]  E43 → E44, E45             (before the next site built from scratch)
-Phase 8  Launch readiness             [this repo, webber]  E47, E48, E49              (the MVP's own work)
+Phase 8  Launch readiness             [this repo, webber]  E48, E49                   (the MVP's own work)
 Phase 9  The suite                    [this repo]          E50 → E51, E55, E56 → E57, E52   (Services now, then button and menu text; after the MVP: Gallery, Events, E55 past its first step; Booking when a client needs it)
 Phase 10 Keeping a site true          [this repo]          E58, E59, E60, E61         (order to decide)
 Phase 11 Passkeys                     [this repo]          E62                        (after the MVP)
@@ -31,20 +31,18 @@ Every site on Sites deploys through its own Coolify app until E36: publish is a 
 
 Nothing has launched (PRD D51). The MVP is the owners of today's client sites (the test site and Clients 1 to 3; the key is the Nextcloud page "Client Sites") claiming their portal, editing, previewing, and publishing safely. Its work, in order; an item leaves this list when it ships:
 
-1. **E47, tool layer fixes.**
-2. **E39, the welcome video**: before Client 3's claim links go out, tried first on the test site.
-3. **E48, deploys and checks.**
-4. **E49, alerting and records.**
-5. **Mail that can carry a launch**, before claim links go to clients. The portal sends through the mail account that carries Canopy's own mailboxes and a client's, under one small daily ceiling (the private page). Past it, the portal's mail stops almost silently: the operator sees "Copy the link instead" for a claim link, a request to Michael waits in the operator console with no email, and a submission notification fails in the container's output only. The candidate is Cloudflare Email Sending over SMTP, which the portal can move to by changing four variables on each app; sending from Canopy's own server was ruled out (the private page). A cap on notification mail and confirmed recipients come with Forms opening to the public, not with this.
-6. **The Editor and Quick Edit for a first owner**:
+1. **E48, deploys and checks.**
+2. **E49, alerting and records.**
+3. **Mail that can carry a launch**, before claim links go to clients. The portal sends through the mail account that carries Canopy's own mailboxes and a client's, under one small daily ceiling (the private page). Past it, the portal's mail stops almost silently: the operator sees "Copy the link instead" for a claim link, a request to Michael waits in the operator console with no email, and a submission notification fails in the container's output only. The candidate is Cloudflare Email Sending over SMTP, which the portal can move to by changing four variables on each app; sending from Canopy's own server was ruled out (the private page). A cap on notification mail and confirmed recipients come with Forms opening to the public, not with this.
+4. **The Editor and Quick Edit for a first owner**:
    - A mark that shows on text a template wraps word by word. The dotted `text-decoration` underline (`src/lib/canvas-bridge.ts`) doesn't reach inline-block children, so canopyds.com's headline shows dots between its words; an outline or a background on the marked element doesn't depend on it.
    - The canvas's Quick Edit box (`ScopedQuickEdit`, a 224 px scroll area) scrolls to the end of a tall request card, with the reply that explains it out of view. Keep the reply in view.
    - Text that art is drawn against is Canopy's (PRD D56). On each site: lock the field's address on the `Site` row, take its mark out of the template, and keep the guide's list of them so Quick Edit offers the request to Michael. canopyds.com's hero headline is the known one, and its `Marked.astro` on marked text goes; Client 1's and the test site's guides list theirs.
    - New photos become a request card, which can't carry a photo. Until E50, the reply says how to get the photo to Michael.
-7. **Epics 33, 37, and 38 closed**: their unticked acceptance boxes, mostly Michael's own checks.
-8. **Client 1's claim** (Epic 40, 4.7): the first client owner.
-9. **Client 2's claim** (Epic 46).
-10. **Client 3 onto Sites**, through the Sites Onboarding Runbook, its form going to an outside provider (PRD D53). What is left is in its repo (the contract, its copy into content files, the site guide) and the link, which can happen on a `canopyds.com` name before its domain is live; the operator edits the hostnames at launch.
+5. **Epics 33, 37, and 38 closed**: their unticked acceptance boxes, mostly Michael's own checks.
+6. **Client 1's claim** (Epic 40, 4.7): the first client owner.
+7. **Client 2's claim** (Epic 46).
+8. **Client 3 onto Sites**, through the Sites Onboarding Runbook, its form going to an outside provider (PRD D53). What is left is in its repo (the contract, its copy into content files, the site guide) and the link, which can happen on a `canopyds.com` name before its domain is live; the operator edits the hostnames at launch.
 
 **Client 2's request form** (E55's first step) is in the MVP with no place in the order: the site's booking buttons stop working on a date the client sets, which Canopy doesn't have yet. When, and what the form asks, are on the Nextcloud page "Client Sites". Services (E56) is built first. This paragraph goes when the form is live.
 
@@ -86,17 +84,6 @@ After v1 (PRD D59), and not scheduled: a Streamable HTTP endpoint at `/mcp` with
 ### E38 · Link and claim
 
 `docs/epics/epic-38-link-and-claim.md`. Built; open for its acceptance boxes (the MVP's "Epics 33, 37, and 38 closed").
-
-### E39 · Welcome video
-
-Goal: each tab of a client's portal opens on a walkthrough Michael recorded for them, one short video for each tab, since each portal shows different things depending on what the site has. A tab with no video opens nothing.
-
-- Storage: a Coolify persistent volume on the prod and dev portal apps at `/app/media`, created in the Dockerfile owned by `nextjs` (uid 1001), named by `MEDIA_DIR` (unset means no videos). A video is a `WelcomeVideo` row (site, tab, key) and two files, `welcome/<siteId>/<tab>-<key>.mp4` and `.vtt`, the tab one of the ids in `src/lib/sites-tabs.ts` and the key a hash of the MP4; a replacement writes a new key and deletes the tab's old pair. Not in the nightly backups, which cover databases; a lost video is re-uploaded from Michael's original
-- Upload on the operator site page: a Welcome videos card with a row for each tab, and for a tab the MP4 and a WebVTT captions file, both required. A route handler that only a Global Admin's own portal page may post to streams the MP4 to disk and refuses a request over 100 MB (Cloudflare's per-request limit on Free and Pro); it checks the MP4's `ftyp` box and the VTT's `WEBVTT` header. Remove deletes the pair and each person's viewing of it. The pair comes from `uv run apps/portal/scripts/prepare-welcome-video.py`, which Claude Code runs through the repo's `welcome-video` skill
-- Playback: `/welcome/<siteId>/<tab>-<key>-video` and `-captions`, with no file extension so Cloudflare passes byte ranges through, for the people on the site's account and an acting operator only, `Cache-Control: private`. A native `<video controls>` in a dialog, never autoplaying, with its captions in a strip under the picture. A tab's video opens by itself once per person, the first time they are on that tab's pages with no `WelcomeView` row for it, and never while the operator acts as the client; the help bubble reopens it. The furthest point played and the video's length are on the person's `WelcomeView`, shown on the operator's people card. A different video for a tab starts its figures over and doesn't open by itself for someone already shown that tab's
-- Acceptance: on a person's phone each tab's video opens once, on their first visit to the tab, silent until played, with captions, and seeks; a second person on the account gets each once too; a tab with no video opens nothing; the operator page shows how far each person got in each; signed out or as another account, the files 404
-
-Built and released (5.23.1); the prod app has its volume. Left: the acceptance above on prod, with a client's real video. This brief goes when E39 ships.
 
 ---
 
@@ -191,10 +178,6 @@ Goal: a site's form is part of the site (PRD D68): written with its pages, in it
 ## Phase 8: Launch readiness
 
 The MVP's own work (PRD D51).
-
-### E47 · Tool layer fixes
-
-`docs/epics/epic-47-tool-layer-fixes.md`, in progress.
 
 ### E48 · Deploys and checks
 

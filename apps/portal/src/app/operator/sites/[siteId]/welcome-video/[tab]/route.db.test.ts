@@ -88,7 +88,7 @@ async function watched(accountId: string, siteId: string, tab: SitesTabId, shown
   });
 }
 
-describe("uploading a tab's welcome video (ROADMAP E39)", () => {
+describe("uploading a tab's welcome video", () => {
   it("stores the operator's upload under the tab and the MP4's hash, and the site's owner can then play it", async () => {
     const { owner, site } = await operatorAndSite();
     const video = mp4(1);

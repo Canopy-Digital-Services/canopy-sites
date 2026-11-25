@@ -16,7 +16,7 @@ type WelcomeVideoDialogProps = {
 };
 
 /**
- * One of the site's welcome videos (ROADMAP E39) in a dialog: the browser's
+ * One of the site's welcome videos in a dialog: the browser's
  * own player, started by the person and never by the page, with its captions
  * in a strip under the picture, where they cover nothing the video shows.
  * Closing it unmounts the player, which stops it.

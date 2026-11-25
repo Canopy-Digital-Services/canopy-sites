@@ -50,7 +50,7 @@ async function signInActingAs(accountId: string) {
   return { own, operator };
 }
 
-describe("each tab's welcome video opening once (ROADMAP E39)", () => {
+describe("each tab's welcome video opening once", () => {
   it("hands over the videos of the tabs that have one, in the tabs' order, with their files", async () => {
     const { account, user, site } = await siteWithVideos("editor", "quick-edit");
     await signInAs(user.id);
@@ -151,7 +151,7 @@ describe("each tab's welcome video opening once (ROADMAP E39)", () => {
 const watchedBy = async (accountId: string, userId: string) =>
   (await listPeopleAccess(accountId)).find((person) => person.userId === userId)?.watched;
 
-describe("how far each person has watched each welcome video (ROADMAP E39)", () => {
+describe("how far each person has watched each welcome video", () => {
   it("keeps each person's furthest point in each tab's video, in whole seconds of its length", async () => {
     const { account, user } = await siteWithVideos("quick-edit", "editor");
     const member = await createMember(account.id);

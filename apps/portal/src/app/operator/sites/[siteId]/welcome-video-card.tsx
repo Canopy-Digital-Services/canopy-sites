@@ -25,7 +25,7 @@ import {
 export type WelcomeVideoRow = { tab: SitesTabId; state: "none" | "missing" | { uploadedAt: string } };
 
 /**
- * The site's welcome videos (ROADMAP E39) on the operator's page, a row for
+ * The site's welcome videos on the operator's page, a row for
  * each tab of the portal: whether the tab has a video, the upload of an MP4
  * with its captions, which replaces it, and taking it away. `videos` is null
  * where this portal keeps no media.

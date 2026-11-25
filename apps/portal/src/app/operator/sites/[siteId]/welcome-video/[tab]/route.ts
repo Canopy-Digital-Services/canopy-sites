@@ -5,8 +5,8 @@ import { storeWelcomeVideo } from "@/lib/welcome-video";
 import { CAPTIONS_LENGTH_HEADER, WELCOME_UPLOAD_ERRORS, WELCOME_UPLOAD_MAX_BYTES } from "@/lib/welcome-video-limits";
 
 /**
- * The operator's upload of a site's welcome video for one tab (ROADMAP
- * E39), from the card on the site's page. The body is the captions file and
+ * The operator's upload of a site's welcome video for one tab, from the
+ * card on the site's page. The body is the captions file and
  * then the MP4,
  * with the captions' length in a header, so the video streams to the disk
  * and nothing has to hold a hundred megabytes in memory to split a form.

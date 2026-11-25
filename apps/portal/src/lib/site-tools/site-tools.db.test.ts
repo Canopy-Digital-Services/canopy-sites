@@ -16,7 +16,7 @@ const builder = vi.hoisted(() => ({
   duringPublish: null as null | (() => Promise<unknown>),
   /** A push the portal hasn't read: the builder refuses the next publish. */
   moved: false,
-  /** The builder restarted: it answers 404 for every build it had (E47). */
+  /** The builder restarted: it answers 404 for every build it had. */
   buildGone: false,
 }));
 vi.mock("@/lib/builder-client", async () => {
@@ -314,7 +314,7 @@ describe("the lane (PRD D50)", () => {
     ).rejects.toMatchObject({ message: expect.stringMatching(/doesn't say "Free trial"/), outOfLane: true });
   });
 
-  it("checks the guide only on what an edit changes, and shows the operator what the published site breaks (E47)", async () => {
+  it("checks the guide only on what an edit changes, and shows the operator what the published site breaks", async () => {
     const { ctx, site } = await siteAccount();
     // Published copy past the guide, as a Canopy push or a tightened guide leaves it.
     const menu = builder.content.services as Menu;
@@ -610,7 +610,7 @@ describe("refresh and publish", () => {
     expect(builder.previews.at(-1)).toMatchObject({ baseCommit: "b".repeat(40), ops: [{ op: "replace", address: "site/name", value: "Demo Salon & Spa" }] });
   });
 
-  it("starts a build the builder lost in a restart again, once per version (E47)", async () => {
+  it("starts a build the builder lost in a restart again, once per version", async () => {
     const { ctx, site } = await siteAccount();
     const editor = { ...ctx, source: "EDITOR" as const };
     const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -649,7 +649,7 @@ describe("refresh and publish", () => {
     }
   });
 
-  it("runs the guardrails again at publish, so a rule added since the draft was saved applies to it (E47)", async () => {
+  it("runs the guardrails again at publish, so a rule added since the draft was saved applies to it", async () => {
     const { ctx, site } = await siteAccount();
     const editor = { ...ctx, source: "EDITOR" as const };
     const author = { name: "O", email: "o@test.invalid" };

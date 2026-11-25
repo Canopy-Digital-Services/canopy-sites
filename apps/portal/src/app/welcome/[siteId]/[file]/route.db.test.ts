@@ -61,7 +61,7 @@ async function signInActingAs(accountId: string) {
 
 const bytes = async (res: Response) => Buffer.from(await res.arrayBuffer());
 
-describe("/welcome (ROADMAP E39)", () => {
+describe("/welcome", () => {
   it("gives each person on the account the video and its captions, out of any shared cache", async () => {
     const { account, user, site } = await siteWithVideo();
     const member = await createMember(account.id);

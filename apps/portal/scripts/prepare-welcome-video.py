@@ -3,7 +3,7 @@
 # requires-python = ">=3.12,<3.13"
 # dependencies = ["faster-whisper==1.2.1", "numpy"]
 # ///
-"""Turns a screen recording into the two files of a welcome video (ROADMAP E39).
+"""Turns a screen recording into the two files of a welcome video.
 
     uv run apps/portal/scripts/prepare-welcome-video.py <recording> [--words "Bramble Bakery, Marisol"]
 

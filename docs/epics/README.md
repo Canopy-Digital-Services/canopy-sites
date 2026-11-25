@@ -7,5 +7,4 @@ Each epic's Status line says what has been released and what is left. Each clien
 - [Epic 33: Visual Editor](epic-33-visual-editor.md)
 - [Epic 37: canopyds.com on Sites](epic-37-canopyds-on-sites.md)
 - [Epic 38: Link and claim](epic-38-link-and-claim.md)
-- [Epic 47: Tool layer fixes](epic-47-tool-layer-fixes.md)
 - [Epic 56: Services](epic-56-services.md)

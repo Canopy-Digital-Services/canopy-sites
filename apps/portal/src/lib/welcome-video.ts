@@ -1,5 +1,5 @@
 /**
- * A site's welcome videos (ROADMAP E39): walkthroughs Michael records for
+ * A site's welcome videos: walkthroughs Michael records for
  * the site, one for each tab of its portal that needs one, opened once for
  * each person on the account the first time they visit that tab.
  *

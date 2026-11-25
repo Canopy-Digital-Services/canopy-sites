@@ -1,6 +1,6 @@
 # Epic 38: Link and claim
 
-**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (ROADMAP E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
+**Status:** Approved (Michael, 2026-11-05), with the welcome video moved to its own epic (E39). In progress: 4.1 to 4.5 released (5.11.0 and 5.12.0, 2026-11-05); 4.7 (the Sites list's status column), 4.8, and 4.9 left.
 **Phase:** 3, Editor (`docs/canopy-sites/ROADMAP.md`), ahead of Phase 5 (Client 1)
 **Predecessor:** Epic 37 (canopyds.com on Sites), whose run produced the Sites Onboarding Runbook this epic rewrites
 **Successor:** E40, Client 1, the first client to be linked and to claim
@@ -148,7 +148,7 @@ Never built: PRD section 6 and the Quick Edit brief named "edit as client", and 
 
 ### 4.6 Room for the welcome video (E39)
 
-The welcome video is its own epic (ROADMAP E39, Michael 2026-11-05). This one adds nothing of it, no column, volume, or route, and leaves these for it to build on:
+The welcome video is its own epic (E39, Michael 2026-11-05). This one adds nothing of it, no column, volume, or route, and leaves these for it to build on:
 
 - **The owner's own sessions are told apart from the operator's.** A session acting as the client carries its `ActAs` (4.5), and one helper answers "is this the operator acting?", so E39 opens the video by itself, and records how much was watched, only for the people on the account (each of them, since PRD D63).
 - **The claim's session is the owner's first** (4.4): it lands on home with no state of its own to clear, and E39 keys "shown once" off each person's membership and the tab (a video for each tab since 2026-11-15).
@@ -226,7 +226,7 @@ With Client 1 as the first client, once its repo builds on the contract (E40):
 
 ### Michael (2026-11-05, approval)
 
-- **Approved**, with the welcome video moved to its own epic (ROADMAP E39): this one is designed to support it and builds none of it (4.6).
+- **Approved**, with the welcome video moved to its own epic (E39): this one is designed to support it and builds none of it (4.6).
 - **Sites tabs follow what the account and the build have** (4.8), not operator switches.
 
 ### Agent calls inside scope

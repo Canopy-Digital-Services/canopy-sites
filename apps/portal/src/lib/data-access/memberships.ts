@@ -66,8 +66,8 @@ export async function sessionCanUseAccount(session: SessionAccess, accountId: st
 /**
  * The id of the session user's own membership of the account, or null when
  * they have none. An operator acting as the account (PRD D49) has none: what
- * is recorded against a person, such as a welcome video they were shown
- * (ROADMAP E39), is never recorded for the operator standing in for them.
+ * is recorded against a person, such as a welcome video they were shown,
+ * is never recorded for the operator standing in for them.
  */
 export async function ownMembershipId(session: SessionAccess, accountId: string): Promise<string | null> {
   if (session.actingAs) return null;

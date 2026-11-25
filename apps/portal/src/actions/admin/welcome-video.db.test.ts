@@ -65,7 +65,7 @@ const tabsWithVideo = async (siteId: string) =>
 const files = (dir: string) => readdir(dir).then((names) => names.sort(), () => []);
 const views = (userId: string, tab: SitesTabId) => prisma.welcomeView.findFirst({ where: { membership: { userId }, video: { tab } } });
 
-describe("removing a tab's welcome video (ROADMAP E39)", () => {
+describe("removing a tab's welcome video", () => {
   it("is refused to anyone who isn't a Global Admin", async () => {
     const { owner, site, dir } = await siteWithWatchedVideos();
     await expect(removeSiteWelcomeVideo(site.id, "quick-edit")).rejects.toThrow();

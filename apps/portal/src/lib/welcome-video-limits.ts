@@ -1,5 +1,5 @@
 /**
- * What a welcome video upload (ROADMAP E39) must be. The operator's browser
+ * What a welcome video upload must be. The operator's browser
  * checks these before it sends anything, and the server checks them again.
  */
 

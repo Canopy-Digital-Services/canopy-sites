@@ -1,6 +1,6 @@
 // UI: see docs/UX_PATTERNS.md for layout and component conventions.
 // Where the site's published content breaks the contract or its SITE_GUIDE.md
-// rules. Owner edits are checked only on what they change (ROADMAP E47), so a
+// rules. Owner edits are checked only on what they change, so a
 // Canopy push or a tightened guide shows up here, not as refused edits.
 // Rendered on the server; the page streams it in so a slow builder never
 // holds up the rest of the page.

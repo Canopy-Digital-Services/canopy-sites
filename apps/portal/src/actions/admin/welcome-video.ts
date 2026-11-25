@@ -1,8 +1,7 @@
 "use server";
 
 /**
- * Global-Admin-gated: taking a site's welcome video for a tab away (ROADMAP
- * E39). Its upload is a route handler beside the site's page, since it
+ * Global-Admin-gated: taking a site's welcome video for a tab away. Its upload is a route handler beside the site's page, since it
  * streams a file.
  */
 

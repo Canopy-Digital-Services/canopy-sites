@@ -3,7 +3,7 @@ import { clock, isMp4, isWebVtt } from "./welcome-video-limits";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
-describe("what a welcome video upload must be (ROADMAP E39)", () => {
+describe("what a welcome video upload must be", () => {
   it("takes a file that starts with an ftyp box as an MP4", () => {
     expect(isMp4(Uint8Array.from([0, 0, 0, 32, ...bytes("ftypisom")]))).toBe(true);
     expect(isMp4(Uint8Array.from([0, 0, 0, 24, ...bytes("ftypmp42")]))).toBe(true);
