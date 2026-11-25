@@ -5,6 +5,26 @@ All notable changes to the Canopy portal (Canopy Forms, and from 5.0.0 the Canop
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.25.0] - 2026-11-24
+
+### Added
+
+- Operator: a site's page lists any place its published content breaks the site guide
+
+### Changed
+
+- Sites: in the Editor, clicking another field finishes the open one as Done would, then opens the one clicked
+- Sites: in the Editor, the open field's panel shakes when it can't be left yet because its text is empty or too long
+
+### Fixed
+
+- Sites: an edit is no longer refused because of copy elsewhere on the site that is past the site guide's rules; only what the edit changes is checked
+- Sites: a preview whose build was lost when the builder restarted starts again by itself, so the change becomes ready to publish without another edit
+- Sites: Publish checks the site's rules as they are now, so a change made before a field was locked can't put it live
+- Sites: Publish and Cancel on the preview bar look like buttons, and a Publish that can't be pressed yet looks it
+- Forms: with reduced motion on, a new form's editor moves on from its first step again
+- Operator: the role and plan dialogs no longer say a change waits for the next sign-in; it applies on the next page
+
 ## [5.24.2] - 2026-11-23
 
 ### Fixed
