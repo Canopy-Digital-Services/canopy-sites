@@ -1,6 +1,6 @@
 # Epic 47: Tool layer fixes
 
-**Status:** In progress (2026-11-24). Drafted from the ROADMAP brief when Michael moved on to it as the MVP's next item, and built in the same session.
+**Status:** Built (2026-11-24), not released. Drafted from the ROADMAP brief when Michael moved on to it as the MVP's next item, and built in the same session. Left: Michael's look at the Site guide card, then the release, then the completion report.
 **Phase:** 8, Launch readiness (`docs/canopy-sites/ROADMAP.md`, E47)
 **Successor:** E48 (deploys and checks), next in the MVP
 
@@ -62,11 +62,11 @@ A lock, a fixed list, or a guide rule added after a draft was saved didn't apply
 
 ## 4. Acceptance
 
-- [ ] A guide limit, count, or refused phrase that published content already breaks no longer refuses an edit elsewhere; editing that field, growing that list, or writing that phrase is still refused (database tests).
-- [ ] The operator's site page lists where published content breaks the guide, and says when it all fits.
-- [ ] A build the builder lost starts again on the next refresh, once, and the draft becomes previewable when it succeeds (database test, from the repro file).
-- [ ] A lock added after a draft was saved refuses that draft's publish, and the draft is marked failed with the reason (database test, from the repro file).
-- [ ] `e47-repro.db.test.ts.txt` is gone; build, lint, and the suite pass.
+- [x] A guide limit, count, or refused phrase that published content already breaks no longer refuses an edit elsewhere; editing that field, growing that list, or writing that phrase is still refused (database tests).
+- [x] The operator's site page lists where published content breaks the guide, and says when it all fits.
+- [x] A build the builder lost starts again on the next refresh, once, and the draft becomes previewable when it succeeds (database test, from the repro file).
+- [x] A lock added after a draft was saved refuses that draft's publish, and the draft is marked failed with the reason (database test, from the repro file).
+- [x] `e47-repro.db.test.ts.txt` is gone; build, lint, and the suite pass.
 
 ## 5. Decisions
 
@@ -86,6 +86,7 @@ None.
 ## 8. Progress log
 
 - 2026-11-24: Drafted from the ROADMAP brief and a read of the tool layer, the builder client, and the builder's build route.
+- 2026-11-24: Built. Each fix has a test in `site-tools.db.test.ts`, and each test was run with its fix taken out and failed. Lint, the build, and the suite (585 tests) pass in the dev container. The Site guide card was checked headless on `localhost:3006` as a throwaway operator: the local canopyds site reads "Published content fits the guide.", and the list was looked at with two sample problems put in by hand and taken out again. Nothing pushed.
 
 ## 9. Docs this makes stale
 
